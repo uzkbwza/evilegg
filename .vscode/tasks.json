@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // {
+        //     "label": "Watch Assets",
+        //     "type": "shell",
+        //     "command": "lua tools/indexer.lua",
+        //     "isBackground": true,
+        //     "runOptions": {
+        //         "runOn": "folderOpen"
+        //     },
+		// 	"problemMatcher": []
+        // }
+    ]
+	
+}

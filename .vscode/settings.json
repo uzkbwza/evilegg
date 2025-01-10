@@ -1,0 +1,57 @@
+{
+
+
+	"Lua.workspace.library": [
+		"${3rd}/love2d/library",
+		"lib"
+	],
+	"Lua.runtime.version": "LuaJIT",
+	"Lua.workspace.checkThirdParty": false,
+	"Lua.diagnostics.globals": [
+		"dbg",
+		"file",
+		"render",
+		"game",
+		"conf",
+		"filesystem",
+		"input",
+		"effects",
+		"easing",
+		"ease",
+		"seconds",
+		"graphics",
+		"palette",
+		"rng",
+		"textures",
+		"gametime",
+		"global_input",
+		"usersettings",
+		"audio",
+		"global_state",
+		"tilesets",
+		"nativefs",
+		"binser",
+		"signal",
+		"bonglewunch",
+		"smart_array",
+		"array",
+		"makelist",
+		"game_screens",
+		"start_screen",
+		"to_layer_bit",
+		"tickrate",
+		"one_millisecond",
+		"one_second",
+		"one_minute",
+		"one_hour",
+		"one_day",
+		"one_week",
+		"one_month",
+		"one_year",
+		"main_screen"
+	],
+	"Lua.diagnostics.disable": [
+		"undefined-field"
+	],
+
+}

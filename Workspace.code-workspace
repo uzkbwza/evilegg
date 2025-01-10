@@ -1,0 +1,19 @@
+{
+
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.formatOnType": true,
+		"[commonlisp]": {
+			"editor.wordSeparators": "`|;:'\",()"
+		},
+		"Lua.codeLens.enable": true,
+		"cursor.aipreview.enabled": true,
+		"launches": {
+			"BuildAssets": "BuildAssets"
+		}
+	}
+}
