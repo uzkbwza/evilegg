@@ -1,29 +1,26 @@
 ---@class GameObject : Object
 local GameObject = Object:extend("GameObject")
-local SoundPool = require("lib.sound")
+
+---@class GameObject2D : GameObject
+local GameObject2D = GameObject:extend("GameObject2D")
+
+---@class GameObject3D : GameObject
+local GameObject3D = GameObject:extend("GameObject3D")
+
 
 GameObject.DEFAULT_DRAW_CULL_DIST = 32
+GameObject.id_counter = 1
+GameObject.id_to_object = {}
 
-function GameObject:new(x, y)
+function GameObject:new()
 
 	self:add_signal("destroyed")
-    self:add_signal("moved")
 	self:add_signal("update_changed")
     self:add_signal("visibility_changed")
 
-	if x then
-		if type(x) == "table" then
-			self.pos = Vec2(x.x, x.y)
-		else
-			self.pos = Vec2(x, y)
-		end
-	else
-		self.pos = Vec2(0, 0)
-	end
+	self.id = GameObject.new_id()
+	GameObject.id_to_object[self.id] = self
 
-	self.rot = 0
-	self.scale = Vec2(1, 1)
-	
 	self._update_functions = nil
 	self._draw_functions = nil
 	
@@ -35,56 +32,99 @@ function GameObject:new(x, y)
 	
 	self.static = false
 		
-	self.z_pos = 0
-
+	self.zindex = 0
 end
 
-function GameObject:get_draw_rect(get_draw_pos)
-    local cull_dist = self.draw_cull_dist or GameObject.DEFAULT_DRAW_CULL_DIST
-	local posx, posy = get_draw_pos(self)
-	return posx - cull_dist / 2, posy - cull_dist / 2, cull_dist, cull_dist
+function GameObject.new_id()
+    local id = GameObject.id_counter
+    GameObject.id_counter = id + 1
+    return id
 end
 
 function GameObject:on_moved()
-	-- self.moved:emit()
+    -- self.moved:emit()
     if self._move_functions then
         for _, v in ipairs(self._move_functions) do
             v(self)
         end
     end
-	self:emit_signal("moved")
+    self:emit_signal("moved")
 end
 
 function GameObject.dummy() end
 
-
--- references to other objects, automatically unrefs when object is destroyed
+-- safe, "weak" references to other objects, automatically unrefs when object is destroyed
 function GameObject:ref(name, object)
-    if object == self[name] then return end
-    if self[name] then
-        self:unref(name)
-    end
-    self[name] = object
-    signal.connect(object, "destroyed", self, "on_ref_destroyed", function() self[name] = nil end, true)
+	if object == self[name] then return end
+	if self[name] then
+		self:unref(name)
+	end
+	self[name] = object
+	signal.connect(object, "destroyed", self, "on_ref_destroyed", function() self[name] = nil end, true)
 	return object
+end
+
+function GameObject:ref_to_table(name, object, tab)
+	if object == tab[name] then return end
+	if tab[name] then
+		self:unref(name)
+	end
+
+	self[name] = object
+	signal.connect(object, "destroyed", self, "on_table_ref_destroyed", function() tab[name] = nil end, true)
+	return object
+end
+
+function GameObject:unref_from_table(name, tab)
+	signal.disconnect(tab[name], "destroyed", self, "on_table_ref_destroyed")
+
+	if tab[name] then
+		self:unref(name)
+	end
+
+	tab[name] = nil
 end
 
 function GameObject:unref(name)
 	signal.disconnect(self[name], "destroyed", self, "on_ref_destroyed")
+
+
 	self[name] = nil
+end
+
+function GameObject:_update_sequencer(dt)
+    self.sequencer:update(dt)
+end
+
+function GameObject:_update_elapsed_time(dt)
+	self.elapsed = self.elapsed + dt
+end
+
+function GameObject:_update_elapsed_ticks(_dt)
+	self.is_new_tick = false
+	local old = self.tick
+	self.tick = floor(self.elapsed)
+	if self.tick ~= old then
+		self.is_new_tick = true
+	end
+end
+
+function GameObject:tick_pulse(pulse_length, offset)
+	offset = offset or 0
+	return floor(((self.tick + offset) / pulse_length) % 2) == 0
 end
 
 function GameObject:add_sequencer()
 	if self.sequencer then return end
 	assert(self.sequencer == nil, "GameObject:add_sequencer() called but sequencer already exists")
 	self.sequencer = Sequencer()
-	self:add_update_function(function(obj, dt) obj.sequencer:update(dt) end)
+	self:add_update_function(self._update_sequencer)
 end
 
 function GameObject:add_elapsed_time()
 	if self.elapsed ~= nil then return end
 	self.elapsed = 1
-	self:add_update_function(function(obj, dt) obj.elapsed = obj.elapsed + dt end)
+	self:add_update_function(self._update_elapsed_time)
 end
 
 function GameObject:add_elapsed_ticks()
@@ -94,15 +134,7 @@ function GameObject:add_elapsed_ticks()
 		self:add_elapsed_time()
 	end
 	self.tick = 1
-	self:add_update_function(
-        function(obj, dt)
-			self.is_new_tick = false
-			local old = obj.tick
-            obj.tick = floor(obj.elapsed)
-			if obj.tick ~= old then
-				self.is_new_tick = true
-			end
-	end)
+	self:add_update_function(self._update_elapsed_ticks)
 end
 
 function GameObject:add_update_function(func)
@@ -111,6 +143,21 @@ function GameObject:add_update_function(func)
 	end
 	table.insert(self._update_functions, func)
 end
+
+function GameObject:add_enter_function(func)
+	if self._enter_functions == nil then
+		self._enter_functions = {}
+	end
+	table.insert(self._enter_functions, func)
+end
+
+function GameObject:add_exit_function(func)
+	if self._exit_functions == nil then
+		self._exit_functions = {}
+	end
+	table.insert(self._exit_functions, func)
+end
+
 
 function GameObject:add_draw_function(func)
 	if self._draw_functions == nil then
@@ -143,8 +190,10 @@ function GameObject:defer(func, ...)
 	error(tostring(self) .. ":defer() called but no deferred function target found")
 end
 
+		
 -- does not affect transform, only world traversal
 function GameObject:add_child(child)
+
     if self.children == nil then
         self.children = {}
         self:add_update_function(GameObject.update_children)
@@ -178,32 +227,76 @@ function GameObject:queue_destroy()
 	self:defer(self.destroy)
 end
 
-function GameObject:timer_running(name)
+function GameObject:is_timer_running(name)
     return self.timers and self.timers[name] ~= nil
+end
+
+function GameObject:is_tick_timer_running(name)
+    return self.tick_timers and self.tick_timers[name] ~= nil
+end
+
+function GameObject:timer_time_left(name)
+    return (self.timers and self.timers[name] and self.timers[name].duration - self.timers[name].elapsed) or nil
+end
+
+function GameObject:tick_timer_time_left(name)
+    return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
 end
 
 function GameObject:stop_timer(name)
 	self.timers[name] = nil
 end
 
-function GameObject:start_timer(name, duration, callback)
-    if callback == nil and type(name) == "number" then
-		callback = duration
-        duration = name
-        name = self.timers and #self.timers + 1 or 1
+function GameObject:stop_tick_timer(name)
+	self.tick_timers[name] = nil
+end
+
+function GameObject:start_tick_timer(name, duration, callback)
+	name = name or (self.tick_timers and #self.tick_timers + 1 or 1)
+
+    if self.tick_timers == nil then
+        self.tick_timers = {}
+        self:add_update_function(function(obj, dt)
+			if obj.tick_timers == nil then return end
+            for k, v in pairs(obj.tick_timers) do
+			if self.is_new_tick then
+				v.elapsed = v.elapsed + 1
+			end
+			if v.elapsed >= v.duration then
+				obj.tick_timers[k] = nil
+				if v.callback then
+					v.callback()
+				end
+			end
+            end
+        end)
+    end
+    if self.tick_timers[name] then
+		self:stop_tick_timer(name)
 	end
-	
+	self.tick_timers[name] = {
+		duration = duration,
+		elapsed = 0,
+		callback = callback
+	}
+end
+
+
+function GameObject:start_timer(name, duration, callback)
+	name = name or (self.timers and #self.timers + 1 or 1)
+
     if self.timers == nil then
         self.timers = {}
         self:add_update_function(function(obj, dt)
+			if obj.timers == nil then return end
             for k, v in pairs(obj.timers) do
-                v.elapsed = v.elapsed + dt
-                if v.elapsed >= v.duration then
-					obj.timers[k] = nil
-                    if v.callback then
-                        v.callback(obj)
-                    end
-                end
+			v.elapsed = v.elapsed + dt
+			if v.elapsed >= v.duration then
+				obj.timers[k] = nil
+				if v.callback then
+					v.callback()
+				end
+			end
             end
         end)
     end
@@ -215,6 +308,10 @@ function GameObject:start_timer(name, duration, callback)
 		elapsed = 0,
 		callback = callback
 	}
+end
+
+function GameObject:start_destroy_timer(duration)
+	self:start_timer("destroy_timer", duration, function() self:queue_destroy() end)
 end
 
 function GameObject:add_to_spatial_grid(grid, func)
@@ -230,6 +327,15 @@ function GameObject:spawn_object(obj)
 
 	self:defer(function() world:add_object(obj) end)
 	-- self.world:add_object(obj)
+	return obj
+end
+
+function GameObject:spawn_object_relative(obj, rel_x, rel_y)
+	rel_x, rel_y = rel_x or 0, rel_y or 0
+	local world = self.world
+	local pos = self.pos
+	obj:move_to(pos.x + rel_x, pos.y + rel_y)
+    self:spawn_object(obj)
 	return obj
 end
 
@@ -334,47 +440,6 @@ end
 function GameObject:process_collision(col)
 end
 
-function GameObject:move_toward(x, y, speed)
-	local dx, dy = x - self.pos.x, y - self.pos.y
-	local dist = sqrt(dx * dx + dy * dy)
-	if dist < speed then
-		self:move_to(x, y)
-	else
-		self:move(dx / dist * speed, dy / dist * speed)
-	end
-end
-	
-
----@diagnostic disable-next-line: duplicate-set-field
-function GameObject:move_to(x, y)
-	local old_x = self.pos.x
-	local old_y = self.pos.y
-
-	self.pos.x = x
-	self.pos.y = y
-
-	if old_x ~= self.pos.x or old_y ~= self.pos.y then
-		self:on_moved()
-	end
-end
-
-function GameObject:movev_to(v)
-	self:move_to(v.x, v.y)
-end
-
-function GameObject:tp(x, y, ...)
-    self:move_to(self.pos.x + x, self.pos.y + y, nil, true, ...)
-end
-
-function GameObject:tp_to(x, y, ...)
-	-- old method from when interpolation was used
-	self:move_to(x, y, nil, true, ...)
-end
-
-function GameObject:tpv_to(v)
-	self:tp_to(v.x, v.y)
-end
-
 
 function GameObject:set_update(on)
 	self.static = not on
@@ -384,27 +449,18 @@ end
 function GameObject:update(dt, ...)
 end
 
-function GameObject:graphics_transform(translate_offs_x, translate_offs_y)
-    translate_offs_x = translate_offs_x or 0
-	translate_offs_y = translate_offs_y or 0
-	-- using the api here directly because it's faster
-	local pos = self.pos
-    local scale = self.scale
-
-	-- love.graphics.translate(pos.x + translate_offs_x, pos.y + self.z_pos + translate_offs_y)
-	love.graphics.translate(round(pos.x + translate_offs_x), round(pos.y + self.z_pos + translate_offs_y))
-	love.graphics.rotate(self.rot)
-	love.graphics.scale(scale.x, scale.y)
-	love.graphics.setColor(1, 1, 1, 1)
+function GameObject:local_draw()
+	graphics.translate(self.pos.x, self.pos.y)
 end
 
 function GameObject:draw_shared(...)
 
-	love.graphics.push()
-	
+    love.graphics.push()
+		
 	local offsx, offsy = self:get_draw_offset()
-	self:graphics_transform(offsx, offsy)
-    
+
+	love.graphics.translate(offsx, offsy)
+	love.graphics.setColor(1, 1, 1, 1)
 
 	if self._draw_functions then
 		for _, func in ipairs(self._draw_functions) do
@@ -419,9 +475,7 @@ end
 
 function GameObject:debug_draw_shared(...)
 	love.graphics.push()
-
-	self:graphics_transform()
-
+	
 	if self.debug_draw then self:debug_draw(...) end
 
 	love.graphics.pop()
@@ -430,7 +484,7 @@ end
 function GameObject:debug_draw_bounds_shared()
 	love.graphics.push()
 
-	love.graphics.translate(self.pos.x, self.pos.y + self.z_pos)
+	love.graphics.translate(self.pos.x, self.pos.y + self.zindex)
 	
 	if self.collision_rect then
 		local offset_x, offset_y = self:get_collision_rect_offset()
@@ -491,16 +545,29 @@ function GameObject:add_sfx(sfx_name, volume, pitch, loop, relative)
 	return src
 end
 
+-- function GameObject:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
+--     local t = self.sfx[sfx_name]
+--     -- local relative = t.src:isRelative()
+--     t.src:stop()
+--     -- x = x or (relative and (0) or self.pos.x)
+--     -- y = y or (relative and (0) or self.pos.y)
+--     -- if self.pos.z then
+--     -- 	z = self.pos.z
+--     -- else
+--     -- 	z = z or (relative and (audio.default_zindex) or self.zindex + audio.default_zindex)
+--     -- end
+--     -- audio.set_src_position(t.src, x, y, z)
+--     -- t.src:setPosition(x, y, z)
+--     audio.play_sfx(t.src, volume or t.volume, pitch or t.pitch, loop or t.loop)
+-- end
+
 function GameObject:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
-    local t = self.sfx[sfx_name]
-    -- local relative = t.src:isRelative()
-    t.src:stop()
-    -- x = x or (relative and (0) or self.pos.x)
-    -- y = y or (relative and (0) or self.pos.y)
-    -- z = z or (relative and (audio.default_z_pos) or self.z_pos + audio.default_z_pos)
-    -- audio.set_src_position(t.src, x, y, z)
-    -- t.src:setPosition(x, y, z)
-    audio.play_sfx(t.src, volume or t.volume, pitch or t.pitch, loop or t.loop)
+	audio.play_sfx_object(self, sfx_name, volume, pitch, loop)
+    -- audio.play_sfx_monophonic(sfx_name, volume, pitch, loop)
+end
+
+function GameObject:play_world_sfx(sfx_name, volume, pitch, loop, x, y, z)
+	self.world:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
 end
 
 function GameObject:get_sfx(sfx_name)
@@ -508,14 +575,15 @@ function GameObject:get_sfx(sfx_name)
 end
 
 function GameObject:stop_sfx(sfx_name)
-	self.sfx[sfx_name].src:stop()
+	audio.stop_sfx_object(self, sfx_name)
+	-- self.sfx[sfx_name].src:stop()
 end
 
 local destroyed_index_func = function(t, k)
 	if t == "is_destroyed" then
 		return true
 	end
-	error("attempt to access variable of destroyed object")
+	error("attempt to access variable of destroyed object", 2)
 end
 
 function GameObject:destroy()
@@ -528,20 +596,22 @@ function GameObject:destroy()
             v:destroy()
         end
     end
-	if self.sfx then
-		for _, t in pairs(self.sfx) do
-			t.src:stop()
-			t.src:release()
-		end
-	end
+    if self.sfx then
+        for _, t in pairs(self.sfx) do
+            t.src:stop()
+            t.src:release()
+        end
+    end
 
 	self.is_destroyed = true
 	self:exit_shared()
-	if self.sequencer then
-		self.sequencer:destroy()
-	end
+    if self.sequencer then
+        self.sequencer:destroy()
+    end
     self:emit_signal("destroyed", self)
-    signal.cleanup(self)
+    
+	GameObject.id_to_object[self.id] = nil
+	signal.cleanup(self)
 
 	-- nuclear debugging
     if debug.enabled then
@@ -570,8 +640,12 @@ function GameObject:clear_signals()
 end
 
 function GameObject:enter_shared()
-
-	self:enter()
+	if self._enter_functions then
+		for _, func in ipairs(self._enter_functions) do
+			func(self)
+		end
+	end
+    self:enter()
 end
 
 function GameObject:get_objects_with_tag(tag)
@@ -602,10 +676,21 @@ function GameObject:enter() end
 
 function GameObject:exit_shared()
     self:exit()
+	if self._exit_functions then
+		for _, func in ipairs(self._exit_functions) do
+			func(self)
+		end
+	end
+end
+
+function GameObject:dp()
+	-- get the draw position from the world
+    return self.world:get_object_draw_position(self)
 end
 
 function GameObject:to_local(pos_x, pos_y)
 	return pos_x - self.pos.x, pos_y - self.pos.y
+
 end
 
 function GameObject:to_global(pos_x, pos_y)
@@ -627,4 +712,24 @@ end
 
 function GameObject:exit() end
 
-return GameObject
+local mix2D = Mixins.Behavior.Object2D
+local mix3D = Mixins.Behavior.Object3D
+
+GameObject2D:implement(mix2D)
+GameObject3D:implement(mix3D)
+
+function GameObject2D:new(x, y)
+	GameObject.new(self)
+	self:mix_init(mix2D, x, y)
+end
+
+function GameObject3D:new(x, y, z)
+	GameObject.new(self)
+	self:mix_init(mix3D, x, y, z)
+end
+
+return {
+	GameObject = GameObject,
+	GameObject2D = GameObject2D,
+	GameObject3D = GameObject3D,
+}

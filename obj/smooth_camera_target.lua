@@ -16,8 +16,8 @@ function SmoothCameraTarget:update(dt)
 end
 
 function SmoothCameraTarget:draw()
-	-- graphics.rectangle("fill", -self.collision_rect.width/2, -self.collision_rect.height/2, self.collision_rect.width, self.collision_rect.height)
 	if debug.can_draw() then
+		-- graphics.rectangle("fill", -self.collision_rect.width/2, -self.collision_rect.height/2, self.collision_rect.width, self.collision_rect.height)
 		graphics.set_color(1, 0, 1, 1)
 		graphics.circle("line", 0, 0, 4)
 	end

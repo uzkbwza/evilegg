@@ -3,7 +3,8 @@
 ---@field listeners table<table, table<table, table<string|number, table<string|number, {func: function, oneshot: boolean}>>>>>
 local signal = {
     emitters = {},
-    listeners = {},
+	listeners = {},
+	unnamed_connection_ids = {},
 }
 
 ---@param t table
@@ -79,19 +80,33 @@ end
 ---@param emitter table
 ---@param signal_id string | number
 ---@param listener table
----@param connection_id string | number
+---@param connection_id string | number | nil
 ---@param func? function
 ---@param oneshot? boolean
+---@return string | number
 function signal.connect(emitter, signal_id, listener, connection_id, func, oneshot)
     assert(type(emitter) == "table", "emitter is not a table")
     assert(type(listener) == "table", "listener is not a table")
+
     local signal_id_type = type(signal_id)
-    local connection_id_type = type(connection_id)
+	local connection_id_type = type(connection_id)
+	
+	if connection_id == nil then
+
+		connection_id = rng.randi(0, 1000000000)
+		while signal.unnamed_connection_ids[connection_id] do
+			connection_id = rng.randi(0, 1000000000)
+		end
+
+		signal.unnamed_connection_ids[connection_id] = true
+	end
+	
+
     assert(signal_id_type == "string" or signal_id_type == "number", "signal_id is not a string or number")
     assert(connection_id_type == "string" or connection_id_type == "number", "connection_id is not a string or number")
-
     assert(emitter ~= nil, "emitter is nil")
     assert(listener ~= nil, "listener is nil")
+
 
     if oneshot == nil then oneshot = false end
     
@@ -121,7 +136,8 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
     lis[connection_id] = {
         func = func,
         oneshot = oneshot,
-    }
+	}
+	return connection_id
 end
 
 ---@param emitter table
@@ -162,9 +178,23 @@ function signal.disconnect(emitter, signal_id, listener, connection_id)
         end
     end
 
-    if is_empty(lis) then
-        signal.listeners[listener] = nil
-    end
+	if is_empty(lis) then
+		signal.listeners[listener] = nil
+	end
+
+	signal.unnamed_connection_ids[connection_id] = nil
+end
+
+---@param emitter table
+---@param signal_id string | number
+---@param listener table
+---@param connection_id string | number
+---@return boolean
+function signal.is_connected(emitter, signal_id, listener, connection_id)
+	local sig = signal.get(emitter, signal_id)
+    if sig == nil then return false end
+	if sig.listeners[listener] == nil then return false end
+	return sig.listeners[listener][connection_id] ~= nil
 end
 
 ---@param emitter table

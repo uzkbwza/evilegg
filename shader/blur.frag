@@ -2,9 +2,6 @@ uniform vec2 viewport_size;
 uniform vec2 canvas_size;
 uniform vec2 canvas_pos;
 
-uniform float rgb_amount = 0.15;
-uniform float rgb_brightness = 4.55;
-
 // New uniforms for the pre-aberration blur
 uniform float pre_blur_size = 0.08;           // Controls the pre-aberration blur size
 uniform int pre_blur_samples = 7;            // Controls the number of samples in the pre-aberration blur

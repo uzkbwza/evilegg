@@ -1,0 +1,107 @@
+local BasePlayerBullet = GameObject2D:extend("BasePlayerBullet")
+local BasePlayerBulletDieFx = Effect:extend("BasePlayerBulletDieFx")
+
+local TwinStickNormalBullet = Mixins.Behavior.TwinStickNormalBullet
+
+BasePlayerBullet:implement(TwinStickNormalBullet)
+BasePlayerBullet.death_spawns = {}
+
+function BasePlayerBullet:new(x, y)
+	BasePlayerBullet.super.new(self, x, y)
+	self.radius = self.radius or 3
+	self:mix_init(TwinStickNormalBullet)
+	self.speed = 6
+	self:add_elapsed_ticks()
+	self.sprite = textures.bullet_player_base
+	self.distance_travelled = 0
+	self.start_palette_offset = gametime.tick * 4
+    self.hit_vel_multip = 16
+	self.push_modifier = 0.75
+	self.damage = 0.5
+end
+
+function BasePlayerBullet:draw()
+    local palette_offset = floor((self.tick)) / 4
+    if floor(self.tick/2) % 2 == 0 then
+		palette_offset = palette_offset + 5
+	end
+    local trail_dist = 4
+    local max_bullets = 10
+    local num_trail_bullets = min(max(floor(self.distance_travelled / trail_dist), 1), max_bullets)
+    for i = num_trail_bullets - 1, 0, -1 do
+		local x, y = self.direction.x * -i * trail_dist, self.direction.y * -i * trail_dist
+        if self.dead_position then
+			local x_global, y_global = self:to_global(x, y)
+            local dx, dy = x_global - self.dead_position.x, y_global - self.dead_position.y
+			if vec2_dot(dx, dy, self.direction.x, self.direction.y) > 0 then
+				break
+			end
+		end
+		local color = Palette.rainbow:tick_color(self.start_palette_offset + palette_offset + i)
+        local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2)
+		-- if self.dead then
+		-- 	scale = pow(scale, 2)
+		-- end
+		graphics.set_color(color)
+		graphics.draw_centered(self.sprite, x, y, 0, scale, scale)
+	end
+end
+
+function BasePlayerBullet:enter()
+	self:spawn_object_relative(BasePlayerBulletDieFx())
+end
+
+function BasePlayerBullet:die()
+	self.dead_position = self.pos:clone()
+	self:start_destroy_timer(30)
+    self:spawn_object_relative(BasePlayerBulletDieFx())
+end
+
+function BasePlayerBullet:get_death_particle_hit_velocity()
+	return self.direction.x * self.hit_vel_multip, self.direction.y * self.hit_vel_multip
+end
+
+function BasePlayerBullet:update(dt)
+	local move_x, move_y = self.direction.x * dt * self.speed, self.direction.y * dt * self.speed
+	if self.dead then
+		move_x = move_x * 0.45
+		move_y = move_y * 0.45
+	end
+	self.distance_travelled = self.distance_travelled + vec2_magnitude(move_x, move_y)
+	self:move(move_x, move_y)
+
+	if not self.dead then
+		self:try_hit_nearby_enemies()
+	end
+end
+
+function BasePlayerBullet:on_hit_something(parent, bubble)
+    -- self:spawn_object_relative(BasePlayerBulletDieFx())
+	self:play_sfx("player_bullethit", 0.8)
+
+	self:try_push(parent, self.push_modifier)
+end
+
+function BasePlayerBullet:on_hit_objects_this_frame()
+	if not self:is_timer_running("stop_hitting") then
+		self:start_timer("stop_hitting", 1, function()
+			self:die()
+		end)
+	end
+end
+
+function BasePlayerBulletDieFx:new(x, y)
+
+	BasePlayerBulletDieFx.super.new(self, x, y)
+
+	self.z_index = 1
+	self.duration = 4
+end
+
+function BasePlayerBulletDieFx:draw(elapsed, tick, t)
+	graphics.set_color(Palette.rainbow:tick_color(self.world.tick * 4))
+	graphics.rectangle("fill", -4, -4, 8,8)
+end
+
+
+return BasePlayerBullet

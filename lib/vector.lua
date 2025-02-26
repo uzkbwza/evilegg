@@ -7,7 +7,7 @@ function Vec2:new(x, y)
 end
 
 function Vec2.__add(a, b)
-	if type(a) == "number" then
+if type(a) == "number" then
 		return Vec2(b.x + a, b.y + a)
 	elseif type(b) == "number" then
 		return Vec2(a.x + b, a.y + b)
@@ -96,8 +96,13 @@ function Vec2:direction_to(b)
 	return (b - self):normalized()
 end
 
+function Vec2:splerp_in_place(b, delta, half_life)
+	self.x, self.y = splerp_vec_unpacked(self.x, self.y, b.x, b.y, delta, half_life)
+end
+
 function Vec2:lerp(b, t)
 	return self + (b - self) * t
+
 end
 
 function Vec2:project(b)
@@ -147,6 +152,14 @@ function Vec2.from_polar(r, theta)
     local x = r * math.cos(theta)
     local y = r * math.sin(theta)
     return Vec2(x, y)
+end
+
+function Vec2:limit_length(max)
+	local mag = self:magnitude()
+	if mag > max then
+		self:normalize_in_place()
+		self:mul_in_place(max)
+	end
 end
 
 -- vec3
@@ -552,8 +565,13 @@ function vec2_magnitude(x, y)
     return math.sqrt(x * x + y * y)
 end
 
+function vec2_magnitude_squared(x, y)
+    return x * x + y * y
+end
+
 function vec2_magnitude_table(a)
     return math.sqrt(a.x * a.x + a.y * a.y)
+
 end
 
 function vec2_approach(x1, y1, x2, y2, delta)
@@ -573,13 +591,13 @@ function vec2_normalized_table(a)
     return a.x / mag, a.y / mag
 end
 
-function vec2_distance_to(x1, y1, x2, y2)
+function vec2_distance(x1, y1, x2, y2)
     local dx = x1 - x2
     local dy = y1 - y2
     return math.sqrt(dx * dx + dy * dy)
 end
 
-function vec2_distance_to_table(a, b)
+function vec2_distance_table(a, b)
     local dx = a.x - b.x
     local dy = a.y - b.y
     return math.sqrt(dx * dx + dy * dy)
@@ -675,10 +693,14 @@ function vec2_distance_squared_table(a, b)
     return dx * dx + dy * dy
 end
 
-function vec2_snap_angle(x, y, step)
+function vec2_snap_angle(x, y, step, offset)
     local angle = vec2_angle(x, y)
-	local magnitude = vec2_magnitude(x, y)
-	return vec2_from_polar(magnitude, step * math.floor((angle + step / 2) / step))
+    local magnitude = vec2_magnitude(x, y)
+    -- step = TAU / step
+    local step_size = tau / step
+	local new_angle = stepify_offset(angle, step_size, offset or 0)
+	local new_x, new_y = vec2_from_polar(magnitude, new_angle)
+	return new_x, new_y
 end
 
 function vec2_to_polar(x, y)
@@ -702,6 +724,18 @@ function vec2_from_polar_table(r, theta)
     local x = r * math.cos(theta)
     local y = r * math.sin(theta)
     return { x = x, y = y }
+end
+
+function vec2_clamp(x, y, min, max)
+	local magnitude = vec2_magnitude(x, y)
+    if magnitude < min then
+		local normalized_x, normalized_y = vec2_normalized(x, y)
+		return normalized_x * min, normalized_y * min
+	elseif magnitude > max then
+		local normalized_x, normalized_y = vec2_normalized(x, y)
+		return normalized_x * max, normalized_y * max
+	end
+	return x, y
 end
 
 -- Vec3 Functions

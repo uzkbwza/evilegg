@@ -53,23 +53,120 @@ function rng.random_vec2()
 	return angle_to_vec2_unpacked(rng.random_angle())
 end
 
+function rng.random_vec2_times(radius)
+	local x, y = rng.random_vec2()
+	return x * radius, y * radius
+end
+
 function rng.choose(...)
-	local args = {...}
-	if #args == 1 and type(args[1]) == "table" then
-		return args[1][random(1, #args[1])]
-	else
-		return args[random(1, #args)]
+    local args = { ... }
+    if #args == 1 and type(args[1]) == "table" then
+        return args[1][random(1, #args[1])]
+    else
+        return args[random(1, #args)]
+    end
+end
+
+local weight_table = {}
+
+function rng.weighted_randi_range(start, finish, weight_function)
+    if start == finish then
+        return start
+    end
+    local sum = 0
+
+	table.clear(weight_table)
+
+    local temp_start, temp_finish = start, finish
+	start, finish = min(temp_start, temp_finish), max(temp_start, temp_finish)
+
+	
+	for i=start, finish do 
+		local weight = weight_function(i)
+		weight_table[i - start] = weight
+		sum = sum + weight
 	end
+
+	local cursor = 0
+	
+	local target = rng.randi_range(0, sum)
+	
+	for i=start, finish do
+		cursor = cursor + weight_table[i - start]
+        if cursor >= target then
+			return i
+		end
+	end
+
+	return 0
+end
+
+
+local _temp_weight_table = nil
+
+local function _array_index(i)
+	return round(_temp_weight_table[i])
+end
+
+
+function rng.weighted_choice_array(values, weights)
+	_temp_weight_table = weights
+	local i = rng.weighted_randi_range(1, #values, _array_index)
+	_temp_weight_table = nil
+	return values[i]
+end
+
+function rng.weighted_choice_dict(weights)
+	local keys, values = table.keys_and_values(weights)
+	return rng.weighted_choice_array(keys, values)
 end
 
 local function _meta_call_random(table, min, max)
-	return random(min, max)
+    return random(min, max)
 end
+
+
+local _8_WAY_DIRECTIONS = {
+	{1, 0},
+	{-1, 0},
+	{0, 1},
+	{0, -1},
+	{1, 1},
+	{-1, -1},
+	{1, -1},
+	{-1, 1},
+}
+
+local _4_WAY_DIRECTIONS = {
+	{1, 0},
+	{-1, 0},
+	{0, 1},
+	{0, -1},
+}
+
+local DIAGONAL_DIRECTIONS = {
+	{1, 1},
+	{-1, -1},
+	{1, -1},
+	{-1, 1},
+}
+function rng.random_8_way_direction()
+	return unpack(_8_WAY_DIRECTIONS[random(1, #_8_WAY_DIRECTIONS)])
+end
+
+function rng.random_4_way_direction()
+	return unpack(_4_WAY_DIRECTIONS[random(1, #_4_WAY_DIRECTIONS)])
+end
+
+function rng.random_diagonal_direction()
+	return unpack(DIAGONAL_DIRECTIONS[random(1, #DIAGONAL_DIRECTIONS)])
+end
+
 
 local mt = {
 	__call = _meta_call_random
+	
 }
-
 setmetatable(rng, mt)
 
 

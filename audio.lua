@@ -5,7 +5,9 @@ local audio = {
     sfx_volume = 1.0,
     music_volume = 1.0,
     default_rolloff = 0.0001,
-	default_z_pos = 0
+    default_zindex = 0,
+    sound_objects = {},
+	object_sounds = {},
 }
 
 audio = setmetatable(audio, { __index = love.audio })
@@ -14,40 +16,147 @@ audio = setmetatable(audio, { __index = love.audio })
 
 function audio.load()
     local sfx = {}
-	local music = {}
+    local music = {}
     audio.sfx = sfx
-	audio.music = music
-	
+    audio.music = music
+
     local wav_paths = filesystem.get_files_of_type("assets/audio", "wav", true)
     local ogg_paths = filesystem.get_files_of_type("assets/audio", "ogg", true)
-	
-    for _, v in ipairs(wav_paths) do
 
+    for _, v in ipairs(wav_paths) do
         local sound = audio.newSource(v, "static")
         local name = filesystem.filename_to_asset_name(v, "wav", "audio_")
+        if sfx[name] then
+            asset_collision_error(name, v, wav_paths[name])
+        end
         sfx[name] = sound
     end
-	
+
+
     for _, v in ipairs(ogg_paths) do
         local sound = audio.newSource(v, "stream")
         local name = filesystem.filename_to_asset_name(v, "ogg", "audio_")
+        if music[name] then
+            asset_collision_error(name, v, ogg_paths[name])
+        end
         music[name] = sound
     end
 end
 
-function audio.set_position(x, y, z)
-	-- love.audio.set_position(x, y, z or audio.default_z_pos)
+function audio.update(dt)
+    for src_name, objects in pairs(audio.sound_objects) do
+		local src = audio.get_global_sfx(src_name)
+        if not src:isPlaying() then
+            for object, _ in pairs(objects) do
+                audio.remove_object_sound(object, src_name)
+            end
+        end
+    end
+    if debug.enabled then
+		dbg("audio.object_sounds", table.length(audio.sound_objects))
+	end
 end
 
+function audio.set_position(x, y, z)
+    -- love.audio.set_position(x, y, z or audio.default_zindex)
+end
+
+function audio.play_sfx_monophonic(name, volume, pitch, loop)
+    local src = audio.get_global_sfx(name)
+    audio.play_sfx(src, volume, pitch, loop)
+end
+
+function audio.stop_sfx_monophonic(name)
+    local src = audio.get_global_sfx(name)
+    audio.stop_sfx(src)
+end
+
+
 function audio.play_sfx(src, volume, pitch, loop)
-	if src:isPlaying() then
-		src:stop()
-	end
-	if loop == nil then loop = false end
+    if src:isPlaying() then
+        src:stop()
+    end
+    if loop == nil then loop = false end
     src:setVolume(volume and (volume * audio.sfx_volume) or audio.sfx_volume)
     src:setPitch(pitch or 1.0)
-	src:setLooping(loop)
-	src:play()
+    src:setLooping(loop)
+    src:play()
+end
+
+function audio.stop_sfx(src)
+    src:stop()
+end
+
+function audio.cleanup_sound_objects(src_name)
+	for object, _ in pairs(audio.sound_objects[src_name]) do
+		audio.sound_objects[src_name][object] = nil
+	end
+end
+
+function audio.play_sfx_object(object, src_name, volume, pitch, loop)
+	local src = audio.get_global_sfx(src_name)
+
+    if not audio.sound_objects[src_name] then
+        audio.sound_objects[src_name] = {}
+    end
+	audio.object_sounds[object] = audio.object_sounds[object] or {}
+    audio.sound_objects[src_name][object] = true
+    audio.object_sounds[object][src_name] = true
+    if not signal.is_connected(object, "destroyed", audio, "cleanup_object") then
+        signal.connect(object, "destroyed", audio, "cleanup_object", function()
+            audio.cleanup_object(object)
+        end)
+    end
+	audio.play_sfx(src, volume, pitch, loop)
+end
+
+function audio.cleanup_object(object)
+	if audio.object_sounds[object] then
+		for src, _ in pairs(audio.object_sounds[object]) do
+			audio.remove_object_sound(object, src)
+		end
+	end
+end
+
+function audio.remove_object_sound(object, src_name)
+    if audio.object_sounds[object] then
+        if audio.object_sounds[object][src_name] then
+            audio.object_sounds[object][src_name] = nil
+        end
+    end
+	if audio.sound_objects[src_name] then
+		if audio.sound_objects[src_name][object] then
+            audio.sound_objects[src_name][object] = nil
+		end
+	end
+    if audio.object_sounds[object] and table.is_empty(audio.object_sounds[object]) then
+        audio.object_sounds[object] = nil
+    end
+	if audio.sound_objects[src_name] and table.is_empty(audio.sound_objects[src_name]) then
+		audio.sound_objects[src_name] = nil
+	end
+end
+
+function audio.stop_sfx_object(object, src_name)
+    audio.remove_object_sound(object, src_name)
+    if (audio.sound_objects[src_name] == nil) then
+		audio.stop_sfx_monophonic(src_name)
+	end
+end
+
+
+function audio.get_global_sfx(name)
+    if not audio.sfx[name] then
+        error("SFX not found: " .. name)
+    end
+    return audio.sfx[name]
+end
+
+function audio.get_music(name)
+    if not audio.music[name] then
+        error("Music not found: " .. name)
+    end
+    return audio.music[name]
 end
 
 function audio.get_sfx(name)
@@ -58,6 +167,9 @@ function audio.get_sfx(name)
 end
 
 function audio.play_music(src, volume)
+	if type(src) == "string" then
+		src = audio.get_music(src)
+	end
 	audio.stop_music()
     src:setVolume(volume and (volume * audio.music_volume) or audio.music_volume)
     src:setLooping(true)

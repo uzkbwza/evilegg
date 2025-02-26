@@ -1,18 +1,13 @@
-local GameObject = require("obj.game_object")
-
 ---@class CanvasLayer : GameObject
-local CanvasLayer = GameObject:extend("CanvasLayer")
+local CanvasLayer = GameObject2D:extend("CanvasLayer")
 
 ---Create a new CanvasLayer.
----@param x number|nil # Initial x-position
----@param y number|nil # Initial y-position
 ---@param viewport_size_x number|nil # Viewport width
 ---@param viewport_size_y number|nil # Viewport height
 ---@return CanvasLayer
 function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
-    CanvasLayer.super.new(self, x or 0, y or 0)
+	CanvasLayer.super.new(self, x, y)
 
-    -- Screen properties
     self.blocks_render = false
     self.blocks_input = false
     self.blocks_logic = false
@@ -22,11 +17,16 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
     self.deferred_queue = {}
 
     self.viewport_size = Vec2(viewport_size_x or conf.viewport_size.x, viewport_size_y or conf.viewport_size.y)
-    self.canvas = love.graphics.newCanvas(self.viewport_size.x, self.viewport_size.y)
+    self.canvas = graphics.new_canvas(self.viewport_size.x, self.viewport_size.y)
+    self.canvas_settings = {
+        self.canvas,
+		stencil=true,
+    }
+	
     self.offset = Vec2(0, 0)
     self.zoom = 1
     self.clear_color = Color.from_hex("000000")
-	self.clear_color.a = 0
+	-- self.clear_color.a = 0
     self.interp_fraction = 1
 
     self.parent = nil
@@ -398,16 +398,21 @@ end
 
 ---@param world table
 ---@return table
-function CanvasLayer:add_world(world)
+function CanvasLayer:add_world(world, name)
 	world = world or World()
     table.insert(self.worlds, world)
     world.viewport_size = self.viewport_size
+
     world.canvas_layer = self
     self:bind_destruction(world)
     signal.connect(world, "destroyed", self, "delete_world", function() table.erase(self.worlds, world) end)
     world:enter_shared()
+	if name then
+		self:ref(name, world)
+	end
     return world
 end
+
 
 ---@param dt number
 function CanvasLayer:update_worlds(dt)
@@ -473,10 +478,15 @@ end
 function CanvasLayer:draw_shared()
     graphics.push("all")
     graphics.origin()
-    graphics.set_canvas(self.canvas)
+    graphics.set_canvas(self.canvas_settings)
 
-    if self.clear_color then
-        graphics.clear(self.clear_color.r, self.clear_color.g, self.clear_color.b, self.clear_color.a or 1)
+	if self.clear_color then
+		if self.clear_procedure then
+			self:clear_procedure()
+		else
+			graphics.clear(self.clear_color.r, self.clear_color.g, self.clear_color.b, self.clear_color.a)
+		end
+
     end
 
     graphics.scale(self.zoom, self.zoom)

@@ -1,0 +1,5 @@
+local RoomType = {
+	
+}
+
+return RoomType

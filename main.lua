@@ -1,16 +1,20 @@
+
 conf = require "conf"
 
+require "lib.keyprocess"
 
-Object = require "lib.object"
-table = require "lib.tabley"
-string = require "lib.stringy"
-filesystem = require "filesystem"
-
+function_style_key_process(love)
 debug = require "debuggy"
 
--- if debug.enabled then
--- 	debug.fennel_compile()
--- end
+table = require "lib.tabley"
+Object = require "lib.object"
+
+nativefs = require "lib.nativefs"
+filesystem = require "filesystem"
+
+if conf.use_fennel then
+	require "tools.fennelstart"
+end
 
 require "lib.mathy"
 require "lib.vector"
@@ -31,9 +35,6 @@ require "datastructure.bst2"
 bonglewunch = require "datastructure.bonglewunch"
 makelist = require "datastructure.smart_array"
 
-snakeify_functions_recursive(love)
-
-
 ease = require "lib.ease"
 usersettings = require "usersettings"
 input = require "input"
@@ -42,18 +43,22 @@ gametime = require "time"
 graphics = require "graphics"
 rng = require "lib.rng"
 global_state = {}
-nativefs = require "lib.nativefs"
+
 signal = require "signal"
 audio = require "audio"
 
 require "lib.color"
 
+Mixins = require "mixins"
 tilesets = require "tile.tilesets"
-GameObject = require "obj.game_object"
+
+GameObject = require("obj.game_object").GameObject
+GameObject2D = require("obj.game_object").GameObject2D
+GameObject3D = require("obj.game_object").GameObject3D
+
 GameMap = require "map.GameMap"
-World = require "world.game_world"
+World = require "world.BaseWorld"
 Effect = require "fx.effect"
-Mixins = require "mixins" -- like mixins, but better!
 SpriteSheet = require "lib.spritesheet"
 CanvasLayer = require "screen.CanvasLayer"
 Palette = require "lib.palette"
@@ -62,12 +67,11 @@ local fsm = require "lib.fsm"
 StateMachine = fsm.StateMachine
 State = fsm.State
 
-Game = require "game"
-
+BaseGame = require "game.BaseGame"
+Games = filesystem.get_modules("game")
 Screens = filesystem.get_modules("screen")
 
-local main_screen = "MainScreen"
-
+local main_game = Games.MainGame
 
 for i, k in ipairs(conf.to_vec2) do
 	conf[k] = Vec2(conf[k].x, conf[k].y)
@@ -122,7 +126,7 @@ end
 
 function love.run()
 
-	snakeify_functions_recursive(love)
+	-- function_style_key_process(love)
 
 
 	if love.math then
@@ -158,20 +162,24 @@ function love.run()
             end
         end
 
-		
-		
 		-- Update dt, as we'll be passing it to update
         if love.timer then dt = love.timer.step() end
 		
 
 		-- Call update and draw
-		accumulated_time = accumulated_time + dt
+
 
 		local delta_frame = min(dt * TICKRATE, conf.max_delta_seconds * TICKRATE)
-	
+		
 		if not conf.use_fixed_delta then
+			gametime.delta = delta_frame
+			gametime.delta_seconds = delta_frame / TICKRATE
 			step(delta_frame)
 		else
+			gametime.delta = frame_time * TICKRATE
+			gametime.delta_seconds = frame_time
+			accumulated_time = accumulated_time + dt
+
 			for i = 1, conf.max_fixed_ticks_per_frame do
 				if accumulated_time < frame_time then
 					break
@@ -185,22 +193,24 @@ function love.run()
 
 
 		gametime.time = gametime.time + delta_frame
+		local old_tick = gametime.tick
         gametime.tick = floor(gametime.time)
 
-		
-        gametime.frames = gametime.frames + 1
-        -- collectgarbage()
+		gametime.frames = gametime.frames + 1
+
+		gametime.is_new_tick = false
+
+		if old_tick ~= gametime.tick then
+			gametime.is_new_tick = true
+		end
 
 
-		
-        if gametime.tick % 300 == 0 then
+        if gametime.is_new_tick and gametime.tick % 300 == 0 then
             if debug.enabled and not debug_printed_yet then
                 local fps = love.timer.getFPS()
-                -- if conf.use_fixed_delta and fps > conf.fixed_tickrate then
-                --     fps = conf.fixed_tickrate
-                -- end
+
                 print("fps: " .. fps)
-				debug_printed_yet = true
+                debug_printed_yet = true
             end
         else
             debug_printed_yet = false
@@ -217,37 +227,40 @@ function love.run()
 end
 
 function love.load(...)
-	
-	-- fennel.dofile("main.fnl")
+    -- fennel.dofile("main.fnl")
 
-	if table.list_has(arg, "build_assets") then
-		love.window.minimize()
-	end
+    if table.list_has(arg, "build_assets") then
+        love.window.minimize()
+    end
 
-	game = Game()
+    game = main_game()
 
-    local args = { ... }
-	table.pretty_print(args)
+    -- local args = { ... }
+    -- table.pretty_print(args)
 
     graphics.load()
-	
-	debug.load()
+
+    debug.load()
 
     if table.list_has(arg, "build_assets") then
         -- minimize window
         love.window.minimize()
         local pngs = require("tools.palletizer")()
         love.event.quit()
+
         return
     end
 
-	Palette.load()
-	
-	audio.load()
-	tilesets.load()
-    input.load()
+    Palette.load()
+
+    audio.load()
+    tilesets.load()
+	input.load()
+	Worlds = filesystem.get_modules("world")
     game:load(main_screen)
 end
+
+local averaged_frame_length = 0
 
 function love.update(dt)
 	if gametime.tick % 1 == 0 then 
@@ -256,11 +269,20 @@ function love.update(dt)
         if conf.use_fixed_delta and fps > conf.fixed_tickrate then
             fps = conf.fixed_tickrate
         end
+
+		local flen = (1000 * frame_length)
+
+		if flen > averaged_frame_length then
+            averaged_frame_length = flen
+        else
+			averaged_frame_length = splerp(averaged_frame_length, flen, dt, 1000.0)
+		end
 		
 		if debug.enabled then
 			dbg("fps", fps)
 			dbg("memory use (kB)", floor(collectgarbage("count")))
-			dbg("frame length (ms)", string.format("%0.3f",  (1000 * frame_length)))
+            dbg("frame length (ms)", string.format("%0.3f", flen))
+			dbg("frame length (ms) peakdecay", string.format("%0.3f", averaged_frame_length))
 		end
 	end
 
@@ -268,7 +290,8 @@ function love.update(dt)
 
 	input.update(dt)
 	game:update(dt)
-	graphics.update(dt)
+    graphics.update(dt)
+	audio.update(dt)
 
 	-- global input shortcuts
 	if input.fullscreen_toggle_pressed then
@@ -287,14 +310,14 @@ function love.draw()
 
     graphics.draw_loop()
 	
-	if debug.can_draw() then
-		debug.printlines(0, 0)
-    end
 	if gametime.tick % 10 == 0 then
 		if debug.enabled then
 			dbg("draw calls", graphics.get_stats().drawcalls)
+			-- dbg("interp_fraction", graphics.interp_fraction)
 		end
-		-- dbg("interp_fraction", graphics.interp_fraction)
+	end
+	if debug.can_draw() then
+		debug.printlines(0, 0)
 	end
 end
 
@@ -330,6 +353,11 @@ function love.textinput(text)
     input.on_text_input(text)
 end
 
+function love.mousemoved(x, y, dx, dy, istouch)
+	input.read_mouse_input(x, y, dx, dy, istouch)
+end
+
 function love.wheelmoved(x, y)
 	input.on_mouse_wheel_moved(x, y)
+
 end

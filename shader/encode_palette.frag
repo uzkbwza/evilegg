@@ -73,7 +73,7 @@ vec4 encode_palette(vec3 color, float alpha, vec3 palette[256], int palette_size
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    vec4 texel = texture2D(texture, texture_coords);
+    vec4 texel = Texel(texture, texture_coords);
     
     // Convert to palette index
     vec4 encoded = encode_palette(texel.rgb, texel.a, palette, palette_size);

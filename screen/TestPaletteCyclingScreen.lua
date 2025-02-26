@@ -1,6 +1,6 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 
-local TestObject = GameObject:extend("TestObject")
+local TestObject = GameObject2D:extend("TestObject")
 
 
 function TestObject:new(x, y)
@@ -89,13 +89,13 @@ function MainScreen:new()
     local a = "hi"
 
     local world = World()
-    world:create_camera()
+    world:init_camera()
 	
     self.world = self:add_world(world)
 end
 
 function MainScreen:enter()
-	self:ref("testobject", self.world:spawn_object(TestObject(self.viewport_size.x / 2, self.viewport_size.y / 2)))
+	self:ref("testobject", self.world:spawn_object(TestObject(0,0)))
 end
 
 function MainScreen:update(dt)

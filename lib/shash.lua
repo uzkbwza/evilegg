@@ -176,6 +176,17 @@ function shash:each(x, y, w, h, fn, ...)
 	end
 end
 
+function shash:each_self(x, y, w, h, fn, tab, ...)
+	local e = self.entities[x]
+	if e then
+		-- Got object, use its entity
+		each_overlapping_entity(self, e, y, w, h, fn, tab, ...)
+	else
+		-- Got bounding box, make temporary entity
+		each_overlapping_entity(self, { x, y, x + w, y + h }, fn, tab, ...)
+	end
+end
+
 function shash:query(x, y, w, h, t)
 	t = t or {}
 	table.clear(t)

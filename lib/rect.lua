@@ -65,13 +65,29 @@ function Rect:area()
     return self.width * self.height
 end
 
-function Rect:contains_point(point)
-    return point.x >= self.x and point.x <= self.x + self.width and
-           point.y >= self.y and point.y <= self.y + self.height
+function Rect:contains(px, py)
+    return px >= self.x and px <= self.x + self.width and
+        py >= self.y and py <= self.y + self.height
+end
+
+
+function Rect:contains_circle(px, py, radius)
+    return px >= self.x + radius and px <= self.x + self.width - radius and
+        py >= self.y + radius and py <= self.y + self.height - radius
+end
+
+function Rect:clamp_point(px, py)
+    return clamp(px, self.x, self.x + self.width), clamp(py, self.y, self.y + self.height)
+end
+
+function Rect:clamp_circle(px, py, radius)
+    return clamp(px, self.x - radius, self.x + self.width + radius), clamp(py, self.y - radius, self.y + self.height + radius)
 end
 
 function Rect:intersects(other)
 	return self.x < other.x + other.width and
+
+
 		   self.x + self.width > other.x and
 		   self.y < other.y + other.height and
 		   self.y + self.height > other.y

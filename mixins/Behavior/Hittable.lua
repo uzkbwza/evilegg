@@ -5,9 +5,6 @@ function Hittable:__mix_init()
 end
 
 function Hittable:on_hit(by)
-
 end
 
-
 return Hittable
-

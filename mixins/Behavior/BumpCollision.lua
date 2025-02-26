@@ -24,8 +24,7 @@ end
 
 function BumpCollision:__mix_init()
     -- initializes bump.lua physics with AABB collisions and spatial hashing. useful even for non-physics objects for collision detection for e.g. coins
-    self:implement(Mixins.Behavior.CollisionRect)
-	self:implement(Mixins.Behavior.BumpLayerMask)
+	self:lazy_mixin(Mixins.Behavior.BumpLayerMask)
     if self.tracks_overlaps == nil then
         self.tracks_overlaps = default_bump_info.track_overlaps
     end

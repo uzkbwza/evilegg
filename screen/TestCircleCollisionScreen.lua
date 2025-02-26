@@ -37,7 +37,7 @@ function MainWorld:enter()
     self:ref("object2", self:spawn_object(TestObject(0, 0, 2)))
     self.object1.target = self.object2
 	-- self.object1.target = self.object2
-	self:create_camera()
+	self:init_camera()
 end
 
 function MainWorld:update(dt)

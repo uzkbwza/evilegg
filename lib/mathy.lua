@@ -3,8 +3,12 @@ log, floor, ceil, min, abs, sqrt, cos, sin, atan2, pi, max, deg, rad, tau, pow
 = math.log, math.floor, math.ceil, math.min, math.abs, math.sqrt, math.cos, math.sin, math.atan2, math.pi, math.max, math.deg, math.rad, math.pi * 2, math.pow
 math.e = 2.718281828459045
 
-function clamp(x, min, max)
-  return min(max(x, min), max)
+function clamp(x, min_x, max_x)
+  return min(max(x, min_x), max_x)
+end
+
+function clamp01(x)
+	return clamp(x, 0, 1)
 end
 
 function sign(x)
@@ -55,7 +59,7 @@ function lerp(a, b, t)
 end
 
 function lerp_clamp(a, b, t)
-    return lerp(a, b, clamp(t, 0.0, 1.0))
+    return lerp(a, b, clamp01(t))
 end
 
 function inverse_lerp(a, b, v)
@@ -63,7 +67,7 @@ function inverse_lerp(a, b, v)
 end
 
 function inverse_lerp_clamp(a, b, v)
-    return clamp(inverse_lerp(a, b, v), 0.0, 1.0)
+    return clamp01(inverse_lerp(a, b, v))
 end
 
 function angle_diff(a, b)
@@ -71,12 +75,28 @@ function angle_diff(a, b)
     return (diff + math.pi) % (2 * math.pi) - math.pi
 end
 
-function sin_0_1(value)
+function sin01(value)
     return (sin(value) / 2.0) + 0.5
+end
+
+function sin_map(value, min, max)
+	return min + (max - min) * sin01(value)
 end
 
 function round(n)
     return floor(n + 0.5)
+end
+
+function idiv(a, b)
+    return floor(a / b)
+end
+
+function idivmod(a, b, c)
+    return idiv(a, b) % c
+end
+
+function idivmod_eq_zero(a, b, c)
+    return idivmod(a, b, c) == 0
 end
 
 function stepify_safe(s, step)
@@ -95,6 +115,10 @@ end
 
 function stepify_ceil(s, step)
 	return ceil(s / step) * step
+end
+
+function vec2_drag(vel_x, vel_y, drag, dt)
+	return vel_x * (pow(1 - max(drag, 0.1), dt)), vel_y * (pow(1 - max(drag, 0.1), dt))
 end
 
 function math.tent(x)
@@ -126,17 +150,29 @@ function stepify_floor(s, step)
     return floor(s / step) * step
 end
 
-function wave(from, to, duration, offset)
+function stepify_offset(s, step, offset)
+	return stepify(s + offset, step) - offset
+end
+
+function wave(from, to, duration, tick, offset)
     if offset == nil then offset = 0 end
-    local t = os.clock()
+    local t = tick or gametime.time
     local a = (to - from) * 0.5
     return from + a + sin(((t + duration * offset) / duration) * (2 * pi)) * a
 end
 
-function pulse(duration, width)
+function pulse(duration, width, tick, offset)
     if duration == nil then duration = 1.0 end
     if width == nil then width = 0.5 end
-    return wave(0.0, 1.0, duration) < width
+    return wave(0.0, 1.0, duration, offset, tick) < width
+end
+
+function deg2rad(deg)
+	return deg * (pi / 180)
+end
+
+function rad2deg(rad)
+	return rad * (180 / pi)
 end
 
 function snap(value, step)
@@ -169,6 +205,12 @@ end
 
 function angle_to_vec2_unpacked(angle)
 	return cos(angle), sin(angle)
+end
+
+function polar_to_cartesian(distance, angle)
+	local x = cos(angle) * distance
+	local y = sin(angle) * distance
+	return x, y
 end
 
 -- Exponential decay function (splerp) for scalars

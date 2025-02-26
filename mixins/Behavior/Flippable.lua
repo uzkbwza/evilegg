@@ -1,4 +1,4 @@
-local Flippable = GameObject:extend("Flippable")
+local Flippable = Object:extend("Flippable")
 
 function Flippable:__mix_init()
 	self.flip = 1

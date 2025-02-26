@@ -23,7 +23,7 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) 
     float pixel_scale = screen_pixel_size.x / pixel_size.x;
 
 
-    float aberration = max(aberration_amount * (1.0 + (1.0 / pixel_scale) * 0.1 ), sign(aberration_amount) * pixel_scale);
+    float aberration = max(aberration_amount, sign(aberration_amount) * pixel_scale);
     float aberration_offset = aberration * pixel_size.x;
 
     // Pre-aberration blur

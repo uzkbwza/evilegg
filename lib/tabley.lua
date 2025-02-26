@@ -33,6 +33,43 @@ function tabley.pop_front(t)
     return table.remove(t, 1)
 end
 
+function tabley.keys(tab)
+    local keys = {}
+    local next = next
+    local key, _ = next(tab)
+    while key do
+        table.insert(keys, key)
+        key, _ = next(tab, key)
+    end
+	return keys
+end
+
+function tabley.values(tab)
+	local values = {}
+    local next = next
+    local key, value = next(tab)
+    while key do
+        table.insert(values, value)
+		key, value = next(tab, key)
+	end
+	return values
+end
+
+function tabley.keys_and_values(tab)
+	local keys = {}
+	local values = {}
+    local next = next
+    local key, value = next(tab)
+    
+    while key do
+		table.insert(keys, key)
+        table.insert(values, value)
+        key, value = next(tab, key)
+    end
+
+	return keys, values
+end
+
 -- function tabley.clear(t)
 --     local next = next
 --     local i, _ = next(t)
@@ -231,7 +268,7 @@ function tabley.get_recursive(t, ...)
 			if type(value) == "table" then
 				t_ = value
 			else
-				error("Invalid table index: " .. str)
+				error("Invalid table index: " .. key)
 			end 
 		end
 	end

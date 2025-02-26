@@ -42,7 +42,7 @@ function BumpSensor:new(owner, config)
 		end
 	end
 
-	self:implement(Mixins.Behavior.BumpLayerMask)
+	self:lazy_mixin(Mixins.Behavior.BumpLayerMask)
 
 	local base_filter = BumpSensor.base_filter(config.sense_objects, config.sense_sensors)
 

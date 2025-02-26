@@ -16,9 +16,6 @@ function CircleCollision:__mix_init(radius)
         error("CircleCollision: radius is required")
     end
 
-    self._get_circle_collision_rect = function()
-        return self:get_circle_collision_rect()
-    end
 end
 
 function CircleCollision:update_radius(radius)
@@ -27,7 +24,7 @@ function CircleCollision:update_radius(radius)
 end
 
 function CircleCollision:add_to_circle_collision_grid(grid)
-	self:add_to_spatial_grid(grid, self._get_circle_collision_rect)
+	self:add_to_spatial_grid(grid, self.get_circle_collision_rect)
 end
 
 function CircleCollision:remove_from_circle_collision_grid(grid)

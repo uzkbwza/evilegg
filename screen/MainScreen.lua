@@ -1,22 +1,14 @@
 local MainWorld = World:extend("MainWorld")
 local MainScreen = CanvasLayer:extend("MainScreen")
 
-function MainWorld:new(x, y)
-	MainWorld.super.new(self, x, y)
-end
-
-function MainWorld:enter()
-    self:create_camera()
-end
-
-function MainWorld:update(dt)
-end
-
-function MainWorld:draw()
+function MainScreen:new()
+	MainScreen.super.new(self)
 end
 
 function MainScreen:enter()
-	self:ref("world", self:add_world(MainWorld(0, 0)))
+	love.mouse.set_visible(false)
+	love.mouse.set_relative_mode(true)
+	self:push(Screens.GameScreen)
 end
 
 function MainScreen:update(dt)

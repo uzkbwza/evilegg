@@ -1,7 +1,7 @@
-local Camera = GameObject:extend("Camera")
+local Camera = GameObject3D:extend("Camera")
 
 function Camera:new(x, y)
-	Camera.super.new(self, x, y)
+	Camera.super.new(self)
 	self:add_sequencer()
 	self:add_elapsed_time()
     self:add_elapsed_ticks()
@@ -16,17 +16,10 @@ function Camera:new(x, y)
 end
 
 function Camera:follow(obj)
-	self.following = obj
-
-	if obj == nil then
-		return
-	end
-
-	signal.connect(obj, "destroyed", self, "on_object_destroyed", function()
-		self.following = nil
-	end)
-
+	if obj == nil then return end
+	self:ref("following", obj)
 end
+
 
 function Camera:set_limits(xstart, ystart, xend, yend)
 	self.limits = {
@@ -40,9 +33,15 @@ end
 
 function Camera:update(dt)
     if self.following then
-        self.pos.x, self.pos.y, self.z_pos = self.following.pos.x, self.following.pos.y, self.following.z_pos
+		if self.following.pos.z then
+			self.pos.x, self.pos.y, self.pos.z = self.following.pos.x, self.following.pos.y, self.following.pos.z or 0
+		else
+			self.pos.x, self.pos.y, self.pos.z = self.following.pos.x, self.following.pos.y, self.following.zindex
+		end
     end
 end
+
+
 
 
 function Camera:clamp_to_limits(offset_x, offset_y)

@@ -14,11 +14,24 @@ input.generated_action_names = {}
 input.mouse = {
     prev_wheel = Vec2(0, 0),
     prev_pos = Vec2(0, 0),
+	prev_pos_absolute = Vec2(0, 0),
     pos = Vec2(0, 0),
+	pos_absolute = Vec2(0, 0),
     dxy = Vec2(0, 0),
+	dxy_absolute = Vec2(0, 0),
+	dxy_relative = Vec2(0, 0),
     lmb = false,
     mmb = false,
     rmb = false,
+	cached_mouse_data = {
+		x = 0,
+		y = 0,
+		dx = 0,
+		dy = 0,
+        istouch = false,
+		dxy_relative = Vec2(0, 0),
+	},
+
     wheel = Vec2(0, 0),
     dxy_wheel = Vec2(0, 0),
     is_touch = false,
@@ -95,8 +108,13 @@ function input.load()
     end
 end
 
+function input.get_mouse_position()
+	return input.mouse.cached_mouse_data.x, input.mouse.cached_mouse_data.y, input.mouse.cached_mouse_data.dx, input.mouse.cached_mouse_data.dy
+end
+
 function input.joystick_added(joystick)
     input.joysticks[joystick] = true
+
 	input.joystick_held[joystick] = input.joystick_held[joystick] or {}
     input.joystick_pressed[joystick] = input.joystick_pressed[joystick] or {}
 	
@@ -108,39 +126,51 @@ function input.joystick_removed(joystick)
     input.joystick_pressed[joystick] = {}
 end
 
-function input.check_input_combo(mapping_table, joystick, input_table)
+function input.check_input_combo(mapping_table, mapping_type, joystick, input_table)
     local pressed = false
 
     for _, keycombo in ipairs(mapping_table) do
         if type(keycombo) == "string" then
-            if joystick == nil then
+            if mapping_type == "keyboard" then
                 local key = love.keyboard.get_key_from_scancode(love.keyboard.get_scancode_from_key(keycombo))
                 if input_table.keyboard_held[key] or input_table.keyboard_pressed[key] then
                     pressed = true
                 end
-            else
+            elseif mapping_type == "joystick" then
                 if input_table.joystick_held[joystick][keycombo] or input_table.joystick_pressed[joystick][keycombo] then
                     pressed = true
                 end
+			elseif mapping_type == "mouse" then
+				if input_table.mouse[keycombo] then
+					pressed = true
+				end
             end
         else
             pressed = true
+
             for _, key in ipairs(keycombo) do
-                if joystick == nil then
+                if mapping_type == "keyboard" then
                     key = love.keyboard.get_key_from_scancode(love.keyboard.get_scancode_from_key(key))
 
                     if not input_table.keyboard_held[key] and not input_table.keyboard_pressed[key] then
                         pressed = false
                         break
                     end
-                else
+                elseif mapping_type == "joystick" then
                     if not input_table.joystick_held[joystick][key] and not input_table.joystick_pressed[joystick][key] then
+                        pressed = false
+                        break
+                    end
+                elseif mapping_type == "mouse" then
+                    if not input_table.mouse[key] then
                         pressed = false
                         break
                     end
                 end
             end
         end
+
+
 
         if pressed then
             break
@@ -158,7 +188,6 @@ function input.process(t)
 
     local g = input.generated_action_names
 
-
     for action, mapping in pairs(t.mapping) do
         local pressed = false
 
@@ -166,18 +195,25 @@ function input.process(t)
             goto skip
         end
 
-        if mapping.keyboard and input.check_input_combo(mapping.keyboard, nil, t) then
+        if mapping.keyboard and input.check_input_combo(mapping.keyboard, "keyboard", nil, t) then
             pressed = true
         end
+
+        if mapping.mouse and input.check_input_combo(mapping.mouse, "mouse", nil, t) then
+			pressed = true
+		end
 
 		if mapping.joystick_axis then
 			t[g[action].amount] = 0
 		end
 
+		-- todo: local multiplayer with joysticks
+
         for joystick, _ in pairs(input.joysticks) do
-            if mapping.joystick and input.check_input_combo(mapping.joystick, joystick, t) then
+            if mapping.joystick and input.check_input_combo(mapping.joystick, "joystick", joystick, t) then
                 pressed = true
             end
+
 
             if pressed then break end
 
@@ -185,7 +221,7 @@ function input.process(t)
                 local axis = mapping.joystick_axis.axis
                 local dir = mapping.joystick_axis.dir
                 local value = joystick:getGamepadAxis(axis)
-                local deadzone = mapping.joystick_axis.deadzone or 0.5
+                local deadzone = mapping.joystick_axis.deadzone or 0.33
                 if dir == 1 then
                     if value > deadzone then
                         pressed = true
@@ -276,14 +312,39 @@ end
 
 function input.post_process(t)
 
-    t.mouse.dxy.x = t.mouse.pos.x - t.mouse.prev_pos.x
-    t.mouse.dxy.y = t.mouse.pos.y - t.mouse.prev_pos.y
+	t.mouse.dxy.x = t.mouse.pos.x - t.mouse.prev_pos.x
+	t.mouse.dxy.y = t.mouse.pos.y - t.mouse.prev_pos.y
+
+
+	t.mouse.dxy_absolute.x = 0
+	t.mouse.dxy_absolute.y = 0
+
+	t.mouse.dxy_relative.x = 0
+	t.mouse.dxy_relative.y = 0
 
     t.mouse.prev_pos.x = t.mouse.pos.x
     t.mouse.prev_pos.y = t.mouse.pos.y
 
+	t.mouse.prev_pos_absolute.x = t.mouse.pos_absolute.x
+	t.mouse.prev_pos_absolute.y = t.mouse.pos_absolute.y
+
     t.mouse.prev_wheel.x = t.mouse.wheel.x
     t.mouse.prev_wheel.y = t.mouse.wheel.y
+
+	local mposx, mposy, mdx, mdy = input.get_mouse_position()
+	t.mouse.dxy_absolute.x = mdx
+    t.mouse.dxy_absolute.y = mdy
+	t.mouse.dxy_relative.x = input.mouse.cached_mouse_data.dxy_relative.x
+    t.mouse.dxy_relative.y = input.mouse.cached_mouse_data.dxy_relative.y
+    t.on_mouse_moved(mposx, mposy)
+	
+	t.mouse.cached_mouse_data.dxy_relative.x = 0
+    t.mouse.cached_mouse_data.dxy_relative.y = 0
+	t.mouse.cached_mouse_data.dx = 0
+	t.mouse.cached_mouse_data.dy = 0
+
+
+
 
     for k, v in pairs(t.keyboard_pressed) do
 		t.keyboard_pressed[k] = false
@@ -295,11 +356,13 @@ function input.post_process(t)
         end
     end
 
-	local mposx, mposy = love.mouse.getPosition()
-	t.on_mouse_moved(mposx, mposy)
+	if t.mouse.dxy.x ~= 0 or t.mouse.dxy.y ~= 0 then
+		signal.emit(input, "mouse_moved", t.mouse.dxy.x, t.mouse.dxy.y)
+	end
 
     for k, v in pairs(t.keyboard_released) do
 		t.keyboard_released[k] = false
+
 	end
 
     for joystick, tab in pairs(t.joystick_released) do
@@ -411,10 +474,24 @@ function input.on_mouse_moved(x, y)
     local mposx, mposy = graphics.screen_pos_to_canvas_pos(x, y)
     input.mouse.pos.x = (mposx)
     input.mouse.pos.y = (mposy)
+
     if debug.enabled then
         dbg("mouse_pos", "(" .. tostring(floor(input.mouse.pos.x)) .. ", " .. tostring(floor(input.mouse.pos.y)) .. ")")
     end
-	
+end
+
+function input.read_mouse_input(x, y, dx, dy, istouch)
+	input.mouse.cached_mouse_data.x = x
+    input.mouse.cached_mouse_data.y = y
+	if dx ~= 0 or dy ~= 0 then
+		input.mouse.cached_mouse_data.dx = dx
+		input.mouse.cached_mouse_data.dy = dy
+        local d_relative_x, d_relative_y = graphics.screen_pos_to_canvas_pos(dx, dy)
+		input.mouse.cached_mouse_data.dxy_relative.y = d_relative_y
+		input.mouse.cached_mouse_data.dxy_relative.x = d_relative_x
+	end
+    input.mouse.cached_mouse_data.istouch = istouch
+
 end
 
 function input.on_text_input(text)

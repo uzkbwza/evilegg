@@ -44,7 +44,11 @@ function bonglewunch:ipairs()
 end
 
 function bonglewunch:add(obj)
-	self:push(obj)
+    self:push(obj)
+end
+
+function bonglewunch:has(obj)
+    return self.__indices[obj] ~= nil
 end
 
 function bonglewunch:push(obj)

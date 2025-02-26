@@ -6,7 +6,7 @@ function MainWorld:new(x, y)
 end
 
 function MainWorld:enter()
-    self:create_camera()
+    self:init_camera()
 end
 
 function MainWorld:update(dt)
@@ -16,8 +16,9 @@ function MainWorld:draw()
 end
 
 function MainScreen:enter()
-	self:ref("world", self:add_world(MainWorld(0, 0)))
+	self:add_world(MainWorld(0, 0), "world")
 end
+
 
 function MainScreen:update(dt)
 end

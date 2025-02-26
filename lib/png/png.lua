@@ -236,10 +236,9 @@ local function getPixelRow(stream, depth, colorType, palette, length)
 end
 
 local function pngImage(path, progCallback, verbose, memSave, palette_only)
-    local file = love.filesystem.newFile(path)
-    local success = file:open("r")
-    if not success then
-        error("Unable to open file: " .. path)
+    local file, error = love.filesystem.open_file(path, "r")
+    if error ~= nil then
+        error("Unable to open file: " .. path .. " " .. error)
     end
 
     local function printV(msg)

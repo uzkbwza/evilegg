@@ -1,5 +1,4 @@
 {
-
 	"folders": [
 		{
 			"path": "."
@@ -14,6 +13,7 @@
 		"cursor.aipreview.enabled": true,
 		"launches": {
 			"BuildAssets": "BuildAssets"
-		}
+		},
+		"editor.tabSize": 2
 	}
 }

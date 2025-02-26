@@ -64,7 +64,7 @@ function filesystem.get_modules(path, recursive, t, path_prefix)
 	
 	t = t or {}
 	for _, v in ipairs(filesystem.get_directory_items(path)) do
-        if v:sub(-4) == ".lua" then
+        if (v:sub(-4) == ".lua") or (conf.use_fennel and v:sub(-4) == ".fnl") then
             local s = v:sub(1, -5)
             if s == "init" and path_prefix == "" then
                 goto continue
@@ -76,7 +76,7 @@ function filesystem.get_modules(path, recursive, t, path_prefix)
 			
             local ok, mod = pcall(require, path:gsub("/", ".") .. "." .. s)
             if not ok then
-                print("error loading module: " .. path:gsub("/", ".") .. "." .. s)
+                error("error loading module: " .. path:gsub("/", ".") .. "." .. s .. " " .. mod, 2)
                 goto continue
             end
             
@@ -84,11 +84,17 @@ function filesystem.get_modules(path, recursive, t, path_prefix)
 			if s ~= "init" then
 				table.insert(tab, s)
 			end
+
+			-- print(mod)
+			if not type(mod) == "table" then
+				error("module is not a table: " .. path:gsub("/", ".") .. "." .. s, 2)
+			end
+
             table.insert(tab, mod)
             table.populate_recursive_from_table(t, tab)
         end
 		if recursive then 
-            local info = filesystem.get_info(path .. "/" .. v)
+            local info = filesystem.getInfo(path .. "/" .. v)
             if info and info.type == "directory" then
                 local prefix = v
 				if path_prefix ~= "" then prefix = "." .. prefix end
@@ -100,21 +106,34 @@ function filesystem.get_modules(path, recursive, t, path_prefix)
 	return t
 end
 
-function filesystem.read(path)
-    local file = filesystem.new_file(path)
-    file:open("r")
+function filesystem.path_to_module_name(path)
+    -- Remove leading slash if present
+    path = path:gsub("^/", "")
+    -- Remove file extension
+    path = path:gsub("%.[^%.]+$", "")
+    -- Replace slashes with dots
+    path = path:gsub("/", ".")
+    return path
+end
+
+function filesystem.get_directory_items(path)
+	return love.filesystem.getDirectoryItems(path)	
+end
+
+function filesystem.read_file(path)
+    local file = filesystem.open_file(path, "r")
     return file:read()
 end
 
-function filesystem.write(path, data)
-    local file = filesystem.new_file(path)
-    file:open("w")
+
+function filesystem.write_file(path, data)
+    local file = filesystem.open_file(path, "w")
     file:write(data)
     file:close()
 end
 
 function filesystem.path_process(path)
-    if love.system.get_os() == "Windows" then
+    if love.system.getOS() == "Windows" then
         return string.gsub(path, "/", "\\")
     else
         return string.gsub(path, "\\", "/")
@@ -122,11 +141,44 @@ function filesystem.path_process(path)
 end
 
 function filesystem.get_native_separator()
-	if love.system.get_os() == "Windows" then
+	if love.system.getOS() == "Windows" then
 		return "\\"
 	else
 		return "/"
 	end
+end
+
+function filesystem.walk_directory_native(path, callback, filter)
+    local files = filesystem.get_directory_items_native(path)
+    for _, file in ipairs(files) do
+        local fullpath = path .. filesystem.get_native_separator() .. file
+        if not (filter and not filter(fullpath)) then
+            -- print(fullpath)
+            if nativefs.get_info(fullpath, "directory") then
+                filesystem.walk_directory_native(fullpath, callback, filter)
+            else
+                callback(fullpath)
+            end
+        end
+    end
+end
+
+function filesystem.walk_directory(path, callback, filter)
+	local files = filesystem.get_directory_items(path)
+	for _, file in ipairs(files) do
+		local fullpath = path .. "/" .. file
+		if love.filesystem.get_info(fullpath, "directory") then
+			filesystem.walk_directory(fullpath, callback, filter)
+		else
+			callback(fullpath)
+		end
+	end
+end
+
+function filesystem.get_directory_items_native(path)
+	local wd = nativefs.get_working_directory()
+	local files = nativefs.get_directory_items(wd .. filesystem.path_process(path))
+	return files
 end
 
 function filesystem.load_file_native(path)
@@ -138,10 +190,10 @@ function filesystem.load_file_native(path)
 end
 
 function filesystem.save_file(data, path)
-	local file = filesystem.new_file(path)
-	file:open("w")
+	local file = filesystem.open_file(path, "w")
 	file:write(data)
 	file:close()
+
 end
 
 function filesystem.save_file_native(data, path)
@@ -184,7 +236,7 @@ function filesystem.save_image(image, name)
 	graphics.clear(0, 0, 0, 0)
 	graphics.draw(image)
 	graphics.set_canvas(prevcanvas)
-	canvas:newImageData():encode("png", name .. ".png")
+	graphics.readback_texture(canvas):encode("png", name .. ".png")
 end
 
 return filesystem

@@ -12,7 +12,7 @@ local SEPARATOR = "/"  -- LÖVE always uses forward slashes internally
 -- Remove the ffi.cdef blocks as we won't need them
 
 local function get_png_files(directory, png_files)
-	print(directory)
+	-- print(directory)
     png_files = png_files or {}
     if directory == "assets/sprite/palettized" then
         return png_files
@@ -100,12 +100,12 @@ local function main()
 	local png_data = {}
 
     if #indexed_pngs > 0 then
-        print("Found indexed color PNGs:")
+        -- print("Found indexed color PNGs:")
+        -- for _, png in ipairs(indexed_pngs) do
+            -- print("- " .. png)
+        -- end
         for _, png in ipairs(indexed_pngs) do
-            print("- " .. png)
-        end
-        for _, png in ipairs(indexed_pngs) do
-			local new_png = decode_png(png, nil, true, false, true)
+			local new_png = decode_png(png, nil, false, false, true)
 			new_png.path = png
             table.insert(png_data, new_png)
         end
@@ -151,7 +151,7 @@ local function main()
         local original_image = graphics.textures[png.path]
 		local name = graphics.texture_names[png.path]
         local width, height = original_image:getWidth(), original_image:getHeight()
-		print("processing " .. name)
+		-- print("processing " .. name)
         local canvas = graphics.new_canvas(width, height)
 		canvas:setFilter("nearest", "nearest")
 
@@ -172,7 +172,7 @@ local function main()
 
 		for i, v in ipairs(palette_table) do
 			if palette_cache[i] == palette_object then
-				print("palette already exists")
+				-- print("palette already exists")
 				existing_palette = true
 				palette_index = i
 				break
@@ -204,8 +204,9 @@ local function main()
 
 		graphics.set_canvas()
 
-        local processed_image_data = canvas:newImageData()
+        local processed_image_data = graphics.readback_texture(canvas)
 		
+
         graphics.pop()
 		
 		filesystem.save_file_native(processed_image_data:encode("png"):getString(), "assets/sprite/palettized/" .. localized_path)
@@ -230,7 +231,7 @@ local function main()
 			
 		-- 	graphics.pop()
 
-		-- 	local decoded_image_data = canvas:newImageData()
+		-- 	local decoded_image_data = graphics.readback_texture(canvas)
 		-- 	filesystem.save_file_native(decoded_image_data:encode("png"):getString(), "tools/sprites/indexed_" .. name .. "_decoded_" .. tostring(j) .. ".png")
 		-- end
         -- Second pass with palette lookup
@@ -253,7 +254,7 @@ local function main()
 
 	filesystem.save_file_native(table.serialize(texture_palettes), "assets/sprite/texture_palettes.lua")
 
-	print("done")
+	print("palettized sprites")
     return png_data
 end
 

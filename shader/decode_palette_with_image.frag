@@ -15,13 +15,13 @@ vec4 decode_palette(vec4 encoded_color, sampler2D palette, int palette_size, int
     float index = encoded_color.g * 255.0;
 
 	float i = 0.5 + int(mod(int(index) + palette_offset, palette_size));
-	vec4 palette_color = texture2D(palette, vec2(i / palette_size, 0));
+	vec4 palette_color = Texel(palette, vec2(i / palette_size, 0));
 
     return vec4(palette_color.rgb, encoded_color.a);
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    vec4 texel = texture2D(texture, texture_coords);
+    vec4 texel = Texel(texture, texture_coords);
     
     vec4 encoded = decode_palette(texel, palette, palette_size, palette_offset);
 

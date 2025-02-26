@@ -123,6 +123,10 @@ function LevelEditor:new(x, y, width, height)
 
 	LevelEditor.super.new(self, x, y, width, height)
 
+    love.mouse.set_visible(true)
+	love.mouse.set_relative_mode(false)
+
+
 	signal.connect(input, "key_pressed", self, "on_key_pressed", (
 		function(key)
 			-- global
@@ -322,6 +326,11 @@ function LevelEditor.convert_to_map_format(tiles, width, height, indent, compres
 
 end
 
+-- override this function to process the map before it is saved
+function LevelEditor:custom_map_process(tab)
+	
+end
+
 function LevelEditor:get_level_data()
 	local min_x, min_y, min_z, max_x, max_y, max_z = self:get_bounds()
     local level_data = {
@@ -415,6 +424,8 @@ function LevelEditor:get_level_data()
 		
 		::continue::
 	end
+
+	self:custom_map_process(level_data)
 
 	return level_data
 end
@@ -1438,7 +1449,7 @@ function LevelEditor:get_active_section()
 		elseif not self.showing_ui then
 			return "draw"
 		elseif self.showing_palette then
-			if self.palette_rect:contains_point(self.screen_mpos) then
+			if self.palette_rect:contains(self.screen_mpos.x, self.screen_mpos.y) then
 				return "palette"
 			end
 		end
@@ -1869,7 +1880,8 @@ end
 function LevelEditor:enter()
     self:update_history()
     self.tile_data_input_box = self:add_object(TextInputBox(self.viewport_size.x - DATA_EDITOR_WIDTH, 8, DATA_EDITOR_WIDTH, self.viewport_size.y - 16))
-	love.keyboard.setKeyRepeat(true)
+    love.keyboard.setKeyRepeat(true)
+	audio.stop_music()
 end
 
 function LevelEditor:exit()
@@ -1879,7 +1891,6 @@ end
 function LevelEditor:tile_is_object(tile)
     return tile and tilesets.object_tiles[tile]
 end
-
 
 function LevelEditor:draw()
 	self.clear_color = (self.showing_grid == 2) and self.grid_bgcolor or Color.black
@@ -2423,5 +2434,7 @@ function LevelEditor:draw_level_grid()
 
 	graphics.pop()
 end
+
+
 
 return LevelEditor

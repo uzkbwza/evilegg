@@ -83,6 +83,7 @@ function Sequencer:init_coroutine(co)
     table.insert(self.running, co)
 	self.running_indices[co] = #self.running
 end
+
 function Sequencer:update(dt)
 
 	if (not self.running) or table.is_empty(self.running) then
@@ -91,13 +92,13 @@ function Sequencer:update(dt)
 
 	self.dt = dt
 
-	for _, value in ipairs(self.running) do
-		self.current_chain = value
-        if self.suspended[value] == nil then
-			if coroutine.status(value) ~= "dead" then
-				local status, val = coroutine.resume(value)
+	for _, co in ipairs(self.running) do
+		self.current_chain = co
+        if self.suspended[co] == nil then
+			if coroutine.status(co) ~= "dead" then
+				local status, val, traceback = coroutine.xpcall(co)
 				if not status then
-					error(val)
+					error(val .. "\n" .. traceback)
 				end
 			end
 		end
@@ -142,11 +143,34 @@ function Sequencer:tween(func, value_start, value_end, duration, easing, step)
 	end
 
 	while self.elapsed < finish do
-		local t = clamp(ease_func(stepify_safe((self.elapsed - start) / duration, step)), 0, 1)
+		local t = clamp01(ease_func(stepify_safe((self.elapsed - start) / duration, step)))
 		func(value_start + t * (value_end - value_start))
 		coroutine.yield()
 	end
 end
+
+function Sequencer:tween_method(obj, method, value_start, value_end, duration, easing, step)
+	local start = self.elapsed
+    local finish = self.elapsed + duration
+	local ease_func
+	easing = easing or "linear"
+	if type(easing) == "string" then
+		ease_func = ease(easing)
+	else
+		ease_func = easing
+	end
+
+	if step == nil then
+		step = 0
+	end
+
+	while self.elapsed < finish do
+		local t = clamp01(ease_func(stepify_safe((self.elapsed - start) / duration, step)))
+		method(obj, value_start + t * (value_end - value_start))
+		coroutine.yield()
+	end
+end
+
 
 function Sequencer:tween_property(obj, property, value_start, value_end, duration, easing, step)
 
@@ -191,7 +215,7 @@ function Sequencer:wait_for_signal(obj, signal_id)
         end,
 			true)
     if signal.get(obj, "destroyed") then
-		if not signal.get(obj, "destroyed", self, "cancel_chain") then
+		if not signal.is_connected(obj, "destroyed", self, "cancel_chain") then
 			signal.connect(obj, "destroyed", self, "cancel_chain", function() self:stop(chain) end, true)
 		end
     end

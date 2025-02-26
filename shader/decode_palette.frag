@@ -22,7 +22,7 @@ vec4 decode_palette(vec4 encoded_color, vec3 palette[256], int palette_size, int
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    vec4 texel = texture2D(texture, texture_coords);
+    vec4 texel = Texel(texture, texture_coords);
     
     vec4 encoded = decode_palette(texel, palette, palette_size, palette_offset);
 

@@ -1,6 +1,7 @@
 usersettings = require "usersettings"
-local lldebuggerPatcher = require("lib.lldebuggerpatcher")
+local input_presets = require "conf.input_presets"
 
+local lldebuggerPatcher = require("lib.lldebuggerpatcher")
 
 local IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and arg[2] == "debug"
 if IS_DEBUG then
@@ -12,26 +13,31 @@ if IS_DEBUG then
     end
 end
 
+string = require "lib.stringy"
+
 IS_EXPORT = not pcall(require, "tools.is_debug")
 
 local conf = {
-
-
-    -- game settings
+	
+	-- game settings
     name = "THE VIDEO GAME RETURNS",
     folder = nil,
 	window_title = nil,
 
     room_size = {
-        x = 256,
-		y = 192
+		x = 300 * 1,
+		y = 240 * 1,
 	},
 
+	-- fennel
+	use_fennel = false,
+	
 	-- display
 	viewport_size = {
-		x = 256,
-		y = 192
+		x = 300,
+		y = 240,
     },
+
 	
     to_vec2 = {
 		"room_size",
@@ -50,21 +56,26 @@ local conf = {
 
 	-- input
 	input_actions = {
-		primary = {
-			keyboard = { "z", "return" },
-			joystick = { "a" }
+		shoot = {
+			mouse = { "lmb" },
 		},
 
-		secondary = {
-			keyboard = { "x", "rshift" },
-			joystick = { "b" }
+		hover = {
+			keyboard = { "space" },
+			joystick = { "leftshoulder", }
+		},
+
+		confirm = {
+			keyboard = { "z", "return" },
+			joystick = { "start", "a" },
+			mouse = { "lmb" }
 		},
 
 		menu = {
 			keyboard = { "escape", },
 			joystick = { "start" }
 		},
-
+		
 		move_up = {
 			keyboard = {"w"},
 			joystick = {"dpup"},
@@ -73,7 +84,7 @@ local conf = {
 				dir = -1
 			}
 		},
-
+		
 		move_down = {
 			keyboard = {"s"},
 			joystick = {"dpdown"},
@@ -82,7 +93,7 @@ local conf = {
 				dir = 1
 			}
 		},
-
+		
 		move_left = {
 			keyboard = {"a"},
 			joystick = {"dpleft"},
@@ -91,7 +102,7 @@ local conf = {
 				dir = -1
 			}
 		},
-
+		
 		move_right = {
 			keyboard = {"d"},
 			joystick = {"dpright"},
@@ -100,22 +111,24 @@ local conf = {
 				dir = 1
 			}
 		},
-
+		
 		aim_up = {
-            keyboard = { "up" },
+			keyboard = { "up" },
 			joystick = { "y" },
 			joystick_axis = {
 				axis = "righty",
+				deadzone = 0.0,
 				dir = -1
 			}
 		},
-
+		
 		aim_down = {
 			keyboard = {"down"},
 			joystick = { "a" },
 			joystick_axis = {
 				axis = "righty",
-				dir = 1
+				dir = 1,
+				deadzone = 0.0,
 			}
 		},
 		
@@ -124,15 +137,74 @@ local conf = {
 			joystick = { "x" },
 			joystick_axis = {
 				axis = "rightx",
+				deadzone = 0.0,
 				dir = -1
 			}
 		},
-
+		
 		aim_right = {
 			keyboard = {"right"},
 			joystick = { "b" },
 			joystick_axis = {
 				axis = "rightx",
+				dir = 1,
+				deadzone = 0.0,
+			}
+		},
+		
+		aim_up_digital = {
+			keyboard = { "up" },
+			joystick = { "y" },
+
+		},
+		
+		aim_down_digital = {
+			keyboard = {"down"},
+			joystick = { "a" },
+
+		},
+		
+		aim_left_digital = {
+			keyboard = {"left"},
+			joystick = { "x" },
+		},
+		
+
+		aim_right_digital = {
+			keyboard = {"right"},
+			joystick = { "b" },
+		},
+		
+
+		aim_up_analog = {
+			joystick_axis = {
+				axis = "righty",
+				deadzone = 0.0,
+				dir = -1
+			}
+		},
+
+
+		aim_down_analog = {
+			joystick_axis = {
+				axis = "righty",
+				deadzone = 0.0,
+				dir = 1
+			}
+		},
+
+		aim_left_analog = {
+			joystick_axis = {
+				axis = "rightx",
+				deadzone = 0.0,
+				dir = -1
+			}
+		},
+
+		aim_right_analog = {
+			joystick_axis = {
+				axis = "rightx",
+				deadzone = 0.0,
 				dir = 1
 			}
 		},
@@ -143,11 +215,6 @@ local conf = {
 				{"ralt", "return"},
 				{"lalt", "return"}
 			}
-		},
-
-		confirm = {
-			keyboard = { "return", },
-			joystick = { "start", "a" }
 		},
 
 		debug_editor_toggle = {
@@ -166,12 +233,37 @@ local conf = {
 			}
 		},
 
+		debug_draw_bounds_toggle = {
+			debug = true,
+			keyboard = { 
+				{ "lctrl", "b" }, 
+				{ "rctrl", "b" } 
+			}
+		},
+
 		debug_shader_toggle = {
 			debug = true,
 			keyboard = { 
-				{"lctrl", "s"}, 
-				{"rctrl", "s"}
+				{"lctrl", "i"}, 
+				{"rctrl", "i"}
 			}
+		},
+
+		debug_fixed_delta_toggle = {
+			debug = true,
+			keyboard = { 
+				{"lctrl", "t"}, 
+				{"rctrl", "t"}
+			}
+		},
+
+		debug_shader_preset = {
+			debug = true,
+			keyboard = { 
+				{"lctrl", "o"}, 
+				{"rctrl", "o"}
+			}
+
 		},
 
 		debug_count_memory = {
@@ -181,6 +273,14 @@ local conf = {
 				{"rctrl", "m"}
 			}
         },
+
+		debug_profile = {
+			debug = true,
+			keyboard = { 
+				{"lctrl", "p"}, 
+				{"rctrl", "p"}
+			}
+		},
 		
 		debug_console_toggle = {
 			debug = true,
@@ -192,10 +292,12 @@ local conf = {
 		debug_build_assets = {
 			debug = true,
 			keyboard = { 
-				{ "lctrl", "b" },
-				{ "rctrl", "b" }
+				{ "lctrl", "m" },
+				{ "rctrl", "m" }
 			}
 		},
+
+		
 	},
 
 	input_vectors = {
@@ -204,30 +306,61 @@ local conf = {
 			right = "move_right",
 			up = "move_up",
 			down = "move_down",
-        },
+		},
 		aim = {
 			left = "aim_left",
 			right = "aim_right",
 			up = "aim_up",
 			down = "aim_down",
-		}
+		},
+		aim_digital = {
+			left = "aim_left_digital",
+			right = "aim_right_digital",
+			up = "aim_up_digital",
+			down = "aim_down_digital",
+		},
+		aim_analog = {
+			left = "aim_left_analog",
+			right = "aim_right_analog",
+			up = "aim_up_analog",
+			down = "aim_down_analog",
+		},
 	},
-
 }
+
+local function load_input_preset(preset)
+	for k, v in pairs(preset.actions) do
+		conf.input_actions[k] = v
+	end
+
+	for k, v in pairs(preset.vectors) do
+		conf.input_vectors[k] = v
+	end
+end
+
+load_input_preset(input_presets.twinstick)
+
+if conf.room_size == nil then
+	conf.room_size = {
+		x = conf.viewport_size.x,
+		y = conf.viewport_size.y,
+	}
+end
 
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)
 	-- local headless = false
 
-
 	t.identity              = conf.folder or conf.name
 	t.appendidentity        = false -- Search files in source directory before save directory (boolean)
-	t.version               = "11.4"
+	t.version               = "12.0"
 	t.console               = false
 	t.accelerometerjoystick = false
 	t.externalstorage       = false
-    t.gammacorrect          = false
-	-- t.renderers = {"vulkan"}
+    t.graphics.gammacorrect = false
+	t.graphics.renderers    = {"vulkan", "opengl", "metal"}
+	t.highdpi        = true
+
 	
 	t.audio.mic             = false
 	t.audio.mixwithsystem   = true
@@ -236,8 +369,9 @@ function love.conf(t)
 	t.window.icon           = nil
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
-    -- t.window.width          = 1280
-	-- t.window.height         = 720
+    -- t.window.width          = 1920
+    -- t.window.height         = 1080
+
 	t.window.borderless     = false
 	t.window.resizable      = true
 	t.window.minwidth       = conf.viewport_size.x
@@ -254,8 +388,7 @@ function love.conf(t)
 	t.window.depth          = nil
 	t.window.stencil        = nil
 	t.window.displayindex    = 1
-	-- t.window.highdpi        = false
-	-- t.window.usedpiscale    = true
+	t.window.usedpiscale    = false
 	t.window.x              = nil
 	t.window.y              = nil
 
@@ -284,6 +417,12 @@ function love.conf(t)
 			local t_ = t
 			t_.window = false
 		end
+	end
+
+	if conf.use_fennel then
+		fennel = require("lib.fennel").install({correlate=true,
+			moduleName = "lib.fennel"
+		})
 	end
 end
 

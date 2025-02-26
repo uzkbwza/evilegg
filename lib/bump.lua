@@ -997,6 +997,6 @@ bump.responses = {
 	oneway = oneWay
 }
 
-snakeify_functions_recursive(bump)
+function_style_key_process(bump)
 
 return bump

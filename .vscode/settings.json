@@ -48,7 +48,13 @@
 		"one_week",
 		"one_month",
 		"one_year",
-		"main_screen"
+		"main_screen",
+		"fennel",
+		"process_function_keys",
+		"snakeify_functions",
+		"kebabify_functions",
+		"global_game_state",
+		"game_state"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

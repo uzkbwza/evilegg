@@ -31,9 +31,6 @@ end
 function StateMachine:add_state(state)
 	self.update = nil
 	self.states[state.name] = state
-	if self.current_state == nil then
-		self:change_state(state.name)
-	end
 	state.transition = self.state_transition
 end
 

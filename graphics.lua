@@ -65,8 +65,13 @@ function graphics.load_textures(texture_atlas)
 
 	for _, path in ipairs(sprite_paths) do
 		local tex = graphics.new_image(path, image_settings)
-		local data = graphics.new_image_data(path)
+		local data = graphics.readback_texture(tex)
         local name = filesystem.filename_to_asset_name(path, "png", "sprite_")
+		if textures[name] then
+			asset_collision_error(name, path, texture_paths[name])
+		end
+
+
 
         texture_names[name] = name
 		texture_names[tex] = name
@@ -99,8 +104,11 @@ function graphics.load_textures(texture_atlas)
 	
     local palette_paths = filesystem.get_files_of_type("assets/sprite/palette", "png", true)
 
+	Palette.paths = {}
+
 
 	local texture_palette_file = filesystem.read("assets/sprite/texture_palettes.lua")
+
 
     if texture_palette_file then
 		
@@ -109,7 +117,10 @@ function graphics.load_textures(texture_atlas)
 		for _, path in ipairs(palette_paths) do
 			local palette = Palette.from_image_data(texture_data[path])
 	
-			local name = filesystem.filename_to_asset_name(path, "png", "sprite_palette_")
+            local name = filesystem.filename_to_asset_name(path, "png", "sprite_palette_")
+			if Palette[name] then
+				-- asset_collision_error(name, path, Palette.paths[name])
+			end
 	
             if name:find("auto_") == 1 then
                 local palette_id = tonumber(name:sub(6))
@@ -164,9 +175,17 @@ function graphics.load_textures(texture_atlas)
 			Palette[texture_names[path]] = palette
 			Palette[palette] = palette
             Palette[name] = palette
+            Palette.paths[name] = path
+			Palette.paths[path] = path
+			Palette.paths[textures[path]] = path
+			Palette.paths[texture_data[path]] = path
+			Palette.paths[texture_names[path]] = path
+			Palette.paths[palette] = path
 			palette.palette_image = textures[path]
 			palette:make_readonly()
 		end
+
+
 	end
 
 	graphics.packer = packer
@@ -228,21 +247,16 @@ function graphics.load()
 	graphics.set_line_style("rough")
 	graphics.set_canvas()
 
-	graphics.load_textures(false)
+    graphics.load_textures(false)
 
-	graphics.set_screen_shaders({
-        -- graphics.shader.basic
-		{ shader = graphics.shader.blur, args = {} },
-		-- { shader = graphics.shader.screenfilter, args = {} },
-		{ shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture } },
-		{ shader = graphics.shader.aberration, args = {} },
-		-- { shader = graphics.shader.blur, args = {} },
-		-- graphics.shader.lcd,
-	})
+	graphics.initialize_screen_shader_presets()
 
+    graphics.set_screen_shader_from_preset(usersettings.screen_shader_preset)
+	
 	local font_paths = filesystem.get_files_of_type("assets/font", "ttf", true)
 	graphics.font = {
 	}
+
 
 	for _, v in ipairs(font_paths) do
 		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_")] = graphics.new_font(v,
@@ -253,7 +267,89 @@ function graphics.load()
     graphics.set_font(graphics.font.main)
 	
     textures = graphics.textures
+end
 
+function graphics.initialize_screen_shader_presets()
+	graphics.screen_shader_presets = {
+		{
+			"soft",
+			-- graphics.shader.basic
+			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.065, pre_blur_samples = 7 } },
+
+			-- { shader = graphics.shader.screenfilter, args = {} },
+			-- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
+			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.3, aberration_strength = 0.6 }, },
+			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1.5, glow_boost = 0.025 } },
+
+			-- { shader = graphics.shader.blur, args = {} },
+			-- graphics.shader.lcd,
+		},
+
+		{
+			"scanline",
+			-- graphics.shader.basic
+			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
+			-- { shader = graphics.shader.screenfilter, args = {} },
+
+			{ shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture4, effect_strength = 0.6, brightness = 1.4 } },
+			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.1, aberration_strength = 0.6} },
+			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1. , glow_boost = 0.35  } },
+			-- { shader = graphics.shader.blur, args = {} },
+			-- graphics.shader.lcd,
+
+		},
+
+		{
+			"lcd",
+			-- graphics.shader.basic
+			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
+			-- { shader = graphics.shader.screenfilter, args = {} },
+			{ shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.6, brightness = 1.2 } },
+			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.4, aberration_strength = 0.6} },
+			-- { shader = graphics.shader.blur, args = {} },
+			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.1, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1. , glow_boost = 0.35 } },
+
+			-- graphics.shader.lcd,
+		},
+		
+		{
+			"ledboard",
+
+			{
+
+				shader = graphics.shader.led,
+				args = {
+					pixel_texture = graphics.textures.pixeltexture,
+					effect_strength = 1,
+					brightness = 1.0,
+					min_brightness = 0.01,
+					overlay_power = 0.3,
+					boost = 0.00,
+					luminance_modifier = 1.0,
+					saturation_modifier = 1.00,
+					contrast_modifier = 1.00,
+				},
+			},
+			-- { shader = graphics.shader.led,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 4, min_brightness = 0.00 } },
+			
+			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 16, intensity = 0.5, glow_curve = 1, glow_boost = 0.55 } },
+            { shader = graphics.shader.glow, args = { pre_blur_size = 0.1, pre_blur_samples = 8, intensity = 0.4, glow_curve = 1, glow_boost = 0.35 } },
+			
+			-- { shader = graphics.shader.bloom, args = { } }
+
+			-- { shader = graphics.shader.aberration, args = {} },
+			-- { shader = graphics.shader.lcd,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 2.0 } },
+		},
+	}
+end
+
+function graphics.set_screen_shader_from_preset(preset)
+	graphics.initialize_screen_shader_presets()
+	for i, shader_table in ipairs(graphics.screen_shader_presets) do
+		if shader_table[1] == preset then
+			graphics.set_screen_shaders(shader_table)
+		end
+	end
 end
 
 function graphics.update(dt)
@@ -278,8 +374,10 @@ function graphics.new_image_data(path)
 end
 
 function graphics.set_screen_shaders(shaders)
+	graphics.screen_shader_canvases = {}
 	graphics.screen_shaders = shaders
 end
+
 
 function graphics.set_bg_image(image)
 	if graphics.bg_image then
@@ -358,8 +456,6 @@ function graphics.draw_loop()
 	
     graphics.set_canvas(graphics.canvas)
 	
-	graphics.clear(0, 0, 0)
-
 	graphics.game_draw()
 
 	graphics.set_color(1, 1, 1)
@@ -419,10 +515,14 @@ function graphics.draw_loop()
 		end
 
 
-        for i, shader_table in ipairs(graphics.screen_shaders) do
+		
+		for i = 2, #graphics.screen_shaders do
+			
+            local shader_table = graphics.screen_shaders[i]
             local shader = shader_table.shader
 			local args = shader_table.args
 			local shader_canvas = graphics.screen_shader_canvases[i]
+
 
 			if not shader_canvas then
 				shader_canvas = graphics.new_canvas(canvas_size.x, canvas_size.y)
@@ -522,6 +622,8 @@ function graphics.set_color(r, g, b, a)
 	love.graphics.set_color(r, g, b, a)
 end
 
+-- graphics["set-color"] = graphics.set_color
+
 function graphics.draw_cover(texture, start_x, start_y, end_x, end_y)
 	local tex_width = texture:getWidth()
 	local tex_height = texture:getHeight()
@@ -591,7 +693,7 @@ end
 
 function graphics._auto_palette(texture, palette, offset)
     if palette == nil then
-		if offset == 0 then
+		if offset == 0 or offset == nil then
 			return nil
         else
             local p = Palette[texture]
@@ -681,6 +783,10 @@ function graphics.rect(mode, rect)
 	love.graphics.rectangle(mode, rect.x, rect.y, rect.width, rect.height)
 end
 
+function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+	love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
 function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
     graphics.push("all")
     graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
@@ -739,6 +845,5 @@ function graphics.draw_collision_box(rect, color, alpha)
     graphics.rectangle("line", rect.x + 1, rect.y + 1, rect.width - 1, rect.height - 1)
     graphics.pop()
 end
-
 
 return graphics

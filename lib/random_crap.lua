@@ -39,34 +39,6 @@ function unrequire(m)
     return true
 end
 
-
-function snakeify_functions(from, to)
-    if to == nil then to = from end
-	local new_keys = {}
-    for k, v in pairs(from) do
-        if type(v) == "function" then
-            local kk = string.camelCase2snake_case(k)
-            if to[kk] == nil and from[kk] == nil then
-                new_keys[kk] = v
-            end
-            -- to[k] = nil
-        end
-    end
-	
-	for k, v in pairs(new_keys) do
-		to[k] = v
-	end
-end
-
-function snakeify_functions_recursive(tab)
-    for k, v in pairs(tab) do
-        if type(v) == "table" then
-            snakeify_functions_recursive(v)
-        end
-    end
-	snakeify_functions(tab)
-end
-
 function midpoint_circle(radius)
     resolution = resolution or 0
 
@@ -410,3 +382,12 @@ function xtype(t)
 	if s == "table" and t.__type_name then return t.__type_name() end
 	return s
 end
+
+function is_nan(number)
+	return number ~= number and type(number) == "number"
+end
+
+function asset_collision_error(name, path, existing_path)
+	error("asset with name " .. name .. " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" .. path .. "\n" .. existing_path .. "\n", 2)
+end
+

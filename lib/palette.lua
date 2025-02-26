@@ -1,25 +1,32 @@
 local Palette = Object:extend("Palette")
 
--- TODO: make global palettes read-only
+Palette:override_class_metamethod("__index", function(self, key)
+	if type(key) == "table" and key.__isquad then return rawget(self, key.texture) end
+	if not rawget(self, key) then
+		return self.super[key]
+	end
+end)
+
 function Palette:new(colors)
 	self.original_colors = {}
-    self.colors = {}
-    self.shader_vecs = {}
-    for _, color in ipairs(colors) do
-        self.colors[#self.colors + 1] = color:clone()
-        self.original_colors[#self.original_colors + 1] = color:clone()
-        self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b }
-    end
-    self.length = #self.shader_vecs
-    self.needs_update_shader = true
-    self.cached_shader = nil
-    self.cached_shader_offset = nil
+	self.colors = {}
+	self.shader_vecs = {}
+	self.color_indices = {}
+	for _, color in ipairs(colors) do
+		self.colors[#self.colors + 1] = color:clone()
+		self.original_colors[#self.original_colors + 1] = color:clone()
+		self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b }
+	end
+	self.length = #self.shader_vecs
+	self.needs_update_shader = true
+	self.cached_shader = nil
+	self.cached_shader_offset = nil
 	self.palette_image = nil
 end
 
 function Palette:make_readonly()
     self.colors = self.original_colors
-    self.readonly = true
+	self.readonly = true
 	self:override_instance_metamethod("__newindex", function(self, key, value)
 		error("Palette is readonly. use clone() to make a writable copy.")
 	end)
@@ -73,11 +80,28 @@ function Palette:gradient_hsl(colors, steps_per_color, loop)
 end
 
 function Palette:get_color(index)
-    return self.colors[index]
+    return self.colors[(index - 1) % self.length + 1]
+end
+
+function Palette:get_color_index_unpacked(r, g, b)
+	for i, c in ipairs(self.colors) do
+		if c.r == r and c.g == g and c.b == b then
+			return i
+		end
+	end
+end
+
+function Palette:get_color_index(color)
+	return Palette:get_color_index_unpacked(color.r, color.g, color.b)
 end
 
 function Palette:get_color_unpacked(index)
-    return self.shader_vecs[index]
+    local color = self.colors[(index - 1) % self.length + 1]
+    return color.r, color.g, color.b
+end
+
+function Palette:color_to_index(color)
+	return self.color_indices[color]
 end
 
 function Palette:get_color_array(offset)
@@ -109,19 +133,46 @@ function Palette:set_color_unpacked(index, r, g, b)
     c.g = g
     c.b = b
 	self.needs_update_shader = true
+	self.color_indices[index] = c
 end
 
 function Palette:set_color(index, color)
     self:set_color_unpacked(index, color.r, color.g, color.b)
 end
 
-function Palette:cycle(start, stop, step)
-	start = start or 0
-	stop = stop or self.length
-	step = step or 1
-    for i = start, stop, step do
-		
+function Palette:tick_color(tick, offset, tick_length)
+    tick = tick or gametime.tick
+    offset = offset or 0
+    tick_length = tick_length or 1
+    local color = self.colors[floor(((tick / tick_length) + offset) % self.length) + 1]
+    return color
+end
+
+function Palette:get_swapped_color(color, other_palette, offset)
+	offset = offset or 0
+	local color_index = self:get_color_index(color)
+	return other_palette:get_color(color_index + offset)
+end
+
+function Palette:get_swapped_color_unpacked(r, g, b, other_palette, offset)
+	offset = offset or 0
+	local color_index = self:get_color_index_unpacked(r, g, b)
+	return other_palette:get_color(color_index + offset)
+end
+
+function Palette:new_mapped(mapping)
+	local colors = {}
+	for i, color in ipairs(self.colors) do
+		colors[i] = mapping(color)
 	end
+    return Palette(colors)
+end
+
+function Palette:get_random_color()
+	return self.colors[rng.randi_range(1, self.length)]
+end
+
+function Palette:sub_cycle()
 end
 
 function Palette:get_shader(offset)
