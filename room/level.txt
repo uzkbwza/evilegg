@@ -1,0 +1,50 @@
+"grammar" of the game:
+    {} = structure
+    [] = list, assume length is known
+    enemy = { 
+        name = string, 
+        class data = {...}
+        difficulty = int,
+        point buy value = int,
+        rarity = int,
+        spawn frequency modifier = int,
+        etc...
+    }
+    level_enemy_pool = [enemy]
+    wave_enemy = random from pool | specific enemy | custom enemy function (aware of current level data, wave number etc)
+    wave = [wave_enemy]
+    narrative = {
+        tags = [string]
+        waves = [wave|narrative]
+        rarity = int,
+    }
+    level = {
+        enemy pool,
+        [narrative]
+    }
+    game = [level]
+
+example narrative:
+    basic narrative:
+        wave 1:
+            get enemies from level enemy pool
+            basic point buy with difficulty thresholds (perhaps only enemies with 1 or 2 diffiulty)
+        
+        wave 2: 
+            get enemies from level enemy pool
+            basic poid buy with difficulty thresholds
+        
+        wave 3:
+            basic point buy with difficulty thresholds
+            boss
+
+    
+    more unique narrative:
+        wave 1:
+            specific hardcoded difficulty 1 enemy and a random difficulty 2 enemy from the current level's enemy pool 
+        
+        wave 2:
+            6 of any level 3 enemy 
+
+        wave 3:
+            random single-wave narrative with the "bossfight" tag

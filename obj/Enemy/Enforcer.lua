@@ -29,8 +29,8 @@ function Enforcer:new(x, y)
 	self.self_declump_modifier = 1.5
 	self.pdx, self.pdy = 0, 0
     self.player_distance = PLAYER_DISTANCE
-	self.spawn_sfx = "enemy_enforcer_emerge"
-	self.spawn_sfx_volume = 0.75
+	self.spawn_cry = "enemy_enforcer_emerge"
+	self.spawn_cry_volume = 0.75
 end
 
 function Enforcer:state_Spawning_enter()

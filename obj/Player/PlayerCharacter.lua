@@ -2,11 +2,14 @@ local PlayerCharacter = GameObject2D:extend("PlayerCharacter")
 
 local PlayerBullet = require("obj.Player.Bullet.BasePlayerBullet")
 
+local DeathFlash = require("fx.enemy_death_flash")
+local DeathSplatter = require("fx.enemy_death_pixel_splatter")
+
 local SHOOT_DISTANCE = 5
 local SHOOT_INPUT_DELAY = 1
 
 local WALK_SPEED = 1.4
-local HOVER_SPEED = 0.14
+local HOVER_SPEED = 0.2
 -- local DRIFT_SPEED = 0.05
 local HOVER_IMPULSE = 2.0
 
@@ -35,7 +38,7 @@ function PlayerCharacter:new(x, y)
 
 	self.moving_direction = Vec2(1, 0)
 
-    self.hurt_bubble_radius = 2
+    self.hurt_bubble_radius = 1
 	
 	self.max_hp = 1
 	
@@ -113,9 +116,9 @@ function PlayerCharacter:handle_input(dt)
         self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
 		-- self.aim_direction:normalize_in_place()
     end
-	if input.move_normalized.x ~= 0 or input.move_normalized.y ~= 0 then
-		self.moving_direction:set(input.move_normalized.x, input.move_normalized.y)
-	end
+	-- if input.move_normalized.x ~= 0 or input.move_normalized.y ~= 0 then
+	self.moving_direction:set(input.move_normalized.x, input.move_normalized.y)
+	-- end
 	if self.state == "Walk" then
         self:move(input.move_clamped.x * dt * self.speed, input.move_clamped.y * dt * self.speed)
 
@@ -132,8 +135,8 @@ function PlayerCharacter:handle_input(dt)
 		local cooldown = 0
         -- if self.state == "Walk" then
 			self:play_sfx("player_shoot", 0.55, 1)
-            self:fire_bullet(PlayerBullet, nil, 0, 2)
-            self:fire_bullet(PlayerBullet, nil, 0, -2)
+            self:fire_bullet(PlayerBullet, nil, 0, 0)
+            -- self:fire_bullet(PlayerBullet, nil, 0, -2)
 			cooldown = 8
 			cooldown = max(cooldown, 1)
         -- elseif self.state == "Hover" then
@@ -169,10 +172,24 @@ function PlayerCharacter:get_shoot_position()
     return self.pos.x + aim_x * SHOOT_DISTANCE, self.pos.y + aim_y * SHOOT_DISTANCE - self.body_height
 end
 
-function PlayerCharacter:hit_by(by)
-	if self:is_timer_running("invulnerability") then
-		return
+function PlayerCharacter:is_invulnerable()
+    if self:is_timer_running("invulnerability") then
+        return true
+    end
+
+	if self.world.room.cleared then
+		return true
 	end
+
+	if self.debug_invulnerable then
+		return true
+	end
+
+	return false
+end
+
+function PlayerCharacter:hit_by(by)
+	if self:is_invulnerable() then return end
 	self:damage(by.damage)
 end
 
@@ -181,6 +198,12 @@ function PlayerCharacter:on_health_reached_zero()
 end
 
 function PlayerCharacter:die()
+    local bx, by = self:get_body_center()
+	local sprite = self:get_sprite()
+	local object = self:spawn_object(DeathFlash(bx, by, sprite, 10.0, Palette.player_death, 1))
+    -- local object = self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y,
+    --     bx, by))
+	
 	self:emit_signal("died")
 	self:queue_destroy()
 end
@@ -191,10 +214,14 @@ end
 
 
 function PlayerCharacter:get_palette()
-	if self.state == "Hover" and self.tick % 2 == 0 then
-		return Palette.cmyk, 4
-	end
-	return nil, 0
+    if self.state == "Hover" and self.tick % 2 == 0 then
+        return Palette.cmyk, 4
+    end
+    return nil, 0
+end
+
+function PlayerCharacter:get_sprite()
+    return self.sprite
 end
 
 function PlayerCharacter:draw()
@@ -209,7 +236,7 @@ function PlayerCharacter:draw()
     end
 
     local palette, offset = self:get_palette()
-    graphics.drawp_centered(self.sprite, palette, offset, 0)
+    graphics.drawp_centered(self:get_sprite(), palette, offset, 0)
 
     if self.mouse_aim_offset.y >= -0.45 then
         self:draw_crosshair()
@@ -282,10 +309,13 @@ end
 
 function PlayerCharacter:state_Walk_update(dt)
 	self:alive_update(dt)
-	-- local input = self:get_input_table()
-	-- if input.hover_held then
+	local input = self:get_input_table()
+	-- if input.hover_held and debug.enabled then
 	-- 	self:change_state("Hover")
-	-- end
+    -- end
+	if input.debug_toggle_invulnerability then
+		self.debug_invulnerable = not self.debug_invulnerable
+	end
 end
 
 function PlayerCharacter:state_Hover_enter()
@@ -302,7 +332,7 @@ local HoverFx = Effect:extend("HoverFx")
 function HoverFx:new(x, y)
 	HoverFx.super.new(self, x, y)
 	self.sprite = textures.player_hover_fx
-	self.duration = 15
+	self.duration = 50
 	self.z_index = -1
 end
 
@@ -315,9 +345,9 @@ function PlayerCharacter:state_Hover_update(dt)
 	self:alive_update(dt)
     local input = self:get_input_table()
 
-	if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
-		self:change_state("Walk")
-	end
+	-- if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
+		-- self:change_state("Walk")
+	-- end
 	
 	if self.is_new_tick and self.tick % 2 == 0 then
 		self:spawn_object_relative(HoverFx(), self:get_body_center_local())

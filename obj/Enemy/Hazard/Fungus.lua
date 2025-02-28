@@ -1,8 +1,8 @@
 local Fungus = require("obj.Enemy.BaseEnemy"):extend("Fungus")
 
-local BASE_HP = 0.25
-local BASE_HP_BIG = 0.5
-local MAX_HP = 0.5
+local BASE_HP = 1
+local BASE_HP_BIG = 2
+local MAX_HP = 2
 
 local PROPOGATE_CHILD_FREQUENCY_MODIFIER = 1.0
 
@@ -20,7 +20,7 @@ function Fungus:new(x, y, propogate_frequency)
 	self.propogate_frequency = propogate_frequency or PROPOGATE_FREQUENCY
 	self.hurt_bubble_radius = 3
 	self.hurt_bubble_radius_big = 6
-    self.hit_bubble_radius = 1
+    -- self.hit_bubble_radius = 1
 	self.body_height = 4
 	self.hit_bubble_radius_big = 4
     Fungus.super.new(self, x, y)
@@ -28,13 +28,17 @@ function Fungus:new(x, y, propogate_frequency)
     -- self.z_index = 100
     -- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 	self.declump_radius = 16
-	self.declump_mass = 1
+    self.declump_mass = 1
+	self.bullet_passthrough = true
 	self.declump_radius = 6
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 	self.applying_physics = false
 	self.drag = 1.0
     self.self_declump_modifier = 0.0
-	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self.death_sfx_volume = 0.5
+	self.death_sfx = "hazard_fungus_die"
+	self.hit_bubble_radius = nil
 end
 
 function Fungus:enter()
@@ -68,15 +72,16 @@ end
 function Fungus:update_bubble_radii()
 	if self.hp < BASE_HP_BIG then
         self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius)
-		self:set_bubble_radius("hit", "main", self.hit_bubble_radius)
+		-- self:set_bubble_radius("hit", "main", self.hit_bubble_radius)
 	end
 end
 
 function Fungus:on_healed()
-	if self.hp >= BASE_HP_BIG then
+    if not self.big and self.hp >= BASE_HP_BIG then
 		self.big = true
 		self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius_big)
-        self:set_bubble_radius("hit", "main", self.hit_bubble_radius_big)
+		self:add_hit_bubble(0, 0, self.hit_bubble_radius_big, "main", 1)
+        -- self:set_bubble_radius("hit", "main", self.hit_bubble_radius_big)
         self.declump_radius = 16
 		self.declump_mass = 2
 	end

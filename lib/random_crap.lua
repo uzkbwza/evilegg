@@ -384,8 +384,78 @@ function xtype(t)
 end
 
 function is_nan(number)
-	return number ~= number and type(number) == "number"
+    return number ~= number and type(number) == "number"
 end
+
+local _16_way_temp = {1, 2, 3, 2}
+
+function get_16_way_from_3_base_sprite(angle)
+    -- assume texture 1 is pointing right, 2 is right and 22.5 degrees down, 3 is 45 degrees down
+
+    angle = fposmod(angle, tau)      -- wrap angle into [0, tau)
+    local step = angle / tau         -- fraction of the full circle
+    local step_16 = round(step * 16) -- which of the 16 directions (0..15)
+    local step_4 = round((step_16 - 2) / 4)
+
+    local y_scale = 1
+
+    -- pick the sprite index from a repeating pattern {1, 2, 3, 2}
+    local index = _16_way_temp[(step_16) % 4 + 1]
+
+    -- base rotation is quarter_tau * step_4
+    local rotation = quarter_tau * step_4
+
+    -- extra flip/rotation if step_16 mod 4 == 3
+    if ((step_16 + 1) % 4 == 0) then
+        rotation = rotation + quarter_tau
+        y_scale = y_scale * -1
+    end
+
+    return index, rotation, y_scale
+end
+
+local _32_way_temp = {1, 2, 3, 4, 5, 4, 3, 2}
+
+function get_32_way_from_5_base_sprite(angle)
+
+    angle = fposmod(angle, tau)
+    local step = angle / tau
+    local step_32 = round(step * 32)
+    local step_4 = floor((step_32) / 8)
+
+    local y_scale = 1
+
+	local table_index = (step_32) % 8 + 1
+    
+    local texture_index = _32_way_temp[table_index]
+
+    local rotation = quarter_tau * (step_4)
+
+    if (table_index > 5) then
+		rotation = rotation + quarter_tau
+
+        y_scale = y_scale * -1
+    end
+
+    return texture_index, rotation, y_scale
+end
+
+
+    -- if debug.enabled then
+	-- 	local dir_x, dir_y = angle_to_vec2_unpacked(angle)
+	-- 	print(string.format("step:%-2d step_4:%-2d step_8:%-2d step_32:%-2d dir_x:%-6.3f dir_y:%-6.3f angle:%-6.2f texture_index:%-2s rot:%-6.2f y_scale:%-2d",
+	-- 		step,
+	-- 		step_4,
+	-- 		step_8,
+	-- 		step_32,
+	-- 		dir_x,
+	-- 		dir_y, 
+	-- 		rad2deg(angle),
+	-- 		texture_index,
+	-- 		rad2deg(rotation),
+	-- 		y_scale))
+	-- end
+
 
 function asset_collision_error(name, path, existing_path)
 	error("asset with name " .. name .. " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" .. path .. "\n" .. existing_path .. "\n", 2)

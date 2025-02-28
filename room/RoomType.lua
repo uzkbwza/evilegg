@@ -1,5 +1,0 @@
-local RoomType = {
-	
-}
-
-return RoomType

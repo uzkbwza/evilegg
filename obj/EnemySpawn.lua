@@ -1,6 +1,6 @@
 local EnemySpawn = GameObject2D:extend("EnemySpawn")
 
-local TIME = 35
+local TIME = 45
 local SIZE = 15
 
 function EnemySpawn:new(x, y, type)
@@ -9,12 +9,14 @@ function EnemySpawn:new(x, y, type)
     self:add_elapsed_time()
     self:add_elapsed_ticks()
     self:add_signal("finished")
+	-- self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
 	self.z_index = 100
+	self.random_offset = rng(0, tau)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 end
 
 function EnemySpawn:enter()
-	self:play_sfx("enemy_spawn", 1.0)
+	self:play_sfx("enemy_spawner_spawn", 1.0)
     self:start_tick_timer("spawn", TIME)
 	self:add_tag("wave_spawn")
 end
@@ -22,32 +24,51 @@ end
 function EnemySpawn:update(dt)
     if not self:is_tick_timer_running("spawn") then
 		self:emit_signal("finished")
-		self:queue_destroy()
+        self:queue_destroy()
+		-- if self.type == "enemy" then
+		self:play_sfx("enemy_spawn", 0.45)
+		-- elseif self.type == "hazard" then
+			-- self:play_sfx("hazard_spawn", 0.5)
+		-- end
 	end
 end
 
 function EnemySpawn:draw()
-	if idivmod(self.tick, 3, 2) == 0 then return end
 	graphics.set_color(self.type == "enemy" and Color.red or (self.type == "hazard" and Color.orange) or Color.green, 1)
-    if self.tick < 4 then
-		graphics.set_color(1, 1, 1, 1)
-	end
-	self:do_rect()
-end
+	if self.tick > TIME - 10 and idivmod(self.tick, 2, 2) == 0 then return end
+    if self.tick < 4 or self.tick > TIME - 4 then
+        graphics.set_color(1, 1, 1, 1)
+    end
 
-function EnemySpawn:floor_draw()
-	-- if self.is_new_tick and self.tick % 1 == 0 then
-	-- 	local color = Palette.rainbow:tick_color(self.world.tick)
-	-- 	local mod = 0.5
-	-- 	graphics.set_color(color.r * mod, color.g * mod, color.b * mod)
-	-- 	self:do_rect()
-	-- end
+	graphics.push()
+	graphics.rotate(tau/8)
+
+	
+	self:do_rect()
+	graphics.pop()
 end
 
 function EnemySpawn:do_rect()
+	local cross_time = 30
+	local fill = self.tick < TIME - 25 and "line" or "fill"
+    if self.tick > TIME - cross_time then
+		local rect_size = 5
+		local cross_distance = 10
+        local t = ease("outExpo")((self.tick - (TIME - cross_time)) / cross_time)
+		t = remap(t, 0, 1, 0.25, 1)
+		local distance = cross_distance * (1 - t)
+        graphics.rectangle(fill, -distance - rect_size / 2, -distance - rect_size / 2, rect_size, rect_size)
+        graphics.rectangle(fill, distance - rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
+        graphics.rectangle(fill, -distance - rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
+        graphics.rectangle(fill, distance - rect_size / 2, -distance - rect_size / 2, rect_size, rect_size)
+		graphics.rectangle(fill, -distance - rect_size / 2, -rect_size / 2, rect_size, rect_size)
+        graphics.rectangle(fill, distance - rect_size / 2, -rect_size / 2, rect_size, rect_size)
+		graphics.rectangle(fill, -rect_size / 2, -distance - rect_size / 2, rect_size, rect_size)
+		graphics.rectangle(fill, -rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
+    end
     local time_left = self:tick_timer_time_left("spawn")
-    local size = 3 + (SIZE - 3) * 2 * (pow((time_left / TIME), 1.5))
-    graphics.rectangle(self.tick < TIME - 25 and "line" or "fill", -size / 2, -size / 2, size, size)
+    local size = 5 + (SIZE - 3) * 2 * (pow((time_left / TIME), 1.5))
+    graphics.rectangle(fill, -size / 2, -size / 2, size, size)
 end
 
 

@@ -2,6 +2,7 @@ local BaseEnemy = GameObject2D:extend("BaseEnemy")
 local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local LastEnemyTarget = require("fx.last_enemy_target")
+local LifeFlash = require("fx.enemy_life_flash")
 
 function BaseEnemy:new(x, y)
     BaseEnemy.super.new(self, x, y)
@@ -23,13 +24,18 @@ function BaseEnemy:new(x, y)
 	self:add_sequencer()
     self.random_offset = rng.randi(0, 255)
 	self.random_offset_ratio = self.random_offset / 255
-	self.flip = 1
+    self.flip = 1
 
     self:add_signal("died")
 end
 
 function BaseEnemy:hazard_init()
     self:add_tag("hazard")
+end
+
+function BaseEnemy:life_flash()
+	local bx, by = self:get_body_center()
+	self:spawn_object(LifeFlash(bx, by, self:get_sprite()))
 end
 
 function BaseEnemy:enter_shared()
@@ -39,9 +45,19 @@ function BaseEnemy:enter_shared()
     if self.hit_bubble_radius and self.hit_bubble_radius > 0 then
         self:add_hit_bubble(0, 0, self.hit_bubble_radius, "main", self.hit_bubble_damage)
     end
-	if self.spawn_sfx then
-		self:play_sfx(self.spawn_sfx, self.spawn_sfx_volume or 1.0, self.spawn_sfx_pitch or 1.0)
+    if self.spawn_sfx then
+        self:play_sfx(self.spawn_sfx, self.spawn_sfx_volume or 1.0, self.spawn_sfx_pitch or 1.0)
+    else
+		-- if self:has_tag("wave_enemy") then
+        --     self:play_sfx("enemy_spawn", 0.5, 1.0)
+		-- elseif self:has_tag("hazard") then
+        --     self:play_sfx("enemy_spawn", 0.5, 1.0)
+		-- end
+    end
+    if self.spawn_cry then
+		self:play_sfx(self.spawn_cry, self.spawn_cry_volume or 1.0, self.spawn_cry_pitch or 1.0)
 	end
+	local bx, by = self:get_body_center()
 end
 
 function BaseEnemy:highlight_self()

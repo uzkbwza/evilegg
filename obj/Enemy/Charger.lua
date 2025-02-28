@@ -4,7 +4,7 @@ local CHARGE_SPEED = 0.035
 
 local ChargerIndicator = Effect:extend("ChargerIndicator")
 function Charger:new(x, y)
-	self.max_hp = 2
+	self.max_hp = 4
     Charger.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)

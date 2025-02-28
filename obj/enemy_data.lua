@@ -25,6 +25,7 @@ local function process_enemy_table(t)
 				EnemyDataTable[name] = value
                 -- EnemyDataTable[value] = EnemyDataTable[name]
                 EnemyDataTable.data[name].class = EnemyDataTable[name]
+				EnemyDataTable[name].enemy_spawn_data = EnemyDataTable.data[name]
             else
 				print("no enemy data found for " .. name)
             end
@@ -63,26 +64,28 @@ end
 
 for k, v in pairs(EnemyDataTable.data) do
     local data = process_enemy_data(v, k)
-    
-	
-	EnemyDataTable.data_by_type[data.type] = EnemyDataTable.data_by_type[data.type] or {}
-    EnemyDataTable.data_by_type_then_level[data.type] = EnemyDataTable.data_by_type_then_level[data.type] or {}
-	EnemyDataTable.data_by_type_then_level[data.type][data.level] = EnemyDataTable.data_by_type_then_level[data.type][data.level] or {}
-	table.insert(EnemyDataTable.data_by_type[data.type], data)
-    table.insert(EnemyDataTable.data_by_type_then_level[data.type][data.level], data)
-	
-	EnemyDataTable.data_by_level[data.level] = EnemyDataTable.data_by_level[data.level] or {}
-	EnemyDataTable.data_by_level_then_type[data.level] = EnemyDataTable.data_by_level_then_type[data.level] or {}
-	EnemyDataTable.data_by_level_then_type[data.level][data.type] = EnemyDataTable.data_by_level_then_type[data.level][data.type] or {}
-	table.insert(EnemyDataTable.data_by_level[data.level], data)
-	table.insert(EnemyDataTable.data_by_level_then_type[data.level][data.type], data)
 
-	if not EnemyDataTable.max_level_by_type[data.type] then
-		EnemyDataTable.max_level_by_type[data.type] = data.level
-	else
-		EnemyDataTable.max_level_by_type[data.type] = max(EnemyDataTable.max_level_by_type[data.type], data.level)
-	end
-	
+
+    EnemyDataTable.data_by_type[data.type] = EnemyDataTable.data_by_type[data.type] or {}
+    EnemyDataTable.data_by_type_then_level[data.type] = EnemyDataTable.data_by_type_then_level[data.type] or {}
+    EnemyDataTable.data_by_type_then_level[data.type][data.level] = EnemyDataTable.data_by_type_then_level[data.type]
+    [data.level] or {}
+    table.insert(EnemyDataTable.data_by_type[data.type], data)
+    table.insert(EnemyDataTable.data_by_type_then_level[data.type][data.level], data)
+
+    EnemyDataTable.data_by_level[data.level] = EnemyDataTable.data_by_level[data.level] or {}
+    EnemyDataTable.data_by_level_then_type[data.level] = EnemyDataTable.data_by_level_then_type[data.level] or {}
+    EnemyDataTable.data_by_level_then_type[data.level][data.type] = EnemyDataTable.data_by_level_then_type[data.level]
+    [data.type] or {}
+    table.insert(EnemyDataTable.data_by_level[data.level], data)
+    table.insert(EnemyDataTable.data_by_level_then_type[data.level][data.type], data)
+
+    if not EnemyDataTable.max_level_by_type[data.type] then
+        EnemyDataTable.max_level_by_type[data.type] = data.level
+    else
+        EnemyDataTable.max_level_by_type[data.type] = max(EnemyDataTable.max_level_by_type[data.type], data.level)
+    end
+
     EnemyDataTable.data[k] = data
 end
 
@@ -106,7 +109,6 @@ for key, value in pairs(EnemyDataTable.max_level_by_type) do
 end
 
 EnemyDataTable.data["BaseEnemy"].spawnable = false
-
 
 process_enemy_table(enemy_table)
 

@@ -32,7 +32,13 @@ function TwinStickNormalBullet:__mix_init()
 	self:add_enter_function(function(self)
         self.spawn_position = self.spawn_position or self.pos:clone()
 		self:add_to_spatial_grid("bullet_grid", self.get_rect)
-	end)
+    end)
+	
+	local old_debug_draw = self.debug_draw or self.dummy
+    self.debug_draw = function(self)
+        old_debug_draw(self)
+        self:twin_stick_normal_bullet_debug_draw()
+    end
 
 
     self.hit = false
@@ -67,7 +73,10 @@ function TwinStickNormalBullet.try_hit(bubble, self)
 		signal.connect(parent, "destroyed", self, "on_parent_destroyed", function()
 			self.hit_objects[parent] = nil
 		end)
-		self.hit = true
+        self.hit = true
+		if not parent.bullet_passthrough then 
+			self.hit_blocking = true
+		end
 		self:emit_signal("bullet_hit")
 	end
 end
@@ -104,13 +113,13 @@ function TwinStickNormalBullet:try_hit_nearby_objects(team)
 	local hurt_bubbles = self.world.hurt_bubbles[team]
 	local x, y, w, h = self:get_rect()
 	hurt_bubbles:each(x, y, w, h, self.try_hit, self)
-	if self.hit and self.die_on_hit then
-		self:on_hit_objects_this_frame()
-		self.hit = false
+	if self.hit_blocking and self.die_on_hit then
+		self:on_hit_blocking_objects_this_frame()
+		self.hit_blocking = false
 	end
 end
 
-function TwinStickNormalBullet:on_hit_objects_this_frame()
+function TwinStickNormalBullet:on_hit_blocking_objects_this_frame()
 	-- self:die()
 end
 
@@ -133,8 +142,12 @@ end
 
 function TwinStickNormalBullet:draw()
     graphics.circle("fill", 0, 0, self.radius)
-
 end
 
+function TwinStickNormalBullet:twin_stick_normal_bullet_debug_draw()
+	if not debug.can_draw_bounds() then return end
+    graphics.set_color(Color.blue)
+	graphics.circle("line", 0, 0, self.radius)
+end
 
 return TwinStickNormalBullet

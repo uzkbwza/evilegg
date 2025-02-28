@@ -82,24 +82,48 @@ return {
 		[1] = "assets/sprite/enemy/shielder_particle.png",
 	},
 	[27] = {
-		[1] = "assets/sprite/fx/last_enemy_target_corner.png",
+		[1] = "assets/sprite/enemy/turret_base.png",
 	},
 	[28] = {
-		[1] = "assets/sprite/fx/last_enemy_target_line.png",
+		[1] = "assets/sprite/enemy/turret_bullet.png",
 	},
 	[29] = {
-		[1] = "assets/sprite/hazard/mushroom1.png",
+		[1] = "assets/sprite/enemy/turret_gun.png",
 	},
 	[30] = {
-		[1] = "assets/sprite/hazard/mushroom2.png",
+		[1] = "assets/sprite/enemy/turret_gun1.png",
 	},
 	[31] = {
-		[1] = "assets/sprite/player/character.png",
+		[1] = "assets/sprite/enemy/turret_gun2.png",
 	},
 	[32] = {
-		[1] = "assets/sprite/player/hover_fx.png",
+		[1] = "assets/sprite/enemy/turret_gun3.png",
 	},
 	[33] = {
+		[1] = "assets/sprite/enemy/turret_gun4.png",
+	},
+	[34] = {
+		[1] = "assets/sprite/enemy/turret_gun5.png",
+	},
+	[35] = {
+		[1] = "assets/sprite/fx/last_enemy_target_corner.png",
+	},
+	[36] = {
+		[1] = "assets/sprite/fx/last_enemy_target_line.png",
+	},
+	[37] = {
+		[1] = "assets/sprite/hazard/mushroom1.png",
+	},
+	[38] = {
+		[1] = "assets/sprite/hazard/mushroom2.png",
+	},
+	[39] = {
+		[1] = "assets/sprite/player/character.png",
+	},
+	[40] = {
+		[1] = "assets/sprite/player/hover_fx.png",
+	},
+	[41] = {
 		[1] = "assets/sprite/psylocke.png",
 	},
 }

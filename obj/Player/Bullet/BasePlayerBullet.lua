@@ -8,7 +8,7 @@ BasePlayerBullet.death_spawns = {}
 
 function BasePlayerBullet:new(x, y)
 	BasePlayerBullet.super.new(self, x, y)
-	self.radius = self.radius or 3
+	self.radius = self.radius or 5
 	self:mix_init(TwinStickNormalBullet)
 	self.speed = 6
 	self:add_elapsed_ticks()
@@ -17,7 +17,7 @@ function BasePlayerBullet:new(x, y)
 	self.start_palette_offset = gametime.tick * 4
     self.hit_vel_multip = 16
 	self.push_modifier = 0.75
-	self.damage = 0.5
+	self.damage = 1
 end
 
 function BasePlayerBullet:draw()
@@ -42,8 +42,12 @@ function BasePlayerBullet:draw()
 		-- if self.dead then
 		-- 	scale = pow(scale, 2)
 		-- end
-		graphics.set_color(color)
-		graphics.draw_centered(self.sprite, x, y, 0, scale, scale)
+        graphics.set_color(color)
+        for j = -1, 1, 2 do
+            local rot_x, rot_y = vec2_rotated(self.direction.x, self.direction.y, tau / 4 * j)
+			rot_x, rot_y = vec2_normalized(rot_x, rot_y)
+			graphics.draw_centered(self.sprite, x + rot_x * 2, y + rot_y * 2, 0, scale, scale)
+		end
 	end
 end
 
@@ -82,7 +86,7 @@ function BasePlayerBullet:on_hit_something(parent, bubble)
 	self:try_push(parent, self.push_modifier)
 end
 
-function BasePlayerBullet:on_hit_objects_this_frame()
+function BasePlayerBullet:on_hit_blocking_objects_this_frame()
 	if not self:is_timer_running("stop_hitting") then
 		self:start_timer("stop_hitting", 1, function()
 			self:die()

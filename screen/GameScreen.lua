@@ -11,11 +11,9 @@ function GameScreen:enter()
 end
 
 function GameScreen:on_player_died()
+	global_state:reset_game_state()
 	self:transition_to(Screens.GameScreen)
 end
-
--- function GameScreen:clear_procedure()
--- end
 
 function GameScreen:update(dt)
 end

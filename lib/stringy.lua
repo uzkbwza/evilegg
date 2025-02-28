@@ -64,6 +64,14 @@ function stringy.strip_char(s, char, left, right)
     return result
 end
 
+function stringy.number_of_lines(str)
+	local lines = 0
+	for line in str:gmatch("[^\n]+") do
+		lines = lines + 1
+	end
+	return lines
+end
+
 function stringy.split(string, substr)
 	local t = {}
     if substr == nil or substr == "" then

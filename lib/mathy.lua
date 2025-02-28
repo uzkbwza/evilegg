@@ -1,7 +1,13 @@
 ---@diagnostic disable: lowercase-global
-log, floor, ceil, min, abs, sqrt, cos, sin, atan2, pi, max, deg, rad, tau, pow
+log, floor, ceil, min, abs, sqrt, cos, sin, atan2, pi, max, deg2rad, rad2deg, tau, pow
 = math.log, math.floor, math.ceil, math.min, math.abs, math.sqrt, math.cos, math.sin, math.atan2, math.pi, math.max, math.deg, math.rad, math.pi * 2, math.pow
 math.e = 2.718281828459045
+
+quarter_tau	 		= tau * 0.25
+half_tau            = tau * 0.5
+three_quarter_tau   = tau * 0.75
+eighth_tau          = tau * 0.125
+sixteenth_tau       = tau * 0.0625
 
 function clamp(x, min_x, max_x)
   return min(max(x, min_x), max_x)
@@ -167,9 +173,6 @@ function pulse(duration, width, tick, offset)
     return wave(0.0, 1.0, duration, offset, tick) < width
 end
 
-function deg2rad(deg)
-	return deg * (pi / 180)
-end
 
 function rad2deg(rad)
 	return rad * (180 / pi)

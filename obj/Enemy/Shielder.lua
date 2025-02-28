@@ -1,7 +1,7 @@
 local Shielder = require("obj.Enemy.BaseEnemy"):extend("Shielder")
 
 local SEARCH_RADIUS = 100
-local PUSH_FORCE = 0.0005
+local PUSH_FORCE = 0.005
 local MAX_SHIELD_RADIUS = 48
 local SHIELD_RADIUS_GROWTH = 0.1
 local HEALTH_REGEN = 0.0067
@@ -27,9 +27,6 @@ function Shielder:new(x, y)
     self.killed_bullets = {}
 	self.z_index = 1
 
-    self.stencil_function = function()
-		graphics.circle("fill", 0, 0, self.shield_radius)
-	end
 
 	self.on_terrain_collision = self.terrain_collision_bounce
 end

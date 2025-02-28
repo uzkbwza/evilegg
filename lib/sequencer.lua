@@ -98,7 +98,7 @@ function Sequencer:update(dt)
 			if coroutine.status(co) ~= "dead" then
 				local status, val, traceback = coroutine.xpcall(co)
 				if not status then
-					error(val .. "\n" .. traceback)
+					error(val .. "\n" .. traceback) 
 				end
 			end
 		end

@@ -8,7 +8,7 @@ local physics_limits = {
 }
 
 function Quark:new(x, y)
-    self.max_hp = 2
+    self.max_hp = 4
     self.hit_bubble_radius = 3
     self.hurt_bubble_radius = 5
     self.terrain_collision_radius = 5

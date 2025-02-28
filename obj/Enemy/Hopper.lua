@@ -14,18 +14,27 @@ function Hopper:new(x, y)
 	self:set_body_height(self.default_body_height)
     self.sprite = textures.enemy_hopper1
     
-    self.number_hop_bullets = self.number_hop_bullets or 7
+    self.number_hop_bullets = self.number_hop_bullets or 5
     self.bullet_speed = self.bullet_speed or 1
     self.hop_speed = self.hop_speed or 2
-    self.min_wait_time = self.min_wait_time or 120
-    self.max_wait_time = self.max_wait_time or 600
+    self.min_wait_time = self.min_wait_time or 60
+	self.max_start_time = self.max_start_time or 300
+    self.max_wait_time = self.max_wait_time or 900
 	self.body_height_mod = self.body_height_mod or 4
     self.hop_sfx = "enemy_hopper_hop"
 	self.shoot_sfx = "enemy_hopper_shoot"
 end
 
 function Hopper:on_terrain_collision(normal_x, normal_y)
-	self:terrain_collision_bounce(normal_x, normal_y)
+    self:terrain_collision_bounce(normal_x, normal_y)
+end
+
+function Hopper:get_palette()
+    local offset = 0
+	if idivmod_eq_zero(self.tick, 15, 3) then
+		offset = self.tick / 3 + self.random_offset
+	end
+	return nil, offset
 end
 
 function Hopper:state_Waiting_enter()
@@ -35,8 +44,9 @@ function Hopper:state_Waiting_enter()
     self.sprite = textures.enemy_hopper1
 	local s = self.sequencer
 	s:start(function()
-		s:wait(rng.randi_range(self.min_wait_time, self.max_wait_time))
-		self:change_state("Hopping")
+		s:wait(rng.randi_range(self.min_wait_time, (not self.started) and self.max_start_time or self.max_wait_time))
+		self.started = true
+        self:change_state("Hopping")
 	end)
 end
 

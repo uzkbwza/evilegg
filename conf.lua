@@ -63,6 +63,12 @@ local conf = {
 		hover = {
 			keyboard = { "space" },
 			joystick = { "leftshoulder", }
+        },
+		
+		restart = {
+			keyboard = { "r" },
+			joystick = { "start" },
+			-- mouse = { "lmb" }
 		},
 
 		confirm = {
@@ -295,7 +301,23 @@ local conf = {
 				{ "lctrl", "m" },
 				{ "rctrl", "m" }
 			}
-		},
+        },
+		
+        debug_skip_wave = {
+			debug = true,
+			keyboard = {
+				{ "tab" },
+				{ "tab" }
+			}
+        },
+		
+		debug_toggle_invulnerability = {
+			debug = true,
+			keyboard = {
+				{ "i" },
+				{ "i" }
+			}
+		}
 
 		
 	},

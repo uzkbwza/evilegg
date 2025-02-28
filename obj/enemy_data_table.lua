@@ -4,54 +4,72 @@ local Enemies = {
 		type = "enemy",
         initial_wave_only = false,
         spawnable = true,
-        room_select_weight = 10000,
-		room_spawn_weight = 10000,
+        room_select_weight = 1000,
+		spawn_points = 10,
         min_level = 1,
-		max_spawns = 999999,
+		icon = nil,
     },	
     
 	Walker = {
-		level = 1, 
+        level = 1,
+		max_level = 20,
+        spawn_points = 8,
+		icon = textures.enemy_base,
     },
 
 	FastWalker = {
-		inherit = { "Walker" },
-		min_level = 2,
-		room_select_weight = 5000,
-		-- room_spawn_weight = 5000,
+		-- inherit = { "Walker" },
+		min_level = 3,
+		room_select_weight = 500,
+		spawn_points = 10,
+		icon = textures.enemy_fastwalker,
     },
 	
     Roamer = {
-		level = 1,
+        level = 2,
+		max_level = 7,
+		icon = textures.enemy_roamer1,
 	},
 	
 	Hopper = {
-		level = 2,
+        level = 2,
+		spawn_points = 20,
+		icon = textures.enemy_hopper1,
     },
 
 	BigHopper = {
         -- inherit = { "Hopper" },
 		level = 4,
-		min_level = 3,
-		-- room_select_weight = 5000000,
-        room_spawn_weight = 3000,
-		max_spawns = 2,
+        min_level = 3,
+		
+		spawn_points = 150,
+		icon = textures.enemy_bighopper1,
 	},
 
     Enforcer = {
 		level = 3,
+		spawn_points = 30,
+		icon = textures.enemy_enforcer3,
     },
+
+	Turret = {
+		level = 4,
+        spawn_points = 100,
+		-- room_select_weight = 1000,
+		icon = textures.enemy_turret_gun1,
+	},
 
 	Shielder = {
         level = 3,
-        room_select_weight = 5000,
-		room_spawn_weight = 6000,
-		max_spawns = 1,
+        spawn_points = 200,
+		min_level = 6,
+		icon = textures.enemy_shielder1,
     },
 	
 	Charger = {
         level = 4,
-        -- room_select_weight = 5000,
+		spawn_points = 100,
+		icon = textures.enemy_charger1,
 	},
 
 }
@@ -60,25 +78,27 @@ local Hazards = {
     Bouncer = {
         initial_wave_only = true,
         level = 2,
-		room_spawn_weight = 20000,
+		spawn_points = 50,
+		icon = textures.enemy_bouncer1,
     },
 
 	Quark = {
         level = 2,
-        room_spawn_weight = 10000,
 		min_level = 3,
+		spawn_points = 20,
+		icon = textures.enemy_quark,
 	},
 
     Fungus = {
 		level = 2,
-        -- initial_wave_only=true,
-		room_select_weight = 10000,
-		-- room_spawn_weight = 10000,
-
+		spawn_points = 40,
+		icon = textures.hazard_mushroom2,
 	},
 	
 	Mine = {
-		-- inherit = { "Walker", "Roamer" },
+		level = 1,
+		spawn_points = 10,
+		icon = textures.enemy_mine,
 	},
 }
 

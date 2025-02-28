@@ -1,20 +1,20 @@
 local DEATH_FX_POWER = 1.4
 local DEATH_FX_DISTANCE = 3
 
-local BASE_SIZE = 10
+local BASE_SIZE = 7
 
 local DRAG = 0.15
 
-local PIXEL_COUNT = 20
+local PIXEL_COUNT = 10
 local SPEED = 5.0
 
 local DeathFlash = Effect:extend("DeathFlash")
 
 -- TODO: use quads instead of pixels
-function DeathFlash:new(x, y, texture, size_mod)
+function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
 	DeathFlash.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
-    self.duration = 20
+    self.duration = 30
 	self.reversed = false	
 
 	local width, height = 0, 0
@@ -75,7 +75,8 @@ function DeathFlash:new(x, y, texture, size_mod)
 	self:start_timer("z_index", 10, function()
 		self.z_index = -100
 	end)
-
+	self.palette = palette
+	self.palette_tick_length = palette_tick_length
 end
 
 function DeathFlash:update(dt)
@@ -95,22 +96,34 @@ function DeathFlash:draw(elapsed, tick, t)
     end
 
     t = elapsed / (self.duration)
-    t = clamp01(t - (1 / self.duration) * 6)
-    t = ease("outCirc")(t)
+    -- t = clamp01(t - (1 / self.duration) * 6)
+	local t2 = ease("outExpo")(t)
+    t = ease("outCubic")(t)
 
-    if (tick < 14) then
-        local size = max(5 - ((tick) * 2.0) + 12 * self.size_mod, 1)
 
-        if tick < 6 then
-            graphics.push()
-            -- graphics.rotate(tau / 8)
-            graphics.scale(1.0, self.height / self.width)
-            graphics.set_color(Palette.cmy:tick_color(tick, self.start_tick, self.palette_tick_length))
+	
+	if tick < 6 then
+		local size = max(5 - ((tick) * 2.0) + 12 * self.size_mod, 1)
+		graphics.push()
+		-- graphics.rotate(tau / 8)
+		graphics.scale(1.0, self.height / self.width)
+		graphics.set_color((self.palette or Palette.cmy):tick_color(tick, self.start_tick, self.palette_tick_length))
 
-            graphics.rectangle(tick <= 3 and "fill" or "line", -size / 2, -size / 2, size, size)
-            graphics.pop()
-        end
-    end
+		graphics.rectangle(tick <= 3 and "fill" or "line", -size / 2, -size / 2, size, size)
+		graphics.pop()
+	end
+
+    if tick < 4 then
+		local size = max(((t2 * self.duration) * 0.5) + 8 * self.size_mod, 1)
+		graphics.push()
+		-- graphics.rotate(tau / 8)
+		graphics.scale(1.0, self.height / self.width)
+		graphics.set_color((self.palette or Palette.cmy):tick_color(tick / 5, self.start_tick, self.palette_tick_length))
+
+		graphics.rectangle("line", -size / 2, -size / 2, size, size)
+		graphics.pop()
+	end
+
 
 
     graphics.set_color(Color.darkgrey)
@@ -121,7 +134,36 @@ function DeathFlash:draw(elapsed, tick, t)
 end
 
 function DeathFlash:floor_draw()
-	if self.tick < self.duration - 10 then
+    local elapsed = self.elapsed
+    local tick = floor(elapsed)
+	local t = elapsed / (self.duration)
+    if self.tick == 1 then
+		if self.reversed then
+			t = 1 - t
+			elapsed = self.duration - elapsed
+			tick = floor(elapsed)
+		end
+	
+		t = elapsed / (self.duration)
+		t = clamp01(t - (1 / self.duration) * 6)
+		t = ease("outCirc")(t)
+		
+		if (tick < 14) then
+			local size = max(5 - ((tick) * 2.0) + 12 * self.size_mod * 0.75, 1)
+	
+			if tick < 6 then
+				graphics.push()
+				-- graphics.rotate(tau / 8)
+				graphics.scale(1.0, self.height / self.width)
+				graphics.set_color(Color.black)
+	
+				graphics.rectangle("fill", -size / 2, -size / 2, size, size)
+				graphics.pop()
+			end
+		end
+	end
+
+	if self.tick < self.duration - 20 then
 		return
 	end
 
