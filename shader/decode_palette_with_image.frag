@@ -2,8 +2,8 @@ uniform sampler2D palette;
 uniform int palette_size;
 uniform int palette_offset;
 
-bool is_approx_equal(vec3 color1, vec3 color2, float threshold) {
-    vec3 diff = color1 - color2;
+bool is_approx_equal(vec4 color1, vec4 color2, float threshold) {
+    vec4 diff = color1 - color2;
     return length(diff) < threshold;
 }
 
@@ -17,7 +17,7 @@ vec4 decode_palette(vec4 encoded_color, sampler2D palette, int palette_size, int
 	float i = 0.5 + int(mod(int(index) + palette_offset, palette_size));
 	vec4 palette_color = Texel(palette, vec2(i / palette_size, 0));
 
-    return vec4(palette_color.rgb, encoded_color.a);
+    return vec4(palette_color.rgb, encoded_color.a * palette_color.a);
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {

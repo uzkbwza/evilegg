@@ -63,6 +63,8 @@ function graphics.load_textures(texture_atlas)
 		linear = false,
 	}
 
+	local texture_count = 0
+
 	for _, path in ipairs(sprite_paths) do
 		local tex = graphics.new_image(path, image_settings)
 		local data = graphics.readback_texture(tex)
@@ -92,9 +94,10 @@ function graphics.load_textures(texture_atlas)
         texture_data[data] = data
         texture_data[path] = data
         texture_data[name] = data
+		texture_count = texture_count + 1
 	end
 
-	dbg("Loaded textures", table.length(textures))
+	dbg("Loaded textures", texture_count)
 
 
 	if packer then
@@ -107,7 +110,7 @@ function graphics.load_textures(texture_atlas)
 	Palette.paths = {}
 
 
-	local texture_palette_file = filesystem.read("assets/sprite/texture_palettes.lua")
+	local texture_palette_file = filesystem.read("assets/sprite/data/texture_palettes.lua")
 
 
     if texture_palette_file then
@@ -135,6 +138,9 @@ function graphics.load_textures(texture_atlas)
                         local ref_texture_data = texture_data[ref_texture_path]
                         local palettized_ref_texture_name = "palettized_" .. ref_texture_name
                         local palettized_ref_texture = textures[palettized_ref_texture_name]
+                        if palettized_ref_texture == nil then
+							goto continue
+						end
                         local palettized_ref_texture_path = texture_paths[palettized_ref_texture_name]
 						local palettized_ref_texture_data = texture_data[palettized_ref_texture_path]
 						
@@ -235,38 +241,53 @@ end
 
 function graphics.load()
     graphics.shader.load()
-	graphics.set_default_filter("nearest", "nearest", 0)
+    graphics.set_default_filter("nearest", "nearest", 0)
     graphics.canvas = graphics.new_canvas(conf.viewport_size.x, conf.viewport_size.y)
-	local wsx, wsy = graphics.get_dimensions()
+    local wsx, wsy = graphics.get_dimensions()
 
 
-	graphics.set_canvas(graphics.canvas)
+    graphics.set_canvas(graphics.canvas)
 
-	graphics.clear(0, 0, 0, 0)
-	graphics.set_blend_mode("alpha")
-	graphics.set_line_style("rough")
-	graphics.set_canvas()
+    graphics.clear(0, 0, 0, 0)
+    graphics.set_blend_mode("alpha")
+    graphics.set_line_style("rough")
+    graphics.set_canvas()
 
     graphics.load_textures(false)
 
-	graphics.initialize_screen_shader_presets()
+    graphics.initialize_screen_shader_presets()
 
     graphics.set_screen_shader_from_preset(usersettings.screen_shader_preset)
-	
-	local font_paths = filesystem.get_files_of_type("assets/font", "ttf", true)
-	graphics.font = {
-	}
 
+    graphics.load_fonts()
 
-	for _, v in ipairs(font_paths) do
-		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_")] = graphics.new_font(v,
-			v:find("8") and 8 or 16)
-	end
-
-	graphics.font.main = graphics.font["PixelOperator-Bold"]
-    graphics.set_font(graphics.font.main)
-	
     textures = graphics.textures
+	fonts = graphics.font
+end
+
+function graphics.load_fonts()
+    local font_paths = filesystem.get_files_of_type("assets/font", "ttf", true)
+    graphics.font = {
+    }
+
+
+    for _, v in ipairs(font_paths) do
+        graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_")] = graphics.new_font(v,
+            v:find("8") and 8 or 16)
+    end
+end
+
+function graphics.load_image_font(name, sprite, glyphs)
+	local depalettized_sprite = graphics.depalettized[sprite]
+	sprite = graphics.palettized[sprite]
+    local data = graphics.texture_data[sprite]
+    fonts[name] = graphics.new_image_font(data, glyphs)
+	graphics.font_images = graphics.font_images or {}
+	graphics.font_images[name] = sprite
+    graphics.font_images[fonts[name]] = sprite
+	fonts.depalettized = fonts.depalettized or {}
+	fonts.depalettized[name] = graphics.new_image_font(graphics.texture_data[depalettized_sprite], glyphs)
+	return fonts[name]
 end
 
 function graphics.initialize_screen_shader_presets()
@@ -322,10 +343,10 @@ function graphics.initialize_screen_shader_presets()
 					pixel_texture = graphics.textures.pixeltexture,
 					effect_strength = 1,
 					brightness = 1.0,
-					min_brightness = 0.01,
+					min_brightness = 0.025,
 					overlay_power = 0.3,
 					boost = 0.00,
-					luminance_modifier = 1.0,
+					luminance_modifier = 1.1,
 					saturation_modifier = 1.00,
 					contrast_modifier = 1.00,
 				},
@@ -680,6 +701,14 @@ function graphics.draw_fit(texture, start_x, start_y, end_x, end_y)
 	graphics.draw(texture, start_x - offset_x, start_y - offset_y, 0, scale, scale)
 end
 
+function graphics.get_quad_table(texture, quad)
+    return {
+        texture = texture,
+		__isquad = true,
+        quad = quad,
+    }
+end
+
 
 function graphics.draw(texture, x, y, r, sx, sy, ox, oy, kx, ky)
     -- remove this if you arent using sprite sheets
@@ -783,14 +812,36 @@ function graphics.rect(mode, rect)
 	love.graphics.rectangle(mode, rect.x, rect.y, rect.width, rect.height)
 end
 
+function graphics.rectangle_centered(mode, x, y, width, height)
+	love.graphics.rectangle(mode, x - width / 2, y - height / 2, width, height)
+end
+
 function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 	love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
+function graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+	local texture = graphics.font_images[font]
+	if text == nil then return end
+    palette = graphics._auto_palette(texture, palette, offset)
+	if palette == nil then
+		return graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+	end
+
+	graphics.set_shader(palette:get_shader(offset))
+	graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.set_shader()
+end
+
+function graphics.text_center_offset(text, font)
+	local width, height = font:getWidth(text), font:getHeight(text)
+	return -width / 2, -height / 2
+end
+
 function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
     graphics.push("all")
-    graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
     graphics.set_color(outline_color)
+    graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
@@ -802,6 +853,23 @@ function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx
     graphics.pop()
     graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 end
+
+function graphics.printp_outline(outline_color, text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+    graphics.push("all")
+    graphics.set_color(outline_color)
+    graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x + 1, y, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x - 1, y, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x, y + 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, x, y - 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.pop()
+    graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
 
 function graphics.print_outline_no_diagonals(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
 	graphics.push("all")

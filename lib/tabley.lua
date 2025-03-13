@@ -10,11 +10,48 @@ function tabley.length (t)
 end
 
 function tabley.find(t, value)
-	for i, v in ipairs(t) do
-		if v == value then
-			return i
-		end
-	end
+    for i, v in ipairs(t) do
+        if v == value then
+            return i
+        end
+    end
+end
+
+function tabley.filtered_keys(t, fn)
+    local filtered = {}
+    for k, v in pairs(t) do
+        if fn(k) then
+            filtered[k] = v
+        end
+    end
+    return filtered
+end
+
+function tabley.filtered_values(t, fn)
+    local filtered = {}
+    for k, v in pairs(t) do
+        if fn(v) then
+            filtered[k] = v
+        end
+    end
+    return filtered
+end
+
+function tabley.filtered(t, fn)
+    local filtered = {}
+    for k, v in pairs(t) do
+        if fn(v) then
+            table.insert(filtered, v)
+        end
+    end
+end
+
+function tabley.shuffle(t)
+    local n = #t
+    for i = n, 2, -1 do
+        local j = rng(1, i)
+        t[i], t[j] = t[j], t[i]
+    end
 end
 
 function tabley.push_back(t, value)
@@ -56,18 +93,26 @@ function tabley.values(tab)
 end
 
 function tabley.keys_and_values(tab)
-	local keys = {}
-	local values = {}
+    local keys = {}
+    local values = {}
     local next = next
     local key, value = next(tab)
-    
+
     while key do
-		table.insert(keys, key)
+        table.insert(keys, key)
         table.insert(values, value)
         key, value = next(tab, key)
     end
 
-	return keys, values
+    return keys, values
+end
+
+function tabley.map_array(tab, f)
+    local new_tab = {}
+    for i = 1, #tab do
+        table.insert(new_tab, f(tab[i]))
+    end
+	return new_tab
 end
 
 -- function tabley.clear(t)

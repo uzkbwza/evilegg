@@ -141,3 +141,5 @@ function Rbt:ipairs()
 
     return next_node
 end
+
+return Rbt

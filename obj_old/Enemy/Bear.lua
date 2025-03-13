@@ -1,4 +1,4 @@
-local Bear = require "obj.Enemy.Enemy":extend("Bear")
+local Bear = require "obj.Spawn.Enemy.Enemy":extend("Bear")
 
 Bear.speed = 0.5
 

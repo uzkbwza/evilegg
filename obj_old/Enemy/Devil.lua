@@ -1,4 +1,4 @@
-local Devil = require("obj.Enemy.Enemy"):extend("Devil")
+local Devil = require("obj.Spawn.Enemy.Enemy"):extend("Devil")
 
 local Sheet = SpriteSheet(textures.enemy_devil, 16, 16)
 

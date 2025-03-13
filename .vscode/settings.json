@@ -54,7 +54,12 @@
 		"snakeify_functions",
 		"kebabify_functions",
 		"global_game_state",
-		"game_state"
+		"game_state",
+		"main_font",
+		"main_font_bold",
+		"fonts",
+		"tr",
+		"translator"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

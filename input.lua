@@ -95,7 +95,7 @@ function input.load()
         g[vector] = {
             normalized = vector .. "_normalized",
             clamped = vector .. "_clamped",
-			digital = vector .. "_digital"
+            digital = vector .. "_digital"
         }
         input[vector] = Vec2(0, 0)
         input.dummy[vector] = Vec2(0, 0)
@@ -103,9 +103,11 @@ function input.load()
         input.dummy[vector .. "_normalized"] = Vec2(0, 0)
         input[vector .. "_clamped"] = Vec2(0, 0)
         input.dummy[vector .. "_clamped"] = Vec2(0, 0)
-		input[vector .. "_digital"] = Vec2(0, 0)
-		input.dummy[vector .. "_digital"] = Vec2(0, 0)
+        input[vector .. "_digital"] = Vec2(0, 0)
+        input.dummy[vector .. "_digital"] = Vec2(0, 0)
     end
+	
+	input.dummy.mouse = table.deepcopy(input.mouse)
 end
 
 function input.get_mouse_position()

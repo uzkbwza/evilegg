@@ -10,11 +10,13 @@ function TestObject:new(x, y)
 	self.texture = textures.psylocke
     self.palettes = {
         Palette[self.texture],
+		PaletteStack( Palette[self.texture], Palette.cmyk),
+		PaletteStack( Palette.greytoblack, Palette.cmyk),
 		Palette.bothways,
         Palette.rainbow,
         Palette.fire,
 		Palette.redblue,
-		Palette.lightup,
+        Palette.lightup,
     }
 
 
@@ -75,18 +77,26 @@ function TestObject:draw()
 
 	local palette = self.palettes[self.palette_selected]
 
-	if palette == false then palette = nil end
+    if palette == false then palette = nil end
+	
+
 
 	if self.show_default then
 		graphics.draw_centered(self.texture)
-	else
-		graphics.drawp_centered(self.texture, palette, self.cycle + self.offset)
+    else
+		if palette ~= nil and Object.is(palette, PaletteStack) then
+			palette:set_palette_offset(2, self.cycle)
+			graphics.drawp_centered(self.texture, palette, self.offset)
+		else
+			graphics.drawp_centered(self.texture, palette, self.cycle + self.offset)
+		end
 	end
 end
 
 function MainScreen:new()
 	MainScreen.super.new(self)
     local a = "hi"
+	self.clear_color = Color.black
 
     local world = World()
     world:init_camera()
@@ -110,8 +120,14 @@ function MainScreen:draw()
 
     if palette == false then palette = Palette[self.testobject.texture] end
 	
-    local colors = palette:get_color_array(self.testobject.cycle + self.testobject.offset)
-	
+
+	local colors
+    if Object.is(palette, PaletteStack) then
+		colors = palette:get_color_array(self.testobject.offset)
+	else
+		colors = palette:get_color_array(self.testobject.cycle + self.testobject.offset)
+	end
+
 	local rect_width = 8
     local rect_height = 10
 	local num_colors = #colors

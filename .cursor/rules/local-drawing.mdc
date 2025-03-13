@@ -1,0 +1,5 @@
+---
+description: drawing sprites correctly
+globs: 
+---
+objects deriving [game_object.lua](mdc:obj/game_object.lua) with a `draw` function are normalized at 0, 0. instead of calling draw functions at self.pos.x and self.pos.y, use local coordinates. there are also self:to_local() and self:to_global() which take x and y parameters.

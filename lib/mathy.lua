@@ -1,6 +1,6 @@
 ---@diagnostic disable: lowercase-global
 log, floor, ceil, min, abs, sqrt, cos, sin, atan2, pi, max, deg2rad, rad2deg, tau, pow
-= math.log, math.floor, math.ceil, math.min, math.abs, math.sqrt, math.cos, math.sin, math.atan2, math.pi, math.max, math.deg, math.rad, math.pi * 2, math.pow
+= math.log, math.floor, math.ceil, math.min, math.abs, math.sqrt, math.cos, math.sin, math.atan2, math.pi, math.max, math.rad, math.deg, math.pi * 2, math.pow
 math.e = 2.718281828459045
 
 quarter_tau	 		= tau * 0.25
@@ -21,8 +21,36 @@ function sign(x)
   return x > 0 and 1 or x < 0 and -1 or 0
 end
 
+-- 			   a      0       1      0.25    1
 function remap(value, istart, istop, ostart, ostop)
-	return ostart + (ostop - ostart) * ((value - istart) / (istop - istart))
+	--     0.25      1.0     0.25        a       0          1       0
+    return ostart + (ostop - ostart) * ((value - istart) / (istop - istart))
+end
+
+function remap_upper(value, istart, istop, ostop)
+    return istart + (ostop - istart) * ((value - istart) / (istop - istart))
+end
+
+-- 					  a    0       1      0.25
+function remap_lower(value, istart, istop, ostart)
+--         0.25      1       0           a        0         1       0
+    return ostart + (istop - ostart) * ((value - istart) / (istop - istart))
+end
+
+function remap01(value, ostart, ostop)
+	return ostart + (ostop - ostart) * value
+end
+
+function remap01_lower(value, ostart)
+	return ostart + (1 - ostart) * value
+end
+
+function remap01_upper(value, ostop)
+	return ostop * value
+end
+
+function remap_clamp(value, istart, istop, ostart, ostop)
+    return clamp(remap(value, istart, istop, ostart, ostop), ostart, ostop)
 end
 
 function remap_pow(value, istart, istop, ostart, ostop, power)
@@ -124,11 +152,15 @@ function stepify_ceil(s, step)
 end
 
 function vec2_drag(vel_x, vel_y, drag, dt)
-	return vel_x * (pow(1 - max(drag, 0.1), dt)), vel_y * (pow(1 - max(drag, 0.1), dt))
+	return vel_x * (pow(1 - max(drag, 0.00001), dt)), vel_y * (pow(1 - max(drag, 0.00001), dt))
+end
+
+function drag(vel, drag, dt)
+	return vel * (pow(1 - max(drag, 0.00001), dt))
 end
 
 function math.tent(x)
-    return 1 - 2 * math.abs(x - 0.5)
+return 1 - 2 * math.abs(x - 0.5)
 end
 
 function math.bump(x)
@@ -222,23 +254,23 @@ function splerp(a, b, delta, half_life)
 end
 
 -- Exponential decay function (splerp) for Vec2
-function splerp_vec(a, b, delta, half_life)
+function splerp_vec_table(a, b, delta, half_life)
     local t = pow(2, -delta / (frames_to_seconds(half_life)))
     return b + (a - b) * t  -- Uses Vec2 operations
 end
 
-function splerp_vec_unpacked(ax, ay, bx, by, delta, half_life)
+function splerp_vec(ax, ay, bx, by, delta, half_life)
 	local t = pow(2, -delta / (frames_to_seconds(half_life)))
 	return bx + (ax - bx) * t, by + (ay - by) * t
 end
 
 -- Exponential decay function (splerp) for Vec3
-function splerp_vec3(a, b, delta, half_life)
+function splerp_vec3_table(a, b, delta, half_life)
     local t = pow(2, -delta / (frames_to_seconds(half_life)))
     return b + (a - b) * t  -- Uses Vec3 operations
 end
 
-function splerp_vec3_unpacked(ax, ay, az, bx, by, bz, delta, half_life)
+function splerp_vec3(ax, ay, az, bx, by, bz, delta, half_life)
 	local t = pow(2, -delta / (frames_to_seconds(half_life)))
 	return bx + (ax - bx) * t, by + (ay - by) * t, bz + (az - bz) * t
 end

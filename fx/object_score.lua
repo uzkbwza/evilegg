@@ -8,7 +8,7 @@ function ObjectScore:new(x, y, score, label)
 	if label then
 		self.duration = self.duration + 60
 	end
-    self.font = graphics.font["PressStart2P-8"]
+    self.font = fonts["PressStart2P-8"]
 	self.z_index = -1
 	global_state:add_score(self.score)
 end

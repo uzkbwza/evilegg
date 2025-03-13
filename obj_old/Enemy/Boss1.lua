@@ -1,5 +1,5 @@
-local Enemy = require("obj.Enemy.Enemy")
-local FlyerEnemy = require("obj.Enemy.Flyer")
+local Enemy = require("obj.Spawn.Enemy.Enemy")
+local FlyerEnemy = require("obj.Spawn.Enemy.Flyer")
 
 local Boss1 = Enemy:extend("Boss1")
 local ObjectScore = require("fx.object_score")

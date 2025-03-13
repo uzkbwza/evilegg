@@ -1,4 +1,4 @@
-local Wall = require("obj.Enemy.Enemy"):extend("WallEnemy")
+local Wall = require("obj.Spawn.Enemy.Enemy"):extend("WallEnemy")
 
 local sheet = SpriteSheet("terrain_brick", 16, 16)
 

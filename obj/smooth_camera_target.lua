@@ -12,7 +12,7 @@ end
 
 function SmoothCameraTarget:update(dt)
 	local target_pos = self.target_function(self.following)
-	self:move_to(splerp_vec_unpacked(self.pos.x, self.pos.y, target_pos.x, target_pos.y, dt, self.smooth))
+	self:move_to(splerp_vec(self.pos.x, self.pos.y, target_pos.x, target_pos.y, dt, self.smooth))
 end
 
 function SmoothCameraTarget:draw()

@@ -119,7 +119,22 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
     sig.listeners[listener] = sig.listeners[listener] or {}
 
     -- if a function is not provided, use the connection_id as a function
-    func = func or function(...) listener[connection_id](listener, ...) end
+
+	if debug.enabled then 
+    	if func == nil then
+			if listener[connection_id] == nil then
+				error("connection_id `" .. tostring(connection_id) .. "` does not exist for object " .. tostring(listener))
+			end
+            func = function(...)
+                listener[connection_id](listener, ...)
+            end
+		end
+	else
+		func = func or function(...)
+			listener[connection_id](listener, ...)
+		end
+	end
+
 
     sig.listeners[listener][connection_id] = {
         func = func,

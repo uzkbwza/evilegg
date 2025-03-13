@@ -63,3 +63,5 @@ function Bst2:ipairs()
 
 	return next
 end
+
+return Bst2

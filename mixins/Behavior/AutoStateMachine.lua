@@ -4,7 +4,7 @@ function AutoStateMachine.__global_mix_init()
 	
 end
 
-function AutoStateMachine:__mix_init(start_state)
+function AutoStateMachine:__mix_init(start_state, ...)
 	assert(start_state, "starting state is required")
 
 	self.state = start_state
@@ -20,7 +20,10 @@ function AutoStateMachine:__mix_init(start_state)
 
 	local methods = {}
     local tab = self
-	while tab and tab.get_methods do
+    while tab and tab.get_methods do
+		if not tab.mixins[AutoStateMachine] then
+            break
+		end
 		methods = table.merged(methods, tab:get_methods())
 		tab = getmetatable(tab)
 	end
@@ -40,15 +43,15 @@ function AutoStateMachine:__mix_init(start_state)
 			end
 		end
 	end
-	self.state_machine = StateMachine()
+	local state_machine = StateMachine()
 	if not states[self.state] then
 		states[self.state] = {}
 	end
-	self.state_machine:add_state(State(self.state, states[self.state]))
+	state_machine:add_state(State(self.state, states[self.state]))
 	states[self.state] = nil
 
 	for k, v in pairs(states) do
-		self.state_machine:add_state(State(k, v, false))
+		state_machine:add_state(State(k, v, false))
 	end
 
 	self.state_elapsed = 1
@@ -59,23 +62,27 @@ function AutoStateMachine:__mix_init(start_state)
 
 	self.update = function(self, dt)
 		old_update(self, dt)
-		self.state_machine.update(dt)
+		state_machine.update(dt)
 		self.state_elapsed = self.state_elapsed + dt
 		self.state_tick = floor(self.state_elapsed)
 	end
 
     self.draw = function(self)
         old_draw(self)
-        self.state_machine.draw()
+        state_machine.draw()
     end
+
+	local args = {...}
 	
 	self:add_enter_function(function(self)
-		self:change_state(self.state)
+		self:change_state(self.state, unpack(args))
 	end)
+
+	self.state_machine = state_machine
 end
 
-function AutoStateMachine:change_state(to)
-	self.state_machine:change_state(to)
+function AutoStateMachine:change_state(to, ...)
+	self.state_machine:change_state(to, ...)
 	self.state = to
 	self.state_elapsed = 1
 	self.state_tick = 1

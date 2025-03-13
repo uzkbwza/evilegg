@@ -7,10 +7,14 @@ local GameObject2D = GameObject:extend("GameObject2D")
 ---@class GameObject3D : GameObject
 local GameObject3D = GameObject:extend("GameObject3D")
 
+local ObjectRefArray = Object:extend("ObjectRefArray")
 
 GameObject.DEFAULT_DRAW_CULL_DIST = 32
-GameObject.id_counter = 1
+GameObject.id_counter = 0x00000000
 GameObject.id_to_object = {}
+function GameObject:get_object(id)
+	return self.id_to_object[id]
+end
 
 function GameObject:new()
 
@@ -37,8 +41,13 @@ end
 
 function GameObject.new_id()
     local id = GameObject.id_counter
-    GameObject.id_counter = id + 1
+    -- GameObject.id_counter = bit.tobit(bit.band(GameObject.id_counter + 1, 0x0fffffff))
+    GameObject.id_counter = bit.tobit(GameObject.id_counter + 1)
     return id
+end
+
+function GameObject:get_id()
+	return self.id
 end
 
 function GameObject:on_moved()
@@ -64,32 +73,35 @@ function GameObject:ref(name, object)
 	return object
 end
 
-function GameObject:ref_to_table(name, object, tab)
-	if object == tab[name] then return end
-	if tab[name] then
-		self:unref(name)
-	end
-
-	self[name] = object
-	signal.connect(object, "destroyed", self, "on_table_ref_destroyed", function() tab[name] = nil end, true)
-	return object
-end
-
-function GameObject:unref_from_table(name, tab)
-	signal.disconnect(tab[name], "destroyed", self, "on_table_ref_destroyed")
-
-	if tab[name] then
-		self:unref(name)
-	end
-
-	tab[name] = nil
-end
-
 function GameObject:unref(name)
 	signal.disconnect(self[name], "destroyed", self, "on_ref_destroyed")
-
-
 	self[name] = nil
+end
+
+function GameObject:ref_array(name)
+	local array = bonglewunch()
+	self[name] = array
+	return array
+end
+
+function GameObject:ref_array_push(name, obj)
+	local array = self[name]
+	if array:has(obj) then return end
+	array:push(obj)
+	signal.connect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed",
+		function()
+			self[name]:remove(obj)
+		end,
+	true)
+end
+
+function GameObject:ref_array_remove(name, obj)
+	local array = self[name]
+	if not array:has(obj) then return end
+	
+	signal.disconnect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed")
+	
+	array:remove(obj)
 end
 
 function GameObject:_update_sequencer(dt)
@@ -135,6 +147,11 @@ function GameObject:add_elapsed_ticks()
 	end
 	self.tick = 1
 	self:add_update_function(self._update_elapsed_ticks)
+end
+function GameObject:add_time_stuff()
+	self:add_elapsed_time()
+    self:add_elapsed_ticks()
+	self:add_sequencer()
 end
 
 function GameObject:add_update_function(func)
@@ -212,7 +229,6 @@ function GameObject:remove_child(child)
 end
 
 function GameObject:update_shared(dt, ...)
-
     if self._update_functions then
         for _, func in ipairs(self._update_functions) do
             func(self, dt, ...)
@@ -225,30 +241,6 @@ end
 function GameObject:queue_destroy()
 	self.is_queued_for_destruction = true
 	self:defer(self.destroy)
-end
-
-function GameObject:is_timer_running(name)
-    return self.timers and self.timers[name] ~= nil
-end
-
-function GameObject:is_tick_timer_running(name)
-    return self.tick_timers and self.tick_timers[name] ~= nil
-end
-
-function GameObject:timer_time_left(name)
-    return (self.timers and self.timers[name] and self.timers[name].duration - self.timers[name].elapsed) or nil
-end
-
-function GameObject:tick_timer_time_left(name)
-    return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
-end
-
-function GameObject:stop_timer(name)
-	self.timers[name] = nil
-end
-
-function GameObject:stop_tick_timer(name)
-	self.tick_timers[name] = nil
 end
 
 function GameObject:start_tick_timer(name, duration, callback)
@@ -287,17 +279,23 @@ function GameObject:start_timer(name, duration, callback)
 
     if self.timers == nil then
         self.timers = {}
-        self:add_update_function(function(obj, dt)
-			if obj.timers == nil then return end
+		self.timers_to_remove = {}
+		self:add_update_function(function(obj, dt)
+            if obj.timers == nil then return end
             for k, v in pairs(obj.timers) do
-			v.elapsed = v.elapsed + dt
-			if v.elapsed >= v.duration then
-				obj.timers[k] = nil
-				if v.callback then
-					v.callback()
-				end
-			end
+                v.elapsed = v.elapsed + dt
+                if v.elapsed >= v.duration then
+                    table.insert(self.timers_to_remove, k)
+                    if v.callback then
+                        v.callback()
+                    end
+                end
             end
+			for _, k in ipairs(self.timers_to_remove) do
+				obj.timers[k] = nil
+			end
+			table.clear(self.timers_to_remove)
+
         end)
     end
     if self.timers[name] then
@@ -309,6 +307,56 @@ function GameObject:start_timer(name, duration, callback)
 		callback = callback
 	}
 end
+
+function GameObject:unref_from_table(name, tab)
+	signal.disconnect(tab[name], "destroyed", self, "on_table_ref_destroyed")
+
+	if tab[name] then
+		self:unref(name)
+	end
+
+	tab[name] = nil
+end
+
+function GameObject:is_timer_running(name)
+    return self.timers and self.timers[name] ~= nil
+end
+
+function GameObject:is_tick_timer_running(name)
+    return self.tick_timers and self.tick_timers[name] ~= nil
+end
+
+function GameObject:timer_time_left(name)
+    return (self.timers and self.timers[name] and self.timers[name].duration - self.timers[name].elapsed) or nil
+end
+
+function GameObject:tick_timer_time_left(name)
+    return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
+end
+
+function GameObject:stop_timer(name)
+	self.timers[name] = nil
+end
+
+function GameObject:end_timer(name)
+	if self.timers and self.timers[name] then
+		self.timers[name].callback()
+		self:stop_timer(name)
+	end
+end
+
+function GameObject:end_tick_timer(name)
+	if self.tick_timers and self.tick_timers[name] then
+		self.tick_timers[name].callback()
+		self:stop_tick_timer(name)
+	end
+end
+
+function GameObject:stop_tick_timer(name)
+	self.tick_timers[name] = nil
+end
+
+
 
 function GameObject:start_destroy_timer(duration)
 	self:start_timer("destroy_timer", duration, function() self:queue_destroy() end)
@@ -698,7 +746,18 @@ function GameObject:to_global(pos_x, pos_y)
 end
 
 function GameObject:add_signal(signal_name)
+	self.signals = self.signals or {}
+	self.signals[signal_name] = true
 	signal.register(self, signal_name)
+end
+
+function GameObject:has_signal(signal_name)
+    return self.signals and self.signals[signal_name]
+end
+
+function GameObject:remove_signal(signal_name)
+	self.signals[signal_name] = nil
+	signal.deregister(self, signal_name)
 end
 
 function GameObject:emit_signal(signal_name, ...)

@@ -9,7 +9,7 @@ function shader.update()
 	print("Updating shaders")
 	for _, v in ipairs(shader.fragment_shader_paths) do
 		local name = filesystem.filename_to_asset_name(v, "frag")
-		-- assert(shader[name] == nil, "Shader name collision: " .. name)
+		-- assert(shader[name] == nil, "Shader name collision: " .. name) 
 		shader[name] = love.graphics.new_shader(v)
 	end
 end

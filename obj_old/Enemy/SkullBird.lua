@@ -1,6 +1,6 @@
 
-local SkullBird = require("obj.Enemy.Enemy"):extend("SkullBird")
-local Wall = require("obj.Enemy.Wall")
+local SkullBird = require("obj.Spawn.Enemy.Enemy"):extend("SkullBird")
+local Wall = require("obj.Spawn.Enemy.Wall")
 
 function SkullBird:new(x, y)
     -- self.state = "Idle"

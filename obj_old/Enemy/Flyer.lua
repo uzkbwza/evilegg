@@ -1,4 +1,4 @@
-local FlyerEnemy = require("obj.Enemy.Enemy"):extend("FlyerEnemy")
+local FlyerEnemy = require("obj.Spawn.Enemy.Enemy"):extend("FlyerEnemy")
 
 local DeathFx = require("fx.death_effect")
 

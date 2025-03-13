@@ -33,7 +33,7 @@ function LoadSaveScreen:draw()
 	end
 	graphics.push()
 	graphics.translate(0, self.tile_data_input_box.pos.y)
-	graphics.set_font(graphics.font["PixelOperator8"])
+	graphics.set_font(fonts["PixelOperator8"])
 	self.tile_data_input_box:draw()
 	graphics.pop()
 end

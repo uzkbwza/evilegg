@@ -26,7 +26,7 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
     self.offset = Vec2(0, 0)
     self.zoom = 1
     self.clear_color = Color.from_hex("000000")
-	-- self.clear_color.a = 0
+	self.clear_color.a = 0
     self.interp_fraction = 1
 
     self.parent = nil
@@ -107,7 +107,7 @@ function CanvasLayer:init_layer(layer)
     layer.root = self.root
     layer.parent = self
 
-    layer:enter()
+    layer:enter_shared()
 end
 
 ---Refresh 'above' and 'below' references for all children.
@@ -210,7 +210,7 @@ function CanvasLayer:remove_layer(index)
     local layer = table.remove(self.children, idx)
     self:refresh_layer_links()
 
-    layer:exit()
+    layer:exit_shared()
     layer.parent = nil
     layer:destroy()
 	collectgarbage("collect")
@@ -358,7 +358,7 @@ function CanvasLayer:replace_layer(old_layer_or_index, new_layer)
     if not idx then return end
 
     local old_layer = table.remove(self.children, idx)
-    old_layer:exit()
+    old_layer:exit_shared()
     old_layer.parent = nil
     old_layer:destroy()
 
@@ -455,24 +455,49 @@ function CanvasLayer:update_shared(dt)
 
     self:update_worlds(dt)
 
-    for i = #self.children, 1, -1 do
+    local start_here = 1
+	
+	for i = #self.children, 1, -1 do
+		local layer = self.children[i]
+		if layer.blocks_logic then
+			start_here = i
+			break
+		end
+	end
+
+    for i = start_here, #self.children do
         local layer = self.children[i]
         layer:update_shared(dt)
-        if layer.blocks_logic then
-            break
-        end
     end
     
     CanvasLayer.super.update_shared(self, dt)
 	
-	if self.deferred_functions then
+    if self.deferred_functions then
         for _, t in ipairs(self.deferred_functions) do
             local func, args = unpack(t)
             func(args and unpack(args) or nil)
         end
         table.clear(self.deferred_functions)
     end
+	
+	if debug.enabled then
+        if self.root == self then
+			if input.debug_print_canvas_tree_pressed then
+				self:print_canvas_tree()
+			end
+		end
+	end
+end
 
+function CanvasLayer:print_canvas_tree()
+    local function build_tree(layer, indent)
+		indent = indent or 0
+		print(string.rep(" ", indent * 4) .. "- " .. (layer.name or "Root"))
+        for _, child in ipairs(layer.children) do
+			build_tree(child, indent + 1)
+        end
+	end
+	build_tree(self)
 end
 
 function CanvasLayer:draw_shared()
@@ -486,7 +511,6 @@ function CanvasLayer:draw_shared()
 		else
 			graphics.clear(self.clear_color.r, self.clear_color.g, self.clear_color.b, self.clear_color.a)
 		end
-
     end
 
     graphics.scale(self.zoom, self.zoom)
@@ -499,13 +523,24 @@ function CanvasLayer:draw_shared()
 	self:draw()
 
     local update_interp = true
-    for i = 1, #self.children do
+
+	local start_here = 1
+
+	for i = #self.children, 1, -1 do
+		local layer = self.children[i]
+		if layer.blocks_render then
+			start_here = i
+			break
+		end
+	end
+
+    for i = start_here, #self.children do
         local layer = self.children[i]
+		graphics.push("all")
         layer:draw_shared()
+		graphics.pop()
         layer.interp_fraction = update_interp and self.interp_fraction or layer.interp_fraction
-        if layer.blocks_render then
-            break
-        end
+
     end
 
     graphics.pop()

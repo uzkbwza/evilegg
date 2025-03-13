@@ -26,10 +26,14 @@ function CollisionBubble:get_position()
 end
 
 function CollisionBubble:collides_with_bubble(other)
-    local my_x, my_y = self:get_position()
+	local my_x, my_y = self:get_position()
 	local other_x, other_y = other:get_position()
 	return circle_collision(my_x, my_y, self.radius, other_x, other_y, other.radius)
-	
+end
+
+function CollisionBubble:collides_with_circle(x, y, radius)
+	local my_x, my_y = self:get_position()
+	return circle_collision(my_x, my_y, self.radius, x, y, radius)
 end
 
 function CollisionBubble:set_radius(radius)

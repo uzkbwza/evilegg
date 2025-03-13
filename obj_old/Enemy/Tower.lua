@@ -1,5 +1,5 @@
-local Tower = require "obj.Enemy.Enemy":extend("Tower")
-local TowerProjectile = require "obj.Enemy.TowerProjectile"
+local Tower = require "obj.Spawn.Enemy.Enemy":extend("Tower")
+local TowerProjectile = require "obj.Spawn.Enemy.TowerProjectile"
 
 local sheet = SpriteSheet(textures.enemy_tower, 16, 32)
 

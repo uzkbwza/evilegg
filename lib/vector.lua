@@ -97,7 +97,7 @@ function Vec2:direction_to(b)
 end
 
 function Vec2:splerp_in_place(b, delta, half_life)
-	self.x, self.y = splerp_vec_unpacked(self.x, self.y, b.x, b.y, delta, half_life)
+	self.x, self.y = splerp_vec(self.x, self.y, b.x, b.y, delta, half_life)
 end
 
 function Vec2:lerp(b, t)
@@ -121,6 +121,8 @@ end
 function Vec2:clone()
 	return Vec2(self.x, self.y)
 end
+
+
 
 function Vec2:rotated(angle)
 	local x = self.x * math.cos(angle) - self.y * math.sin(angle)
@@ -371,7 +373,13 @@ function Vec2:set(x, y)
 		self.x = x
 		self.y = y
 	end
-    return self
+	return self
+end
+
+function Vec2:clone_from(other)
+	self.x = other.x
+	self.y = other.y
+	return self
 end
 
 -- Vec3 In-place Methods
@@ -586,6 +594,11 @@ function vec2_normalized(x, y)
     return x / mag, y / mag
 end
 
+function vec2_normalized_times(x, y, scalar)
+	local norm_x, norm_y = vec2_normalized(x, y)
+	return norm_x * scalar, norm_y * scalar
+end
+
 function vec2_normalized_table(a)
     local mag = vec2_magnitude_table(a)
     return a.x / mag, a.y / mag
@@ -726,7 +739,7 @@ function vec2_from_polar_table(r, theta)
     return { x = x, y = y }
 end
 
-function vec2_clamp(x, y, min, max)
+function vec2_clamp_magnitude(x, y, min, max)
 	local magnitude = vec2_magnitude(x, y)
     if magnitude < min then
 		local normalized_x, normalized_y = vec2_normalized(x, y)

@@ -27,7 +27,11 @@ function bonglewunch:__newindex(k, v)
 end
 
 function bonglewunch:length()
-	return self.__length
+    return self.__length
+end
+
+function bonglewunch:random()
+    return self.__array[rng.randi_range(1, self.__length)]
 end
 
 function bonglewunch:ipairs()

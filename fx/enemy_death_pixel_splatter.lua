@@ -2,6 +2,7 @@ local DEATH_FX_POWER = 1.4
 local DEATH_FX_DISTANCE = 3
 
 local BASE_SIZE = 14
+local MAX_SPEED = 20
 
 local DRAG = 0.15
 
@@ -38,7 +39,7 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     local vel_dir_x, vel_dir_y = vec2_normalized(vel_x, vel_y)
 	self.vel_dir_x, self.vel_dir_y = vel_dir_x, vel_dir_y
     local speed = vec2_magnitude(vel_x, vel_y)
-    local dx, dy = vec2_sub(hit_point_x, hit_point_y, x, y)
+    local dx, dy = vec2_sub(hit_point_x or 0, hit_point_y or 0, x, y)
 	self.hit_point_local_x, self.hit_point_local_y = dx, dy
 	dx = dx + width / 2
     dy = dy + height / 2
@@ -67,8 +68,10 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 			local diff_mag = vec2_magnitude(diff_x, diff_y) / diagonal_size
 			local diff_dir_x, diff_dir_y = vec2_normalized(diff_x, diff_y)
 
-			local speed_scale = pow((1 + vec2_dot(vel_dir_x, vel_dir_y, diff_dir_x, diff_dir_y)) * 0.5 * (1 - diff_mag), 2.5)
-			local speed_x, speed_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, speed_scale * speed)
+            local a_ = (1 + vec2_dot(vel_dir_x, vel_dir_y, diff_dir_x, diff_dir_y))
+			local b_ = a_ * 0.5 * (1 - diff_mag)
+			local speed_scale = pow(abs(b_), 2.5)
+			local speed_x, speed_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, min(speed_scale * speed, MAX_SPEED))
 
             -- if vec2_magnitude(speed_x, speed_y) < 0.5 then
             --     speed_x, speed_y = vec2_normalized(speed_x, speed_y)

@@ -3,6 +3,8 @@ local input_presets = require "conf.input_presets"
 
 local lldebuggerPatcher = require("lib.lldebuggerpatcher")
 
+IS_EXPORT = not pcall(require, "tools.is_debug")
+
 local IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and arg[2] == "debug"
 if IS_DEBUG then
     -- lldebugger = lldebuggerPatcher.start()
@@ -15,8 +17,6 @@ end
 
 string = require "lib.stringy"
 
-IS_EXPORT = not pcall(require, "tools.is_debug")
-
 local conf = {
 	
 	-- game settings
@@ -25,8 +25,8 @@ local conf = {
 	window_title = nil,
 
     room_size = {
-		x = 300 * 1,
-		y = 240 * 1,
+		x = 260,
+		y = 216,
 	},
 
 	-- fennel
@@ -41,10 +41,11 @@ local conf = {
 	
     to_vec2 = {
 		"room_size",
-		"viewport_size"
+		"viewport_size",
+		"room_padding",
 	},
 	
-	display_scale = 5,
+	display_scale = 4,
 
 	-- delta
 	use_fixed_delta = false,
@@ -62,7 +63,11 @@ local conf = {
 
 		hover = {
 			keyboard = { "space" },
-			joystick = { "leftshoulder", }
+			joystick_axis = { 
+				axis = "triggerleft",
+				dir = 1,
+				deadzone = 0.25,
+			},
         },
 		
 		restart = {
@@ -80,15 +85,16 @@ local conf = {
 		menu = {
 			keyboard = { "escape", },
 			joystick = { "start" }
-		},
+		}, 
 		
 		move_up = {
 			keyboard = {"w"},
 			joystick = {"dpup"},
 			joystick_axis = {
 				axis = "lefty",
-				dir = -1
-			}
+				dir = -1,
+				deadzone = 0.0,
+			},
 		},
 		
 		move_down = {
@@ -96,8 +102,9 @@ local conf = {
 			joystick = {"dpdown"},
 			joystick_axis = {
 				axis = "lefty",
-				dir = 1
-			}
+				dir = 1,
+				deadzone = 0.0,
+			},
 		},
 		
 		move_left = {
@@ -105,8 +112,9 @@ local conf = {
 			joystick = {"dpleft"},
 			joystick_axis = {
 				axis = "leftx",
-				dir = -1
-			}
+				dir = -1,
+				deadzone = 0.0,
+			},
 		},
 		
 		move_right = {
@@ -114,7 +122,8 @@ local conf = {
 			joystick = {"dpright"},
 			joystick_axis = {
 				axis = "leftx",
-				dir = 1
+				dir = 1,
+				deadzone = 0.0,
 			}
 		},
 		
@@ -250,8 +259,8 @@ local conf = {
 		debug_shader_toggle = {
 			debug = true,
 			keyboard = { 
-				{"lctrl", "i"}, 
-				{"rctrl", "i"}
+				{"lctrl", "]"}, 
+				{"rctrl", "]"}
 			}
 		},
 
@@ -266,8 +275,8 @@ local conf = {
 		debug_shader_preset = {
 			debug = true,
 			keyboard = { 
-				{"lctrl", "o"}, 
-				{"rctrl", "o"}
+				{"lctrl", "\\"}, 
+				{"rctrl", "\\"}
 			}
 
 		},
@@ -316,6 +325,14 @@ local conf = {
 			keyboard = {
 				{ "i" },
 				{ "i" }
+			}
+		},
+
+		debug_print_canvas_tree = {
+			debug = true,
+			keyboard = {
+				{ "lctrl", "[" },
+				{ "lctrl", "[" }
 			}
 		}
 
@@ -369,6 +386,11 @@ if conf.room_size == nil then
 	}
 end
 
+conf.room_padding = {
+	x = (conf.viewport_size.x - conf.room_size.x) * 0.5,
+	y = (conf.viewport_size.y - conf.room_size.y) * 0.5,
+}
+
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)
 	-- local headless = false
@@ -391,14 +413,14 @@ function love.conf(t)
 	t.window.icon           = nil
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
-    -- t.window.width          = 1920
-    -- t.window.height         = 1080
+    -- t.window.width          = 1366
+    -- t.window.height         = 768
 
 	t.window.borderless     = false
 	t.window.resizable      = true
 	t.window.minwidth       = conf.viewport_size.x
 	t.window.minheight      = conf.viewport_size.y
-	t.window.fullscreen     = usersettings.fullscreen and not usersettings.debug_enabled
+	t.window.fullscreen     = usersettings.fullscreen and IS_EXPORT
     t.window.fullscreentype = "desktop"
 	if usersettings.vsync then
         t.window.vsync = -1

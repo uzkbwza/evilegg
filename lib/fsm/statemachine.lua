@@ -15,11 +15,13 @@ local mt = {
 	end
 }
 
+local dummy = function() end
+
 function StateMachine._create(obj)
 	obj = obj or {
 		current_state = nil,
 		states = {},
-		update = function() end
+		update = dummy,
 	}
 
 	obj.state_transition = function(state, to, ...) obj:change_state(to, ...) end

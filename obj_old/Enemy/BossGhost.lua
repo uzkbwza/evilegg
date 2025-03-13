@@ -1,4 +1,4 @@
-local BossGhost = require("obj.Enemy.Enemy"):extend("BossGhost")
+local BossGhost = require("obj.Spawn.Enemy.Enemy"):extend("BossGhost")
 
 local sheet = SpriteSheet("enemy_ghosty", 16, 16)
 

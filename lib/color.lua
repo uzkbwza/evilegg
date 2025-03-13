@@ -15,6 +15,10 @@ function Color:unpack()
     return self.r, self.g, self.b, self.a
 end
 
+function Color:to_shader_table()
+    return {self.r, self.g, self.b, self.a}
+end
+
 function Color:__tostring()
     return "Color: [" .. tostring(self.r) .. ", " ..
     tostring(self.g) .. ", " .. tostring(self.b) .. ", " .. tostring(self.a) .. "]"

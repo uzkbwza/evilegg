@@ -1,7 +1,7 @@
-local Boss2 = require("obj.Enemy.Enemy"):extend("Boss2")
-local EnemyLaser = require("obj.Enemy.EnemyLaser")
-local BossLaser = require("obj.Enemy.Enemy"):extend("BossLaser")
-local BossGhost = require("obj.Enemy.BossGhost")
+local Boss2 = require("obj.Spawn.Enemy.Enemy"):extend("Boss2")
+local EnemyLaser = require("obj.Spawn.Enemy.EnemyLaser")
+local BossLaser = require("obj.Spawn.Enemy.Enemy"):extend("BossLaser")
+local BossGhost = require("obj.Spawn.Enemy.BossGhost")
 local DeathEffect = require"fx.death_effect"
 local BulletHitSpriteSheet = SpriteSheet(textures.fx_bullethit, 16, 16)
 local DeathFx = require("fx.death_effect")

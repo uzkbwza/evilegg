@@ -125,16 +125,18 @@ end
 
 function TwinStickNormalBullet:try_hit_nearby_anyone()
 	self:try_hit_nearby_objects("enemy")
-
 	self:try_hit_nearby_objects("player")
+	self:try_hit_nearby_objects("neutral")
 end
 
 function TwinStickNormalBullet:try_hit_nearby_enemies()
     self:try_hit_nearby_objects("enemy")
+    self:try_hit_nearby_objects("neutral")
 end
 
 function TwinStickNormalBullet:try_hit_nearby_players()
 	self:try_hit_nearby_objects("player")
+	self:try_hit_nearby_objects("neutral")
 end
 
 function TwinStickNormalBullet:on_hit_something(parent, bubble)

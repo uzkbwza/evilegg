@@ -98,7 +98,7 @@ function Sequencer:update(dt)
 			if coroutine.status(co) ~= "dead" then
 				local status, val, traceback = coroutine.xpcall(co)
 				if not status then
-					error(val .. "\n" .. traceback) 
+					error(val .. "\n" .. traceback)
 				end
 			end
 		end
@@ -173,7 +173,6 @@ end
 
 
 function Sequencer:tween_property(obj, property, value_start, value_end, duration, easing, step)
-
 	return self:tween(function(value) obj[property] = value end, value_start, value_end, duration, easing, step)
 end
 

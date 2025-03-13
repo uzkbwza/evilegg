@@ -10,7 +10,7 @@ local usersettings = {
     screen_shake_amount = 1,
 	
 	-- debug
-	debug_enabled = false,
+	debug_enabled = true,
 
     -- controls
 	mouse_sensitivity = 0.03,

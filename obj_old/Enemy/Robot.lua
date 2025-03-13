@@ -1,5 +1,5 @@
-local Robot = require("obj.Enemy.Enemy"):extend("Ghost")
-local EnemyLaser = require("obj.Enemy.EnemyLaser")
+local Robot = require("obj.Spawn.Enemy.Enemy"):extend("Ghost")
+local EnemyLaser = require("obj.Spawn.Enemy.EnemyLaser")
 
 local sheet = SpriteSheet("enemy_robot", 16, 16)
 

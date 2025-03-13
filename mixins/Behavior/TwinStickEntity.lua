@@ -8,8 +8,11 @@ function TwinStickEntity:__mix_init()
     self.aim_direction = Vec2(1, 0)
     self.aim_radius = self.aim_radius or 10
     self.team = self.team or "enemy"
+	self.hitbox_team = self.hitbox_team or self.team
     self.shadow_radius = self.shadow_radius or 1
-
+    self:add_elapsed_time()
+	self:add_elapsed_ticks()
+	self:add_sequencer()
 
     -- Set up main bubble-tables (both 'hurt' and 'hit')
     self.bubbles = {
@@ -52,6 +55,15 @@ end
 -- Adds a bubble of type 'bubble_type'.
 -- Example usage: self:add_bubble("hurt", 0, 0, 8, "head")
 --               self:add_bubble("hit", 10, 10, 5, "punch_zone")
+
+function TwinStickEntity:get_bubble(bubble_type, name)
+	local bubble_list = self.bubbles[bubble_type]
+	if not bubble_list then
+		error("Unknown bubble type: " .. tostring(bubble_type))
+	end
+	return bubble_list[name]
+end
+
 function TwinStickEntity:add_bubble(bubble_type, x, y, radius, name, ...)
     local bubble_list = self.bubbles[bubble_type]
     if not bubble_list then
@@ -166,9 +178,44 @@ function TwinStickEntity:set_bubble_position(bubble_type, name, x, y)
     self:on_bubble_updated(bubble_type, bubble)
 end
 
+function TwinStickEntity:each_nearby_bubble(bubble_type, bubble_team, radius, fn)
+    local bx, by = self:get_body_center()
+    local x, y, w, h = bx - radius, by - radius, radius * 2, radius * 2
+    local target_bubble_grid
+    if bubble_type == "hurt" then
+        target_bubble_grid = self.world.hurt_bubbles[bubble_team]
+    elseif bubble_type == "hit" then
+        target_bubble_grid = self.world.hit_bubbles[bubble_team]
+    end
+    target_bubble_grid:each(x, y, w, h, fn)
+end
+
+
+function TwinStickEntity:each_nearby_bubble_self(bubble_type, bubble_team, radius, fn)
+	local bx, by = self:get_body_center()
+    local x, y, w, h = bx - radius, by - radius, radius * 2, radius * 2
+	local target_bubble_grid
+	if bubble_type == "hurt" then
+		target_bubble_grid = self.world.hurt_bubbles[bubble_team]
+	elseif bubble_type == "hit" then
+		target_bubble_grid = self.world.hit_bubbles[bubble_team]
+	end
+	target_bubble_grid:each_self(x, y, w, h, fn, self)
+end
+
+function TwinStickEntity:circle_collides_with_any_bubble(bubble_type, x, y, radius)
+	for _, bubble in pairs(self.bubbles[bubble_type]) do
+		if bubble:collides_with_circle(x, y, radius) then
+			return true
+		end
+	end
+	return false
+end
+
 -----------------------------------------------------------------------------
 --  "Shortcut" methods specifically for HURT / HIT if you prefer
 -----------------------------------------------------------------------------
+
 function TwinStickEntity:add_hurt_bubble(x, y, radius, name)
     return self:add_bubble("hurt", x, y, radius, name)
 end
@@ -275,6 +322,30 @@ function TwinStickEntity:get_body_center()
     return self.pos.x, self.pos.y - self.body_height
 end
 
+function TwinStickEntity:get_body_center_rect(size_x, size_y)
+	size_y = size_y or size_x
+	local bx, by = self:get_body_center()
+	return bx - size_x * 0.5, by - size_y * 0.5, size_x, size_y
+end
+
+function TwinStickEntity:body_direction_to(other)
+	local bx, by = self:get_body_center()
+	local ox, oy = other:get_body_center()
+	return vec2_direction_to(bx, by, ox, oy)
+end
+
+function TwinStickEntity:body_distance_to(other)
+	local bx, by = self:get_body_center()
+	local ox, oy = other:get_body_center()
+	return vec2_distance(bx, by, ox, oy)
+end
+
+function TwinStickEntity:body_position_difference(other)
+	local bx, by = self:get_body_center()
+	local ox, oy = other:get_body_center()
+	return bx - ox, by - oy
+end
+	
 function TwinStickEntity:get_body_center_local()
     return 0, -self.body_height
 end
@@ -342,7 +413,7 @@ function TwinStickEntity:fire_bullet(bullet, direction, offset_x, offset_y, ...)
     local x, y = self:get_shoot_position()
 	offset_x = offset_x or 0
     offset_y = offset_y or 0
-	direction = direction or self.aim_direction:clone():normalize_in_place()
+	direction = (direction or self.aim_direction:clone()):normalize_in_place()
 	offset_x, offset_y = vec2_rotated(offset_x, offset_y, vec2_angle(direction.x, direction.y))
 	local b = bullet(x + offset_x, y + offset_y, ...)
 	b.direction = direction
@@ -352,7 +423,7 @@ end
 function TwinStickEntity:twinstick_enter()
 	-- Suppose the world has "hurt_bubbles" and "hit_bubbles" by team:
 	self.bubbles_grid.hurt = self.world.hurt_bubbles[self.team]
-    self.bubbles_grid.hit  = self.world.hit_bubbles[self.team]
+    self.bubbles_grid.hit  = self.world.hit_bubbles[self.hitbox_team]
 	self.spawn_position = self.spawn_position or self.pos:clone()
 
 	self:add_tag("twinstick_entity")
@@ -360,17 +431,36 @@ function TwinStickEntity:twinstick_enter()
 	self.world:track_object_class_count(self)
 end
 
+function TwinStickEntity:filter_melee_attack(bubble)
+	return true
+end
+
+local HIT_COOLDOWN = 30
+
 function TwinStickEntity.try_melee_attack(other, self, bubble)
+	self.twinstick_entity_hit_objects = self.twinstick_entity_hit_objects or {}
+    if (not self:filter_melee_attack(other)) then
+        return false
+    end
+	if self.twinstick_entity_hit_objects[other.parent.id] then
+		return false
+	end
 	if bubble:collides_with_bubble(other) then
 		if other.parent ~= self then
 			other.parent:hit_by(bubble)
-			self.landed_melee_attack = true
+            self.twinstick_entity_landed_melee_attack = true
+            self.twinstick_entity_hit_objects[other.parent.id] = true
+			local s = self.sequencer
+			s:start(function()
+                s:wait(HIT_COOLDOWN)
+                self.twinstick_entity_hit_objects[other.parent.id] = nil
+            end)
+
 			return true
 		end
 	end
 	return false
 end
-
 
 function TwinStickEntity:get_sprite()
 	return nil
@@ -394,14 +484,15 @@ function TwinStickEntity:get_palette_shared()
 	return palette, offset
 end
 
+
 function TwinStickEntity:check_melee_attack_against_team(target_team)
 	local hit = false
     for _, bubble in pairs(self.bubbles.hit) do
         local target_bubble_grid = self.world.hurt_bubbles[target_team]
-		local x, y, w, h = bubble:get_rect()
+        local x, y, w, h = bubble:get_rect()
 		target_bubble_grid:each(x, y, w, h, self.try_melee_attack, self, bubble)
-		hit = hit or self.landed_melee_attack
-    end
+		hit = hit or self.twinstick_entity_landed_melee_attack
+	end
 	return hit
 end
 
@@ -409,18 +500,21 @@ function TwinStickEntity:on_landed_melee_attack()
 end
 
 function TwinStickEntity:check_melee_attack()
-	self.landed_melee_attack = false
+	self.twinstick_entity_landed_melee_attack = false
 	if self.melee_both_teams then
 		local player = self:check_melee_attack_against_team("player")
 		local enemy = self:check_melee_attack_against_team("enemy")
-		if player or enemy then
-			self.landed_melee_attack = false
+		local neutral = self:check_melee_attack_against_team("neutral")
+		if player or enemy or neutral then
+			self.twinstick_entity_landed_melee_attack = false
 			self:on_landed_melee_attack()
 			return true
 		end
 	else
-		if self:check_melee_attack_against_team(self.team == "enemy" and "player" or "enemy") then
-			self.landed_melee_attack = false
+		local hit_other_team = self:check_melee_attack_against_team(self.hitbox_team == "enemy" and "player" or "enemy")
+		local hit_neutral = self:check_melee_attack_against_team("neutral")
+		if hit_other_team or hit_neutral then
+			self.twinstick_entity_landed_melee_attack = false
 			self:on_landed_melee_attack()
 			return true
 		end

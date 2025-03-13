@@ -10,17 +10,28 @@ local ROAM_DIRECTIONS = {
 function Roamer:__mix_init()
 	self.roam_direction = self.roam_direction or rng.choose(ROAM_DIRECTIONS):clone()
 	self.roam_chance = self.roam_chance or 2
-    self.walk_speed = self.walk_speed or 0.8
 	self.walk_timer = self.walk_timer or 10
+    self.walk_speed = self.walk_speed or 0.8
 	self.walk_toward_player_chance = self.walk_toward_player_chance or 0.0
-	self:add_update_function(self.roamer_update)
+    self:add_update_function(self.roamer_update)
+	if self.roaming == nil then
+		self.roaming = true
+	end
 end
 
 function Roamer:roamer_update(dt)
+	if not self.roaming then
+		return
+	end
 	if self.is_new_tick then
 		if rng.percent(self.roam_chance) and not self:is_tick_timer_running("walk_timer") then
             self:start_tick_timer("walk_timer", self.walk_timer)
-			local player = self.get_closest_player and self:get_closest_player()
+            local player
+			if self.follow_allies then
+				player = self.get_closest_ally and self:get_closest_ally()
+			else
+				player = self.get_closest_player and self:get_closest_player()
+			end
 			if player and rng.percent(self.walk_toward_player_chance) then
 				local dx, dy = vec2_normalized(player.pos.x - self.pos.x, player.pos.y - self.pos.y)
 				if abs(dx) > abs(dy) then

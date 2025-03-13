@@ -1900,7 +1900,7 @@ function LevelEditor:draw()
     graphics.set_color(Color.white)
     graphics.translate(floor(self.offset_stepped.x), floor(self.offset_stepped.y))
 	graphics.scale(self.zoom, self.zoom)
-	graphics.set_font(graphics.font["PixelOperatorMono8-Bold"])
+	graphics.set_font(fonts["PixelOperatorMono8-Bold"])
 
 	-- if debug.can_draw() then
 	-- end
@@ -1967,7 +1967,7 @@ function LevelEditor:draw()
         dbg("mpos", self.mpos)
     end
 	
-	graphics.set_font(graphics.font["PixelOperator8"])
+	graphics.set_font(fonts["PixelOperator8"])
 	if self.showing_ui then
 		graphics.set_color(Color.black, 0.5)
 		graphics.rectangle("fill", 0, 0, self.viewport_size.x, 8)
@@ -1975,7 +1975,7 @@ function LevelEditor:draw()
 		graphics.set_color(Color.white)
 		graphics.print(self.paint_mode, 0, 0)
 		graphics.push("all")
-        graphics.set_font(graphics.font["PixelOperatorMono8"])
+        graphics.set_font(fonts["PixelOperatorMono8"])
 		graphics.set_color("3ae")
         local roomx, roomy = world_to_room(self.mpos.x, self.mpos.y)
 		local room_id = world_to_room_id(self.mpos.x, self.mpos.y)
@@ -2183,7 +2183,7 @@ end
 function LevelEditor:draw_layer_offset()
 	graphics.push("all")
 	graphics.origin()
-	local font = graphics.font["PixelOperator8"]
+	local font = fonts["PixelOperator8"]
 	graphics.set_font(font)
 
 	local height = 80
@@ -2263,7 +2263,7 @@ function LevelEditor:draw_layer_offset()
 end
 
 function LevelEditor:tile_draw(tile_id, x, y)
-	graphics.set_font(graphics.font["PixelOperatorMono8-Bold"])
+	graphics.set_font(fonts["PixelOperatorMono8-Bold"])
 	local sprite = tilesets.tileset_tiles[tile_id]
 	if sprite then
 		if sprite.draw then
@@ -2374,7 +2374,7 @@ function LevelEditor:draw_tiles()
 
     graphics.push("all")
     graphics.set_color(Color.white)
-	graphics.set_font(graphics.font["PixelOperatorMono8-Bold"])
+	graphics.set_font(fonts["PixelOperatorMono8-Bold"])
     for i, t in pairs(object_print_at) do
 		if t.z == self.layer then
 			graphics.print_outline(Color.black, tostring(t.tile), t.x * TILE_SIZE, t.y * TILE_SIZE)

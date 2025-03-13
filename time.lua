@@ -5,6 +5,8 @@ time.tick = 0
 time.frames = 0
 
 time.scale = 1
+time.love_time = 0
+time.love_delta = 0
 
 TICKRATE = conf.delta_tickrate
 

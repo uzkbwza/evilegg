@@ -22,15 +22,17 @@ function EnemySpawn:enter()
 end
 
 function EnemySpawn:update(dt)
-    if not self:is_tick_timer_running("spawn") then
-		self:emit_signal("finished")
+	if (debug.enabled and input.debug_skip_wave_held and self.tick > 1)
+	or (not self:is_tick_timer_running("spawn")) then
+        self:emit_signal("finished")
         self:queue_destroy()
-		-- if self.type == "enemy" then
-		self:play_sfx("enemy_spawn", 0.45)
-		-- elseif self.type == "hazard" then
-			-- self:play_sfx("hazard_spawn", 0.5)
-		-- end
-	end
+        -- if self.type == "enemy" then
+        self:play_sfx("enemy_spawn", 0.45)
+        -- elseif self.type == "hazard" then
+        -- self:play_sfx("hazard_spawn", 0.5)
+        -- end
+    end
+
 end
 
 function EnemySpawn:draw()

@@ -1,0 +1,255 @@
+local Explosion = GameObject2D:extend("Explosion")
+local ExplosionSmoke = Effect:extend("ExplosionSmoke")
+local ExplosionSmokeTrail = GameObject2D:extend("ExplosionSmokeTrail")
+
+function Explosion:new(x, y, size, damage, team, melee_both_teams)
+    Explosion.super.new(self, x, y)
+    self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
+	self:add_elapsed_ticks()
+	self:add_sequencer()
+    self.size = size or self.size
+    self.team = team or (self.team or "enemy")
+	self.hit_bubble_damage = damage or self.hit_bubble_damage
+	self.melee_both_teams = melee_both_teams
+end
+
+function Explosion:get_death_particle_hit_velocity(target)
+    local direction = self.pos:direction_to(target.pos):mul_in_place(self.size)
+	return direction.x, direction.y
+end
+
+function Explosion:get_rect()
+	return self.pos.x - self.size / 2, self.pos.y - self.size / 2, self.size, self.size
+end
+
+function Explosion:enter()
+    self:add_hit_bubble(0, 0, self.size, "main", self.hit_bubble_damage)
+	self.active = true
+    local s = self.sequencer
+	self:play_sfx("explosion", 0.9)
+	s:start(function()
+        s:wait(2)
+		self.active = false
+		self:remove_hit_bubble("main")
+    end)
+	
+	local x, y, w, h = self:get_rect()
+    self.world.game_object_grid:each(x, y, w, h, function(obj)
+		if obj.is_simple_physics_object and not obj.is_player then
+			local dxy = self.pos:direction_to(obj.pos)
+			local dist = self.pos:distance_to(obj.pos)
+			local force = (self.size / dist) / 2
+			obj:apply_force(dxy.x * force, dxy.y * force)
+		end
+	end)
+
+	self.size = self.size * 1.25
+	local number_of_puffs = (self.size / 3) + 5
+	number_of_puffs = rng.randf(number_of_puffs * 0.8, number_of_puffs * 1.2)
+	local number_of_smoke_trails = (self.size / 4) + 4
+    number_of_smoke_trails = rng.randf(number_of_smoke_trails * 0.8, number_of_smoke_trails * 1.2)
+	-- self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, self.size * 1.75, 0, 0, Vec2(0, 0)))
+	s:start(function()
+		for i = 1, number_of_puffs do
+			local dist = abs(rng.randfn(0, self.size * 0.75))
+			dist = min(dist, self.size * 1.25)
+			local dx, dy = rng.random_vec2_times(dist)
+			local size1 = abs((1 - (dist / self.size)) * 1)
+            local size = abs(size1 * self.size * rng.randfn(1.0, 1.25))
+			size = abs(min(size, self.size * 1))
+
+			local duration = size * rng.randfn(1.0, 1.25) * 10
+			local vel = Vec2(dx, dy):normalize_in_place():mul_in_place(rng.randf(0.5, 1) * dist * 0.15)
+            self:spawn_object(ExplosionSmoke(self.pos.x + dx, self.pos.y + dy, size, duration, 0, vel))
+            if rng.percent(10) then
+				s:wait(1)
+			end
+		end
+	end)
+	s:start(function()
+		for i = 1, number_of_smoke_trails do
+			local dist = rng.randf(self.size * 0.25, self.size * 0.8)
+			local dx, dy = rng.random_vec2_times(dist)
+            local size = abs((pow(1 - (dist / self.size), 1)) * self.size * rng.randfn(1.0, 0.25) * 0.35) * 1.5
+			size = min(size, rng.randfn(10, 1))
+			local dir_x, dir_y = vec2_normalized(dx, dy)
+			local force = rng.randf(size * 0.05, size * 0.005)
+			local h_force_x, h_force_y = dir_x * force, dir_y * force
+            local v_force = rng.randf(force * 10.85, force * 2.25)
+			h_force_x = h_force_x * 6.5
+			h_force_y = h_force_y * 6.5
+			local vel = Vec3(h_force_x, h_force_y, -v_force)
+            self:spawn_object(ExplosionSmokeTrail(self.pos.x + dx, self.pos.y + dy, size, vel, rng(-1, -5)))
+			if rng.percent(10) then
+				s:wait(1)
+			end
+		end
+	end)
+	self:die()
+end
+
+function Explosion:draw()
+    if self.tick < 5 then
+		graphics.set_color(Palette.explosion:get_color_clamped(idiv(self.tick, 3)))
+		local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 20) * 2
+		graphics.rectangle("fill", -size / 2, -size/2, size, size)
+		size = size + self.tick * 3
+		graphics.rectangle("line", -size / 2, -size/2, size, size)
+	end
+end
+
+function Explosion:die()
+	self:start_destroy_timer(60)
+end
+
+function ExplosionSmoke:new(x, y, size, duration, y_offset, vel)
+    self.y_offset = y_offset or 0
+    self.size = size or 0
+	self.z_index = 1
+    self.duration = min(max(duration or 30, 30), 40)
+    ExplosionSmoke.super.new(self, x, y)
+	self.vel = vel or Vec2(0, 0)
+    self.y_speed = max(rng.randfn(1, 0.5) - self.size * 0.01, 0)
+	self.color_tick_speed = rng.randf(1, 0.15)
+end
+
+
+local DRAG = 0.04
+
+function ExplosionSmoke:update(dt)
+	self.y_offset = self.y_offset - dt * min(self.tick * 0.0025, 0.1) * self.y_speed
+    self.pos = self.pos + self.vel * dt
+	self.vel.x, self.vel.y = vec2_drag(self.vel.x, self.vel.y, DRAG, dt)
+end
+
+function ExplosionSmoke:draw()
+    local size = min(max(self.size - self.tick * 0.25, 2), min(self.tick * 60, self.size))
+    -- if self.outline then
+    -- graphics.set_color(Color.black)
+    -- graphics.rectangle("fill", -size / 2 - 1, -size/2 + self.y_offset - 1, size + 2, size + 2)
+    -- else
+    graphics.set_color((self.from_trail and Palette.explosion_smoke or Palette.explosion):get_color_clamped(idiv(
+    self.tick * self.color_tick_speed, 2)))
+    graphics.rectangle(self.tick > 10 and "line" or "fill", -size / 2, -size / 2 + self.y_offset, size, size)
+    -- end
+end
+
+function ExplosionSmoke:floor_draw()
+	if self.tick <= 10 then return end
+    local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 6)
+	if not self.is_new_tick then return end
+	if not rng.percent(5) then return end
+
+	graphics.set_color(self.tick % 2 == 0 and Color.darkgrey or Color.black)
+	graphics.rectangle(self.from_trail and "line" or self.tick > 10 and "line" or "fill", -size / 2, -size / 2, size, size)
+end
+
+function ExplosionSmoke:get_draw_offset()
+	local x, y = Explosion.super.get_draw_offset(self)
+	return x, y + self.y_offset
+end
+
+function ExplosionSmokeTrail:new(x, y, size, vel, y_offset)
+    ExplosionSmokeTrail.super.new(self, x, y)
+	self:add_elapsed_ticks()
+    self.y_offset = y_offset or 0
+    self.size = size or 0
+    self.vel = vel or Vec3(0, 0, 0)
+    self.positions = {}
+	self.fill_time = rng.randf(30, 8)
+	-- self.z_index = -1
+end
+
+local TRAIL_DRAG = 0.015
+
+function ExplosionSmokeTrail:update(dt)
+    self.y_offset = self.y_offset + self.vel.z * dt
+	self.vel.z = self.vel.z + dt * 0.06
+	self.vel.x, self.vel.y = vec2_drag(self.vel.x, self.vel.y, TRAIL_DRAG, dt)
+    self.pos = self.pos + self.vel * dt
+    self.size = max(self.size - dt * (0.001  + (self.tick * 0.001)), 1)
+    -- TODO: just track your route (make a mixin? and draw the trail)
+	if self.vel:magnitude() < 0.1 then
+		if  #self.positions == 0 then
+			self:queue_destroy()
+		end
+    elseif self.is_new_tick then
+        -- local smoke = self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, self.size * 0.9, self.size, self.y_offset))
+        -- smoke.from_trail = true
+        if rng.percent(66) then
+			local size = self.size * 0.9 * rng.randfn(1.0, 0.25)
+            table.insert(self.positions, {
+                pos = self.pos:clone(),
+                size = size,
+                tick = 0,
+                y_offset = self.y_offset,
+                duration = size * rng.randfn(1.0, 1.25) * 7,
+				palette_tick_length = rng.randfn(1.0, 0.25),
+            })
+        end
+        if self.size <= 1 and rng.percent(1) then
+			self:queue_destroy()
+		end
+    end
+
+
+	for i, v in ipairs(self.positions) do
+		v.tick = v.tick + 1
+		v.size = v.size - dt * 0.1
+		v.y_offset = v.y_offset - dt * 0.15
+
+	end
+	table.fast_remove(self.positions, function(t, i, j)
+		local v = t[i]
+		return v.tick < v.duration and v.size > 1
+	end)
+
+	if self.y_offset > 0 then
+        self.y_offset = 0
+		self.vel.z = -self.vel.z * 0.9
+		self.vel:mul_in_place(0.5)
+	end
+
+end
+function ExplosionSmokeTrail:draw()
+	if self.tick > 20 and idivmod_eq_zero(gametime.tick, 1, 2) then
+        return
+	end
+
+    local size = self.size
+    -- if self.outline then
+    -- graphics.set_color(Color.black)
+    -- graphics.rectangle("fill", -size / 2 - 1, -size/2 + self.y_offset - 1, size + 2, size + 2)
+    -- else
+    graphics.set_color((Palette.explosion):get_color_clamped(idiv(
+		self.tick, 9)))
+    graphics.rectangle(self.tick < self.fill_time and "fill" or "line", -size / 2, -size / 2 + self.y_offset, size, size)
+	for i, v in ipairs(self.positions) do
+		local pos_x, pos_y = self:to_local(v.pos.x, v.pos.y)
+        local size = min(max(v.size - v.tick * 0.125, 0.5), v.tick * 6)
+		local color = (Palette.explosion_smoke):get_color_clamped(idiv(
+			v.tick * v.palette_tick_length + 1, 2))
+		graphics.set_color(color)
+        graphics.rectangle("line", pos_x - size / 2, pos_y - size / 2 + v.y_offset, size, size)
+	end
+end
+
+function ExplosionSmokeTrail:floor_draw()
+    if not self.is_new_tick then return end
+	if self.y_offset < -4 then return end
+	-- if not idivmod_eq_zero(self.tick, 1, 3) then return end
+    local size = self.size * 0.64
+	size = max(size + self.y_offset * 0.02, 1)
+    -- if self.outline then
+    -- graphics.set_color(Color.black)
+    -- graphics.rectangle("fill", -size / 2 - 1, -size/2 + self.y_offset - 1, size + 2, size + 2)
+    -- else
+    graphics.set_color(rng.percent(50) and Color.darkgrey or Color.black)
+	if rng.percent(3) then
+		graphics.set_color(Color.grey)
+	end
+    graphics.rectangle("line", -size / 2, -size / 2, size, size)
+end
+
+
+return Explosion

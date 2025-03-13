@@ -252,7 +252,7 @@ local function main()
         -- filesystem.save_file_native(bytes_2:getString(), "tools/sprites/indexed_" .. tostring(i) .. "_decoded.png")
     end
 
-	filesystem.save_file_native(table.serialize(texture_palettes), "assets/sprite/texture_palettes.lua")
+	filesystem.save_file_native(table.serialize(texture_palettes), "assets/sprite/data/texture_palettes.lua")
 
 	print("palettized sprites")
     return png_data

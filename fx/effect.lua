@@ -4,7 +4,7 @@ function Effect:new(x, y)
 	Effect.super.new(self, x, y)
 	self:add_elapsed_time()
 	self:add_elapsed_ticks()
-    self.duration = 1
+    self.duration = self.duration or 1
 	self.t = 0
 end
 
@@ -20,7 +20,7 @@ function Effect:update_shared(dt)
 			return
 		end
 	end
-    Effect.super.update_shared(self, dt)
+	Effect.super.update_shared(self, dt)
 end
 
 function Effect:draw_shared()

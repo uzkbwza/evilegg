@@ -15,10 +15,10 @@ function Palette:new(colors)
 	for _, color in ipairs(colors) do
 		self.colors[#self.colors + 1] = color:clone()
 		self.original_colors[#self.original_colors + 1] = color:clone()
-		self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b }
+		self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b, color.a }
 	end
 	self.length = #self.shader_vecs
-	self.needs_update_shader = true
+	self.dirty = true
 	self.cached_shader = nil
 	self.cached_shader_offset = nil
 	self.palette_image = nil
@@ -47,13 +47,27 @@ function Palette:reset()
     self.shader_vecs = {}
     for _, color in ipairs(self.original_colors) do
         self.colors[#self.colors + 1] = color:clone()
-        self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b }
+        self.shader_vecs[#self.shader_vecs + 1] = color:to_shader_table()
     end
 	self.length = #self.shader_vecs
 end
 
 function Palette:to_shader_table()
-        return unpack(self.shader_vecs)
+	return unpack(self.shader_vecs)
+end
+
+function Palette:to_shader_table_manual_offset(offset)
+	offset = offset or 0
+	offset = offset % self.length
+	if offset == 0 then return self.shader_vecs end
+	local table = {}
+    for i = offset, self.length do
+        table[#table + 1] = self.shader_vecs[i]
+    end
+	for i = 1, offset do
+		table[#table + 1] = self.shader_vecs[i]
+	end
+	return table
 end
 
 function Palette:__eq(other)
@@ -74,6 +88,10 @@ function Palette:get_length()
     return self.length
 end
 
+function Palette:get_color_clamped(index)
+    return self.colors[clamp(index, 1, self.length)]
+end
+
 function Palette:gradient_hsl(colors, steps_per_color, loop)
     steps_per_color = steps_per_color or 2
 	error("not implemented")
@@ -84,11 +102,23 @@ function Palette:get_color(index)
 end
 
 function Palette:get_color_index_unpacked(r, g, b)
-	for i, c in ipairs(self.colors) do
-		if c.r == r and c.g == g and c.b == b then
-			return i
-		end
-	end
+    for i, c in ipairs(self.colors) do
+        if c.r == r and c.g == g and c.b == b then
+            return i
+        end
+    end
+end
+
+function Palette:random_color()
+    return self.colors[rng.randi_range(1, self.length)]
+end
+
+function Palette:interpolate(t)
+    return self:get_color(round(t * self.length))
+end
+
+function Palette:interpolate_clamped(t)
+    return self:get_color_clamped(round(t * self.length))
 end
 
 function Palette:get_color_index(color)
@@ -97,7 +127,7 @@ end
 
 function Palette:get_color_unpacked(index)
     local color = self.colors[(index - 1) % self.length + 1]
-    return color.r, color.g, color.b
+    return color.r, color.g, color.b, color.a
 end
 
 function Palette:color_to_index(color)
@@ -122,22 +152,24 @@ function Palette:get_color_array(offset)
 	return colors
 end
 
-function Palette:set_color_unpacked(index, r, g, b)
+function Palette:set_color_unpacked(index, r, g, b, a)
 	self.readonly = false
     local t = self.shader_vecs[index]
     local c = self.colors[index]
     t[1] = r
     t[2] = g
     t[3] = b
+    t[4] = a or 1
     c.r = r
     c.g = g
     c.b = b
-	self.needs_update_shader = true
+	c.a = a or 1
+	self.dirty = true
 	self.color_indices[index] = c
 end
 
 function Palette:set_color(index, color)
-    self:set_color_unpacked(index, color.r, color.g, color.b)
+    self:set_color_unpacked(index, color.r, color.g, color.b, color.a)
 end
 
 function Palette:tick_color(tick, offset, tick_length)
@@ -175,16 +207,30 @@ end
 function Palette:sub_cycle()
 end
 
+function Palette:check_dirty(offset)
+	if self.dirty then
+		return true
+	end
+
+    if self.cached_shader_offset ~= offset then
+        return true
+    end
+	return false
+end
+
 function Palette:get_shader(offset)
     offset = offset or 0
-	offset = offset % self.length
-	if self.cached_shader_offset ~= offset then
-		rawset(self, "needs_update_shader", true)
-	end
-    if (not self.needs_update_shader) and self.cached_shader then
+    offset = offset % self.length
+	
+    if self:check_dirty(offset) then
+        rawset(self, "dirty", true)
+    end
+	
+    if (not self.dirty) and self.cached_shader then
         return self.cached_shader
     end
-    self.needs_update_shader = false
+
+	rawset(self, "dirty", false)
     local decode_palette_shader = self.palette_image and graphics.shader.decode_palette_with_image or graphics.shader.decode_palette
     decode_palette_shader:send("palette_size", self.length)
 	if self.palette_image then
@@ -198,7 +244,108 @@ function Palette:get_shader(offset)
 end
 
 function Palette.load()
-	
+
 end
 
-return Palette
+local PaletteStack = Object:extend("PaletteStack")
+
+function PaletteStack:new(...)
+    self.palettes = {}
+    self.offsets = {}
+	self.cached_shader = nil
+	self.cached_shader_table = {}
+    self.dirty = false
+	self.length = 0
+	self.num_palettes = 0
+	self.global_offset_to_palette = {}
+	self.palette_to_palette_start_offset = {}
+    self.palette_to_palette_index = {}
+    local palettes = { ... }
+    for i=1, #palettes do
+		self:push(palettes[i])
+	end
+end
+
+function PaletteStack:push(palette, length_in_stack)
+    if Object.is(palette, Color) then
+        palette = Palette({ palette })
+    else
+		palette = palette:clone()
+	end
+	length_in_stack = length_in_stack or palette.length
+	table.insert(self.palettes, palette)
+	table.insert(self.offsets, 0)
+	local len = #self.global_offset_to_palette
+	for i=len+1, len+length_in_stack do
+		self.global_offset_to_palette[i] = palette
+	end
+	self.palette_to_palette_start_offset[palette] = len+1
+	self.num_palettes = self.num_palettes+1
+	self.palette_to_palette_index[palette] = self.num_palettes
+    self.length = self.length + length_in_stack
+	self.dirty = true
+end
+
+function PaletteStack:set_palette_offset(index, offset)
+	self.offsets[floor(index)] = floor(offset)
+	self.dirty = true
+end
+
+function PaletteStack:set_color(offset, color)
+	offset = offset or 1
+	offset = (offset - 1) % self.length + 1
+	local palette = self.global_offset_to_palette[offset]
+    local start_offset = self.palette_to_palette_start_offset[palette]
+	offset = offset - start_offset + 1
+	palette:set_color(offset, color)
+	self.dirty = true
+end
+
+function PaletteStack:get_color(offset)
+	offset = offset or 1
+	offset = (offset) % self.length + 1
+	local palette = self.global_offset_to_palette[offset]
+	local start_offset = self.palette_to_palette_start_offset[palette]
+	offset = offset - start_offset + 1
+	return palette:get_color(offset + self.offsets[self.palette_to_palette_index[palette]])
+end
+
+function PaletteStack:get_shader(offset)
+    local dirty = self.dirty
+
+    local decode_palette_shader = graphics.shader.decode_palette
+    if (not dirty) and self.cached_shader then
+        return self.cached_shader
+    else
+        self.cached_shader = nil
+        self.cached_shader_table = {}
+		for i = 1, self.length do
+			table.insert(self.cached_shader_table, self:get_color(floor(i + offset - 1)):to_shader_table())
+		end
+
+    end
+    decode_palette_shader:send("palette_size", self.length)
+    decode_palette_shader:send("palette_offset", offset)
+	-- table.pretty_print(self.cached_shader_table)
+    decode_palette_shader:send("palette", unpack(self.cached_shader_table))
+	-- table.pretty_print(self.cached_shader_table)
+
+	self.dirty = false
+	self.cached_shader = decode_palette_shader
+    
+	return decode_palette_shader
+end
+
+function PaletteStack:get_color_array(offset)
+    local colors = {}
+    -- for i = 1, self.num_palettes do
+    -- 	local new_array = self.palettes[i]:get_color_array(self.offsets[i])
+    -- 	table.extend(colors, new_array)
+    -- end
+    for i = 1, self.length do
+        table.insert(colors, self:get_color(floor(i + offset - 1)))
+    end
+    return colors
+end
+
+return { Palette = Palette, PaletteStack = PaletteStack }

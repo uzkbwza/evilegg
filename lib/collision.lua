@@ -183,3 +183,6 @@ function capsule_capsule_collision(ax, ay, bx, by, abr, cx, cy, dx, dy, cdr)
 	return (dist_x*dist_x) + (dist_y*dist_y) <= (rs * rs)
 end
 
+function capsule_contains_point(ax, ay, bx, by, abr, px, py)
+    return distance_squared_to_line_segment(px, py, ax, ay, bx, by) <= (abr * abr)
+end

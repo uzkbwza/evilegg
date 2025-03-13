@@ -1,6 +1,6 @@
 local Rumble = Object:extend("Rumble")
 
-function Rumble:_init()
+function Rumble:__mix_init()
     self:add_sequencer()
 
     local old_get_draw_offset = self.get_draw_offset

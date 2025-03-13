@@ -3,8 +3,12 @@ local LastEnemyTarget = Effect:extend("LastEnemyTarget")
 function LastEnemyTarget:new(x, y, target)
     LastEnemyTarget.super.new(self, x, y)
     self:ref("target", target)
-	self.z_index = 3
-	self.duration = 0
+    self.z_index = 3
+    self.duration = 0
+end
+
+function LastEnemyTarget:enter()
+	self:add_tag("last_enemy_target")
 end
 
 function LastEnemyTarget:update(dt)
@@ -12,7 +16,7 @@ function LastEnemyTarget:update(dt)
 		self:queue_destroy()
 		return
 	end
-	self:move_to(splerp_vec_unpacked(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, dt, 40))
+	self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, dt, 40))
 end
 
 local ZOOM_TIME = 30

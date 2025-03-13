@@ -3,6 +3,8 @@ local bump = require "lib.bump"
 local shash = require "lib.shash"
 local GameMap = require "map.GameMap"
 
+local SkipList = require "datastructure.skiplist"
+
 local DEFAULT_CELL_SIZE = tilesets.TILE_SIZE * 2
 
 -- represents an area of the game where objects can exist in space and interact with each other
@@ -34,7 +36,7 @@ function World:new(x, y)
 
     self.bump_world = nil
 
-    self.draw_sort = nil
+    -- self.draw_sort = nil
 
     self.world_sfx = bonglewunch()
     self.sfx_polyphony = {}
@@ -43,6 +45,8 @@ function World:new(x, y)
 
     self.follow_camera = true
     self.input = input.dummy
+
+	-- self.sorted_draw_objects = SkipList(self.draw_sort or function() return true end, 300)
 
     self:add_sequencer()
     self:add_elapsed_ticks()
@@ -175,6 +179,13 @@ function World:get_first_object_with_tag(tag)
     return nil
 end
 
+function World:get_random_object_with_tag(tag)
+    if self.tags and self.tags[tag] then
+        return self.tags[tag]:random()
+    end
+    return nil
+end
+
 function World:add_spatial_grid(name, cell_size)
 	self[name] = shash.new(cell_size or DEFAULT_CELL_SIZE)
 	return self[name]
@@ -229,11 +240,13 @@ function World:remove_from_spatial_grid(obj, grid_name)
 end
 
 function World:show_object(obj)
-	self.draw_objects:push(obj)
+    self.draw_objects:push(obj)
+	-- self.sorted_draw_objects:insert(obj)
 end
 
 function World:hide_object(obj)
     self.draw_objects:remove(obj)
+	-- self.sorted_draw_objects:remove(obj)
 end
 
 function World:query_spatial_grid(grid_name, x, y, w, h, t)
@@ -249,8 +262,11 @@ function World:queue_destroy()
 	self.canvas_layer:add_deferred_function(function() self:destroy() end)
 end
 
+local Rbt = require "datastructure.rbt"
+
 function World:get_visible_objects()
 	self.draw_objects_table = self.draw_objects_table or {}
+	
 	table.clear(self.draw_objects_table)
     for _, obj in ((self.draw_objects):ipairs()) do
         table.insert(self.draw_objects_table, obj)
@@ -259,7 +275,16 @@ function World:get_visible_objects()
 	
     if self.draw_sort then
         table.sort(self.draw_objects_table, self.draw_sort)
+	-- 	local rbt = Rbt(self.draw_sort)
+    --     for _, obj in ipairs(self.draw_objects_table) do
+    --         rbt:insert(obj)
+    --     end
+		
+	-- 	self.draw_objects_table = rbt
+
     end
+
+	-- return self.sorted_draw_objects
 
 	return self.draw_objects_table
 end
@@ -281,8 +306,9 @@ function World:draw()
 end
 
 function World:draw_sorted_objects(sorted_draw_objects)
+    -- for _, obj in sorted_draw_objects:ipairs() do
     for _, obj in ipairs(sorted_draw_objects) do
-        graphics.push()
+        graphics.push("all")
         local x, y = self:get_object_draw_position(obj)
         graphics.translate(x, y)
 
@@ -379,7 +405,8 @@ function World:enter_shared(center_camera)
 end
 
 function World:get_object_draw_position(obj)
-	return self:get_draw_position(obj.pos.x, obj.pos.y, obj.pos.z)
+	local offset_x, offset_y = obj:get_draw_offset()
+	return self:get_draw_position(obj.pos.x + offset_x, obj.pos.y + offset_y, obj.pos.z)
 end
 
 function World:get_draw_position(x, y, z)

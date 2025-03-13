@@ -6,60 +6,102 @@ local TwinStickNormalBullet = Mixins.Behavior.TwinStickNormalBullet
 BasePlayerBullet:implement(TwinStickNormalBullet)
 BasePlayerBullet.death_spawns = {}
 
-function BasePlayerBullet:new(x, y)
+function BasePlayerBullet:new(x, y, extra_bullet)
 	BasePlayerBullet.super.new(self, x, y)
 	self.radius = self.radius or 5
-	self:mix_init(TwinStickNormalBullet)
-	self.speed = 6
 	self:add_elapsed_ticks()
-	self.sprite = textures.bullet_player_base
+    self.speed = self.speed or 6
+	self.sprite = self.sprite or textures.bullet_player_base
 	self.distance_travelled = 0
-	self.start_palette_offset = gametime.tick * 4
-    self.hit_vel_multip = 16
-	self.push_modifier = 0.75
-	self.damage = 1
+	self.start_palette_offset = self.start_palette_offset or gametime.tick * 4
+    self.hit_vel_multip = self.hit_vel_multip or 16
+    self.push_modifier = self.push_modifier or 0.75
+
+    if self.use_upgrades == nil then
+        self.use_upgrades = true
+    end
+	
+    self.damage = self.damage or 1
+	self.lifetime = self.lifetime or 16
+
+	self:mix_init(TwinStickNormalBullet)
+	
+
+	self.extra_bullet = extra_bullet
+	if self.use_upgrades then
+		-- self.radius = self.radius * (1 + (game_state.upgrades.range) * 0.15)
+		if extra_bullet then
+			self.damage = self.damage * 0.2
+			self.hit_vel_multip = self.hit_vel_multip * 0.2
+			self.push_modifier = self.push_modifier * 0.2
+			self.radius = self.radius * 0.5
+		end
+		if game_state.upgrades.range == 1 then
+			self.lifetime = 26
+		elseif game_state.upgrades.range >= 2 then
+			self.lifetime = 36 + ((game_state.upgrades.range - 2) * 10)
+		end
+		self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.5)
+        self.push_modifier = self.push_modifier * (1 + (game_state.upgrades.bullet_speed) * 0.4)
+		self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
+		self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
+	end
 end
 
 function BasePlayerBullet:draw()
     local palette_offset = floor((self.tick)) / 4
-    if floor(self.tick/2) % 2 == 0 then
-		palette_offset = palette_offset + 5
-	end
+    if floor(self.tick / 2) % 2 == 0 then
+        palette_offset = palette_offset + 5
+    end
     local trail_dist = 4
     local max_bullets = 10
     local num_trail_bullets = min(max(floor(self.distance_travelled / trail_dist), 1), max_bullets)
-    for i = num_trail_bullets - 1, 0, -1 do
-		local x, y = self.direction.x * -i * trail_dist, self.direction.y * -i * trail_dist
-        if self.dead_position then
-			local x_global, y_global = self:to_global(x, y)
-            local dx, dy = x_global - self.dead_position.x, y_global - self.dead_position.y
-			if vec2_dot(dx, dy, self.direction.x, self.direction.y) > 0 then
-				break
-			end
-		end
-		local color = Palette.rainbow:tick_color(self.start_palette_offset + palette_offset + i)
-        local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2)
-		-- if self.dead then
-		-- 	scale = pow(scale, 2)
-		-- end
-        graphics.set_color(color)
-        for j = -1, 1, 2 do
-            local rot_x, rot_y = vec2_rotated(self.direction.x, self.direction.y, tau / 4 * j)
-			rot_x, rot_y = vec2_normalized(rot_x, rot_y)
-			graphics.draw_centered(self.sprite, x + rot_x * 2, y + rot_y * 2, 0, scale, scale)
-		end
+    local start, stop, step = -1, 1, 2
+    local bullet_scale = 1 + (game_state.upgrades.damage) * 0.5
+	if self.extra_bullet then
+		bullet_scale = bullet_scale * 0.5
 	end
+	if self.extra_bullet then
+		start, stop, step = 0, 0, 1
+	else
+		start, stop, step = -1, 1, 2
+	end
+    for i = num_trail_bullets - 1, 0, -1 do
+        local x, y = self.direction.x * -i * trail_dist, self.direction.y * -i * trail_dist
+        if self.dead_position then
+            local x_global, y_global = self:to_global(x, y)
+            local dx, dy = x_global - self.dead_position.x, y_global - self.dead_position.y
+            if vec2_dot(dx, dy, self.direction.x, self.direction.y) > 0 then
+                break
+            end
+        end
+        local color = Palette.rainbow:tick_color(self.start_palette_offset + palette_offset + i)
+        local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2) * bullet_scale
+
+        -- if self.dead then
+        -- 	scale = pow(scale, 2)
+        -- end
+        graphics.set_color(color)
+
+
+        for j = start, stop, step do
+            local rot_x, rot_y = vec2_rotated(self.direction.x, self.direction.y, tau / 4 * j)
+            rot_x, rot_y = vec2_normalized(rot_x, rot_y)
+            graphics.draw_centered(self.sprite, x + rot_x * 2, y + rot_y * 2, 0, scale, scale)
+        end
+    end
 end
 
 function BasePlayerBullet:enter()
 	self:spawn_object_relative(BasePlayerBulletDieFx())
 end
-
+ 
 function BasePlayerBullet:die()
 	self.dead_position = self.pos:clone()
 	self:start_destroy_timer(30)
     self:spawn_object_relative(BasePlayerBulletDieFx())
-end
+	-- self:spawn_object_relative(require("obj.Explosion")(self.pos.x, self.pos.y, 32, self.damage, "player", false))
+end 
 
 function BasePlayerBullet:get_death_particle_hit_velocity()
 	return self.direction.x * self.hit_vel_multip, self.direction.y * self.hit_vel_multip

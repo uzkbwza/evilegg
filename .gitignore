@@ -1,1 +1,5 @@
 makelove-build
+build
+*.zip
+*.love
+*.exe

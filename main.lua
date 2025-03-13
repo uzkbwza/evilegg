@@ -42,6 +42,7 @@ conf = require "conf"
 gametime = require "time"
 graphics = require "graphics"
 rng = require "lib.rng"
+translator = require "translation"
 global_state = {}
 
 signal = require "signal"
@@ -61,17 +62,17 @@ World = require "world.BaseWorld"
 Effect = require "fx.effect"
 SpriteSheet = require "lib.spritesheet"
 CanvasLayer = require "screen.CanvasLayer"
-Palette = require "lib.palette"
+local palette_lib = require "lib.palette"
+Palette, PaletteStack = palette_lib.Palette, palette_lib.PaletteStack
 
 local fsm = require "lib.fsm"
 StateMachine = fsm.StateMachine
 State = fsm.State
 
 BaseGame = require "game.BaseGame"
-Games = filesystem.get_modules("game")
+
 Screens = filesystem.get_modules("screen")
 
-local main_game = Games.MainGame
 
 for i, k in ipairs(conf.to_vec2) do
 	conf[k] = Vec2(conf[k].x, conf[k].y)
@@ -169,7 +170,23 @@ function love.run()
 		-- Call update and draw
 
 
-		local delta_frame = min(dt * TICKRATE, conf.max_delta_seconds * TICKRATE)
+        local delta_frame = min(dt * TICKRATE, conf.max_delta_seconds * TICKRATE)
+        gametime.love_delta = dt
+		gametime.love_time = gametime.love_time + dt
+
+
+		gametime.time = gametime.time + delta_frame
+		local old_tick = gametime.tick
+        gametime.tick = floor(gametime.time)
+
+		gametime.frames = gametime.frames + 1
+
+		gametime.is_new_tick = false
+
+		if old_tick ~= gametime.tick then
+			gametime.is_new_tick = true
+		end
+
 		
 		if not conf.use_fixed_delta then
 			gametime.delta = delta_frame
@@ -189,19 +206,6 @@ function love.run()
 	
 				accumulated_time = accumulated_time - frame_time
 			end
-		end
-
-
-		gametime.time = gametime.time + delta_frame
-		local old_tick = gametime.tick
-        gametime.tick = floor(gametime.time)
-
-		gametime.frames = gametime.frames + 1
-
-		gametime.is_new_tick = false
-
-		if old_tick ~= gametime.tick then
-			gametime.is_new_tick = true
 		end
 
 
@@ -233,31 +237,33 @@ function love.load(...)
         love.window.minimize()
     end
 
-    game = main_game()
-
+	
     -- local args = { ... }
     -- table.pretty_print(args)
-
+	
     graphics.load()
-
+	
     debug.load()
-
+	
     if table.list_has(arg, "build_assets") then
         -- minimize window
         love.window.minimize()
         local pngs = require("tools.palletizer")()
         love.event.quit()
-
+		
         return
     end
-
+	
     Palette.load()
-
+	
     audio.load()
     tilesets.load()
 	input.load()
 	Worlds = filesystem.get_modules("world")
-    game:load(main_screen)
+    
+	game = filesystem.get_modules("game").MainGame()
+	
+    game:load()
 end
 
 local averaged_frame_length = 0
@@ -279,10 +285,12 @@ function love.update(dt)
 		end
 		
 		if debug.enabled then
-			dbg("fps", fps)
-			dbg("memory use (kB)", floor(collectgarbage("count")))
-            dbg("frame length (ms)", string.format("%0.3f", flen))
-			dbg("frame length (ms) peakdecay", string.format("%0.3f", averaged_frame_length))
+            dbg("fps", fps, Color.pink)
+			debug.memory_used = (collectgarbage("count")) / 1024
+			dbg("memory use (mB)", stepify_safe(debug.memory_used, 0.001), Color.green)
+            dbg("frame length (ms)", string.format("%0.3f", flen), Color.pink)
+            dbg("frame length (ms) peakdecay", string.format("%0.3f", averaged_frame_length), Color.pink)
+			dbg("id counter", GameObject.id_counter, Color.orange)
 		end
 	end
 
@@ -312,12 +320,21 @@ function love.draw()
 	
 	if gametime.tick % 10 == 0 then
 		if debug.enabled then
-			dbg("draw calls", graphics.get_stats().drawcalls)
+			dbg("draw calls", graphics.get_stats().drawcalls, Color.magenta)
 			-- dbg("interp_fraction", graphics.interp_fraction)
 		end
 	end
 	if debug.can_draw() then
-		debug.printlines(0, 0)
+        debug.printlines(0, 0)
+        if debug.drawing_dt_history then
+			local screen_width, screen_height = love.graphics.getDimensions()
+            local width, height = screen_width * 0.25, screen_height * 0.125
+			graphics.translate(screen_width - width, 1)
+			graphics.set_color(0, 0, 0, 0.5)
+			graphics.rectangle("fill", 0, 0, width, height)
+			graphics.set_color(1, 1, 1, 1)
+			debug.draw_dt_history(width, height)
+		end
 	end
 end
 

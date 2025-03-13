@@ -3,6 +3,7 @@ local Pickupable = Object:extend("Pickupable")
 function Pickupable:__mix_init()
 	self.pickup_radius = self.pickup_radius or 3
     self:add_enter_function(Pickupable.pickupable_enter)
+	self.pickupable = true
 end
 
 function Pickupable:pickupable_enter()
