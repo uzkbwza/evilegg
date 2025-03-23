@@ -40,7 +40,7 @@ function Sequencer:stop(co)
     local last = self.running[length]
     self.running[index] = last
     self.running_indices[last] = index
-    self.running[last] = nil
+    self.running[length] = nil
     self.running_indices[co] = nil
 	
 	self.suspended[co] = nil
@@ -117,6 +117,7 @@ function Sequencer:update(dt)
 	-- end)
 
 	self.elapsed = self.elapsed + dt
+	-- print(#self.running)
 
 end
 

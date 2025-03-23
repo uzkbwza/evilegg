@@ -2,12 +2,13 @@ local audio = {
     sfx = nil,
     music = nil,
 	playing_music = nil,
-    sfx_volume = 1.0,
-    music_volume = 1.0,
-    default_rolloff = 0.0001,
+    -- sfx_volume = 1.0,
+    -- music_volume = 1.0,
+    default_rolloff = 0.00000001,
     default_zindex = 0,
     sound_objects = {},
-	object_sounds = {},
+    object_sounds = {},
+	-- max_volume = 1.0,
 }
 
 audio = setmetatable(audio, { __index = love.audio })
@@ -41,6 +42,9 @@ function audio.load()
         end
         music[name] = sound
     end
+
+	audio.set_volume(1.0)
+
 end
 
 function audio.update(dt)
@@ -77,7 +81,7 @@ function audio.play_sfx(src, volume, pitch, loop)
         src:stop()
     end
     if loop == nil then loop = false end
-    src:setVolume(volume and (volume * audio.sfx_volume) or audio.sfx_volume)
+    src:setVolume(volume and (volume * usersettings.sfx_volume) or usersettings.sfx_volume)
     src:setPitch(pitch or 1.0)
     src:setLooping(loop)
     src:play()
@@ -90,6 +94,13 @@ end
 function audio.cleanup_sound_objects(src_name)
 	for object, _ in pairs(audio.sound_objects[src_name]) do
 		audio.sound_objects[src_name][object] = nil
+	end
+end
+
+function audio.play_sfx_object_if_stopped(object, src_name, volume, pitch, loop)
+	local src = audio.get_global_sfx(src_name)
+	if not src:isPlaying() then
+		audio.play_sfx_object(object, src_name, volume, pitch, loop)
 	end
 end
 
@@ -147,14 +158,14 @@ end
 
 function audio.get_global_sfx(name)
     if not audio.sfx[name] then
-        error("SFX not found: " .. name)
+        error("SFX not found: " .. tostring(name))
     end
     return audio.sfx[name]
 end
 
 function audio.get_music(name)
     if not audio.music[name] then
-        error("Music not found: " .. name)
+        error("Music not found: " .. name) 
     end
     return audio.music[name]
 end
@@ -167,11 +178,16 @@ function audio.get_sfx(name)
 end
 
 function audio.play_music(src, volume)
+	
+    if debug.enabled and debug.disable_music then
+		return
+	end
+	
 	if type(src) == "string" then
 		src = audio.get_music(src)
 	end
 	audio.stop_music()
-    src:setVolume(volume and (volume * audio.music_volume) or audio.music_volume)
+    src:setVolume(volume and (volume * usersettings.music_volume) or usersettings.music_volume)
     src:setLooping(true)
     src:play()
 	audio.playing_music = src

@@ -2,7 +2,6 @@ local TwinStickNormalBullet = Object:extend("TwinStickNormalBullet")
 
 function TwinStickNormalBullet:__mix_init()
 	self.hit_objects = {}
-	self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
     self:add_elapsed_time()
 	self.lifetime = self.lifetime or 900
     self:add_signal("bullet_hit")
@@ -15,7 +14,7 @@ function TwinStickNormalBullet:__mix_init()
     self:add_update_function(function(self, dt)
 		if not self.dead then
 			if self.elapsed > self.lifetime then
-				self:die()
+				self:defer(function() self:die() end)
 			end
 		end
     end)
@@ -23,8 +22,8 @@ function TwinStickNormalBullet:__mix_init()
     self:add_move_function(function(self)
 		if not self.dead then
 			if not self.world.room.bullet_bounds:contains_circle(self.pos.x, self.pos.y, self.radius) then
-				self:move_to(self.world.room.bullet_bounds:clamp_circle(self.pos.x, self.pos.y, self.radius))
-				self:die()
+                self:move_to(self.world.room.bullet_bounds:clamp_circle(self.pos.x, self.pos.y, self.radius))
+				self:defer(function() self:die() end)
 			end
 		end
 	end)
@@ -65,8 +64,10 @@ function TwinStickNormalBullet.try_hit(bubble, self)
 	
     if self.hit_objects[parent] then return end
 
+	if parent.intangible then return end
+
 	local bubble_x, bubble_y = bubble:get_position()
-	if circle_capsule_collision(bubble_x, bubble_y, bubble.radius, self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius) then
+	if bubble:collides_with_capsule(self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius) then
 		parent:hit_by(self)
 		self:on_hit_something(parent, bubble)
 		self.hit_objects[parent] = true
@@ -93,16 +94,7 @@ function TwinStickNormalBullet:try_push(object, speed, dir_x, dir_y)
 end
 
 function TwinStickNormalBullet:get_rect()
-    local prev_x, prev_y = self.prev_pos.x, self.prev_pos.y
-    local dx = abs(self.pos.x - prev_x)
-    local dy = abs(self.pos.y - prev_y)
-    local start_x = min(prev_x, self.pos.x) - self.radius
-    local start_y = min(prev_y, self.pos.y) - self.radius
-    return
-        start_x,
-        start_y,
-        self.radius * 2 + dx,
-        self.radius * 2 + dy
+	return get_capsule_rect(self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius)
 end
 
 function TwinStickNormalBullet:twinstick_die()
@@ -150,6 +142,9 @@ function TwinStickNormalBullet:twin_stick_normal_bullet_debug_draw()
 	if not debug.can_draw_bounds() then return end
     graphics.set_color(Color.blue)
 	graphics.circle("line", 0, 0, self.radius)
+    local x, y, w, h = self:get_rect()
+	x, y = self:to_local(x, y)
+	graphics.rectangle("line", x, y, w, h)
 end
 
 return TwinStickNormalBullet

@@ -4,6 +4,7 @@ local MortarShadow = GameObject2D:extend("MortarShadow")
 local MortarFireSmoke = Effect:extend("MortarFireSmoke")
 local Explosion = require("obj.Explosion")
 local MortarProjectileSmoke = Effect:extend("MortarProjectileSmoke")
+local MortarProjectileRing = Effect:extend("MortarProjectileRing")
 
 function Mortar:new(x, y)
 	self.max_hp = 6
@@ -15,7 +16,8 @@ function Mortar:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.Roamer)
-	self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Normal")
+	
+	self:lazy_mixin(Mixins.Behavior.AllyFinder)
 	self.bullet_push_modifier = 0.5
 	self.declump_radius = 7
 
@@ -55,8 +57,12 @@ function Mortar:state_Normal_enter()
 
 		self:add_tag("shooting_mortar")
 
+        local ally = self:get_random_player()
+		while ally == nil do
+			s:wait(30)
+			ally = self:get_random_player()
+		end
 		self:change_state("Shoot")
-		-- end)
 	end)
 end
 
@@ -93,7 +99,15 @@ local SPRITE_Y2 = -550
 function MortarProjectile:enter()
     self:add_tag("enemy")
 	self.go_time = 0
-	local s = self.sequencer
+    local s = self.sequencer
+	
+    for i = 1, 20 do
+		local x, y = self.pos.x, self.pos.y
+		local dx, dy = rng.random_vec2_times(rng.randf(0, 16))
+        local obj = self:spawn_object(MortarProjectileSmoke(x + dx, y + dy, rng.randfn(-6, 3)))
+		obj.duration = obj.duration * rng.randfn(1, 0.15)
+	end
+
 	s:start(function()
         self.sprite_y = 0
         self.state = "Up"
@@ -150,7 +164,15 @@ function MortarProjectile:enter()
 end
 
 function MortarProjectile:explode()
-	local explosion = self:spawn_object(Explosion(self.pos.x, self.pos.y, 32, 8, "enemy", true))
+	local params = {
+		size = 32,	
+		damage = 8,
+		team = "enemy",
+		melee_both_teams = true,
+		-- particle_count_modifier = 0.95,
+		-- explode_sfx = "explosion3",
+	}
+    self:spawn_object(Explosion(self.pos.x, self.pos.y, params))
 	self:die()
 end
 
@@ -168,7 +190,10 @@ function MortarProjectile:update(dt)
             local dx, dy = rng.random_vec2_times(rng.randf(0, 3))
             self:spawn_object(MortarProjectileSmoke(x + dx, y + dy, self.sprite_y))
         end
-    -- else
+		if self.is_new_tick and self.tick % 10 == 0 and self.go_time < 90 and self.go_time > 10 then
+			self:spawn_object(MortarProjectileRing(self.pos.x, self.pos.y, self.sprite_y))
+		end
+		-- else
 	end
 	if self.is_new_tick and self.tick % 20 == 0 then
 		self:play_sfx("enemy_mortar_missile_beep", remap_clamp(self.tick / 120, 0, 1, 0, 0.5))
@@ -179,9 +204,29 @@ end
 function MortarProjectileSmoke:new(x, y, sprite_y)
     MortarProjectileSmoke.super.new(self, x, y)
     self.duration = 20
-	self.z_index = 2
-	self.size_mod = rng.randfn(1, 0.1)
-	self.sprite_y = sprite_y
+    self.z_index = 2
+    self.size_mod = rng.randfn(1, 0.1)
+    self.sprite_y = sprite_y
+end
+
+function MortarProjectileRing:new(x, y, sprite_y)
+    MortarProjectileSmoke.super.new(self, x, y)
+    self.duration = 30
+    self.z_index = 1
+    self.sprite_y = sprite_y
+end
+
+function MortarProjectileRing:draw(elapsed, tick, t)
+    if not idivmod_eq_zero(self.tick, 3, 3) then
+		return
+	end
+	local size = t * 15 + 5
+    graphics.set_color(Color.black)
+	graphics.set_line_width(4)
+	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
+    graphics.set_color(idivmod_eq_zero(gametime.tick, 4, 2) and Color.red or Color.yellow)
+	graphics.set_line_width(2)
+	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
 end
 
 function MortarProjectileSmoke:draw(elapsed, tick, t)
@@ -252,5 +297,6 @@ function MortarShadow:draw_circ(radius, thickness)
 	graphics.ellipse("line", 0, 0, radius, radius * 1, 10)
 end
 
+AutoStateMachine(Mortar, "Normal")
 
 return Mortar

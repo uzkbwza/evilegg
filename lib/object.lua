@@ -42,6 +42,7 @@ function Object:extend(name)
     end
 	
     cls.mixins = mixins
+	setmetatable(mixins, {__index = self.mixins})
 
 	return cls
 end
@@ -106,7 +107,7 @@ function Object:dyna_mixin(cls, ...)
         end
     end
 	
-	self.mixins = self.mixins or {}
+	self.mixins = self.mixins or setmetatable({}, {__index = getmetatable(self).mixins})
 	self.mixins[cls] = true
 end
 
@@ -239,21 +240,22 @@ end
 
 function Object:get_methods(recursive, methods)
 
-	local methods = methods or {}
-    local mt = getmetatable(self)
+	local m = methods or {}
     
     for k, v in pairs(self) do
         if type(v) == "function" then
-            methods[k] = v
+            m[k] = v
         end
     end
-    
+
+	local super = self.super
+
     -- Check if metatable exists and has an __index table
-    if mt and type(mt.__index) == "table" and recursive then
-        mt.__index:get_methods(methods)
+    if recursive and super and type(super) == "table" then
+        super:get_methods(true, m)
     end
     
-    return methods
+    return m
 end
 
 function Object:is(T)
@@ -269,22 +271,19 @@ function Object:is(T)
 	return false
 end
 
-function Object:__tostring()
-	return "Object"
-end
 
 if debug.enabled then
-	function Object:__call(...)
-		local obj = setmetatable({is_instance = true}, self)
-		obj:new(...)
-		return obj
-	end
+    function Object:__call(...)
+        local obj = setmetatable({ is_instance = true }, self)
+        obj:new(...)
+        return obj
+    end
 else
-	function Object:__call(...)
-		local obj = setmetatable({}, self)
-		obj:new(...)
-		return obj
-	end
+    function Object:__call(...)
+        local obj = setmetatable({}, self)
+        obj:new(...)
+        return obj
+    end
 end
 
 Object.__type_name = Object.__tostring

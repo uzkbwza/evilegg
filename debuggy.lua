@@ -8,6 +8,7 @@ debuggy.build_assets = true
 debuggy.dt_history = {}
 debuggy.dt_history_seconds = 1
 debuggy.profiling = false
+debuggy.disable_music = false
 debuggy.lines = {}
 debuggy.memory_used = 0
 
@@ -41,24 +42,36 @@ end
 
 function debuggy.printlines(line, x, y)
 	graphics.push("all")
-	graphics.set_font(fonts["PixelOperator-Bold"])
+	local font = fonts["PixelOperator-double"]
+	graphics.set_font(font)
 	if not debuggy.can_draw() then
 		graphics.pop()
 		return
 	end
-	local counter = 0
-
-
+	local line_height = font:getHeight() * 0.7
+	
+	
+    local counter = 0
+    for k, tab in pairs(debuggy.lines) do
+		local string = string.format("%s: %s", k, tab[1])
+		local width = font:getWidth(string)
+		graphics.set_color(0, 0, 0, 0.5)
+		graphics.rectangle("fill", x, counter * line_height, width, line_height)
+		counter = counter + 1
+	end
+	
+	counter = 0
 	for k, tab in pairs(debuggy.lines) do
-		local v, color = unpack(tab)
+        local v, color = unpack(tab)
+
 		graphics.set_color(color or Color.white)
 		if v == "" then
-			graphics.print_outline(Color.black, k, x, counter * 12)
+			graphics.print_outline(Color.black, k, x, counter * line_height)
 			v = "nil"
 		else
 			local string = string.format("%s: %s", k, v)
 
-			graphics.print_outline(Color.black, string, x, counter * 12)
+			graphics.print_outline(Color.black, string, x, counter * line_height)
 		end
 
 		counter = counter + 1

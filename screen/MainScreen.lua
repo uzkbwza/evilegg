@@ -1,4 +1,3 @@
-local MainWorld = World:extend("MainWorld")
 local MainScreen = CanvasLayer:extend("MainScreen")
 
 function MainScreen:new()
@@ -7,13 +6,27 @@ end
 
 function MainScreen:enter()
 	self:start_game()
+	-- self:start_menu()
 	-- self:push(Screens.TestPaletteCyclingScreen)
 end
 
 function MainScreen:start_game()
-	global_state:reset_game_state()
-	self:set_current_screen(Screens.GameScreen)
-	signal.connect(self.current_screen, "player_died", self, "start_game")
+    global_state:reset_game_state()
+    self:set_current_screen(Screens.GameScreen)
+    signal.connect(self.current_screen, "player_died", self, "start_game")
+end
+
+function MainScreen:get_clear_color()
+	if self.current_screen then
+		if self.current_screen.get_clear_color then
+			return self.current_screen:get_clear_color()
+		end
+	end
+	return Color.transparent
+end
+
+function MainScreen:start_menu()
+	self:set_current_screen(Screens.MainMenuScreen)
 end
 
 function MainScreen:set_current_screen(screen)

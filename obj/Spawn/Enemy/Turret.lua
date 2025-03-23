@@ -5,6 +5,12 @@ Turret.shoot_speed = 2.5
 Turret.shoot_delay = 240
 Turret.shoot_distance = 6
 
+Turret.spawn_cry = "enemy_turret_spawn"
+Turret.spawn_cry_volume = 0.9
+
+Turret.death_cry = "enemy_turret_death"
+Turret.death_cry_volume = 0.8
+
 function Turret:new(x, y)
 	self.max_hp = 3
 	Turret.super.new(self, x, y)
@@ -17,8 +23,9 @@ function Turret:new(x, y)
     self.hurt_bubble_radius = 6
 	self.aim_dir_x, self.aim_dir_y = 0, 0
     self.gun_angle = 0
-	self.spawn_cry = "enemy_turret_spawn"
-	self.spawn_cry_volume = 0.9
+
+	self.highlight_circle = -1
+
 	self.hurts_allies = rng.chance(1/3)
 end
 
@@ -64,6 +71,13 @@ function Turret:update(dt)
 		self.aim_dir_x, self.aim_dir_y = self:get_body_direction_to_player()
 	end
     self.gun_angle = vec2_angle(self.aim_dir_x, self.aim_dir_y)
+	if self.is_new_tick and self.tick % 60 == 0 then
+		local s = self.sequencer
+        s:start(function()
+            s:tween_property(self, "highlight_circle", 60, 0, 40, "linear")
+			self.highlight_circle = -1
+		end)
+	end
 end
 
 function Turret:get_sprite()
@@ -79,6 +93,11 @@ local gun_textures = {
 }
 
 function Turret:draw()
+    if self.highlight_circle > 0 and idivmod_eq_zero(self.tick, 4, 2) then
+		graphics.set_color(Color.red)
+		graphics.rectangle_centered("line", 0, 0, self.highlight_circle, self.highlight_circle)
+	end
+
     Turret.super.draw(self)
     graphics.set_color(1, 1, 1, 1)
 	local index, rot, y_scale = get_32_way_from_5_base_sprite(self.gun_angle)
@@ -93,6 +112,8 @@ function Turret:draw()
 end
 
 
+TurretBullet.death_sfx = "enemy_turret_bullet_die"
+
 function TurretBullet:new(x, y)
 	self.max_hp = 4
 
@@ -101,7 +122,6 @@ function TurretBullet:new(x, y)
     self.hit_bubble_radius = 5
 	self.hurt_bubble_radius = 8
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
-    self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self.z_index = 10
 end

@@ -18,7 +18,11 @@ function BaseGame:load()
 
     global_state = self:initialize_global_state()
 	
-    self.layer_tree:transition_to(self.main_screen)
+    self.layer_tree:transition_to(self.main_screen_class)
+end
+
+function BaseGame:get_main_screen()
+	return self.layer_tree:get_child(1)
 end
 
 function BaseGame:update(dt)
@@ -26,8 +30,8 @@ function BaseGame:update(dt)
 
 	if debug.enabled then
         if input.debug_editor_toggle_pressed then
-            if self.layer_tree:get_child(1):is(Screens.LevelEditor) then
-                self.layer_tree:transition_to(self.main_screen)
+            if self:get_main_screen():is(Screens.LevelEditor) then
+                self.layer_tree:transition_to(self.main_screen_class)
             else
                 self.layer_tree:transition_to(Screens.LevelEditor)
             end

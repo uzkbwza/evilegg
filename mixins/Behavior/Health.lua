@@ -49,6 +49,9 @@ function Health:set_hp(new_hp, allow_overflow)
     local difference = self.hp - new_hp
 	local abs_difference = abs(difference)
     self.hp = new_hp
+	if new_hp > self.max_hp then
+		self.max_hp = new_hp
+	end
 
     if different then
 		self:on_health_changed(difference, new_hp)

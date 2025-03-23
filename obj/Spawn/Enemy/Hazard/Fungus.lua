@@ -11,7 +11,7 @@ local PROPOGATE_FREQUENCY = 1
 -- local PROPOGATE_FREQUENCY = 60
 local PROPOGATE_VARIANCE_DEVIATION = 20
 local HP_GAIN_AMOUNT = 1
-local MIN_PLAYER_DISTANCE_FOR_GROWTH = 32
+local MIN_PLAYER_DISTANCE_FOR_GROWTH = 64
 
 local PROPOGATE_RADIUS = 16
 local MAX_FUNGI = 60
@@ -39,6 +39,8 @@ function Fungus:new(x, y, propogate_frequency)
 	self.drag = 1.0
     self.self_declump_modifier = 0.0
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+	self.declump_force = self.declump_force * 0.35
+
     self.death_sfx_volume = 0.5
 	self.death_sfx = "hazard_fungus_die"
 	self.hit_bubble_radius = nil

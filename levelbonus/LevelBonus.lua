@@ -24,8 +24,15 @@ return {
 		text_key = "bonus_rescue",
 		score = 0,
 		score_multiplier = 0.1,
-		xp = 1,
+		xp = 0.1,
     },
+
+	room_clear = {
+		text_key = "bonus_room_clear",
+		score = 0,
+		score_multiplier = 0,
+		xp = function() return 6 + floor(game_state.level / 7) end,
+	},
 	
 	all_rescues = {
 		text_key = "bonus_all_rescues",

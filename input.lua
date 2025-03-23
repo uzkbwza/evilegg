@@ -346,8 +346,6 @@ function input.post_process(t)
 	t.mouse.cached_mouse_data.dy = 0
 
 
-
-
     for k, v in pairs(t.keyboard_pressed) do
 		t.keyboard_pressed[k] = false
 	end

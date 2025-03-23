@@ -24,6 +24,7 @@ local translations = {
 		bonus_rescue = "RESCUE",
         bonus_all_rescues = "HERO",
         bonus_quick_wave = "QUICK WAVE",
+		bonus_room_clear = "ROOM CLEAR",
 		-- bonus_mortar_rescue = "",
     },
 }

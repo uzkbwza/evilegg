@@ -6,8 +6,8 @@ function Hopper:new(x, y)
 	self.drag = 0.05
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
-    self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Waiting")
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
+	
     self.default_body_height = self.default_body_height or 4
 	self:set_body_height(self.default_body_height)
     self.sprite = textures.enemy_hopper1
@@ -73,7 +73,7 @@ end
 
 function Hopper:state_Hopping_update(dt)
 	local speed = self.vel:magnitude()
-    self:set_body_height(splerp(self.body_height, self.default_body_height + speed * self.body_height_mod, dt, 190))
+    self:set_body_height(splerp(self.body_height, self.default_body_height + speed * self.body_height_mod, 190, dt))
 	if speed < 0.125 then
 		self:change_state("Waiting")
 	end
@@ -87,5 +87,6 @@ function Hopper:get_sprite()
     return self.sprite
 end
 
+AutoStateMachine(Hopper, "Waiting")
 
 return Hopper

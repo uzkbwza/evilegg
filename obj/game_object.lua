@@ -10,44 +10,39 @@ local GameObject3D = GameObject:extend("GameObject3D")
 local ObjectRefArray = Object:extend("ObjectRefArray")
 
 GameObject.DEFAULT_DRAW_CULL_DIST = 32
-GameObject.id_counter = 0x00000000
-GameObject.id_to_object = {}
-function GameObject:get_object(id)
-	return self.id_to_object[id]
-end
 
 function GameObject:new()
-
-	self:add_signal("destroyed")
-	self:add_signal("update_changed")
+    self:add_signal("destroyed")
+    self:add_signal("update_changed")
     self:add_signal("visibility_changed")
 
-	self.id = GameObject.new_id()
-	GameObject.id_to_object[self.id] = self
 
-	self._update_functions = nil
-	self._draw_functions = nil
-	
-	self.world = nil
+    self._update_functions = nil
+    self._draw_functions = nil
 
-	self.draw_cull_dist = nil
-	
-	self.visible = true
-	
-	self.static = false
-		
-	self.zindex = 0
+    self.world = nil
+
+    self.draw_cull_dist = nil
+
+    self.visible = true
+
+    self.static = false
+
+    self.zindex = 0
 end
 
-function GameObject.new_id()
-    local id = GameObject.id_counter
-    -- GameObject.id_counter = bit.tobit(bit.band(GameObject.id_counter + 1, 0x0fffffff))
-    GameObject.id_counter = bit.tobit(GameObject.id_counter + 1)
-    return id
-end
-
-function GameObject:get_id()
-	return self.id
+if debug.enabled then
+    function GameObject:set_id(id)
+        if self.id == nil then
+            self.id = id
+        else
+            error("GameObject:set_id() called but id is already set")
+        end
+    end
+else
+	function GameObject:set_id(id)
+		self.id = id
+	end
 end
 
 function GameObject:on_moved()
@@ -74,6 +69,7 @@ function GameObject:ref(name, object)
 end
 
 function GameObject:unref(name)
+	if not self[name] then return end
 	signal.disconnect(self[name], "destroyed", self, "on_ref_destroyed")
 	self[name] = nil
 end
@@ -104,6 +100,18 @@ function GameObject:ref_array_remove(name, obj)
 	array:remove(obj)
 end
 
+function GameObject:ref_array_clear(name)
+	local array = self[name]
+    if not array then return end
+	local to_remove = {}
+	for _, obj in array:ipairs() do
+		table.insert(to_remove, obj)
+	end
+	for _, obj in to_remove do
+		self:ref_array_remove(name, obj)
+	end
+end
+
 function GameObject:_update_sequencer(dt)
     self.sequencer:update(dt)
 end
@@ -127,8 +135,10 @@ function GameObject:tick_pulse(pulse_length, offset)
 end
 
 function GameObject:add_sequencer()
-	if self.sequencer then return end
-	assert(self.sequencer == nil, "GameObject:add_sequencer() called but sequencer already exists")
+    if self.sequencer then
+        return	
+	end
+	-- assert(self.sequencer == nil, "GameObject:add_sequencer() called but sequencer already exists")
 	self.sequencer = Sequencer()
 	self:add_update_function(self._update_sequencer)
 end
@@ -563,7 +573,7 @@ function GameObject:debug_draw_bounds_shared()
 			elseif sensor.monitoring then
 				color = Color.pink
 			else
-                color = Color.darkgrey
+                color = Color.darkergrey
 				alpha = 0.25
 			end 
 			graphics.draw_collision_box(sensor.rect, color, alpha)
@@ -614,6 +624,10 @@ function GameObject:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
     -- audio.play_sfx_monophonic(sfx_name, volume, pitch, loop)
 end
 
+function GameObject:play_sfx_if_stopped(sfx_name, volume, pitch, loop, x, y, z)
+	audio.play_sfx_object_if_stopped(self, sfx_name, volume, pitch, loop)
+end
+
 function GameObject:play_world_sfx(sfx_name, volume, pitch, loop, x, y, z)
 	self.world:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
 end
@@ -658,7 +672,6 @@ function GameObject:destroy()
     end
     self:emit_signal("destroyed", self)
     
-	GameObject.id_to_object[self.id] = nil
 	signal.cleanup(self)
 
 	-- nuclear debugging
@@ -687,7 +700,9 @@ function GameObject:clear_signals()
 	-- end
 end
 
+
 function GameObject:enter_shared()
+
 	if self._enter_functions then
 		for _, func in ipairs(self._enter_functions) do
 			func(self)

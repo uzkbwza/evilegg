@@ -7,7 +7,7 @@ function State._create(...)
 	return State(...)
 end
 
-function State:new(name, table, add_transition_function)
+function State:new(name, tab, add_transition_function)
 
 	for _, unimplemented in ipairs({
 		"enter",
@@ -26,7 +26,7 @@ function State:new(name, table, add_transition_function)
 		go = function(to, ...) self:transition(to, ...) end
 	end
 
-    for k, v in pairs(table) do
+    for k, v in pairs(tab) do
         if type(v) == "function" then
 			if go then
 				self[k] = function(...) v(go, ...) end

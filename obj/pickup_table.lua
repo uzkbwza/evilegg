@@ -84,7 +84,25 @@ local Powerups = {
 		-- 	textures.pickup_powerup_placeholder,
 		-- 	textures.pickup_powerup_placeholder,
 		-- },
+        spawn_weight = 1000,
+		bullet_powerup = false,
+		bullet_powerup_time = 10,
 	},
+
+	RocketPowerup = {
+		icon = textures.pickup_powerup_rocket1,
+        spawn_weight = 1000,
+		textures = {
+			textures.pickup_powerup_rocket1,
+			textures.pickup_powerup_rocket2,
+			-- textures.pickup_powerup_rocket3,
+        },
+        bullet_powerup = true,
+		bullet_powerup_time = 10,
+
+	},
+
+	
 }
 
 local Hearts = {

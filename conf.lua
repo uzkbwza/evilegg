@@ -38,6 +38,8 @@ local conf = {
 		y = 240,
     },
 
+	expand_viewport = true,
+
 	
     to_vec2 = {
 		"room_size",
@@ -45,14 +47,14 @@ local conf = {
 		"room_padding",
 	},
 	
-	display_scale = 4,
+	display_scale = IS_EXPORT and 3 or 6,
 
 	-- delta
 	use_fixed_delta = false,
     fixed_tickrate = 60,
 	delta_tickrate = 60,
     max_delta_seconds = 1/60,
-	max_fps = 500,
+	max_fps = IS_EXPORT and 500 or 5000,
     max_fixed_ticks_per_frame = 1,
 
 	-- input
@@ -164,7 +166,7 @@ local conf = {
 				axis = "rightx",
 				dir = 1,
 				deadzone = 0.0,
-			}
+			} 
 		},
 		
 		aim_up_digital = {
@@ -413,8 +415,10 @@ function love.conf(t)
 	t.window.icon           = nil
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
-    -- t.window.width          = 1366
-    -- t.window.height         = 768
+    -- if not IS_EXPORT then
+	-- t.window.width          = 1920
+	-- t.window.height         = 1080
+	-- end
 
 	t.window.borderless     = false
 	t.window.resizable      = true
@@ -422,6 +426,7 @@ function love.conf(t)
 	t.window.minheight      = conf.viewport_size.y
 	t.window.fullscreen     = usersettings.fullscreen and IS_EXPORT
     t.window.fullscreentype = "desktop"
+    -- t.window.fullscreentype = "exclusive"
 	if usersettings.vsync then
         t.window.vsync = -1
     else

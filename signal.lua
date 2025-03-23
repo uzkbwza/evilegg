@@ -216,7 +216,7 @@ end
 ---@param signal_id string | number
 ---@param ... any
 function signal.emit(emitter, signal_id, ...)
-    local sig = signal.get(emitter, signal_id)
+local sig = signal.get(emitter, signal_id)
     if sig == nil then error("no signal " .. tostring(signal_id) .. " for emitter " .. tostring(emitter)) end
 	-- if sig == nil then return end
     for listener, connection in pairs(sig.listeners) do

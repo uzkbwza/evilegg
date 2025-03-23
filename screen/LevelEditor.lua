@@ -1670,7 +1670,7 @@ function LevelEditor:update(dt)
 
 	self.hovered_tile = self:get_tile(self.mcell.x, self.mcell.y, self.layer)
 
-	self.layer_display_offset = splerp(self.layer_display_offset, self.layer, dt, 90)
+	self.layer_display_offset = splerp(self.layer_display_offset, self.layer, 90, dt)
 
     local active_area = self:get_active_section()
 	

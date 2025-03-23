@@ -2,7 +2,7 @@ local RoomObject = GameObject2D:extend("RoomObject")
 local RoomFloorObject = GameObject2D:extend("RoomFloorObject")
 
 local PLAYER_DISTANCE = 16
-local LINE_HEIGHT = 9
+local LINE_HEIGHT = 8
 local ICON_SIZE = 12
 local LINE_TIME = 2
 
@@ -21,6 +21,7 @@ function RoomObject:new(x, y, room)
     self:add_elapsed_ticks()
     self.lines = {}
 	self:add_sequencer()
+	self.die_alpha = 1
 	
     self.z_index = 1
     self.icon_stencil_function = function()
@@ -57,36 +58,52 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 		-- print(spawn, count)
 		table.insert(sorted_tab, { spawn = spawn, count = count })
 	end
-	if sort_func then
-		table.sort(sorted_tab, sort_func)
+    if sort_func then
+        table.sort(sorted_tab, sort_func)
+    end
+	
+	local table_length = 0
+	for _, data in ipairs(sorted_tab) do
+		local count = data.count
+        local num_entries = 1
+		if data.spawn.subtype == "powerup" then 
+			num_entries = count
+		end
+		table_length = table_length + num_entries
 	end
 
     for _, data in ipairs(sorted_tab) do
-		local spawn = data.spawn
-		local count = data.count
+        local spawn = data.spawn
+        local count = data.count
+        local num_entries = 1
+		if data.spawn.subtype == "powerup" then 
+			num_entries = count
+		end
+		for i=1, num_entries do
 
-		-- local icon = spawn.icon
-        local icon = graphics.depalettized[spawn.icon]
-		-- print(spawn.name)
-		local width, height = graphics.texture_data[icon]:getDimensions()
-		local middle_x, middle_y = floor(width / 2), floor(height / 2)
-		local icon_quad = graphics.new_quad(middle_x - ICON_SIZE / 2, middle_y - ICON_SIZE / 2, ICON_SIZE, ICON_SIZE, width, height)
-		-- local icon_quad = graphics.new_quad(0, 0, width, height, icon)
-		table.insert(current_icons, graphics.get_quad_table(icon, icon_quad))
-		current_icon = current_icon + 1
-		counter = counter + 1
+			-- local icon = spawn.icon
+			local icon = graphics.depalettized[spawn.icon]
+			-- print(spawn.name)
+			local width, height = graphics.texture_data[icon]:getDimensions()
+			local middle_x, middle_y = floor(width / 2), floor(height / 2)
+			local icon_quad = graphics.new_quad(middle_x - ICON_SIZE / 2, middle_y - ICON_SIZE / 2, ICON_SIZE, ICON_SIZE, width, height)
+			-- local icon_quad = graphics.new_quad(0, 0, width, height, icon)
+			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad))
+			current_icon = current_icon + 1
+			counter = counter + 1
 
-        if current_icon >= icons_per_line or counter >= table.length(tab) then
-            local line_data = {
-                spawn = spawn,
-                count = count,
-                icons = current_icons,
-            }
-            self:add_line("spawn_count", line_data, ICON_SIZE + 2, false)
-            current_icons = {}
-            current_icon = 0
-        end
-		::continue::
+			if current_icon >= icons_per_line or counter >= table_length then
+				local line_data = {
+					spawn = spawn,
+					count = count,
+					icons = current_icons,
+				}
+				self:add_line("spawn_count", line_data, ICON_SIZE + 2, false)
+				current_icons = {}
+				current_icon = 0
+			end
+			-- ::continue::
+		end
 	end
 end
 
@@ -126,10 +143,10 @@ function RoomObject:enter()
             "hazard",
             "enemy",
             "rescue",
-            "powerup",
-            "heart",
-            "upgrade",
             "item",
+            "upgrade",
+            "heart",
+            "powerup",
         }
 
         local priority_map = {
@@ -196,17 +213,35 @@ function RoomObject:enter()
     end)
     local floor_object = self:spawn_object(RoomFloorObject(self.pos.x, self.pos.y))
     floor_object.direction = self.direction
+	self:ref("floor_object", floor_object)
     self:bind_destruction(floor_object)
 end
 
+function RoomObject:close_animation()
+	local s = self.world.sequencer
+	s:start(function()
+        for i = #self.lines, 1, -1 do
+			s:wait(LINE_TIME * 4)
+			if self then
+            	self.lines[i] = nil
+            else
+				return
+			end
+		end
+	end)
+end
+
 function RoomObject:update(dt)
+	-- print(self.die_alpha)
+
+
     RoomObject.super.update(self, dt)
 	for _, line in pairs(self.lines) do
-        line.t = line.t + dt
+        line.t = min(line.t + dt)
     end
-	if self.dead then
-		return
-	end
+	-- if self.dead then
+	-- 	return
+	-- end
 	local player = self:get_closest_player()
     if player and self.tick > 10 then
         local bx, by = self.pos.x, self.pos.y
@@ -222,10 +257,20 @@ end
 
 function RoomObject:die()
 	self.dead = true
+	self.die_time = self.world.elapsed
+    self:close_animation()
+
 end
 
 function RoomObject:draw()
-	graphics.set_font(self.font)
+    self.die_alpha = self.dead and (max(1 - (self.world.elapsed - self.die_time) / 5, 0)) or 1
+		
+    if self.floor_object then
+        self.floor_object.die_alpha = self.die_alpha
+    end
+	
+    graphics.set_font(self.font)
+	graphics.set_color(self.die_alpha, self.die_alpha, self.die_alpha, 1)
     -- self:body_translate()
     -- RoomObject.super.draw(self)
 	local total_height = 0
@@ -287,7 +332,7 @@ function RoomObject:draw()
 	
 
 	if self.tick % 2 == 0 then
-		graphics.set_color(1, 1, 1, 1)
+		graphics.set_color(self.die_alpha, self.die_alpha, self.die_alpha, 1)
 		graphics.push("all")
 		local line_width = max(min(2, -1 + self.tick / 2), 0)
 		graphics.set_line_width(line_width)
@@ -312,11 +357,16 @@ function RoomObject:draw()
 
 	graphics.translate(rect_x, rect_y)
 
+
+	if #self.lines == 0 then return end
+	
 	if gametime.tick % 2 == 0 then 
     	graphics.set_color(0, 0, 0, 1)
 		graphics.rectangle("fill", 0, 0, rect_width, rect_height)
 	end
-    graphics.set_color(1, 1, 1, 1)
+    graphics.set_color(self.die_alpha, self.die_alpha, self.die_alpha, 1)
+	
+
     graphics.rectangle("line", 0, 0, rect_width, rect_height)
 	graphics.translate(RECT_LINE_WIDTH + PADDING, RECT_LINE_WIDTH + PADDING)
 
@@ -332,7 +382,8 @@ end
 -- end
 
 function RoomObject:draw_line(line, y)
-    graphics.set_color(1, 1, 1, 1)
+	local die_alpha = self.die_alpha or 1
+    graphics.set_color(die_alpha, die_alpha, die_alpha, 1)
     if line.type == "text" then
         local text = line.data
 
@@ -345,7 +396,7 @@ function RoomObject:draw_line(line, y)
             end
         end
     elseif line.type == "separator" then
-        graphics.set_color(Color.darkgrey)
+        graphics.set_color(Color.darkergrey * die_alpha)
         local y_ = y + floor(line.height / 2)
         graphics.line(4, y_, RECT_WIDTH - 4, y_)
     end
@@ -363,23 +414,23 @@ end
 
 function RoomFloorObject:update(dt)
 	if self.is_new_tick then
-        local num_particles = max(floor(abs(rng.randfn(0, 1.5))), 1 - self.tick)
+        local num_particles = max(floor(abs(rng.randfn(0, 1.6))), 1 - self.tick)
 		if num_particles > 0 then
 			for i=1, num_particles do 
 				local s = self.sequencer
 				s:start(function()
 					local particle = {}
-					particle.distance = clamp(rng.randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 1, MAX_PARTICLE_DISTANCE)
-					particle.size = max(rng.randfn(6.0, 0.5), 0.5)
+					particle.distance = clamp(rng.randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 20, MAX_PARTICLE_DISTANCE)
+					particle.size = max(rng.randfn(6.0, 1.5), 0.5)
 					particle.brightness = max(rng.randfn(0.25, 0.15), 0.05)
 					-- particle.rotated = rng.percent(50)
 					particle.t = 0
 					particle.offset = clamp(rng.randfn(0, PARTICLE_FIELD_WIDTH / 4), -PARTICLE_FIELD_WIDTH, PARTICLE_FIELD_WIDTH)
 					local centered_ratio = pow(1 - abs(particle.offset) / (PARTICLE_FIELD_WIDTH), 2)
-					particle.distance = particle.distance * remap_lower(pow(centered_ratio, 1.25), 0, 1, 0.25)
+					particle.distance = particle.distance * clamp(remap_lower(pow(centered_ratio, 1.25), 0, 1, 0.25), 0.25, 1)
 					particle.size = particle.size * remap_lower(centered_ratio, 0, 1, 0.5)
 					self.particles[particle] = true
-					s:tween_property(particle, "t", 0.0, 1, max(rng.randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), "inCubic")
+					s:tween_property(particle, "t", 0.0, 1, min(max(rng.randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), 300), "inCubic")
 					self.particles[particle] = nil
 				end)
 			end
@@ -397,6 +448,8 @@ function RoomFloorObject:draw()
 end
 
 function RoomFloorObject:draw_particles(is_floor)
+	local die_alpha = self.die_alpha or 1
+
     for particle in pairs(self.particles) do
         if is_floor then
 			if (not self.is_new_tick) or rng.percent(80) then
@@ -405,7 +458,7 @@ function RoomFloorObject:draw_particles(is_floor)
 		end
         local size = particle.size * (particle.t)
         local dist = remap(particle.distance * (1 - particle.t), 0, particle.distance, particle.size, particle.distance)
-		local brightness = 1.0
+		local brightness = 1.0 * die_alpha
         if is_floor then
             brightness = particle.brightness * (particle.t)
         end

@@ -205,6 +205,11 @@ function pulse(duration, width, tick, offset)
     return wave(0.0, 1.0, duration, offset, tick) < width
 end
 
+local epsilon = 0.00001
+
+function is_approx_equal(a, b)
+    return abs(a - b) < (epsilon)
+end
 
 function rad2deg(rad)
 	return rad * (180 / pi)
@@ -243,34 +248,38 @@ function angle_to_vec2_unpacked(angle)
 end
 
 function polar_to_cartesian(distance, angle)
-	local x = cos(angle) * distance
-	local y = sin(angle) * distance
-	return x, y
+    local x = cos(angle) * distance
+    local y = sin(angle) * distance
+    return x, y
+end
+
+function logb(x, base)
+    return log(x) / log(base)
 end
 
 -- Exponential decay function (splerp) for scalars
-function splerp(a, b, delta, half_life)
+function splerp(a, b, half_life, delta)
     return b + (a - b) * pow(2, -delta / (frames_to_seconds(half_life)))
 end
 
 -- Exponential decay function (splerp) for Vec2
-function splerp_vec_table(a, b, delta, half_life)
+function splerp_vec_table(a, b, half_life, delta)
     local t = pow(2, -delta / (frames_to_seconds(half_life)))
     return b + (a - b) * t  -- Uses Vec2 operations
 end
 
-function splerp_vec(ax, ay, bx, by, delta, half_life)
+function splerp_vec(ax, ay, bx, by, half_life, delta)
 	local t = pow(2, -delta / (frames_to_seconds(half_life)))
 	return bx + (ax - bx) * t, by + (ay - by) * t
 end
 
 -- Exponential decay function (splerp) for Vec3
-function splerp_vec3_table(a, b, delta, half_life)
+function splerp_vec3_table(a, b, half_life, delta)
     local t = pow(2, -delta / (frames_to_seconds(half_life)))
     return b + (a - b) * t  -- Uses Vec3 operations
 end
 
-function splerp_vec3(ax, ay, az, bx, by, bz, delta, half_life)
+function splerp_vec3(ax, ay, az, bx, by, bz, half_life, delta)
 	local t = pow(2, -delta / (frames_to_seconds(half_life)))
 	return bx + (ax - bx) * t, by + (ay - by) * t, bz + (az - bz) * t
 end
@@ -280,7 +289,7 @@ function lerp_angle(a, b, t)
     return a + diff * t
 end
 
-function splerp_angle(a, b, delta, half_life)
+function splerp_angle(a, b, half_life, delta)
     local t = 1 - pow(2, -delta / (frames_to_seconds(half_life)))
     return lerp_angle(a, b, t)
 end
@@ -293,7 +302,7 @@ function lerp_wrap(a, b, mod_value, t)
     return ((a + delta * t) % mod_value + mod_value) % mod_value
 end
 
-function splerp_wrap(a, b, mod_value, delta, half_life)
+function splerp_wrap(a, b, mod_value, half_life, delta)
     local t = 1 - pow(2, -delta / (frames_to_seconds(half_life)))
     return lerp_wrap(a, b, mod_value, t)
 end
@@ -360,3 +369,21 @@ end
 function iposmod(x, y)
 	return x - y * floor_div(x, y)
 end
+
+function point_along_line_segment(ax, ay, bx, by, distance)
+	local dir_x, dir_y = bx - ax, by - ay
+	local len = sqrt(dir_x * dir_x + dir_y * dir_y)
+	dir_x = dir_x / len
+	dir_y = dir_y / len
+	return ax + dir_x * distance, ay + dir_y * distance
+end
+
+function point_along_line_segment_clamped(ax, ay, bx, by, distance)
+	local dir_x, dir_y = bx - ax, by - ay
+	local len = sqrt(dir_x * dir_x + dir_y * dir_y)
+	dir_x = dir_x / len
+	dir_y = dir_y / len
+	return ax + dir_x * clamp(distance, 0, len), ay + dir_y * clamp(distance, 0, len)
+end
+
+

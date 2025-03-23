@@ -21,7 +21,6 @@ require "lib.vector"
 require "lib.rect"
 
 require "lib.random_crap"
-
 require "lib.sequencer"
 require "physics_layers"
 
@@ -31,6 +30,8 @@ require "lib.collision"
 
 require "datastructure.bst"
 require "datastructure.bst2"
+
+require "lib.datetime"
 
 bonglewunch = require "datastructure.bonglewunch"
 makelist = require "datastructure.smart_array"
@@ -68,6 +69,7 @@ Palette, PaletteStack = palette_lib.Palette, palette_lib.PaletteStack
 local fsm = require "lib.fsm"
 StateMachine = fsm.StateMachine
 State = fsm.State
+AutoStateMachine = require "lib.fsm.AutoStateMachine"
 
 BaseGame = require "game.BaseGame"
 
@@ -106,9 +108,11 @@ local function manual_gc(time_budget, memory_ceiling, disable_otherwise)
 end
 
 local frame_length = 0
+local step_length = 0
 
 local function step(dt)
-    local frame_start = love.timer.get_time()
+
+	local frame_start = love.timer.get_time()
 
     if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
 
@@ -121,8 +125,9 @@ local function step(dt)
         graphics.present()
     end
 
-    local frame_end = love.timer.get_time()
-    frame_length = frame_end - frame_start
+	local frame_end = love.timer.get_time()
+	step_length = frame_end - frame_start
+
 end
 
 function love.run()
@@ -187,26 +192,30 @@ function love.run()
 			gametime.is_new_tick = true
 		end
 
-		
-		if not conf.use_fixed_delta then
-			gametime.delta = delta_frame
-			gametime.delta_seconds = delta_frame / TICKRATE
-			step(delta_frame)
-		else
-			gametime.delta = frame_time * TICKRATE
-			gametime.delta_seconds = frame_time
-			accumulated_time = accumulated_time + dt
+		local frame_start = love.timer.get_time()
 
-			for i = 1, conf.max_fixed_ticks_per_frame do
-				if accumulated_time < frame_time then
-					break
-				end
-				
-				step(frame_time * TICKRATE)
-	
-				accumulated_time = accumulated_time - frame_time
-			end
-		end
+        if not conf.use_fixed_delta then
+            gametime.delta = delta_frame
+            gametime.delta_seconds = delta_frame / TICKRATE
+            step(delta_frame)
+        else
+            gametime.delta = frame_time * TICKRATE
+            gametime.delta_seconds = frame_time
+            accumulated_time = accumulated_time + dt
+
+            for i = 1, conf.max_fixed_ticks_per_frame do
+                if accumulated_time < frame_time then
+                    break
+                end
+
+                step(frame_time * TICKRATE)
+
+                accumulated_time = accumulated_time - frame_time
+            end
+        end
+		
+		local frame_end = love.timer.get_time()
+		frame_length = frame_end - frame_start
 
 
         if gametime.is_new_tick and gametime.tick % 300 == 0 then
@@ -272,24 +281,24 @@ function love.update(dt)
 	if gametime.tick % 1 == 0 then 
 		-- dbg("ticks", gametime.tick)
 		local fps = love.timer.getFPS()
-        if conf.use_fixed_delta and fps > conf.fixed_tickrate then
-            fps = conf.fixed_tickrate
-        end
+        -- if conf.use_fixed_delta and fps > conf.fixed_tickrate then
+            -- fps = conf.fixed_tickrate
+        -- end
 
-		local flen = (1000 * frame_length)
+		local flen = (1000 * step_length)
 
 		if flen > averaged_frame_length then
             averaged_frame_length = flen
         else
-			averaged_frame_length = splerp(averaged_frame_length, flen, dt, 1000.0)
+			averaged_frame_length = splerp(averaged_frame_length, flen, 1000.0, dt)
 		end
 		
 		if debug.enabled then
             dbg("fps", fps, Color.pink)
 			debug.memory_used = (collectgarbage("count")) / 1024
 			dbg("memory use (mB)", stepify_safe(debug.memory_used, 0.001), Color.green)
-            dbg("frame length (ms)", string.format("%0.3f", flen), Color.pink)
-            dbg("frame length (ms) peakdecay", string.format("%0.3f", averaged_frame_length), Color.pink)
+            dbg("step length (ms)", string.format("%0.3f", flen), Color.pink)
+            dbg("step length (ms) peakdecay", string.format("%0.3f", averaged_frame_length), Color.pink)
 			dbg("id counter", GameObject.id_counter, Color.orange)
 		end
 	end

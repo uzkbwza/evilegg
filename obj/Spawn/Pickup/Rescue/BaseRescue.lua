@@ -18,14 +18,13 @@ function BaseRescue:new(x, y)
     self.body_height = 4
     self.max_hp = self.max_hp or 4
     self.hurt_bubble_radius = self.hurt_bubble_radius or 3
-    self.declump_radius = self.declump_radius or 20
-	self.self_declump_modifier = self.self_declump_modifier or 0.3
+    -- self.declump_radius = self.declump_radius or 20
+	-- self.self_declump_modifier = self.self_declump_modifier or 0.3
     self:lazy_mixin(Mixins.Behavior.Health)
     self:lazy_mixin(Mixins.Behavior.Hittable)
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
-    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    -- self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Fx.Rumble)
-    self:lazy_mixin(Mixins.Behavior.Flippable)
 	self.avoid_enemies = true
     self.spawn_sfx = "ally_rescue_spawn"
 	self.spawn_sfx_volume = 0.85
@@ -38,7 +37,10 @@ function BaseRescue:new(x, y)
 	self.pickup_sfx = "ally_rescue_pickup"
     self.pickup_sfx_volume = 0.85
 	self.avoid_enemies_speed = self.avoid_enemies_speed or 0.025
-	self.avoid_enemies_radius = self.avoid_enemies_radius or 16
+    self.avoid_enemies_radius = self.avoid_enemies_radius or 16
+	if self.auto_state_machine then
+		self:init_state_machine()
+	end
 
 end
 
@@ -90,6 +92,10 @@ function BaseRescue:hit_by(other)
         return
     end
 
+	if self.grabbed_by_cultist then
+		return
+	end
+
     if self.world.state == "RoomClear" then
         return
 	end
@@ -99,6 +105,10 @@ function BaseRescue:hit_by(other)
     if other.is_bubble then
         other = other.parent
     end
+    if self.hp > 1 then
+        damage = min(damage, self.hp - 1)
+	end
+	-- dbg("damage dealt to rescue", damage)
     self:damage(damage)
     self:start_timer("invulnerability", self.hp <= 1 and LAST_HIT_INVULNERABILITY or HIT_INVULNERABILITY)
 
@@ -113,7 +123,7 @@ end
 
 function BaseRescue:on_damaged(damage)
 	local bx, by = self:get_body_center()
-	if self.hp > 0 then
+	if self.hp > 0 and not self.grabbed_by_cultist then
 		self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume)
         self:spawn_object(HurtFlashFx(self, bx, by+1, 48))
     end
@@ -195,7 +205,10 @@ function BaseRescue:on_pickup()
             game_state:upgrade(self.holding_pickup)
         end
         if self.holding_pickup.heart_type ~= nil then
-			game_state:gain_heart(self.holding_pickup)
+            game_state:gain_heart(self.holding_pickup)
+        end
+		if self.holding_pickup.subtype == "powerup" then
+			game_state:gain_powerup(self.holding_pickup)
 		end
 		-- self:play_sfx(self.pickup_sfx, self.pickup_sfx_volume * 0.25)
 	else
@@ -203,6 +216,10 @@ function BaseRescue:on_pickup()
 	end
     self.floor_particle:on_pickup()
     BaseRescue.super.on_pickup(self)
+	-- for i = 1, 5 do
+	-- 	audio.stop_sfx_monophonic("pickup_rescue_save" .. i)
+	-- end
+	-- self:play_sfx("pickup_rescue_save" .. game_state.rescue_chain, 0.9)
 end
 
 function BaseRescue:get_palette_shared()
@@ -237,9 +254,10 @@ function BaseRescue:die()
 	local flash = self:spawn_object(HurtFlashFx(self, bx, by+1, 64, true))
 	flash.duration = 40
 	self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, 0, 0))
-	self:play_sfx(self.die_sfx, self.die_sfx_volume)
+    self:play_sfx(self.die_sfx, self.die_sfx_volume)
 	self.pickupable = false
 	self.floor_particle:die()
+	game_state:on_rescue_failed()
 	self:queue_destroy()
 end
 
@@ -305,33 +323,99 @@ end
 
 function BaseRescueArrowParticle:new(x, y, target)
     BaseRescueArrowParticle.super.new(self, x, y)
+	self:lazy_mixin(Mixins.Behavior.AllyFinder)
 	self.duration = 0
 	self:ref("target", target)
-	self.z_index = 1
+	self.z_index = 10
 	self.random_offset = rng.randi(0, 100)
 end
 
 function BaseRescueArrowParticle:update(dt)
     if self.target then
-		local bx, by = self.target:get_body_center()
-        self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.target.hurt_bubble_radius * 2, dt, 600))
+        local bx, by = self.target:get_body_center()
+        self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.target.hurt_bubble_radius * 2, 600, dt))
     else
-		self:queue_destroy()
+        self:queue_destroy()
+    end
+    local almost_dead = false
+    if self.target then
+        almost_dead = self.target.hp <= 1 and self.target.max_hp > 1
+        if almost_dead and self.is_new_tick and self.tick % 20 == 0 then
+            self:play_sfx("ally_rescue_almost_dead_beep", 0.45)
+        end
     end
 end
 
+
+local arrow_points = {}
+function BaseRescueArrowParticle:draw_arrow_line(line_start_x, line_start_y, line_end_x, line_end_y, width, height, cap_size, dash, dash_gap)
+    graphics.push()
+    -- local gx, gy = self:to_global(line_start_x, line_start_y)
+	-- gx = stepify(gx, width)
+	-- gy = stepify(gy, height)
+	-- graphics.translate(self:to_local(gx, gy))
+    -- graphics.axis_quantized_line(0, 0, line_end_x - line_start_x, line_end_y - line_start_y, width, height, false, cap_size, dash, dash_gap, arrow_points)
+	graphics.axis_quantized_line(line_start_x, line_start_y, line_end_x, line_end_y, width, height, false, cap_size, dash, dash_gap, arrow_points)
+	table.clear(arrow_points)
+	graphics.pop()
+end
+
 function BaseRescueArrowParticle:draw(elapsed, tick, t)
-    if idivmod_eq_zero(gametime.tick + self.random_offset, 4, 2) then
-        return
-    end
-    local almost_dead = false
+	local almost_dead = false
 	if self.target then
 		almost_dead = self.target.hp <= 1 and self.target.max_hp > 1
 	end
+    if not idivmod_eq_zero(gametime.tick + self.random_offset, 4, 2) then        
+	
+		graphics.set_color(Color.white)
+		local palette_offset = almost_dead and idiv(gametime.tick + self.random_offset, 3) or 0
+		graphics.drawp_centered(almost_dead and textures.ally_rescue_arrow_almost_dead or textures.ally_rescue_arrow, nil, palette_offset, sin(elapsed * 0.05) * 0.5)
+    end
 
-    graphics.set_color(Color.white)
-	local palette_offset = almost_dead and idiv(gametime.tick + self.random_offset, 3) or 0
-	graphics.drawp_centered(almost_dead and textures.ally_rescue_arrow_almost_dead or textures.ally_rescue_arrow, nil, palette_offset, sin(elapsed * 0.05) * 0.5)
+	if (self.world and self.world.state == "RoomClear") then
+		return
+	end
+
+	if self.target and (almost_dead or gametime.tick % 2 == 0) then
+		local player = self:get_closest_player()
+		if player then
+			local bx, by = self:to_local(self.target:get_body_center())
+            local px, py = self:to_local(player:get_body_center())
+			local start_x, start_y = point_along_line_segment(bx, by, px, py, 8)
+            local end_x, end_y = point_along_line_segment(px, py, bx, by, 8)
+            
+            local line_length = almost_dead and 128 or 90
+
+            local line_t = fposmod(elapsed / (almost_dead and 4 or 12), almost_dead and 4 or 7)
+            local line_middle_x, line_middle_y = vec2_lerp(start_x, start_y, end_x, end_y, 2 - line_t)
+			local line_start_x, line_start_y = point_along_line_segment_clamped(line_middle_x, line_middle_y, start_x, start_y, line_length / 2)
+			local line_end_x, line_end_y = point_along_line_segment_clamped(line_middle_x, line_middle_y, end_x, end_y, line_length / 2)
+			
+            if vec2_distance_squared(line_start_x, line_start_y, line_end_x, line_end_y) > 1 then
+				local quantize_width = almost_dead and 24 or 16
+				
+				self.arrow_points = self.arrow_points or {}
+				graphics.set_line_width(3 + (almost_dead and 1 or 0))
+				if almost_dead then
+                    graphics.set_color(idivmod_eq_zero(gametime.tick, 3, 2) and Color.green or Color.blue)
+				else
+					graphics.set_color(Color.black)
+				end
+				self:draw_arrow_line(line_start_x, line_start_y, line_end_x, line_end_y, quantize_width, quantize_width, almost_dead and 2 or 3, nil, nil)
+                graphics.set_line_width(1 + (almost_dead and 1 or 0))
+                local color = Palette.rescue_line:tick_color(gametime.tick + self.random_offset, 0, 3)
+                if almost_dead then
+                    color = Palette.rescue_danger_line:tick_color(gametime.tick + self.random_offset, 0, 3)
+                end
+                local palette, offset = self.target:get_palette()
+				if palette then
+					color = palette:get_color(offset)
+				end
+                graphics.set_color(color)
+				self:draw_arrow_line(line_start_x, line_start_y, line_end_x, line_end_y, quantize_width, quantize_width, almost_dead and 2 or 3, 2, 1)
+			end
+		end
+	end
 end
 
 
@@ -348,7 +432,7 @@ end
 
 function BaseRescueFloorParticle:update(dt)
 	if self.target then
-        self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, dt, 60))
+        self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, 60, dt))
 	end
 end
 
@@ -453,7 +537,7 @@ function BaseRescuePickupParticle:update(dt)
 		local bx, by = self.target:get_body_center()
         local elapsed = self.elapsed
         self:move_to(splerp_vec(self.pos.x, self.pos.y, bx + cos(elapsed * 0.045) * 3,
-        by - self.target.hurt_bubble_radius + sin(elapsed * 0.045) * 1.5 * (0.667) - 7, dt, 60))
+        by - self.target.hurt_bubble_radius + sin(elapsed * 0.045) * 1.5 * (0.667) - 7, 60, dt))
         if self.is_new_tick and rng.percent(80) then
 			local s = self.sequencer
             s:start(function()
@@ -542,10 +626,12 @@ function BaseRescuePickupParticle:draw(elapsed, tick, t)
 	graphics.set_color(Color.white)
 
 	
-    local textures = self.pickup.textures
-    local index = idivmod(gametime.tick, 10, 3) + 1
-    local texture = textures[index]
-    graphics.drawp_centered(texture, nil, 0, 0, 0)
+	if not idivmod_eq_zero(gametime.tick, 2, 3) then
+		local textures = self.pickup.textures
+		local index = idivmod(gametime.tick, 8, #textures) + 1
+		local texture = textures[index]
+		graphics.drawp_centered(texture, nil, 0, 0, 0)
+	end
 
 end
 

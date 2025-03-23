@@ -2,10 +2,16 @@ local WalkTowardPlayer = Object:extend("WalkTowardPlayer")
 
 function WalkTowardPlayer:__mix_init(x, y)
     self.walk_speed = self.walk_speed or 0.05
-	self:add_update_function(self.walk_toward_player_update)
+    self:add_update_function(self.walk_toward_player_update)
+	self.walk_toward_player_dir = Vec2(1, 0)
+	self.pause_walking_toward_player = false
 end
 
 function WalkTowardPlayer:walk_toward_player_update(dt)
+    if self.pause_walking_toward_player then
+        return
+    end
+
     local closest
 
 	if self.only_follow_rescues then
@@ -25,6 +31,7 @@ function WalkTowardPlayer:walk_toward_player_update(dt)
 		local cx, cy = closest:get_body_center()
 		local dx, dy = cx - bx, cy - by
         local direction_x, direction_y = vec2_normalized(dx, dy)
+		self.walk_toward_player_dir.x, self.walk_toward_player_dir.y = direction_x, direction_y
 		if self.walk_snap_angle then
 			direction_x, direction_y = vec2_snap_angle(direction_x, direction_y, self.walk_snap_angle)
 		end

@@ -350,7 +350,7 @@ end
 function nativefs.remove_directory_recursive(name)
 	local items = nativefs.get_directory_items(name)
     for _, item in ipairs(items) do
-		if nativefs.get_info(name .. "/" .. item).type == "directory" then	
+		if nativefs.get_info(name .. "/" .. item).type == "directory" then
 			nativefs.remove_directory_recursive(name .. "/" .. item)
 		else
 			nativefs.remove(name .. "/" .. item)

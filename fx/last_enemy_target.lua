@@ -16,7 +16,7 @@ function LastEnemyTarget:update(dt)
 		self:queue_destroy()
 		return
 	end
-	self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, dt, 40))
+	self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, 40, dt))
 end
 
 local ZOOM_TIME = 30

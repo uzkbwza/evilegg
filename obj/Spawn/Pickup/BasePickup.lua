@@ -8,6 +8,7 @@ function BasePickup:new(x, y)
     self.hurt_bubble_radius = self.hurt_bubble_radius or 5
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
     self.hit_bubble_damage = self.hit_bubble_damage or 1
+	self:lazy_mixin(Mixins.Behavior.Flippable)
 	self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self:lazy_mixin(Mixins.Behavior.Pickupable)
     self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
@@ -29,7 +30,8 @@ function BasePickup:draw()
 end
 
 function BasePickup:on_pickup(player)
-	self:emit_signal("picked_up")
+    self:emit_signal("picked_up")
+
     self:queue_destroy()
 end
 

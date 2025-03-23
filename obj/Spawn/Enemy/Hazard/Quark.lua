@@ -26,7 +26,7 @@ end
 
 function Quark:on_terrain_collision(normal_x, normal_y)
     self:terrain_collision_bounce(normal_x, normal_y)
-	self:play_sfx("enemy_quark_bounce", 0.75, 1.0)
+	self:play_sfx("hazard_quark_bounce", 0.75, 1.0)
 end
 
 function Quark:enter()
@@ -34,7 +34,7 @@ function Quark:enter()
 end
 
 function Quark:get_sprite()
-	return textures.enemy_quark
+	return textures.hazard_quark
 end
 
 function Quark:get_palette()

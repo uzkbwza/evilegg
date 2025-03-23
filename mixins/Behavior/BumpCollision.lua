@@ -42,10 +42,6 @@ function BumpCollision:__mix_init()
 		self.bump_frozen = default_bump_info.bump_frozen
 	end
 
-    -- TODO: position centered on feet?
-
-
-
     if self.tracks_overlaps then
         self.overlaps = {}
         self:add_update_function(self.bump_track_overlaps)

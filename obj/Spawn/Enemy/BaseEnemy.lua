@@ -14,11 +14,11 @@ function BaseEnemy:new(x, y)
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
 	self.hit_bubble_damage = self.hit_bubble_damage or 1
 	self.max_hp = self.max_hp or 1
+	self:lazy_mixin(Mixins.Behavior.Flippable)
 	self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self:lazy_mixin(Mixins.Behavior.Health)
     self:lazy_mixin(Mixins.Behavior.Hittable)
     self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
-	self:lazy_mixin(Mixins.Behavior.Flippable)
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 
     self.random_offset = rng.randi(0, 255)
@@ -26,6 +26,9 @@ function BaseEnemy:new(x, y)
     self.flip = 1
 
     self:add_signal("died")
+	if self.auto_state_machine then
+		self:init_state_machine()
+	end
 end
 
 function BaseEnemy:hazard_init()
@@ -61,7 +64,9 @@ function BaseEnemy:enter_shared()
 		-- end
     end
     if self.spawn_cry then
-		self:play_sfx(self.spawn_cry, self.spawn_cry_volume or 1.0, self.spawn_cry_pitch or 1.0)
+		self:start_timer("spawn_cry", 6  , function()
+			self:play_sfx(self.spawn_cry, self.spawn_cry_volume or 1.0, self.spawn_cry_pitch or 1.0)
+		end)
 	end
 	local bx, by = self:get_body_center()
 end
@@ -93,7 +98,9 @@ function BaseEnemy:hit_by(object)
     if self.hp <= 0 then
         self:die(object)
 	else
-		if self.hurt_sfx then
+		if self:is_tick_timer_running("shield_invuln") then
+			self:play_sfx("enemy_shield_hit", 0.7, 1.0)
+		elseif self.hurt_sfx then
 			self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
 		elseif not self:has_tag("enemy_bullet") or self:has_tag("hazard") then
 			self:play_sfx("enemy_hurt", 0.25, 1.0)
@@ -113,7 +120,6 @@ end
 
 function BaseEnemy:normal_death_effect(hit_by)
 	local sprite = self:get_sprite()
-    local bx, by = self:get_body_center()
 	local hit_vel_x, hit_vel_y
 	if self.is_simple_physics_object then
 		hit_vel_x, hit_vel_y = self.vel.x, self.vel.y
@@ -129,17 +135,27 @@ function BaseEnemy:normal_death_effect(hit_by)
         end
 
         hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
-		
+
         if hit_vel_x == 0 and hit_vel_y == 0 then
-			hit_point_x, hit_point_y = self.pos.x, self.pos.y
-			local diff = self.pos:direction_to(hit_by.pos)
-			hit_vel_x = -diff.x * 10
-			hit_vel_y = -diff.y * 10
-		end
+            hit_point_x, hit_point_y = self.pos.x, self.pos.y
+            local diff = self.pos:direction_to(hit_by.pos)
+            hit_vel_x = -diff.x * 10
+            hit_vel_y = -diff.y * 10
+        end
     end
 
-	self:spawn_object(DeathFlash(bx, by, sprite))
-	self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y))
+	local bx, by
+
+	if self.get_death_flash_position then
+		bx, by = self:get_death_flash_position()
+    else
+		bx, by = self:get_body_center()
+	end
+
+    self:spawn_object(DeathFlash(bx, by, sprite, self.death_flash_size_mod or 1))
+	if not self.no_death_splatter then
+		self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y))
+	end
 end
 
 function BaseEnemy:flash_death_effect(size_mod)
@@ -227,13 +243,19 @@ function BaseEnemy:spawn_wave_enemy(enemy_object)
 	self.world:spawn_wave_enemy(enemy_object)
 end	
 
+function BaseEnemy:get_sprite_flip()
+	return self.flip, 1
+end
+
 function BaseEnemy:draw()
 	
     self:body_translate()
 
-	local palette, offset = self:get_palette_shared()
+    local palette, offset = self:get_palette_shared()
+	
+	local h_flip, v_flip = self:get_sprite_flip()
 
-	graphics.drawp_centered(self:get_sprite(), palette, offset, 0, 0, 0, self.flip, 1)
+	graphics.drawp_centered(self:get_sprite(), palette, offset, 0, 0, 0, h_flip, v_flip)
 end
 
 return BaseEnemy

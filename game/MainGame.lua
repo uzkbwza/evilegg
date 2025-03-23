@@ -7,17 +7,43 @@ local LevelBonus = require("levelbonus.LevelBonus")
 function MainGame:new()
 	MainGame.super.new(self)
 	-- self.main_screen = Screens.TestPaletteCyclingScreen
-	self.main_screen = Screens.MainScreen
+    self.main_screen_class = Screens.MainScreen
+	graphics.set_pre_canvas_draw_function(function()
+		local clear_color = self:get_clear_color()
+		if clear_color then
+            graphics.set_clear_color(clear_color)
+			graphics.clear(clear_color)
+		end
+	end)
 end
 
 function MainGame:load()
-	MainGame.super.load(self)
-    graphics.load_image_font("score_pickup_font", "font_score_pickup", "0123456789")
-    graphics.load_image_font("score_pickup_font_white", "font_score_pickup_white", "0123456789")
-    graphics.load_image_font("image_font1", "font_font1", " ABCDEFGHIJKLMNOPQRSTUVWXYZ+-")
+    MainGame.super.load(self)
+
     fonts.main_font = fonts["PixelOperatorMono8"]
     fonts.hud_font = fonts["PixelOperatorMono8"]
     fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
+	fonts.bonus_font = fonts.image_font1
+    fonts.cn_jp_kr = fonts["quan8"]
+end
+
+function MainGame:update(dt)
+	MainGame.super.update(self, dt)
+    if game_state then
+        game_state:update(dt)
+    end
+
+
+end
+
+function MainGame:get_clear_color()
+	local main_screen = self:get_main_screen()
+	if main_screen then
+		if main_screen.get_clear_color then
+			return main_screen:get_clear_color()
+		end
+	end
+	return Color.transparent
 end
 
 function MainGame:initialize_global_state()
@@ -51,10 +77,9 @@ GlobalGameState.max_upgrades = {
 
 GlobalGameState.max_items = 8
 GlobalGameState.max_hearts = 2
-GlobalGameState.xp_until_upgrade = 16
-GlobalGameState.xp_until_heart = 18
-GlobalGameState.xp_until_powerup = 20
-GlobalGameState.xp_until_item = 25
+GlobalGameState.xp_until_upgrade = 22
+GlobalGameState.xp_until_heart = 22
+GlobalGameState.xp_until_item = 30
 
 function GlobalGameState:new()
     self.level = 1
@@ -66,20 +91,22 @@ function GlobalGameState:new()
     self.score_multiplier = 1
     self.xp = 0
 
-    -- self.rescue_chain = 0
+    self.rescue_chain = 0
 
     self.level_bonuses = {}
     self.all_bonuses = {}
 
     self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
-    self.xp_until_heart = GlobalGameState.xp_until_heart
-    self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
+    self.xp_until_heart = 1
+    -- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
     self.xp_until_item = GlobalGameState.xp_until_item
 
     self.num_queued_upgrades = 0
-    self.num_queued_powerups = 0
     self.num_queued_items = 0
     self.num_queued_hearts = 0
+
+	self.bullet_powerup = nil
+	self.bullet_powerup_time = 0
 
     self.hearts = 0
 
@@ -98,23 +125,45 @@ function GlobalGameState:new()
 
     if debug.enabled then
         self.level = 1
+		self.hearts = 0
 
         -- self.num_queued_upgrades = 100
         -- self.num_queued_powerups = 100
-        -- self.num_queued_items = 100
+        self.num_queued_items = 100
         -- self.num_queued_hearts = 100
     end
 
     signal.register(self, "player_upgraded")
     signal.register(self, "player_heart_gained")
+    signal.register(self, "player_powerup_gained")
     signal.register(self, "player_downgraded")
     signal.register(self, "xp_threshold_reached")
 
     if debug.enabled then
-        for i = 1, 100 do
-            table.pretty_print(self:get_random_available_upgrade())
-        end
+        -- for i = 1, 100 do
+            -- table.pretty_print(self:get_random_available_upgrade())
+        -- end
     end
+end
+
+function GlobalGameState:update(dt)
+    if debug.enabled then
+		dbg("xp", self.xp)
+		dbg("xp_until_upgrade", self.xp_until_upgrade)
+		dbg("xp_until_heart", self.xp_until_heart)
+		dbg("xp_until_item", self.xp_until_item)
+		dbg("num_queued_upgrades", self.num_queued_upgrades)
+		dbg("num_queued_hearts", self.num_queued_hearts)
+		dbg("num_queued_items", self.num_queued_items)
+	end
+end
+
+function GlobalGameState:drain_bullet_powerup_time(dt)
+	self.bullet_powerup_time = self.bullet_powerup_time - dt
+	if self.bullet_powerup_time < 0 then
+        self.bullet_powerup_time = 0
+		self.bullet_powerup = nil
+	end
 end
 
 function GlobalGameState:level_bonus(bonus_name)
@@ -128,7 +177,7 @@ function GlobalGameState:gain_xp(amount)
     self.xp = self.xp + amount
     self.xp_until_upgrade = self.xp_until_upgrade - amount
     self.xp_until_heart = self.xp_until_heart - amount
-    self.xp_until_powerup = self.xp_until_powerup - amount
+    -- self.xp_until_powerup = self.xp_until_powerup - amount
     self.xp_until_item = self.xp_until_item - amount
     if self.xp_until_upgrade <= 0 then
         self.xp_until_upgrade = self.xp_until_upgrade + GlobalGameState.xp_until_upgrade + rng.randi(-1, 1)
@@ -138,31 +187,41 @@ function GlobalGameState:gain_xp(amount)
         self.xp_until_heart = self.xp_until_heart + GlobalGameState.xp_until_heart + rng.randi(-1, 1)
         self:on_heart_xp_threshold_reached()
     end
-    if self.xp_until_powerup <= 0 then
-        self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng.randi(-1, 1) - (self.level * 0.35), 8)
-        self:on_powerup_xp_threshold_reached()
-    end
+    -- if self.xp_until_powerup <= 0 then
+    --     self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng.randi(-1, 1) - (self.level * 0.45), 8)
+    --     self:on_powerup_xp_threshold_reached()
+    -- end
     if self.xp_until_item <= 0 then
         self.xp_until_item = self.xp_until_item + GlobalGameState.xp_until_item + rng.randi(-1, 1)
         self:on_item_xp_threshold_reached()
     end
 end
 
+function GlobalGameState:on_level_start()
+	self.level = self.level + 1
+    self.any_room_failures = false
+	self.level_bonuses = {}
+end
+
 function GlobalGameState:on_room_clear()
-    local xp = 6 + floor(self.level / 7)
-	self:gain_xp(xp)
+    self:level_bonus("room_clear")
+	if not self.any_room_failures then
+		self:level_bonus("all_rescues")
+	end
 end
 
 function GlobalGameState:on_rescue(rescue_object)
     -- self.score_multiplier = self.score_multiplier + 0.1
     self.rescues_saved = self.rescues_saved + 1
 	-- self:gain_xp(0.5)
-	-- self.rescue_chain = self.rescue_chain + 1
+    self.rescue_chain = self.rescue_chain + 1
+	self:level_bonus("rescue")
 end
 
 function GlobalGameState:on_rescue_failed()
     -- self.score_multiplier = self.score_multiplier - 0.25
-	-- self.rescue_chain = 0
+	self.rescue_chain = 0
+	self.any_room_failures = true
 end
 
 function GlobalGameState:is_fully_upgraded()
@@ -187,6 +246,23 @@ function GlobalGameState:gain_heart(heart)
 	end
 end
 
+
+function GlobalGameState:gain_powerup(powerup)
+    if powerup.bullet_powerup then
+		if powerup == self.bullet_powerup then
+			self.bullet_powerup_time = self.bullet_powerup_time + seconds_to_frames(powerup.bullet_powerup_time - 1)
+		else
+			self.bullet_powerup = powerup
+			self.bullet_powerup_time = seconds_to_frames(powerup.bullet_powerup_time - 1)
+		end
+	end
+	signal.emit(self, "player_powerup_gained", powerup)
+end
+
+function GlobalGameState:get_bullet_powerup()
+	return self.bullet_powerup
+end
+
 function GlobalGameState:lose_heart()
     self.hearts = self.hearts - 1
 	if self.hearts < 0 then
@@ -208,9 +284,9 @@ function GlobalGameState:upgrade(upgrade)
 	end
 
     if debug.enabled then
-		for k, v in pairs(self.upgrades) do
-			dbg("upgrade_" .. tostring(k), v)
-		end
+		-- for k, v in pairs(self.upgrades) do
+		-- 	dbg("upgrade_" .. tostring(k), v)
+		-- end
 	end
 end
 
@@ -252,20 +328,43 @@ function GlobalGameState:on_heart_xp_threshold_reached()
 	signal.emit(self, "xp_threshold_reached", "heart")
 end
 
-function GlobalGameState:on_powerup_xp_threshold_reached()
-    self.num_queued_powerups = self.num_queued_powerups + 1
-	signal.emit(self, "xp_threshold_reached", "powerup")
-end
+-- function GlobalGameState:on_powerup_xp_threshold_reached()
+    -- self.num_queued_powerups = self.num_queued_powerups + 1
+	-- signal.emit(self, "xp_threshold_reached", "powerup")
+-- end
 
 function GlobalGameState:on_item_xp_threshold_reached()
     self.num_queued_items = self.num_queued_items + 1
 	signal.emit(self, "xp_threshold_reached", "item")
 end
 
+local MIN_SCORE_MULTIPLIER = 0.01
+local MAX_CHAIN = 20
+local EXTRA_CHAIN_MULTIPLIER = 0.685
+local EXTRA_CHAIN_BASE = 1.4
+local RESCUE_CHAIN_MULTIPLIER_CAP = 50
+
 function GlobalGameState:get_score_multiplier()
     local multiplier = self.score_multiplier
+
+    local rescue_chain_multiplier = self.rescue_chain
+	local max_chain = MAX_CHAIN - 4
+
+    if rescue_chain_multiplier > max_chain then
+        local extra = rescue_chain_multiplier - max_chain
+		
+		local scaled_extra = (logb(extra + 1.50, EXTRA_CHAIN_BASE) * EXTRA_CHAIN_MULTIPLIER) + (extra * MIN_SCORE_MULTIPLIER - MIN_SCORE_MULTIPLIER)
+        scaled_extra = min(scaled_extra, extra)
+
+		rescue_chain_multiplier = max_chain + scaled_extra
+	else
+		rescue_chain_multiplier = self.rescue_chain
+	end
+
+	multiplier = multiplier + (rescue_chain_multiplier)
+    multiplier = stepify_floor(clamp(multiplier, 1, RESCUE_CHAIN_MULTIPLIER_CAP), MIN_SCORE_MULTIPLIER)
 	-- multiplier = multiplier + (self.rescue_chain * 0.5)
-	return stepify_floor(clamp(multiplier, 1, 999.9), 0.025)
+	return multiplier
 end
 
 function GlobalGameState:determine_score(score)
@@ -308,7 +407,20 @@ function GlobalGameState:get_random_available_item()
 end
 
 function GlobalGameState:get_random_powerup()
-    return rng.choose(table.values(PickupTable.powerups))
+	local tab = {}
+    for k, v in pairs(PickupTable.powerups) do
+        if v.base then
+            goto continue
+        end
+        if v.subtype ~= "powerup" then
+            goto continue
+        end
+        table.insert(tab, v)
+        ::continue::
+    end
+	local v = rng.weighted_choice(tab, "spawn_weight")
+
+    return v
 end
 
 function GlobalGameState:get_random_heart()
@@ -321,9 +433,9 @@ function GlobalGameState:consume_upgrade()
     self.num_queued_upgrades = self.num_queued_upgrades - 1
 end
 
-function GlobalGameState:consume_powerup()
-    self.num_queued_powerups = self.num_queued_powerups - 1
-end
+-- function GlobalGameState:consume_powerup()
+--     self.num_queued_powerups = self.num_queued_powerups - 1
+-- end
 
 function GlobalGameState:consume_heart()
     self.num_queued_hearts = self.num_queued_hearts - 1

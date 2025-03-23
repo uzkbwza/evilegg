@@ -243,7 +243,6 @@ function graphics.load()
     graphics.shader.load()
     graphics.set_default_filter("nearest", "nearest", 0)
     graphics.canvas = graphics.new_canvas(conf.viewport_size.x, conf.viewport_size.y)
-    local wsx, wsy = graphics.get_dimensions()
 
 
     graphics.set_canvas(graphics.canvas)
@@ -274,6 +273,12 @@ function graphics.load_fonts()
     for _, v in ipairs(font_paths) do
         graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_")] = graphics.new_font(v,
             v:find("8") and 8 or 16)
+		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-double"] = graphics.new_font(v,
+            v:find("8") and 16 or 32)
+		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-triple"] = graphics.new_font(v,
+            v:find("8") and 24 or 48)
+		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-quadruple"] = graphics.new_font(v,
+            v:find("8") and 32 or 64)
     end
 end
 
@@ -460,13 +465,13 @@ function graphics.start_rumble(intensity, duration, easing_function)
     if graphics.rumble_coroutine then
         s:stop(graphics.rumble_coroutine)
     end
-	
+
     easing_function = easing_function or ease("outQuad")
     graphics.rumble_coroutine = s:start(function()
-	
-        s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, duration, easing_function)
+        s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, duration,
+            easing_function)
         graphics.rumble_coroutine = nil
-		graphics.screen_rumble_intensity = 0
+        graphics.screen_rumble_intensity = 0
     end)
 end
 
@@ -474,13 +479,15 @@ function graphics.draw_loop()
 	local wsx, wsy = graphics.get_dimensions()
     graphics.window_size.x = wsx
     graphics.window_size.y = wsy
-	
+
+
     graphics.set_canvas(graphics.canvas)
 	
 	graphics.game_draw()
 
 	graphics.set_color(1, 1, 1)
-	graphics.set_canvas()
+    graphics.set_canvas()
+	
 
     local process_scale = usersettings.pixel_perfect and math.floor or identity_function
 
@@ -491,11 +498,25 @@ function graphics.draw_loop()
 	viewport_size.y = conf.viewport_size.y
 	max_width_scale = process_scale(window_size.x / viewport_size.x)
 	max_height_scale = process_scale(window_size.y / viewport_size.y)
-	viewport_pixel_scale = process_scale(math.min(max_width_scale, max_height_scale))
-	canvas_size.x = viewport_size.x * viewport_pixel_scale
-	canvas_size.y = viewport_size.y * viewport_pixel_scale
+    viewport_pixel_scale = process_scale(math.min(max_width_scale, max_height_scale))
+
+	if conf.expand_viewport then
+		local scaled_width = floor(window_width / viewport_pixel_scale) 
+		local scaled_height = floor(window_height / viewport_pixel_scale)
+		viewport_size.x = scaled_width
+		viewport_size.y = scaled_height
+	end
+
+
+	canvas_size.x = floor(viewport_size.x * viewport_pixel_scale)
+	canvas_size.y = floor(viewport_size.y * viewport_pixel_scale)
     canvas_pos.x = window_size.x / 2 - (canvas_size.x) / 2
     canvas_pos.y = window_size.y / 2 - (canvas_size.y) / 2
+	
+    if (abs(graphics.canvas:getWidth() - viewport_size.x) >= 1 or abs(graphics.canvas:getHeight() - viewport_size.y) >= 1) then
+        graphics.canvas:release()
+        graphics.canvas = graphics.new_canvas(viewport_size.x, viewport_size.y)
+    end
 
 	if graphics.screen_rumble_intensity > 0 then
 		local dx, dy = rng.random_vec2()
@@ -503,8 +524,6 @@ function graphics.draw_loop()
         canvas_pos.x = canvas_pos.x + rumble_offset_x * viewport_pixel_scale
 		canvas_pos.y = canvas_pos.y + rumble_offset_y * viewport_pixel_scale
 	end
-
-
 
     viewport_size_shader[1] = viewport_size.x
     viewport_size_shader[2] = viewport_size.y
@@ -527,7 +546,7 @@ function graphics.draw_loop()
     elseif graphics.bg_image then
         graphics.draw_bg_image(graphics.bg_image)
     end
-	
+
 	local canvas_to_draw = graphics.canvas
 
 	if usersettings.use_screen_shader and viewport_pixel_scale > 1 then
@@ -543,7 +562,6 @@ function graphics.draw_loop()
             local shader = shader_table.shader
 			local args = shader_table.args
 			local shader_canvas = graphics.screen_shader_canvases[i]
-
 
 			if not shader_canvas then
 				shader_canvas = graphics.new_canvas(canvas_size.x, canvas_size.y)
@@ -788,6 +806,10 @@ function graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 	graphics.draw(texture, x, y, r, sx, sy, ox + offset_x, oy + offset_y, kx, ky)
 end
 
+function graphics.set_clear_color(color)
+	graphics.clear_color = color
+end
+
 function graphics.clear(r, g, b, a)
 	if type(r) == "table" then
 		if g ~= nil then
@@ -821,11 +843,16 @@ function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
-	local texture = graphics.font_images[font]
+    local texture = graphics.font_images[font]
+    if texture == nil then
+		graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+		return
+	end
 	if text == nil then return end
     palette = graphics._auto_palette(texture, palette, offset)
-	if palette == nil then
-		return graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+    if palette == nil then
+		graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+		return
 	end
 
 	graphics.set_shader(palette:get_shader(offset))
@@ -833,9 +860,28 @@ function graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, k
 	graphics.set_shader()
 end
 
+function graphics.printp_centered(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+    local offset_x, offset_y = graphics.text_center_offset(text, font)
+    x = x + offset_x
+    y = y + offset_y
+    graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
 function graphics.text_center_offset(text, font)
 	local width, height = font:getWidth(text), font:getHeight(text)
 	return -width / 2, -height / 2
+end
+
+function graphics.print_centered(text, font, x, y, r, sx, sy, ox, oy, kx, ky)
+    local offset_x, offset_y = graphics.text_center_offset(text, font)
+    graphics.print(text, x + offset_x, y + offset_y, r, sx, sy, ox, oy, kx, ky)
+end
+
+function graphics.print_outline_centered(outline_color, text, font, x, y, r, sx, sy, ox, oy, kx, ky)
+    local offset_x, offset_y = graphics.text_center_offset(text, font)
+	x = x + offset_x
+    y = y + offset_y
+	graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
@@ -845,7 +891,6 @@ function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx
     graphics.print(text, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
-	graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x + 1, y, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x, y + 1, r, sx, sy, ox, oy, kx, ky)
@@ -861,7 +906,6 @@ function graphics.printp_outline(outline_color, text, font, palette, offset, x, 
     graphics.print(text, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
-	graphics.print(text, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x + 1, y, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x - 1, y, r, sx, sy, ox, oy, kx, ky)
     graphics.print(text, x, y + 1, r, sx, sy, ox, oy, kx, ky)
@@ -870,6 +914,15 @@ function graphics.printp_outline(outline_color, text, font, palette, offset, x, 
     graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
+function graphics.printp_outline_centered(outline_color, text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+    graphics.push("all")
+    graphics.set_color(outline_color)
+    local offset_x, offset_y = graphics.text_center_offset(text, font)
+    x = x + offset_x
+    y = y + offset_y
+    graphics.printp_outline(outline_color, text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+    graphics.pop()
+end
 
 function graphics.print_outline_no_diagonals(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
 	graphics.push("all")
@@ -904,6 +957,10 @@ function graphics.dashrect(x, y, w, h, dash, gap)
 	graphics.dashline(x, y + h, x, y, dash, gap)
 end
 
+function graphics.dashrect_centered(x, y, w, h, dash, gap)
+	graphics.dashrect(x - w / 2, y - h / 2, w, h, dash, gap)
+end
+
 function graphics.draw_collision_box(rect, color, alpha)
     alpha = alpha or 1
     graphics.push("all")
@@ -913,5 +970,59 @@ function graphics.draw_collision_box(rect, color, alpha)
     graphics.rectangle("line", rect.x + 1, rect.y + 1, rect.width - 1, rect.height - 1)
     graphics.pop()
 end
+
+
+function graphics.axis_quantized_line(x0, y0, x1, y1, width, height, inverted, cap_size, dash, dash_gap, tab)
+	local points = tab or {}
+
+	table.clear(points)
+	for x, y in bresenham_line_iter(round(x0 / width), round(y0 / height), round(x1 / width), round(y1 / height)) do
+		table.insert(points, {x * width, y * height})
+	end
+
+	cap_size = (cap_size or 1) * love.graphics.getLineWidth()
+
+	if dash then
+        for i = 1, #points - 1 do
+			local p1 = points[i]
+            local p2 = points[i + 1]
+			local p1_x, p1_y = vec2_rounded(p1[1], p1[2])
+			local p2_x, p2_y = vec2_rounded(p2[1], p2[2])
+
+			graphics.rectangle("fill", p1_x - cap_size / 2, p1_y - cap_size / 2, cap_size, cap_size)
+			graphics.rectangle("fill", p2_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
+			if inverted then
+				graphics.rectangle("fill", p1_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
+				graphics.dashline(p1_x, p1_y, p1_x, p2_y, dash, dash_gap)
+				graphics.dashline(p1_x, p2_y, p2_x, p2_y, dash, dash_gap)
+			else
+				graphics.dashline(p1_x, p1_y, p2_x, p1_y, dash, dash_gap)
+				graphics.rectangle("fill", p2_x - cap_size / 2, p1_y - cap_size / 2, cap_size, cap_size)
+				graphics.dashline(p2_x, p1_y, p2_x, p2_y, dash, dash_gap)
+			end
+			::continue::
+		end
+	else
+		for i=1, #points - 1 do
+			local p1 = points[i]
+			local p2 = points[i + 1]
+			local p1_x, p1_y = vec2_rounded(p1[1], p1[2])
+			local p2_x, p2_y = vec2_rounded(p2[1], p2[2])
+
+			graphics.rectangle("fill", p1_x - cap_size / 2, p1_y - cap_size / 2, cap_size, cap_size)
+			graphics.rectangle("fill", p2_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
+			if inverted then
+				graphics.rectangle("fill", p1_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
+				graphics.line(p1_x, p1_y, p1_x, p2_y)
+				graphics.line(p1_x, p2_y, p2_x, p2_y)
+			else
+				graphics.line(p1_x, p1_y, p2_x, p1_y)
+				graphics.rectangle("fill", p2_x - cap_size / 2, p1_y - cap_size / 2, cap_size, cap_size)
+				graphics.line(p2_x, p1_y, p2_x, p2_y)
+			end
+		end
+	end
+end
+
 
 return graphics

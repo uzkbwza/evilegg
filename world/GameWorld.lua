@@ -15,7 +15,6 @@ local MAX_HAZARDS = 50
 local ROOM_CHOICE = true
 
 
-
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
 		local az = a.z_index or 0
@@ -27,8 +26,8 @@ function GameWorld:new(x, y)
 			return false
 		end
 
-		local avalue = a.pos.y + az - (a.body_height or 0)
-		local bvalue = b.pos.y + bz - (b.body_height or 0)
+		local avalue = a.pos.y + az
+		local bvalue = b.pos.y + bz
 		if avalue == bvalue then
 			return a.pos.x < b.pos.x
 		end
@@ -40,8 +39,7 @@ function GameWorld:new(x, y)
     self:add_signal("enemy_died")
 	self:add_signal("level_transition_started")
 
-	self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Normal")
-
+	
 
 	self:add_spatial_grid("game_object_grid", 32)
     self:add_spatial_grid("declump_objects", 32)
@@ -61,17 +59,27 @@ function GameWorld:new(x, y)
     self.hit_bubbles["enemy"] = shash.new(32)
     self.hit_bubbles["neutral"] = shash.new(32)
 
-    self.empty_update_objects = bonglewunch() 
+    self.empty_update_objects = bonglewunch()
 	
     self.object_class_counts = {}
 	self:add_signal("player_died")
-
+    self:add_signal("room_cleared")
+	self:add_signal("all_spawns_cleared")
+	
 	self.players = {}
     self.last_player_positions = {}
     self.last_player_body_positions = {}
-	self.player_entered_direction = Vec2(rng.random_4_way_direction())
+    self.player_entered_direction = Vec2(rng.random_4_way_direction())
+	self.room_clear_fx_t = -1
 
-	self.notification_queue = {}
+    self.notification_queue = {}
+	
+    self.draining_bullet_powerup = false
+
+	self.waiting_on_bonus_screen = false
+	
+    self:init_state_machine()
+	
 end
 
 function GameWorld:enter()	
@@ -81,7 +89,6 @@ function GameWorld:enter()
     self.timescaled:add_elapsed_ticks()
     self.timescaled:add_sequencer()
 	
-	self:clear_floor_canvas()
 
     audio.play_music("drone", 0.9)
     self:play_sfx("level_start", 0.95, 1.0)
@@ -92,6 +99,8 @@ function GameWorld:enter()
     local start_room = self:create_random_room()
 
     self:initialize_room(start_room)
+
+	self:clear_floor_canvas(false)
 
     signal.connect(game_state, "player_upgraded", self, "on_player_upgraded", function(upgrade_type)
 		self:quick_notify(
@@ -114,6 +123,13 @@ function GameWorld:enter()
 			heart_type.notification_palette
 		)
     end)
+
+	-- signal.connect(game_state, "player_powerup_gained", self, "on_player_powerup_gained", function(powerup_type)
+	-- 	self:quick_notify(
+	-- 		"+NOTHING",
+	-- 		"notif_upgrade_available"
+	-- 	)
+    -- end)
 
 
 	-- local threshold_notifs = {
@@ -145,8 +161,10 @@ function GameWorld:enter()
 end
 
 function GameWorld:quick_notify(text, palette_name, sound, sound_volume)
-	print("notifying: " .. text)
-
+    if debug.enabled then
+        print("notifying: " .. text)
+    end
+	
     local palette_stack
     if palette_name then
         palette_stack = PaletteStack(Color.black)
@@ -169,13 +187,11 @@ end
  
 function GameWorld:create_random_room(room_params)
 	local level_history = nil
-	local old_room = self.room
-    if old_room then
-        level_history = old_room.level_history
-    end
+	-- local old_room = self.room
+    -- if old_room then
+        -- level_history = old_room.level_history
+    -- end
 	
-    -- TODO DELETE THIS
-	level_history = nil
 
 	local level = game_state.level
 	level = level + 1
@@ -195,9 +211,11 @@ end
 
 function GameWorld:initialize_room(room)
 
+	self.draining_bullet_powerup = false
+
     self.enemies_to_kill = {}
 	
-	game_state.level = game_state.level + 1
+	game_state:on_level_start()
 
     self.room = room
 
@@ -267,9 +285,9 @@ function GameWorld:spawn_rescues(spawns)
 end
 
 function GameWorld:on_rescue_picked_up(rescue_object)
-    game_state:on_rescue(rescue_object)
 	local bx, by = rescue_object:get_body_center()
 	self:add_score_object(bx, by, rescue_object.spawn_data.score)
+    game_state:on_rescue(rescue_object)
 end
 
 function GameWorld:spawn_wave()
@@ -357,6 +375,7 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
                 else
                     self:spawn_wave_enemy(spawn_data.class(spawn_x, spawn_y))
                 end
+				self.draining_bullet_powerup = true
             end)
             if i % 3 == 0 then
                 s:wait(5)
@@ -375,7 +394,7 @@ end
 
 function GameWorld:spawn_wave_pickup(pickup)
     local pickup_object = self:spawn_object(pickup)
-	pickup_object:move(0, pickup_object.body_height / 2)
+	-- pickup_object:move(0, pickup_object.body_height / 2)
     -- self:register_spawn_wave_pickup(pickup_object)
 end
 
@@ -383,7 +402,7 @@ function GameWorld:spawn_wave_hazard(hazard)
     local hazard_object = self:spawn_object(hazard)
 	self:add_tag(hazard_object, "wave_spawn")
     self:add_tag(hazard_object, "wave_hazard")
-	hazard_object:move(0, hazard_object.body_height / 2)
+	-- hazard_object:move(0, hazard_object.body_height / 2)
     -- self:register_spawn_wave_hazard(hazard_object)
 	hazard_object:add_enter_function(hazard_object.life_flash)
 end
@@ -391,7 +410,7 @@ end
 function GameWorld:spawn_wave_enemy(enemy)
     local enemy_object = self:spawn_object(enemy)
 	self:register_spawn_wave_enemy(enemy_object)
-    enemy_object:move(0, enemy_object.body_height / 2)
+    -- enemy_object:move(0, enemy_object.body_height / 2)
 	enemy_object:add_enter_function(enemy_object.life_flash)
 end
 
@@ -482,9 +501,9 @@ function GameWorld:create_player(player_id)
     player_id = player_id or #self.players + 1
 	
 	local player = self:spawn_object(O.Player.PlayerCharacter(0, 0))
-	signal.connect(player, "died", self, "on_player_died", function()
-        self:on_player_died()
-    end)
+	signal.connect(player, "died", self, "on_player_died")
+
+	signal.connect(player, "got_hurt", self, "on_player_got_hurt")
 
 	self.players[player_id] = player
 	self.last_player_positions[player_id] = player.pos
@@ -510,19 +529,39 @@ function GameWorld:clear_objects()
 			object:queue_destroy()
 		end
 	end
-	
 end
 
+function GameWorld:on_player_got_hurt()
+	local s = self.sequencer
+    s:start(function()
+		self:play_sfx("player_hurt", 0.85, 1.0)
+		self:play_sfx("hazard_death", 0.5, 1.0)
+        self.object_time_scale = 0.025
+        -- self.player_death_fx = true
+        -- self.player_died = true
+		s:wait(20)
+        -- self.player_death_fx = false
+		self.object_time_scale = 1
+
+        -- s:wait(120)
+		local input = self:get_input_table()
+		while not input.restart_held do
+			s:wait(1)
+		end
+
+	end)
+end
 
 function GameWorld:on_player_died()
     local s = self.sequencer
     s:start(function()
 		self:play_sfx("old_player_death", 0.85, 1.0)
 		self:play_sfx("hazard_death", 0.5, 1.0)
-        self.object_time_scale = 0.125
+        self.object_time_scale = 0.025
         self.player_death_fx = true
 		self.player_died = true
-		s:wait(60)
+        s:wait(60)
+		self.object_time_scale = 1
         self.player_death_fx = false
         -- s:wait(120)
 		local input = self:get_input_table()
@@ -532,6 +571,7 @@ function GameWorld:on_player_died()
 		self:emit_signal("player_died")
 	end)
 end
+
 
 function GameWorld:spawn_room_objects()
 	self.current_room_selection = {}
@@ -546,7 +586,7 @@ function GameWorld:spawn_room_objects()
 	end
 
 	local consumed_upgrade = false
-	local consumed_powerup = false
+	-- local consumed_powerup = false
 	local consumed_heart = false
 	local consumed_item = false
 
@@ -556,7 +596,7 @@ function GameWorld:spawn_room_objects()
 
 	for i = 1, 3 do
 		local room = self:create_random_room({
-			bonus_room = (game_state.level) % 5 == 0,
+			bonus_room = game_state.level > 1 and ((game_state.level + 1) % 3 == 0),
 			needs_upgrade = needs_upgrade and i == 3,
 		})
 		table.insert(rooms, room)
@@ -580,7 +620,7 @@ function GameWorld:spawn_room_objects()
 		local room = rooms[i]
 		
 		consumed_upgrade = consumed_upgrade or room.consumed_upgrade
-		consumed_powerup = consumed_powerup or room.consumed_powerup
+		-- consumed_powerup = consumed_powerup or room.consumed_powerup
 		consumed_heart = consumed_heart or room.consumed_heart
 		consumed_item = consumed_item or room.consumed_item
 
@@ -591,7 +631,13 @@ function GameWorld:spawn_room_objects()
 			self.player_entered_direction = direction
 			-- local s = self.sequencer
 			-- s:start(function()
-			self:change_state("LevelTransition", room)
+            self:change_state("LevelTransition", room)
+			local s = self.sequencer
+			if self.room_clear_coroutine then
+				s:stop(self.room_clear_coroutine)
+				self.room_clear_coroutine = nil
+				self.room_clear_fx_t = -1
+			end
 
 			-- end)
 		end)
@@ -599,20 +645,15 @@ function GameWorld:spawn_room_objects()
 	end
 
 	local s = self.timescaled.sequencer
-	s:start(function()
-		for i = 1, 3 do
-			self:spawn_object(room_objects[i])
-			s:wait(2)
-		end
-	end)
 
+    local s2 = self.sequencer
+	
 	if consumed_upgrade then
 		game_state:consume_upgrade()
 	end
-	
-	if consumed_powerup then
-		game_state:consume_powerup()
-	end
+	-- if consumed_powerup then
+	-- 	game_state:consume_powerup()
+	-- end
 	
 	if consumed_heart then
 		game_state:consume_heart()
@@ -622,7 +663,31 @@ function GameWorld:spawn_room_objects()
 		game_state:consume_item()
 	end
 
-	self.waiting_on_rooms = false
+    s2:start(function()
+        while self.room_clear_fx_t >= 0 do
+			s2:wait(1)
+		end
+		s:start(function()
+            for i = 1, 3 do
+                self:spawn_object(room_objects[i])
+                s:wait(2)
+            end
+			
+			self.waiting_on_rooms = false
+		end)
+	end)
+
+
+end
+
+function GameWorld:start_room_clear_fx()
+    local s = self.sequencer
+	-- self.camera:start_rumble(1, 90)
+	self.room_clear_coroutine = s:start(function()
+		s:tween_property(self, "room_clear_fx_t", 0, 1, 60, "linear")
+		self.room_clear_fx_t = -1
+		self.room_clear_coroutine = nil
+	end)
 end
 
 function GameWorld:on_room_clear()
@@ -630,20 +695,24 @@ function GameWorld:on_room_clear()
 		return
 	end
 
+	self.draining_bullet_powerup = false
+
     self:change_state("RoomClear")
+
+	self:emit_signal("room_cleared")
 
     local s = self.timescaled.sequencer
 
 	self.room.cleared = true
+	
+	self:start_room_clear_fx()
 
     s:start(function()
-
-
-		
         -- self.frozen = true
         self.object_time_scale = 0.125
 
         self:play_sfx("level_finished", 0.85, 1.0)
+
 		
 
         s:wait(5)
@@ -704,9 +773,25 @@ function GameWorld:on_room_clear()
 
 		game_state:on_room_clear()
 
+        s:wait(20)
+		
+        self:emit_signal("all_spawns_cleared")
+		
+		while self.waiting_on_bonus_screen do
+			s:wait(1)
+		end
+		
+        -- spawn items
+        if self.room.items then
+			for _, item in ipairs(self.room.items) do
+                self:spawn_object(O.Item.ItemSpawn(0, 0))
+				s:wait(10)
+			end
+		end
+		
 
-		s:wait(20)
 
+		-- i want to be able to debug room generation so we're not running it in this coroutine
 		self.waiting_on_rooms = true
     end)
 end
@@ -733,82 +818,82 @@ function GameWorld:update(dt)
     -- self.last_player_body_pos.x = bx
     -- self.last_player_body_pos.y = by
 
-    local average_player_x, average_player_y = 0, 0
-    local average_player_aim_direction_x, average_player_aim_direction_y = 0, 0
-    local num_positions = 0
-    local num_players = 0
+    -- local average_player_x, average_player_y = 0, 0
+    -- local average_player_aim_direction_x, average_player_aim_direction_y = 0, 0
+    -- local num_positions = 0
+    -- local num_players = 0
 
-    for i, pos in pairs(self.last_player_positions) do
-        average_player_x = average_player_x + pos.x
-        average_player_y = average_player_y + pos.y
-        num_positions = num_positions + 1
+    -- for i, pos in pairs(self.last_player_positions) do
+    --     average_player_x = average_player_x + pos.x
+    --     average_player_y = average_player_y + pos.y
+    --     num_positions = num_positions + 1
+    -- end
+
+    -- for i, player in pairs(self.players) do
+    --     average_player_aim_direction_x = average_player_aim_direction_x + player.aim_direction.x
+    --     average_player_aim_direction_y = average_player_aim_direction_y + player.aim_direction.y
+    --     num_players = num_players + 1
+    -- end
+
+    -- average_player_x = average_player_x / num_positions
+    -- average_player_y = average_player_y / num_positions
+    -- average_player_aim_direction_x = average_player_aim_direction_x / num_players
+    -- average_player_aim_direction_y = average_player_aim_direction_y / num_players
+
+    -- end
+
+
+    -- if self.state ~= "LevelTransition" then
+    -- if num_players > 0 then
+    -- 	self.camera_target.pos.x, self.camera_target.pos.y =
+    -- 		splerp_vec(
+    -- 			self.camera_target.pos.x, self.camera_target.pos.y,
+    -- 			average_player_x + self.camera_aim_offset.x, average_player_y + self.camera_aim_offset.y,
+    -- 			300.0,
+    -- 			dt
+    -- 		)
+
+    -- 	self.camera_aim_offset.x, self.camera_aim_offset.y =
+    -- 		splerp_vec(
+    -- 			self.camera_aim_offset.x, self.camera_aim_offset.y,
+    -- 			average_player_aim_direction_x * CAMERA_OFFSET_AMOUNT,
+    -- 			average_player_aim_direction_y * CAMERA_OFFSET_AMOUNT,
+    -- 			600.0,
+    -- 			dt
+    -- 		)
+    -- end
+    -- if self.camera_target.pos.x < self.room.left then
+    -- 	self.camera_target.pos.x = self.room.left
+    -- elseif self.camera_target.pos.x > self.room.right then
+    -- 	self.camera_target.pos.x = self.room.right
+    -- end
+    -- if self.camera_target.pos.y < self.room.top then
+    -- 	self.camera_target.pos.y = self.room.top
+    -- elseif self.camera_target.pos.y > self.room.bottom then
+    -- 	self.camera_target.pos.y = self.room.bottom
+    -- end
+    -- end
+
+    if input.debug_skip_wave_held and not self.room.cleared then
+        local objects = self:get_objects_with_tag("wave_enemy")
+        if objects then
+            for _, obj in objects:ipairs() do
+                if obj.world then
+                    if obj.die then
+                        obj:die(self:get_random_object_with_tag("player"))
+                    elseif not obj.is_queued_for_destruction then
+                        -- obj:queue_destroy()
+                    end
+                end
+            end
+        end
     end
-
-    for i, player in pairs(self.players) do
-        average_player_aim_direction_x = average_player_aim_direction_x + player.aim_direction.x
-        average_player_aim_direction_y = average_player_aim_direction_y + player.aim_direction.y
-        num_players = num_players + 1
-    end
-
-    average_player_x = average_player_x / num_positions
-    average_player_y = average_player_y / num_positions
-    average_player_aim_direction_x = average_player_aim_direction_x / num_players
-    average_player_aim_direction_y = average_player_aim_direction_y / num_players
-
-	-- end
-	
-
-	-- if self.state ~= "LevelTransition" then
-		-- if num_players > 0 then
-		-- 	self.camera_target.pos.x, self.camera_target.pos.y =
-		-- 		splerp_vec(
-		-- 			self.camera_target.pos.x, self.camera_target.pos.y,
-		-- 			average_player_x + self.camera_aim_offset.x, average_player_y + self.camera_aim_offset.y,
-		-- 			dt,
-		-- 			300.0
-		-- 		)
-	
-		-- 	self.camera_aim_offset.x, self.camera_aim_offset.y =
-		-- 		splerp_vec(
-		-- 			self.camera_aim_offset.x, self.camera_aim_offset.y,
-		-- 			average_player_aim_direction_x * CAMERA_OFFSET_AMOUNT,
-		-- 			average_player_aim_direction_y * CAMERA_OFFSET_AMOUNT,
-		-- 			dt,
-		-- 			600.0
-		-- 		)
-		-- end
-		-- if self.camera_target.pos.x < self.room.left then
-		-- 	self.camera_target.pos.x = self.room.left
-		-- elseif self.camera_target.pos.x > self.room.right then
-		-- 	self.camera_target.pos.x = self.room.right
-		-- end
-		-- if self.camera_target.pos.y < self.room.top then
-		-- 	self.camera_target.pos.y = self.room.top
-		-- elseif self.camera_target.pos.y > self.room.bottom then
-		-- 	self.camera_target.pos.y = self.room.bottom
-		-- end
-	-- end
-	
-	if input.debug_skip_wave_held and not self.room.cleared then
-		local objects = self:get_objects_with_tag("wave_enemy")
-		if objects then
-			for _, obj in objects:ipairs() do
-				if obj.world then
-					if obj.die then
-						obj:die(self:get_random_object_with_tag("player"))
-					elseif not obj.is_queued_for_destruction then
-						-- obj:queue_destroy()
-					end
-				end
-			end
-		end
-	end
 
     if debug.enabled then
         dbg("enemies_to_kill", table.length(self.enemies_to_kill))
         dbg("world_state", self.state, Color.green)
         dbg("number of objects", self.objects:length())
-		dbg("waiting_on_rooms", self.waiting_on_rooms)
+        dbg("waiting_on_rooms", self.waiting_on_rooms)
     end
 
     if not table.is_empty(self.notification_queue) and not self.timescaled:is_timer_running("player_notify_cooldown") then
@@ -820,19 +905,23 @@ function GameWorld:update(dt)
         if notification.custom_position == nil then
             for _, player in pairs(self.players) do
                 local bx, by = player:get_body_center()
-				local effect = self:notification_popup(bx, by - 12, notification)
-				effect:ref("player", player)	
-				effect:add_update_function(function(self, dt)
-					if self.player then
-						local bx, by = self.player:get_body_center()
-						self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.elapsed * 0.15 - 12, dt, 300))
-					end
+                local effect = self:notification_popup(bx, by - 12, notification)
+                effect:ref("player", player)
+                effect:add_update_function(function(self, dt)
+                    if self.player then
+                        local bx, by = self.player:get_body_center()
+                        self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.elapsed * 0.15 - 12, 300, dt))
+                    end
                 end)
-				effect.custom_movement = true
+                effect.custom_movement = true
             end
             self.timescaled:start_timer("player_notify_cooldown", 45)
         end
     end
+
+	if game_state.bullet_powerup and self.draining_bullet_powerup then
+		game_state:drain_bullet_powerup_time(dt)
+	end
 end
 
 function GameWorld:notification_popup(x, y, notification)
@@ -958,15 +1047,15 @@ end
 function GameWorld:update_draw_params()
 end
 
-function GameWorld:track_object_class_count(obj)
-    self.object_class_counts[obj.class] = (self.object_class_counts[obj.class] or 0) + 1
-	signal.connect(obj, "destroyed", self, "on_object_class_count_changed", function()
-		self.object_class_counts[obj.class] = (self.object_class_counts[obj.class] or 0) - 1
-		if self.object_class_counts[obj.class] <= 0 then
-			self.object_class_counts[obj.class] = nil
-		end
-	end)
-end
+-- function GameWorld:track_object_class_count(obj)
+--     self.object_class_counts[obj.class] = (self.object_class_counts[obj.class] or 0) + 1
+-- 	signal.connect(obj, "destroyed", self, "on_object_class_count_changed", function()
+-- 		self.object_class_counts[obj.class] = (self.object_class_counts[obj.class] or 0) - 1
+-- 		if self.object_class_counts[obj.class] <= 0 then
+-- 			self.object_class_counts[obj.class] = nil
+-- 		end
+-- 	end)
+-- end
 
 function GameWorld:add_object(obj)
 	GameWorld.super.add_object(self, obj)
@@ -983,13 +1072,55 @@ function GameWorld:draw_shared(...)
 end
 
 function GameWorld:point_is_in_bounds(x, y)
-	return x >= self.room.left and x <= self.room.right and y >= self.room.top and y <= self.room.bottom
+    return x >= self.room.left and x <= self.room.right and y >= self.room.top and y <= self.room.bottom
 end
 
-function GameWorld:draw()
+function GameWorld:get_clear_color()
+   	
+	local flash_length = 0.6
+
+	if self.room_clear_fx_t < flash_length and self.room_clear_fx_t > 0 then
+		return Color(0.0, 0.0, 0.15 * remap(self.room_clear_fx_t, 0, flash_length, 1, 0), 1.0)
+	end
+
+	return Color.transparent
+end
+
+
+function GameWorld:clear_floor_canvas(deferred)
+	if deferred == nil then deferred = true end
+	local f = function()
+		self.lower_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+        self.current_frame_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height,
+            { readable = true })
+		self.empty_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+		self.persistent_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+		self.previous_persistent_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height, {readable = true})
+		self.full_brightness_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+		self.previous_full_brightness_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height, {readable = true})
+		self.current_frame_floor_canvas_settings = {
+			self.current_frame_floor_canvas,
+			stencil=true,
+			
+        }
+        self.output_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+	end
+	if deferred then
+		self:defer(f)
+	else
+		f()
+	end
+end
+
+function GameWorld:draw()	
+	-- if self.tick <= 1 then return end
+
 	graphics.push("all")
-	graphics.set_canvas(self.temp_floor_canvas_settings)
-    graphics.clear(0, 0, 0, 0)
+	graphics.set_canvas(self.current_frame_floor_canvas_settings)
+    -- if self.is_new_tick and self.tick % 10 == 0 then
+		-- graphics.clear(0, 0, 0, 0.1)
+	-- end
+	graphics.clear(0, 0, 0, 0)
 	graphics.pop()
 
     if self.tags and self.tags["floor_draw"] then
@@ -1005,55 +1136,109 @@ function GameWorld:draw()
 
     graphics.push("all")
 		graphics.set_color(1, 1, 1, 1)
-		-- graphics.circle("fill", 0, 0, 5)
+
 		graphics.translate(self.room.left, self.room.top)
-    	graphics.push("all")
-			graphics.origin()
-			graphics.set_canvas(self.floor_canvas)
-			graphics.draw(self.temp_floor_canvas)
-    	graphics.pop()
+
+		-- graphics.push("all")
+		-- 	graphics.origin()
+    	-- 	graphics.set_canvas(self.floor_canvas)
+		-- 	-- graphics.set_blend_mode("replace", "premultiplied")
+
+		-- 	graphics.draw(self.current_frame_floor_canvas)
+    	-- graphics.pop()
 		
 	
-		graphics.push("all")
-			graphics.origin()
-			graphics.set_canvas(self.lower_floor_canvas)
-			-- graphics.set_blend_mode("lighten", "premultiplied")
-			-- graphics.translate(self.room.left, self.room.top)
-    		-- graphics.circle("fill", 0, 0, 5)
-			graphics.draw(self.temp_floor_canvas)
-		graphics.pop()
+		-- graphics.push("all")
+		-- 	graphics.origin()
+		-- 	graphics.set_canvas(self.lower_floor_canvas)
+
+		-- 	graphics.draw(self.current_frame_floor_canvas)
+		-- graphics.pop()
 
     	-- if self.is_new_tick and self.tick % 12 == 0 then
-    	if self.is_new_tick and self.tick % 5 == 0 then
-        	graphics.push("all")
-				graphics.origin()
-        		graphics.set_canvas(self.floor_canvas)
-				for i =1,1 do
-					graphics.set_color(0, 0, 0, 0.065)
-					-- graphics.set_color(0, 0, 0, 0.065)
-				end
-				graphics.rectangle("fill", 0, 0, self.room.room_width, self.room.room_height)
-			graphics.pop()
+    	-- if self.is_new_tick and self.tick % 5 == 0 then
+        -- 	graphics.push("all")
+		-- 		graphics.origin()
+        -- 		graphics.set_canvas(self.floor_canvas)
+		-- 		for i =1,1 do
+		-- 			graphics.set_color(0, 0, 0, 0.065)
+		-- 			-- graphics.set_color(0, 0, 0, 0.065)
+		-- 		end
+		-- 		graphics.rectangle("fill", 0, 0, self.room.room_width, self.room.room_height)
+		-- 	graphics.pop()
+		-- end
+
+    	local level_transition_alpha = 1.0
+		if self.state == "LevelTransition" then
+			level_transition_alpha = max(1 - self.state_elapsed / 5, 0)
 		end
 
-		graphics.draw(self.floor_canvas)
-
-		-- local MIN_BRIGHTNESS = 0.03
-		local MIN_BRIGHTNESS = 0.3
-    	graphics.push("all")
-			-- graphics.set_canvas(self.floor_canvas)
-			-- graphics.set_blend_mode("lighten", "premultiplied")
-			graphics.set_color(1, 1, 1, MIN_BRIGHTNESS)
-			graphics.translate(0, 0)
-
-			-- graphics.circle("fill", 0, 0, 5)
-			graphics.draw(self.lower_floor_canvas)
-	    graphics.pop()
+		graphics.push("all")
+			local shader = graphics.shader.alphareplace
+			graphics.set_canvas(self.persistent_floor_canvas)
+			shader:send("input_texture", self.previous_persistent_floor_canvas)
+			shader:send("replace_texture", self.current_frame_floor_canvas)
+			-- shader:send("mask_color", Color.alpha_mask:to_shader_table())
+			-- if self.is_new_tick and self.tick % 5 == 0 then shader:send("replace_texture", textures.psylocke) else shader:send("replace_texture", self.empty_canvas) end
+			
+			-- shader:send("old_alpha", 1.0)
+			shader:send("old_alpha",   (self.timescaled.is_new_tick and self.timescaled.tick % 10 == 0) and 0.93 or 1.0)
+			graphics.set_shader(shader)
 		
+			graphics.origin()
+			graphics.clear(0, 0, 0, 0)
+			
+			graphics.draw(self.empty_canvas)
 
+			graphics.set_canvas(self.full_brightness_floor_canvas)
+			-- shader:send("input_texture", self.previous_full_brightness_floor_canvas)
+			-- shader:send("replace_texture", self.current_frame_floor_canvas)
+			-- shader:send("old_alpha", 1.0)
+			-- graphics.set_shader(shader)
+			-- shader = graphics.shader.alphamask
+			-- shader:send("mask_color", Color.alpha_mask:to_shader_table())
+			graphics.set_shader()
+			-- graphics.clear(0, 0, 0, 0)
+			graphics.draw(self.current_frame_floor_canvas)
 
+		graphics.pop()
 
+    	graphics.push("all")
+			graphics.set_canvas(self.previous_persistent_floor_canvas)
+			graphics.origin()
+    		graphics.clear(0, 0, 0, 0)
+			graphics.draw(self.persistent_floor_canvas)
+
+		graphics.pop()
+
+		graphics.push("all")
+			graphics.set_canvas(self.output_canvas)
+			graphics.origin()
+		    graphics.clear(0, 0, 0, 0)
+			
+			graphics.set_color(level_transition_alpha, level_transition_alpha, level_transition_alpha, 1)
+
+    		graphics.draw(self.persistent_floor_canvas)
+			
+			graphics.set_color(1, 1, 1, 0.225 * level_transition_alpha)
+			graphics.draw(self.full_brightness_floor_canvas)
+		graphics.pop()
+		
+		graphics.push("all")
+		-- graphics.set_shader(graphics.shader.blackalpha)
+		-- graphics.set_blend_mode("multiply", "premultiplied")
+    	-- graphics.origin()
+    -- graphics.translate(self.room.left, -self.room.top)
+    -- graphics.clear(0, 0, 0, 0)
+    	local shader = graphics.shader.alphamask
+		shader:send("mask_color", Color.black:to_shader_table())
+		graphics.set_shader(shader)
+    	
+		graphics.draw(self.output_canvas)
+		graphics.pop()
 	graphics.pop()
+
+	
 
     self:draw_room_bounds()
 
@@ -1070,6 +1255,11 @@ function GameWorld:draw()
 	-- end
 
     GameWorld.super.draw(self)
+
+
+	if self.room_clear_fx_t < 0.45 and self.room_clear_fx_t > 0 then
+		self:draw_room_bounds()
+	end
 
 	if self.player_died and not self.player_death_fx then
 		graphics.push("all")
@@ -1089,7 +1279,7 @@ end
 function GameWorld:floor_canvas_push()
     graphics.push("all")
 	graphics.set_color(1, 1, 1, 1)
-	graphics.set_canvas(self.temp_floor_canvas)
+	graphics.set_canvas(self.current_frame_floor_canvas)
 	graphics.origin()
 	graphics.translate(-self.room.left, -self.room.top)
 end
@@ -1123,6 +1313,26 @@ function GameWorld:get_border_color()
 	return Palette.rainbow:get_color((self.room and self.room.level or 0) + floor(self.state_tick / max(20 / self.room.wave, 1)))
 end
 
+function GameWorld:is_border_dash_swapped()
+    if idivmod_eq_zero(self.tick, 4, 2) then
+        return false
+    end
+
+    if self.player_death_fx then
+        return true
+    end
+
+    -- if self.player_died then
+    --     return true
+    -- end
+
+    if self.state == "Spawning" then
+        return true
+    end
+
+	return false
+end
+
 function GameWorld:draw_room_bounds()
 	local r = self.room
 
@@ -1131,27 +1341,79 @@ function GameWorld:draw_room_bounds()
 	-- local brx, bry = r.right, r.bottom
 	-- local blx, bly = r.left, r.bottom
 
+	local min_t = 1.0
 
 	local color = self:get_border_color()
-	-- graphics.rectangle("line", tlx, tly, r.right - r.left + 1, r.bottom - r.top + 1)
-	-- graphics.points(tlx, tly, trx, try, brx, bry, blx, bly)
-	-- graphics.line(tlx, tly, trx, try)
-	-- -- graphics.line(trx, try, brx, bry)
-    -- graphics.line(brx, bry, blx, bly)
-    graphics.set_line_width(1)
-    local scale = 0
-    if self.room then
-        scale = 1.05 - ease("outCubic")(clamp(self.room.elapsed / 30, 0, 1.0)) * 0.05
-    end
-    local red, green, blue = color.r, color.g, color.b
-	local alpha = ease("outCubic")(clamp(self.room.elapsed / 20, 0, 1.0))
-	graphics.set_color(red * alpha, green * alpha, blue * alpha)
+	if self.room_clear_fx_t > min_t or self.room_clear_fx_t == -1 then
+		local dash_swapped = self:is_border_dash_swapped()
+		-- graphics.rectangle("line", tlx, tly, r.right - r.left + 1, r.bottom - r.top + 1)
+		-- graphics.points(tlx, tly, trx, try, brx, bry, blx, bly)
+		-- graphics.line(tlx, tly, trx, try)
+		-- -- graphics.line(trx, try, brx, bry)
+		-- graphics.line(brx, bry, blx, bly)
+		graphics.set_line_width(1)
+		local scale = 0
+		if self.room then
+			scale = 1.05 - ease("outCubic")(clamp(self.room.elapsed / 30, 0, 1.0)) * 0.05
+		end
+		local red, green, blue = color.r, color.g, color.b
+        local alpha = ease("outCubic")(clamp(self.room.elapsed / 20, 0, 1.0))
+		if self.room_clear_fx_t > min_t then
+			alpha = alpha * (remap_clamp(self.room_clear_fx_t, min_t, 1, 0, 1))
+		end
+		graphics.set_color(red * alpha, green * alpha, blue * alpha)
 
-	graphics.push()
-	graphics.translate(tlx + r.room_width / 2, tly + r.room_height / 2)
-	graphics.dashrect((-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1, r.room_height * scale + 1, 2, 2)
+		graphics.push()
+        graphics.translate(tlx + r.room_width / 2, tly + r.room_height / 2)
+		if self.state ~= "RoomClear" then
+            if dash_swapped then
+				-- graphics.set_color(red * alpha, green * alpha, blue * alpha)
+				graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+				r.room_height * scale + 1)
+				graphics.set_color(0, 0, 0, 1)
+			end
+			graphics.dashrect((-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+			r.room_height * scale + 1, 2, 2)
+        else
+			graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+				r.room_height * scale + 1)
+		end
+		graphics.pop()
+	end
+
     -- graphics.dashrect(tlx + 1, tly + 1, r.right - r.left - 1, r.bottom - r.top - 1, 2, 2)
-	graphics.pop()
+	
+    if self.room_clear_fx_t >= 0 then
+        if idivmod_eq_zero(self.tick, 1, 2) and self.room_clear_fx_t > 0.75 then
+			return
+		end
+		local t_eased = ease("inOutCirc")(clamp(self.room_clear_fx_t, 0, 1.0))
+		local t_eased_out = ease("outCirc")(clamp(self.room_clear_fx_t, 0, 1.0))
+		local t_eased_out2 = ease("outInSine")(clamp(self.room_clear_fx_t, 0, 1.0))
+		local t_linear = self.room_clear_fx_t
+		local line_width = clamp((1 - t_eased) * 5, 1, 5)
+        graphics.set_line_width(line_width)
+        local rect_offset = 50 * t_eased_out + 2
+        local rect_offset2 = -(5 * ((1 - t_linear)) + 1)
+        local rect_offset3 = 20 * t_eased_out + 2
+        local rect_offset4 = 200 * t_eased_out + 2
+		if line_width > 0.5 then 
+			graphics.set_color(Palette.rainbow:tick_color(self.tick + 3, 0, 3))
+			graphics.rectangle_centered("line", 0, 0, r.room_width + 1 + rect_offset3, r.room_height + 1 + rect_offset3)
+		end
+		graphics.set_line_width(1)
+		graphics.set_color(Palette.rainbow:tick_color(self.tick + 9, 0, 3))
+		graphics.rectangle_centered("line", 0, 0, r.room_width + rect_offset4, r.room_height + rect_offset4 + 1)
+        -- graphics.set_line_width(1)
+		-- if idivmod_eq_zero(self.tick, 2, ceil(10 - t_eased * 10)) then
+		-- return
+		-- end
+		graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 3))
+		graphics.rectangle_centered("line", 0, 0, r.room_width + rect_offset2, r.room_height + rect_offset2 + 1)
+		graphics.set_color(Palette.rainbow:tick_color(self.tick + 6, 0, 3))
+        graphics.rectangle_centered("line", 0, 0, r.room_width + rect_offset, r.room_height + rect_offset + 1)
+
+	end
 	-- graphics.line(blx, bly, tlx, tly)
 end
 
@@ -1195,7 +1457,7 @@ function GameWorld:state_RoomClear_enter()
 end
 
 function GameWorld:state_RoomClear_exit()
-	-- self.waiting_on_rooms = false
+	self.waiting_on_rooms = false
 end
 
 function GameWorld:state_RoomClear_update(dt)
@@ -1217,27 +1479,34 @@ end
 
 function GameWorld:state_LevelTransition_enter(room)
 	local room_objects = self:get_objects_with_tag("room_object")
-	if room_objects then
-		for _, obj in room_objects:ipairs() do
-			obj:die()
-		end
-	end
+    if room_objects then
+        for _, obj in room_objects:ipairs() do
+            obj:die()
+        end
+    end
+	
 	self.frozen = true
-	self.transitioning_to_room = room
-	-- self.frozen = true
+    self.transitioning_to_room = room
 	local s = self.sequencer
+
+	-- self.frozen = true
 	s:start(function()
 
 		local length = 10
 
 		self:play_sfx("level_start", 0.95, 1.0)
 
-		s:wait(2)
+        s:wait(2)
+		s:start(function()
+            s:wait(10)
+			collectgarbage("collect")
+		end)
 		
 		local move_tween = "linear"
 
 		local direction = self.player_entered_direction
 		for i, player in pairs(self.players) do
+			
 			local player_pos = player.pos:clone()
 			local new_spot_x, new_spot_y
 
@@ -1276,7 +1545,8 @@ function GameWorld:state_LevelTransition_enter(room)
 		s:start(function()
 			s:tween(move_camera, 0, 1, length, move_tween )
 			self.camera_target:move_to(0, 0)
-		end)
+        end)
+
 		s:wait(length - 1)
 		self:clear_floor_canvas()
 		self:clear_objects()
@@ -1285,18 +1555,6 @@ function GameWorld:state_LevelTransition_enter(room)
 		
 		s:wait(1)
 		self:change_state("Normal")
-	end)
-end
-
-function GameWorld:clear_floor_canvas()
-	self:defer(function()
-		self.lower_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.temp_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.temp_floor_canvas_settings = {
-			self.temp_floor_canvas,
-			stencil=true,
-		}
 	end)
 end
 
@@ -1331,6 +1589,6 @@ function GameWorld:state_LevelTransition_draw()
 	graphics.pop()
 end
 
-
+AutoStateMachine(GameWorld, "Normal")
 
 return GameWorld

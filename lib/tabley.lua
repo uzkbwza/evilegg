@@ -261,36 +261,45 @@ function tabley.pretty_format(t, max_depth)
         str = str .. s .. "\n"
     end
     local print_r_cache = {}
+
+    local function to_string(value)
+		if type(value) == "table" then
+			if Object.is(value, Object) then
+				return value.__class_type_name
+			end
+		end
+		return tostring(value)
+	end
     local function sub_print_r(t, indent, depth)
         depth = depth or 0
         if depth >= max_depth then
             print(indent .. "...")
             return
         end
-        if (print_r_cache[tostring(t)]) then
-            print(indent .. "*" .. tostring(t))
+        if (print_r_cache[to_string(t)]) then
+            print(indent .. "*" .. to_string(t))
         else
-            print_r_cache[tostring(t)] = true
+            print_r_cache[to_string(t)] = true
             if (type(t) == "table") then
                 for pos, val in pairs(t) do
-                    pos = tostring(pos)
+                    pos = to_string(pos)
                     if (type(val) == "table") then
-                        print(indent .. "[" .. pos .. "] => " .. tostring(t) .. " {")
+                        print(indent .. "[" .. pos .. "] => " .. to_string(t) .. " {")
                         sub_print_r(val, indent .. string.rep(" ", string.len(pos) + 8), depth + 1)
                         print(indent .. string.rep(" ", string.len(pos) + 6) .. "}")
                     elseif (type(val) == "string") then
                         print(indent .. "[" .. pos .. '] => "' .. val .. '"')
                     else
-                        print(indent .. "[" .. pos .. "] => " .. tostring(val))
+                        print(indent .. "[" .. pos .. "] => " .. to_string(val))
                     end
                 end
             else
-                print(indent .. tostring(t))
+                print(indent .. to_string(t))
             end
         end
     end
     if (type(t) == "table") then
-        print(tostring(t) .. " {")
+        print(to_string(t) .. " {")
         sub_print_r(t, " ")
         print("}")
     else
@@ -328,36 +337,46 @@ function tabley.pretty_print(t, max_depth, fd)
         fd:write(str .. "\n")
     end
     local print_r_cache = {}
+
+	local function to_string(value)
+		if type(value) == "table" then
+			if Object.is(value, Object) then
+				return value.__class_type_name
+			end
+		end
+		return tostring(value)
+	end
+
     local function sub_print_r(t, indent, depth)
         depth = depth or 0
         if depth >= max_depth then
             print(indent .. "...")
             return
         end
-        if (print_r_cache[tostring(t)]) then
-            print(indent .. "*" .. tostring(t))
+        if (print_r_cache[to_string(t)]) then
+            print(indent .. "*" .. to_string(t))
         else
-            print_r_cache[tostring(t)] = true
+            print_r_cache[to_string(t)] = true
             if (type(t) == "table") then
                 for pos, val in pairs(t) do
-                    pos = tostring(pos)
+                    pos = to_string(pos)
                     if (type(val) == "table") then
-                        print(indent .. "[" .. pos .. "] => " .. tostring(t) .. " {")
+                        print(indent .. "[" .. pos .. "] => " .. to_string(t) .. " {")
                         sub_print_r(val, indent .. string.rep(" ", string.len(pos) + 8), depth + 1)
                         print(indent .. string.rep(" ", string.len(pos) + 6) .. "}")
                     elseif (type(val) == "string") then
                         print(indent .. "[" .. pos .. '] => "' .. val .. '"')
                     else
-                        print(indent .. "[" .. pos .. "] => " .. tostring(val))
+                        print(indent .. "[" .. pos .. "] => " .. to_string(val))
                     end
                 end
             else
-                print(indent .. tostring(t))
+                print(indent .. to_string(t))
             end
         end
     end
     if (type(t) == "table") then
-        print(tostring(t) .. " {")
+        print(to_string(t) .. " {")
         sub_print_r(t, "  ")
         print("}")
     else

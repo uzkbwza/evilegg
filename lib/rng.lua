@@ -116,6 +116,9 @@ local function _array_item_to_weight(item)
 end
 
 function rng.weighted_choice(values, weights)
+	if #values == 0 then
+		return nil
+	end
     if weights == nil then
         weights = table.map_array(values, _array_item_to_weight)
 	elseif type(weights) == "string" then

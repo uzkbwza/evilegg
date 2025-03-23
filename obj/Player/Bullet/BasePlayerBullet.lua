@@ -5,9 +5,12 @@ local TwinStickNormalBullet = Mixins.Behavior.TwinStickNormalBullet
 
 BasePlayerBullet:implement(TwinStickNormalBullet)
 BasePlayerBullet.death_spawns = {}
+BasePlayerBullet.cooldown = 8
+BasePlayerBullet.spread = 5
 
 function BasePlayerBullet:new(x, y, extra_bullet)
 	BasePlayerBullet.super.new(self, x, y)
+	self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
 	self.radius = self.radius or 5
 	self:add_elapsed_ticks()
     self.speed = self.speed or 6
@@ -27,7 +30,8 @@ function BasePlayerBullet:new(x, y, extra_bullet)
 	self:mix_init(TwinStickNormalBullet)
 	
 
-	self.extra_bullet = extra_bullet
+    self.extra_bullet = extra_bullet
+	
 	if self.use_upgrades then
 		-- self.radius = self.radius * (1 + (game_state.upgrades.range) * 0.15)
 		if extra_bullet then
@@ -36,15 +40,17 @@ function BasePlayerBullet:new(x, y, extra_bullet)
 			self.push_modifier = self.push_modifier * 0.2
 			self.radius = self.radius * 0.5
 		end
-		if game_state.upgrades.range == 1 then
-			self.lifetime = 26
-		elseif game_state.upgrades.range >= 2 then
-			self.lifetime = 36 + ((game_state.upgrades.range - 2) * 10)
-		end
 		self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.5)
         self.push_modifier = self.push_modifier * (1 + (game_state.upgrades.bullet_speed) * 0.4)
-		self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
+        self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
+		local base_speed = self.speed
 		self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
+        if game_state.upgrades.range == 1 then
+            self.lifetime = 26
+        elseif game_state.upgrades.range >= 2 then
+            self.lifetime = 36 + ((game_state.upgrades.range - 2) * 10)
+        end
+		self.lifetime = self.lifetime * (base_speed / self.speed)
 	end
 end
 
@@ -100,7 +106,7 @@ function BasePlayerBullet:die()
 	self.dead_position = self.pos:clone()
 	self:start_destroy_timer(30)
     self:spawn_object_relative(BasePlayerBulletDieFx())
-	-- self:spawn_object_relative(require("obj.Explosion")(self.pos.x, self.pos.y, 32, self.damage, "player", false))
+	-- self:spawn_object_relative(require("obj.Explosion")(self.pos.x, self.pos.y, 18, self.damage, "player", false))
 end 
 
 function BasePlayerBullet:get_death_particle_hit_velocity()
@@ -145,8 +151,9 @@ function BasePlayerBulletDieFx:new(x, y)
 end
 
 function BasePlayerBulletDieFx:draw(elapsed, tick, t)
-	graphics.set_color(Palette.rainbow:tick_color(self.world.tick * 4))
-	graphics.rectangle("fill", -4, -4, 8,8)
+    graphics.set_color(Palette.rainbow:tick_color(self.world.tick * 4))
+	local size = 8 + game_state.upgrades.damage * 1
+	graphics.rectangle_centered("fill", 0, 0, size, size)
 end
 
 

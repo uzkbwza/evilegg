@@ -23,6 +23,13 @@ end
 function World:new(x, y)
     World.super.new(self, x, y)
 
+
+	self.id_counter = 0x00000000
+	self.id_to_object = setmetatable({}, { __mode = "v" })
+	function GameObject:get_object(id)
+		return self.id_to_object[id]
+	end
+
     self.world = self
 
     self.objects = bonglewunch()
@@ -35,6 +42,7 @@ function World:new(x, y)
 	self.object_time_scale = 1
 
     self.bump_world = nil
+	self.processing = true
 
     -- self.draw_sort = nil
 
@@ -51,6 +59,14 @@ function World:new(x, y)
     self:add_sequencer()
     self:add_elapsed_ticks()
 	
+end
+
+
+function World:new_object_id()
+    local id = self.id_counter
+    -- GameObject.id_counter = bit.tobit(bit.band(GameObject.id_counter + 1, 0x0fffffff))
+    self.id_counter = bit.tobit(self.id_counter + 1)
+    return id
 end
 
 function World:init_camera()
@@ -154,7 +170,9 @@ function World:remove_tag(object, tag)
     if self.tags and self.tags[tag] then
         self.tags[tag]:remove(object)
     end
-    signal.disconnect(object, "destroyed", self, "remove_tag_" .. tag)
+	if signal.is_connected(object, "destroyed", self, "remove_tag_" .. tag) then
+		signal.disconnect(object, "destroyed", self, "remove_tag_" .. tag)
+	end
 end
 
 ---@return bonglewunch?
@@ -468,7 +486,11 @@ function World:add_object(obj)
         end))
     end
 
-	signal.connect(obj, "destroyed", self, "remove_object", nil, true)
+	obj:set_id(self:new_object_id())
+	self.id_to_object[obj.id] = obj
+
+    signal.connect(obj, "destroyed", self, "remove_object", nil, true)
+
 	self:bind_destruction(obj)
 
 	if obj.is_bump_object then
@@ -502,6 +524,8 @@ function World:remove_object(obj)
 		return
 	end
 
+    self.id_to_object[obj.id] = nil
+	
 	obj.world = nil
 	obj.base_world = nil
 	remove_from_array(self.objects, obj)

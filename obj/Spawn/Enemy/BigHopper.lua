@@ -7,8 +7,8 @@ function BigHopper:new(x, y)
     self.max_hp = 10
     self.min_wait_time = 120
     self.max_wait_time = 360
-    BigHopper.super.new(self, x, y)
     self.drag = 0.05
+    BigHopper.super.new(self, x, y)
 
     self.terrain_collision_radius = self.terrain_collision_radius * 2
     self.hurt_bubble_radius = self.hurt_bubble_radius * 2
@@ -30,10 +30,16 @@ function BigHopper:state_Hopping_exit()
 	self.drag = 0.05
 end
 
+function BigHopper:update(dt)
+	BigHopper.super.update(self, dt)
+end
+
 function BigHopper:get_sprite()
     return self.sprite == textures.enemy_hopper1 and textures.enemy_bighopper1
         or self.sprite == textures.enemy_hopper2 and textures.enemy_bighopper2
 		or self.sprite == textures.enemy_hopper3 and textures.enemy_bighopper3
 end
+
+AutoStateMachine(BigHopper, "Waiting")
 
 return BigHopper

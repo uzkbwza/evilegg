@@ -148,6 +148,14 @@ function AllyFinder:get_body_direction_to_player()
     return vec2_direction_to(px, py, bx, by)
 end
 
+function AllyFinder:get_body_distance_to_player()
+    local px, py = self:get_body_center()
+    local bx, by = self:closest_last_player_body_pos()
+    if bx == nil then
+        bx, by = 0, 0
+    end
+    return vec2_distance(px, py, bx, by)
+end
 
 function AllyFinder:get_body_direction_to_ally()
 	local px, py = self:get_body_center()

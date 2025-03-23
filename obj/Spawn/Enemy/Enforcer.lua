@@ -16,8 +16,8 @@ function Enforcer:new(x, y)
     Enforcer.super.new(self, x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
-    self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Spawning")
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
+	
     self.drag = SPAWNING_DRAG
 
 	self.sprite = textures.enemy_enforcer1
@@ -145,5 +145,7 @@ function Enforcer:debug_draw()
 	graphics.line(0, 0, self.pdx * 10, self.pdy * 10)
 	graphics.setColor(1, 1, 1)
 end
+
+AutoStateMachine(Enforcer, "Spawning")
 
 return Enforcer

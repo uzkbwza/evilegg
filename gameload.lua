@@ -6,3 +6,8 @@ if debug.enabled then
 		print("custom_map_process")
 	end
 end
+
+graphics.load_image_font("score_pickup_font", "font_score_pickup", "0123456789")
+graphics.load_image_font("score_pickup_font_white", "font_score_pickup_white", "0123456789")
+graphics.load_image_font("image_font1", "font_font1", " ABCDEFGHIJKLMNOPQRSTUVWXYZ+-1234567890[].×")
+graphics.load_image_font("image_font2", "font_font2", " ABCDEFGHIJKLMNOPQRSTUVWXYZ+-1234567890[].×")

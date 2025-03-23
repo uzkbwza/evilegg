@@ -76,28 +76,28 @@ end
 
 function Color:__add(other)
 	if type(other) == "number" then
-		return Color(self.r + other, self.g + other, self.b + other, self.a + other)
+		return Color(self.r + other, self.g + other, self.b + other, self.a)
 	end
 	return Color(self.r + other.r, self.g + other.g, self.b + other.b, self.a + other.a)
 end
 
 function Color:__sub(other)
 	if type(other) == "number" then
-		return Color(self.r - other, self.g - other, self.b - other, self.a - other)
+		return Color(self.r - other, self.g - other, self.b - other, self.a)
 	end
     return Color(self.r - other.r, self.g - other.g, self.b - other.b, self.a - other.a)
 end
 
 function Color:__mul(other)
 	if type(other) == "number" then
-		return Color(self.r * other, self.g * other, self.b * other, self.a * other)
+		return Color(self.r * other, self.g * other, self.b * other, self.a)
 	end
     return Color(self.r * other.r, self.g * other.g, self.b * other.b, self.a * other.a)
 end
 
 function Color:__div(other)
 	if type(other) == "number" then
-		return Color(self.r / other, self.g / other, self.b / other, self.a / other)
+		return Color(self.r / other, self.g / other, self.b / other, self.a)
 	end
     return Color(self.r / other.r, self.g / other.g, self.b / other.b, self.a / other.a)
 end
@@ -446,11 +446,17 @@ end
 
 local interval = 1/6
 Color.black = Color.from_hex("000000")
-Color.darkergrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval))
-Color.darkgrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 2))
-Color.grey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 3))
-Color.lightgrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 4))
-Color.lightergrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 5))
+Color.nearblack = Color.from_hex("101010")
+-- Color.darkergrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval))
+Color.darkergrey = Color.from_hex("202020")
+-- Color.darkgrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 2))
+Color.darkgrey = Color.from_hex("404040")
+-- Color.grey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 3))
+Color.grey = Color.from_hex("808080")
+-- Color.lightgrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 4))
+Color.lightgrey = Color.from_hex("bfbfbf")
+-- Color.lightergrey = Color.from_hsl(0, 0, ease("inOutCirc")(interval * 5))
+Color.lightergrey = Color.from_hex("e0e0e0")
 Color.white = Color.from_hex("FFFFFF")
 Color.red = Color.from_hex("FF0000")
 Color.seablue = Color.from_hex("0080ff")
@@ -472,4 +478,5 @@ Color.darkcyan = Color.from_hex("008080")
 Color.darkred = Color.from_hex("800000")
 Color.darkpurple = Color.from_hex("400080")
 Color.navyblue = Color.from_hex("000080")
+Color.alpha_mask = Color.from_hex("ffffff")
 Color.transparent = Color(0, 0, 0, 0)

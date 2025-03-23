@@ -14,12 +14,12 @@ function DogRescue:new(x, y)
     DogRescue.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.Roamer)
-    self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Roaming")
-
+	
     -- self.roaming = false
     self.sprite = textures.ally_rescue_dog1
     self.spawn_cry = "ally_dog_rescue_bark"
     self.spawn_cry_volume = 0.6
+	
 end
 
 function DogRescue:on_terrain_collision(normal_x, normal_y)
@@ -35,6 +35,7 @@ function DogRescue:state_Roaming_exit()
 end
 
 function DogRescue:on_damaged(damage)
+	DogRescue.super.on_damaged(self, damage)
 	self:change_state("Fleeing")
 end
 
@@ -128,5 +129,7 @@ end
 -- 		graphics.drawp_centered(textures.ally_rescue_dog_exclamation_mark, nil, 0, 0, -t * 2, 0, 1, 1)
 -- 	end
 -- end
+
+AutoStateMachine(DogRescue, "Roaming")
 
 return DogRescue

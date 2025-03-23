@@ -1,10 +1,14 @@
 local Charger = require("obj.Spawn.Enemy.BaseEnemy"):extend("Charger")
+local Chargesploder = Charger:extend("Chargesploder")
+local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
+local Explosion = require("obj.Explosion")
 
-local CHARGE_SPEED = 0.035
+local CHARGE_SPEED = 0.045
 
 local ChargerIndicator = Effect:extend("ChargerIndicator")
 
 Charger.is_charger = true
+Charger.death_cry = "enemy_charger_death"
 
 function Charger:new(x, y)
     self.max_hp = 8
@@ -14,7 +18,7 @@ function Charger:new(x, y)
     Charger.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
-    self:lazy_mixin(Mixins.Behavior.AutoStateMachine, "Waiting")
+	
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
     self.bullet_push_modifier = 0.75
@@ -193,6 +197,50 @@ function ChargerIndicator:draw(elapsed, tick, t)
 	end
 end
 
+local EXPLOSION_RADIUS = 24
+
+function Chargesploder:new(x, y)
+    -- self.max_hp = 8
+    self.bullet_push_modifier = 3.5
+    self.walk_speed = 0.5
+    Chargesploder.super.new(self, x, y)
+end
+
+function Chargesploder:enter()
+	local bx, by = self:get_body_center()
+	self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
+end
+
+function Chargesploder:get_sprite()
+	return self.state == "Waiting" and textures.enemy_chargesploder1 or textures.enemy_chargesploder2
+end
+
+-- function Chargesploder:on_landed_melee_attack()
+	-- self:die()
+-- end
 
 
-return Charger
+function Chargesploder:get_palette()
+    if self.world then
+        return nil, floor(self.world.tick / 3)
+    end
+	return Chargesploder.super.get_palette(self)
+end
+
+function Chargesploder:die(...)
+	local bx, by = self:get_body_center()
+    local params = {
+		size = EXPLOSION_RADIUS,	
+		damage = self.max_hp,
+		team = "enemy",
+		melee_both_teams = true,
+		particle_count_modifier = 0.85,
+		explode_sfx = "explosion3",
+	}
+    self:spawn_object(Explosion(bx, by, params))
+    Chargesploder.super.die(self, ...)
+end
+
+AutoStateMachine(Charger, "Waiting")
+
+return { Charger, Chargesploder }

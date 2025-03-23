@@ -61,8 +61,8 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
 		vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
 		
 
-		local darkgrey = Color.darkgrey
-		local alpha = clamp(rng.randfn(darkgrey.r, 0.25), 0.00, darkgrey.r)
+		local darkergrey = Color.darkergrey
+		local alpha = clamp(rng.randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)
         local pixel = {
             x = vel_x * 0.25,
             y = vel_y * 0.25,
@@ -130,7 +130,7 @@ function DeathFlash:draw(elapsed, tick, t)
 
 
 
-    graphics.set_color(Color.darkgrey)
+    graphics.set_color(Color.darkergrey)
     for i = 1, PIXEL_COUNT * self.size_mod do
         local pixel = self.pixels[i]
         graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
@@ -157,7 +157,7 @@ function DeathFlash:floor_draw()
 
 
 	if self.is_new_tick and self.tick == 3 then
-		local size = max(5 - ((tick) * 2.0) + 12 * self.size_mod * 0.75, 1)
+		local size = max(4 - ((tick) * 2.0) + 4 * self.size_mod * 0.75, 1)
 
 		graphics.push()
 		-- graphics.rotate(tau / 8)
@@ -165,9 +165,8 @@ function DeathFlash:floor_draw()
 		graphics.set_color(Color.black)
 
 		graphics.rectangle("fill", -size / 2, -size / 2, size, size)
-		graphics.set_color(Color.darkgrey)
+		graphics.set_color(Color.darkergrey)
 
-		size = size 
 		graphics.rectangle("line", -size / 2, -size / 2, size, size)
 		graphics.pop()
 		for i = 1, 10 do

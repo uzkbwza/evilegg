@@ -96,8 +96,8 @@ function Vec2:direction_to(b)
 	return (b - self):normalized()
 end
 
-function Vec2:splerp_in_place(b, delta, half_life)
-	self.x, self.y = splerp_vec(self.x, self.y, b.x, b.y, delta, half_life)
+function Vec2:splerp_in_place(b, half_life, delta)
+	self.x, self.y = splerp_vec(self.x, self.y, b.x, b.y, half_life, delta)
 end
 
 function Vec2:lerp(b, t)

@@ -146,8 +146,6 @@ GameMap.bump_tile_mt = {
 }
 
 function GameMap:build(build_spritebatches, build_collision)
-    -- TODO: rework this function. separate into initializing object regions, drawing regions, and querying regions.
-    -- TODO: these functions should not be just called one time. you should be able to update the tilemap at runtime.
 
     local layer_static_batches = {}
     local layer_dynamic_batches = {}
@@ -289,7 +287,6 @@ function GameMap:draw(mode, startx, starty, endx, endy, startz, endz)
         if startx or starty or endx or endy then error "Static draw mode does not support region drawing." end
     end
 	
-	-- TODO: draw in order of layers
     for layer =startz, endz do
 		if startz and endz then
 			if layer < startz or layer > endz then

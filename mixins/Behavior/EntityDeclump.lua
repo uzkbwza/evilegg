@@ -3,7 +3,7 @@ local EntityDeclump = Object:extend("EntityDeclump")
 function EntityDeclump:__mix_init()
     self.declump_radius = self.declump_radius or 4
 	
-    self.declump_force = (self.declump_force or 0.005)
+    self.declump_force = (self.declump_force or 0.025)
     self.self_declump_modifier = (self.self_declump_modifier or 1)
 	
 

@@ -186,3 +186,11 @@ end
 function capsule_contains_point(ax, ay, bx, by, abr, px, py)
     return distance_squared_to_line_segment(px, py, ax, ay, bx, by) <= (abr * abr)
 end
+
+function get_capsule_rect(ax, ay, bx, by, abr)
+    local start_x, start_y = min(ax, bx), min(ay, by)
+	local end_x, end_y = max(ax, bx), max(ay, by)
+    
+    return start_x - abr, start_y - abr, end_x - start_x + abr * 2, end_y - start_y + abr * 2
+
+end

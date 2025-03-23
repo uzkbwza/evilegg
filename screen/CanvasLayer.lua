@@ -16,12 +16,16 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
     self.children = {}
     self.deferred_queue = {}
 
-    self.viewport_size = Vec2(viewport_size_x or conf.viewport_size.x, viewport_size_y or conf.viewport_size.y)
-    self.canvas = graphics.new_canvas(self.viewport_size.x, self.viewport_size.y)
-    self.canvas_settings = {
-        self.canvas,
-		stencil=true,
-    }
+    self.viewport_size = Vec2(viewport_size_x or (graphics.main_viewport_size or conf.viewport_size).x, viewport_size_y or (graphics.main_viewport_size or conf.viewport_size).y)
+
+    if viewport_size_x == nil and viewport_size_y == nil then
+        self.expand_viewport = true
+        if self.viewport_size.x == 0 or self.viewport_size.y == 0 then
+            self.viewport_size = Vec2(conf.viewport_size.x, conf.viewport_size.y)
+        end
+    end
+	
+	self:create_canvas()
 	
     self.offset = Vec2(0, 0)
     self.zoom = 1
@@ -55,6 +59,17 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
     self:add_signal("replace_sibling_requested")
 
     return self
+end
+
+function CanvasLayer:create_canvas()
+	if self.canvas then
+		self.canvas:release()
+	end
+    self.canvas = graphics.new_canvas(self.viewport_size.x, self.viewport_size.y)
+    self.canvas_settings = {
+        self.canvas,
+		stencil=true,
+    }
 end
 
 ----------------------------------------------------------------
@@ -123,8 +138,8 @@ end
 ----------------------------------------------------------------
 
 ---@param layer_name string
-function CanvasLayer:push_deferred(layer_name)
-    table.insert(self.deferred_queue, { action = "push", layer = layer_name })
+function CanvasLayer:push_deferred(layer_name, name)
+    table.insert(self.deferred_queue, { action = "push", layer = layer_name, name = name })
 end
 
 function CanvasLayer:pop_deferred()
@@ -154,12 +169,12 @@ function CanvasLayer:get_child_by_name(name)
 end
 
 ---@param new_layer string
-function CanvasLayer:transition_to(new_layer)
+function CanvasLayer:transition_to(new_layer, name)
     local layer = self.parent or self
     for _=1, #layer.children do
         layer:pop_deferred()
     end
-    layer:push_deferred(new_layer)
+    layer:push_deferred(new_layer, name)
 end
 
 ----------------------------------------------------------------
@@ -417,14 +432,17 @@ end
 ---@param dt number
 function CanvasLayer:update_worlds(dt)
     for _, world in ipairs(self.worlds) do
-        world.viewport_size = self.viewport_size
+		
         world.input = self.input
-        world:update_shared(dt)
+		if world.processing then
+			world:update_shared(dt)
+		end
     end
 end
 
 ---@param dt number
 function CanvasLayer:update_shared(dt)
+
     if self.is_destroyed then
         return
     end
@@ -433,7 +451,10 @@ function CanvasLayer:update_shared(dt)
     while #self.deferred_queue > 0 do
         local op = table.remove(self.deferred_queue, 1)
         if op.action == "push" then
-            self:push(op.layer)
+			local layer = self:push(op.layer)
+            if op.name then
+				self:ref(op.name, layer)
+            end
         elseif op.action == "pop" then
             self:pop()
         elseif op.action == "add_sibling_above" or op.action == "add_sibling_below"
@@ -501,15 +522,27 @@ function CanvasLayer:print_canvas_tree()
 end
 
 function CanvasLayer:draw_shared()
+	if self.expand_viewport then
+		self.viewport_size = Vec2(graphics.main_viewport_size.x, graphics.main_viewport_size.y)
+		if graphics.main_viewport_size.x ~= 0 and graphics.main_viewport_size.y ~= 0 then
+			if self.canvas:getWidth() ~= self.viewport_size.x or self.canvas:getHeight() ~= self.viewport_size.y then
+                self:create_canvas()
+				-- print(self.viewport_size.x, self.viewport_size.y)
+			end
+		end
+	end
+
     graphics.push("all")
     graphics.origin()
     graphics.set_canvas(self.canvas_settings)
 
-	if self.clear_color then
-		if self.clear_procedure then
-			self:clear_procedure()
-		else
-			graphics.clear(self.clear_color.r, self.clear_color.g, self.clear_color.b, self.clear_color.a)
+	if self.clear_procedure then
+		self:clear_procedure()
+    else
+        local clear_color = self.clear_color
+
+		if clear_color then
+			graphics.clear(clear_color.r, clear_color.g, clear_color.b, clear_color.a)
 		end
     end
 
@@ -517,6 +550,8 @@ function CanvasLayer:draw_shared()
     graphics.translate(self.offset.x, self.offset.y)
 
     for _, world in ipairs(self.worlds) do
+		world.viewport_size = self.viewport_size
+
         world:draw_shared()
     end
 

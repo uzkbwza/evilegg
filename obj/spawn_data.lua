@@ -7,6 +7,9 @@ local SpawnDataTable = {
 	data_by_type = {},
     data_by_level = {},
     max_level_by_type = {},
+	data_by_spawn_group = {},
+	data_by_type_then_spawn_group = {},
+	data_by_type_then_spawn_group_then_level = {},
 }
 
 local function process_enemy_table(t)
@@ -26,7 +29,7 @@ local function process_enemy_table(t)
                 SpawnDataTable.data[name].class = SpawnDataTable[name]
 				SpawnDataTable[name].spawn_data = SpawnDataTable.data[name]
             else
-				print("no enemy data found for " .. name)
+				print("no spawn data found for " .. name)
             end
 
         elseif type(value) == "table" and not Object.is(value, Object) then
@@ -44,7 +47,7 @@ local function process_spawn_data(t, name)
 		elseif type(t.inherit) == "table" then
             for i = #t.inherit, 1, -1 do
 				if not SpawnDataTable.data[t.inherit[i]] then
-					error(tostring(name) .. " tried to inherit from " .. t.inherit[i] .. " but no enemy data found for " .. t.inherit[i])
+					error(tostring(name) .. " tried to inherit from " .. t.inherit[i] .. " but no spawn data found for " .. t.inherit[i])
 				end
 				local inherit_data = table.deepcopy(process_spawn_data(SpawnDataTable.data[t.inherit[i]], tostring(t)))
 				table.merge(data, inherit_data)
@@ -67,15 +70,29 @@ for k, v in pairs(SpawnDataTable.data) do
 
     SpawnDataTable.data_by_type[data.type] = SpawnDataTable.data_by_type[data.type] or {}
     SpawnDataTable.data_by_type_then_level[data.type] = SpawnDataTable.data_by_type_then_level[data.type] or {}
-    SpawnDataTable.data_by_type_then_level[data.type][data.level] = SpawnDataTable.data_by_type_then_level[data.type]
-    [data.level] or {}
+    SpawnDataTable.data_by_type_then_level[data.type][data.level] = SpawnDataTable.data_by_type_then_level[data.type][data.level] or {}
     table.insert(SpawnDataTable.data_by_type[data.type], data)
     table.insert(SpawnDataTable.data_by_type_then_level[data.type][data.level], data)
 
     SpawnDataTable.data_by_level[data.level] = SpawnDataTable.data_by_level[data.level] or {}
     SpawnDataTable.data_by_level_then_type[data.level] = SpawnDataTable.data_by_level_then_type[data.level] or {}
-    SpawnDataTable.data_by_level_then_type[data.level][data.type] = SpawnDataTable.data_by_level_then_type[data.level]
-    [data.type] or {}
+    SpawnDataTable.data_by_level_then_type[data.level][data.type] = SpawnDataTable.data_by_level_then_type[data.level][data.type] or {}
+
+	local spawn_groups = data.spawn_group or { "basic" }
+	for _, spawn_group in pairs(spawn_groups) do
+		SpawnDataTable.data_by_spawn_group[spawn_group] = SpawnDataTable.data_by_spawn_group[spawn_group] or {}
+		table.insert(SpawnDataTable.data_by_spawn_group[spawn_group], data)
+
+		SpawnDataTable.data_by_type_then_spawn_group[data.type] = SpawnDataTable.data_by_type_then_spawn_group[data.type] or {}
+		SpawnDataTable.data_by_type_then_spawn_group[data.type][spawn_group] = SpawnDataTable.data_by_type_then_spawn_group[data.type][spawn_group] or {}
+		table.insert(SpawnDataTable.data_by_type_then_spawn_group[data.type][spawn_group], data)
+		
+		SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type] = SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type] or {}
+		SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type][spawn_group] = SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type][spawn_group] or {}
+		SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type][spawn_group][data.level] = SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type][spawn_group][data.level] or {}
+		table.insert(SpawnDataTable.data_by_type_then_spawn_group_then_level[data.type][spawn_group][data.level], data)
+	end
+
     table.insert(SpawnDataTable.data_by_level[data.level], data)
     table.insert(SpawnDataTable.data_by_level_then_type[data.level][data.type], data)
 
@@ -118,8 +135,18 @@ for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
             enemy.score = enemy.score + enemy.extra_score
         end
     end
-
-	print(string.format("%16s: %-10d", enemy.name, enemy.score))
+end
+if debug.enabled then
+    local tab = {}
+	for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
+		table.insert(tab, {name = enemy.name, score = enemy.score})
+	end
+	table.sort(tab, function(a, b) return a.score > b.score end)
+	print("---SCORE VALUES---")
+	for _, enemy in pairs(tab) do
+		print(string.format("%-30s %10d", string.format("%s:", enemy.name), enemy.score))
+	end
+	print("------------------")
 end
 
 process_enemy_table(enemy_table)

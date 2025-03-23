@@ -456,8 +456,14 @@ end
 	-- 		y_scale))
 	-- end
 
-
 function asset_collision_error(name, path, existing_path)
 	error("asset with name " .. name .. " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" .. path .. "\n" .. existing_path .. "\n", 2)
 end
 
+function try_function(f, ...)
+	if type(f) == "function" then
+		return f(...)
+	else
+		return f
+	end
+end

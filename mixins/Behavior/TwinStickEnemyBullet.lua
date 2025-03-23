@@ -1,10 +1,14 @@
 
 local TwinStickEnemyBullet = Object:extend("TwinStickEnemyBullet")
 function TwinStickEnemyBullet:__mix_init()
-	local old_on_terrain_collision = self.on_terrain_collision
-	self.on_terrain_collision = function(self, ...)
-        old_on_terrain_collision(self, ...)
-		self:die()
+
+	if not self.enemy_bullet_can_touch_walls then
+		
+		local old_on_terrain_collision = self.on_terrain_collision
+		self.on_terrain_collision = function(self, ...)
+			old_on_terrain_collision(self, ...)
+			self:die()
+		end
 	end
 
     self.enemy_bullet = true
