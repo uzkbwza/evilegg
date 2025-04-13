@@ -1,5 +1,15 @@
 local AllyFinder = Object:extend("AllyFinder")
 
+function AllyFinder:get_players()
+	return self.world:get_objects_with_tag("player")
+end
+
+function AllyFinder:get_allies()
+	return self.world:get_objects_with_tag("ally")
+end
+
+
+
 function AllyFinder:get_closest_player()
     return self:get_closest_object_with_tag("player")
 end

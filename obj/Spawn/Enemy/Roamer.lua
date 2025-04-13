@@ -1,7 +1,9 @@
-local Roamer = require("obj.Spawn.Enemy.BaseEnemy"):extend("Roamer")
+local Roamer = BaseEnemy:extend("Roamer")
 local Roamsploder = Roamer:extend("Roamsploder")
 local Explosion = require("obj.Explosion")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
+
+Roamsploder:implement(Mixins.Behavior.ExploderEnemy)
 
 -- local ROAMER_SHEET = SpriteSheet(textures.enemy_roamer, 10, 14)
 
@@ -83,9 +85,11 @@ local EXPLOSION_RADIUS = 20
 
 function Roamsploder:new(x, y)
     self.max_hp = 2
+	self.hit_bubble_damage = 10
     self.bullet_push_modifier = 3.5
-    self.walk_speed = 0.5
+    self.walk_speed = 0.75
     Roamsploder.super.new(self, x, y)
+	self:mix_init(Mixins.Behavior.ExploderEnemy)
 end
 
 function Roamsploder:enter()
@@ -115,7 +119,7 @@ function Roamsploder:die(...)
 	local bx, by = self:get_body_center()
     local params = {
 		size = EXPLOSION_RADIUS,	
-		damage = self.max_hp,
+		damage = 10,
 		team = "enemy",
 		melee_both_teams = true,
 		particle_count_modifier = 0.85,

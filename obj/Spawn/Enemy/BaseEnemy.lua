@@ -1,6 +1,7 @@
 local BaseEnemy = GameObject2D:extend("BaseEnemy")
 local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
+local FungalDeathSplatter = require("fx.enemy_death_pixel_fungal_splatter")
 local LastEnemyTarget = require("fx.last_enemy_target")
 local LifeFlash = require("fx.enemy_life_flash")
 
@@ -13,7 +14,9 @@ function BaseEnemy:new(x, y)
     self.hurt_bubble_radius = self.hurt_bubble_radius or 5
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
 	self.hit_bubble_damage = self.hit_bubble_damage or 1
-	self.max_hp = self.max_hp or 1
+    self.max_hp = self.max_hp or 1
+	-- self.difficulty_shield = min(floor(game_state.level / 10), 4)
+	-- self.difficulty_shield = floor(10)
 	self:lazy_mixin(Mixins.Behavior.Flippable)
 	self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self:lazy_mixin(Mixins.Behavior.Health)
@@ -44,10 +47,20 @@ function BaseEnemy:get_score()
 	return self.spawn_data.score
 end
 
+function BaseEnemy:get_xp()
+    local score = self:get_score()
+    if score > 0 then
+        -- local real_score = game_state:determine_score(score)
+        -- return max(real_score * 0.0005, score * 0.005)
+		return score * 0.005
+	end
+	return 0
+end
+
 function BaseEnemy:enter_shared()
     self:add_tag("enemy")
     BaseEnemy.super.enter_shared(self)
-	if not self:get_bubble("hurt", "main") then
+	if not self:get_bubble("hurt", "main") and not self.no_hurt_bubble then
 		self:add_hurt_bubble(0, 0, self.hurt_bubble_radius, "main")
 	end
     if not self:get_bubble("hit", "main") and self.hit_bubble_radius and self.hit_bubble_radius > 0 then
@@ -69,6 +82,7 @@ function BaseEnemy:enter_shared()
 		end)
 	end
 	local bx, by = self:get_body_center()
+
 end
 
 function BaseEnemy:highlight_self()
@@ -82,31 +96,45 @@ function BaseEnemy:highlight_self()
 end
 
 function BaseEnemy:hit_by(object)
-    local damage = object.damage
+    local damage = (object.get_damage and object:get_damage()) or object.damage
+
+	-- local old = self.difficulty_shield
+	-- self.difficulty_shield = self.difficulty_shield - damage
+    -- damage = damage - old
+
     if object.is_bubble then
         object = object.parent
     end
 
-	if not self.no_damage_flash then
+	local invuln = self:is_invulnerable()
+
+	if not self.no_damage_flash and not invuln then
 		self:start_timer("damage_flash", 12)
 	end
 
 	
-	if not self:is_invulnerable() then
-		self:damage(damage)
-	end
+    if not invuln then
+        self:damage(damage)
+    end
+	
     if self.hp <= 0 then
-        self:die(object)
+        self:death_sequence(object)
 	else
-		if self:is_tick_timer_running("shield_invuln") then
-			self:play_sfx("enemy_shield_hit", 0.7, 1.0)
-		elseif self.hurt_sfx then
+		if self.hurt_sfx and not invuln then
 			self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
-		elseif not self:has_tag("enemy_bullet") or self:has_tag("hazard") then
-			self:play_sfx("enemy_hurt", 0.25, 1.0)
+		elseif not (self:has_tag("enemy_bullet") or self:has_tag("hazard")) and not invuln then
+            self:play_sfx("enemy_hurt", 0.25, 1.0)
+        elseif invuln then
+			self:play_sfx("enemy_shield_hit", 0.7, 1.0)
 		end
     end
 end
+
+function BaseEnemy:death_sequence(hit_by)
+	self:die(hit_by)
+end
+
+
 
 function BaseEnemy:is_invulnerable()
     if self:is_tick_timer_running("shield_invuln") then
@@ -126,13 +154,18 @@ function BaseEnemy:normal_death_effect(hit_by)
 	else
 		hit_vel_x, hit_vel_y = 0, 0
 	end
-	local hit_point_x, hit_point_y = self.pos.x, self.pos.y
+    local hit_point_x, hit_point_y = self.pos.x, self.pos.y
+	local center_out_velocity_multiplier = 1
     if hit_by then
         if hit_by.get_death_particle_hit_velocity then
             local extra_vel_x, extra_vel_y = hit_by:get_death_particle_hit_velocity(self)
             hit_vel_x = hit_vel_x + extra_vel_x
             hit_vel_y = hit_vel_y + extra_vel_y
         end
+
+        if hit_by.center_out_velocity_multiplier then
+			center_out_velocity_multiplier = hit_by.center_out_velocity_multiplier
+		end
 
         hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
 
@@ -154,7 +187,12 @@ function BaseEnemy:normal_death_effect(hit_by)
 
     self:spawn_object(DeathFlash(bx, by, sprite, self.death_flash_size_mod or 1))
 	if not self.no_death_splatter then
-		self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y))
+		local class = DeathSplatter
+		-- if game_state.artefacts.death_cap and self:has_tag("wave_enemy") then
+		if game_state.artefacts.death_cap and not self:has_tag("fungus") then
+			class = FungalDeathSplatter
+		end
+		self:spawn_object(class(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y, center_out_velocity_multiplier))
 	end
 end
 
@@ -165,15 +203,19 @@ end
 
 function BaseEnemy:die(hit_by)
 	self:emit_signal("died")
-	self:normal_death_effect(hit_by)
-    self:queue_destroy()
+	self:death_effect(hit_by)
+	self:queue_destroy()
+end
+
+function BaseEnemy:death_effect(hit_by) 
+    self:normal_death_effect(hit_by)
     if self.death_sfx then
         self:play_sfx(self.death_sfx, self.death_sfx_volume or 1.0, self.death_sfx_pitch or 1.0)
     else
         if self:has_tag("wave_enemy") then
             self:play_sfx("enemy_death", 0.5, 1.0)
 			self:play_sfx("old_enemy_die", 0.35, 1.0)
-            self:play_sfx("enemy_death2", 0.5, 1.0)
+            self:play_sfx("enemy_death2", 1.0, 1.0)
 		elseif self:has_tag("hazard") then
             self:play_sfx("hazard_death", 1.0, 1.0)
 		elseif self:has_tag("enemy_bullet") then
@@ -187,9 +229,19 @@ function BaseEnemy:die(hit_by)
 	end
 end
 
+function BaseEnemy:get_time_scale()
+
+	local modifier = 1
+    
+	if self.world.clock_slowed then
+        modifier = modifier / 3
+    end
+
+	return modifier
+end
 
 function BaseEnemy:update_shared(dt)
-    BaseEnemy.super.update_shared(self, dt)
+    BaseEnemy.super.update_shared(self, dt * self:get_time_scale())
     self:collide_with_terrain()
 end
 
@@ -247,15 +299,22 @@ function BaseEnemy:get_sprite_flip()
 	return self.flip, 1
 end
 
+function BaseEnemy:queue_destroy()
+	BaseEnemy.super.queue_destroy(self)
+end
+
 function BaseEnemy:draw()
 	
     self:body_translate()
 
-    local palette, offset = self:get_palette_shared()
-	
+	self:draw_sprite()
+end
+
+function BaseEnemy:draw_sprite()
+	local palette, palette_index = self:get_palette_shared()
 	local h_flip, v_flip = self:get_sprite_flip()
 
-	graphics.drawp_centered(self:get_sprite(), palette, offset, 0, 0, 0, h_flip, v_flip)
+	graphics.drawp_centered(self:get_sprite(), palette, palette_index, 0, 0, 0, h_flip, v_flip)
 end
 
 return BaseEnemy

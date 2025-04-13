@@ -257,6 +257,11 @@ function logb(x, base)
     return log(x) / log(base)
 end
 
+function smoothstep(edge0, edge1, x)
+    local t = clamp01((x - edge0) / (edge1 - edge0))
+    return t * t * (3 - 2 * t)
+end
+
 -- Exponential decay function (splerp) for scalars
 function splerp(a, b, half_life, delta)
     return b + (a - b) * pow(2, -delta / (frames_to_seconds(half_life)))

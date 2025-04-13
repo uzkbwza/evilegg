@@ -8,10 +8,16 @@ local CanvasLayer = GameObject2D:extend("CanvasLayer")
 function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
 	CanvasLayer.super.new(self, x, y)
 
+	self.is_instance = true
     self.blocks_render = false
     self.blocks_input = false
     self.blocks_logic = false
-    self.root = nil
+
+	self.handling_input = true
+    self.handling_logic = true
+	self.handling_render = true
+
+	self.root = nil
 
     self.children = {}
     self.deferred_queue = {}
@@ -99,6 +105,9 @@ function CanvasLayer:load_layer(l)
 		local layer = table.get_by_path(Screens, l)()
 		layer.name = l
 		return layer
+	elseif l.is_instance then
+		l.name = tostring(l)
+		return l
 	else
 		local layer = l()
 		layer.name = tostring(layer)
@@ -204,7 +213,7 @@ function CanvasLayer:insert_layer(l, index)
     self:init_layer(layer)
     self:bind_destruction(layer)
 	signal.connect(layer, "destroyed", self, "remove_child_on_destroy", function() self:remove_child(layer) end)
-	collectgarbage("collect")
+	-- collectgarbage("collect")
 	return layer
 end
 
@@ -214,7 +223,11 @@ function CanvasLayer:remove_child(layer)
 end
 
 function CanvasLayer:get_input_table()
-	return self.input
+	if self.handling_input then
+		return self.input
+	else
+		return input.dummy
+	end
 end
 
 ---@param index number
@@ -228,7 +241,7 @@ function CanvasLayer:remove_layer(index)
     layer:exit_shared()
     layer.parent = nil
     layer:destroy()
-	collectgarbage("collect")
+	-- collectgarbage("collect")
 end
 
 ---@param index number
@@ -433,7 +446,7 @@ end
 function CanvasLayer:update_worlds(dt)
     for _, world in ipairs(self.worlds) do
 		
-        world.input = self.input
+        world.input = self:get_input_table()
 		if world.processing then
 			world:update_shared(dt)
 		end
@@ -491,12 +504,14 @@ function CanvasLayer:update_shared(dt)
         layer:update_shared(dt)
     end
     
-    CanvasLayer.super.update_shared(self, dt)
+	if self.handling_logic then
+		CanvasLayer.super.update_shared(self, dt)
+	end
 	
     if self.deferred_functions then
         for _, t in ipairs(self.deferred_functions) do
-            local func, args = unpack(t)
-            func(args and unpack(args) or nil)
+            local func, args = table.fast_unpack(t)
+            func(args and table.fast_unpack(args) or nil)
         end
         table.clear(self.deferred_functions)
     end
@@ -536,26 +551,32 @@ function CanvasLayer:draw_shared()
     graphics.origin()
     graphics.set_canvas(self.canvas_settings)
 
-	if self.clear_procedure then
-		self:clear_procedure()
+    if self.clear_procedure then
+        self:clear_procedure()
     else
         local clear_color = self.clear_color
 
-		if clear_color then
-			graphics.clear(clear_color.r, clear_color.g, clear_color.b, clear_color.a)
+        if clear_color then
+            graphics.clear(clear_color.r, clear_color.g, clear_color.b, clear_color.a)
+        end
+    end
+	
+	if self.handling_render then
+
+		self:pre_world_draw()
+
+		graphics.scale(self.zoom, self.zoom)
+		graphics.translate(self.offset.x, self.offset.y)
+
+		for _, world in ipairs(self.worlds) do
+			world.viewport_size = self.viewport_size
+
+			world:draw_shared()
 		end
-    end
 
-    graphics.scale(self.zoom, self.zoom)
-    graphics.translate(self.offset.x, self.offset.y)
-
-    for _, world in ipairs(self.worlds) do
-		world.viewport_size = self.viewport_size
-
-        world:draw_shared()
-    end
-
-	self:draw()
+		self:draw()
+	
+	end
 
     local update_interp = true
 
@@ -659,7 +680,7 @@ end
 
 ---@param dt number
 function CanvasLayer:update(dt) end
-
+function CanvasLayer:pre_world_draw() end
 function CanvasLayer:draw() end
 function CanvasLayer:enter() end
 function CanvasLayer:exit() end

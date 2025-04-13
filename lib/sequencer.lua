@@ -143,11 +143,12 @@ function Sequencer:tween(func, value_start, value_end, duration, easing, step)
 		step = 0
 	end
 
-	while self.elapsed < finish do
+	while self.elapsed <= finish do
 		local t = clamp01(ease_func(stepify_safe((self.elapsed - start) / duration, step)))
 		func(value_start + t * (value_end - value_start))
 		coroutine.yield()
 	end
+	func(value_start + (value_end - value_start))
 end
 
 function Sequencer:tween_method(obj, method, value_start, value_end, duration, easing, step)
@@ -212,6 +213,7 @@ function Sequencer:wait_for_signal(obj, signal_id)
         function(...)
 			self.signal_output = {...}
             self:resume(chain)
+			self.signal_output = nil
         end,
 			true)
     if signal.get(obj, "destroyed") then
@@ -243,5 +245,6 @@ function Sequencer:destroy()
     self.signal_output = nil
 	self.suspended = nil
 	self.dt = nil
-	self.elapsed = nil
+    self.elapsed = nil
+	signal.cleanup(self)
 end

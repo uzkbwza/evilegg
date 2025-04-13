@@ -733,6 +733,13 @@ function vec2_to_polar_table(a)
     return vec2_magnitude_table(a), vec2_angle_table(a)
 end
 
+function vec2_bounce(x, y, normal_x, normal_y)
+	local d = x * normal_x + y * normal_y
+	local bounce_x = x - 2 * d * normal_x
+	local bounce_y = y - 2 * d * normal_y
+	return bounce_x, bounce_y
+end
+
 function vec2_from_polar_table(r, theta)
     local x = r * math.cos(theta)
     local y = r * math.sin(theta)
@@ -747,6 +754,14 @@ function vec2_clamp_magnitude(x, y, min, max)
 	elseif magnitude > max then
 		local normalized_x, normalized_y = vec2_normalized(x, y)
 		return normalized_x * max, normalized_y * max
+	end
+	return x, y
+end
+
+function vec2_limit_length(x, y, max)
+	local magnitude = vec2_magnitude(x, y)
+	if magnitude > max then
+		x, y = vec2_normalized_times(x, y, max)
 	end
 	return x, y
 end

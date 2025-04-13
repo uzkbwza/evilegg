@@ -99,7 +99,6 @@ local Powerups = {
         },
         bullet_powerup = true,
 		bullet_powerup_time = 10,
-
 	},
 
 	
@@ -119,15 +118,141 @@ local Hearts = {
 	},
 }
 
-local Items = {
-	BaseItem = {
+local Artefacts = {
+	BaseArtefact = {
 		icon = textures.pickup_item_placeholder,
-		textures = {
-			textures.pickup_item_placeholder,
-			textures.pickup_item_placeholder,
-			textures.pickup_item_placeholder,
-		},
+		key = "base",
+		name = "artefact_base_name",
+		description = "artefact_base_desc",
+		spawn_weight = 1000,
+
 	},
+
+	RicochetArtefact = {
+        icon = textures.pickup_artefact_ricochet,
+		key = "ricochet",
+		name = "artefact_ricochet_name",
+		description = "artefact_ricochet_desc",
+		spawn_weight = 1000,
+    },
+	
+	-- MoreBulletsArtefact = {
+    --     icon = textures.pickup_artefact_more_bullets,
+	-- 	key = "more_bullets",
+	-- 	name = "artefact_more_bullets_name",
+	-- 	description = "artefact_more_bullets_desc",
+    --     spawn_weight = 1000,
+	-- 	remove_function = function(game_state)
+	-- 		game_state.upgrades.bullets = min(game_state.upgrades.bullets, game_state:get_max_upgrade("bullets"))
+	-- 	end,
+    -- },
+	
+	-- DamageOverDistanceArtefact = {
+    --     icon = textures.pickup_artefact_damage_over_distance,
+	-- 	key = "damage_over_distance",
+	-- 	name = "artefact_damage_over_distance_name",
+	-- 	description = "artefact_damage_over_distance_desc",
+    --     spawn_weight = 1000,
+    -- },
+	
+	AmuletOfRageArtefact = {
+        icon = textures.pickup_artefact_amulet_of_rage,
+		key = "amulet_of_rage",
+		name = "artefact_amulet_of_rage_name",
+		description = "artefact_amulet_of_rage_desc",
+        spawn_weight = 1000,
+    },
+
+	GrapplingHookArtefact = {
+        icon = textures.pickup_artefact_grappling_hook,
+		key = "grappling_hook",
+		name = "artefact_grappling_hook_name",
+		description = "artefact_grappling_hook_desc",
+        spawn_weight = 1000,
+    },
+	
+	SacrificialTwinArtefact = {
+        icon = textures.pickup_artefact_twin,
+		key = "sacrificial_twin",
+		name = "artefact_sacrificial_twin_name",
+		description = "artefact_sacrificial_twin_desc",
+        spawn_weight = 1000,
+		remove_function = function(game_state, slot)
+            game_state:set_selected_artefact_slot(slot)
+		end,
+	},
+
+	DroneArtefact = {
+        icon = textures.pickup_artefact_drone,
+		key = "drone",
+		name = "artefact_drone_name",
+		description = "artefact_drone_desc",
+        spawn_weight = 1000,
+	},
+
+	RingOfVengeanceArtefact = {
+        icon = textures.pickup_artefact_ring_of_loyalty,
+		key = "ring_of_loyalty",
+		name = "artefact_ring_of_loyalty_name",
+		description = "artefact_ring_of_loyalty_desc",
+        spawn_weight = 1000,
+        -- spawn_weight = 10000000,
+	},
+
+	BoostDamageArtefact = {
+        icon = textures.pickup_artefact_boost_damage,
+		key = "boost_damage",
+		name = "artefact_boost_damage_name",
+		description = "artefact_boost_damage_desc",
+        spawn_weight = 1000,
+	},
+
+	StoneTrinketArtefact = {
+        icon = textures.pickup_artefact_stone_trinket,
+		key = "stone_trinket",
+		name = "artefact_stone_trinket_name",
+		description = "artefact_stone_trinket_desc",
+        spawn_weight = 1000,
+    },
+	
+	CrownOfFrenzyArtefact = {
+        icon = textures.pickup_artefact_crown_of_frenzy,
+		key = "crown_of_frenzy",
+		name = "artefact_crown_of_frenzy_name",
+		description = "artefact_crown_of_frenzy_desc",
+        spawn_weight = 1000,
+    },
+	
+	DeathCapArtefact = {
+        icon = textures.pickup_artefact_mushroom,
+		key = "death_cap",
+		name = "artefact_death_cap_name",
+		description = "artefact_death_cap_desc",
+        spawn_weight = 1000000,
+    },
+	
+	ClockArtefact = {
+        icon = textures.pickup_artefact_clock,
+		key = "clock",
+		name = "artefact_clock_name",
+		description = "artefact_clock_desc",
+        spawn_weight = 1000,
+    },
+	
+	-- Secondary Weapons
+
+	-- SwordSecondaryWeapon = {
+	-- icon = textures.pickup_secondary_sword_icon,
+	-- hud_icon = textures.pickup_secondary_sword_hud,
+	-- key = "sword",
+	-- name = "secondary_sword_name",
+	-- description = "secondary_sword_desc",
+
+	-- is_secondary_weapon = true,
+	-- ammo = 10,
+	-- ammo_gain_per_level = 2,
+	-- spawn_weight = 1000,
+	-- },
 }
 
 
@@ -147,7 +272,7 @@ local function process_pickup_table(tab, subtype, base_name)
 	end
 	
 	for k, v in pairs(tab) do
-        v.name = k
+        v.name = v.name or k
 		if v.icon == nil and not k == base_name then
 			error("no icon for " .. k)
 		end
@@ -169,7 +294,7 @@ local tab = {
 	upgrades = process_pickup_table(Upgrades, "upgrade", "BaseUpgrade"),
 	powerups = process_pickup_table(Powerups, "powerup", "BasePowerup"),
 	hearts = process_pickup_table(Hearts, "heart", "BaseHeart"),
-	items = process_pickup_table(Items, "item", "BaseItem"),
+	artefacts = process_pickup_table(Artefacts, "artefact", "BaseArtefact"),
 }
 
 return tab

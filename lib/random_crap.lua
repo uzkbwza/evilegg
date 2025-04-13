@@ -371,11 +371,11 @@ function xassert(a, ...)
 	if type(f) == ___f then
 	  local args = {...}
 	  table.remove(args, 1)
-	  error(f(unpack(args)), 2)
+	  error(f(table.fast_unpack(args)), 2)
 	else
 	  error(f or "assertion failed!", 2)
 	end
-  end
+end
 
 function xtype(t)
 	local s = type(t)
@@ -461,9 +461,21 @@ function asset_collision_error(name, path, existing_path)
 end
 
 function try_function(f, ...)
-	if type(f) == "function" then
-		return f(...)
-	else
-		return f
-	end
+    if type(f) == "function" then
+        return f(...)
+    else
+        return f
+    end
 end
+
+dummy_table = setmetatable({}, {
+    __index = function()
+        return nil
+    end,
+
+	__newindex = function()
+		error("attempt to write to dummy table")
+	end
+})
+
+

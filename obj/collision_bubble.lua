@@ -34,7 +34,7 @@ function CollisionBubble:capsule_collides_with_bubble(other)
 		local other_x2, other_y2 = other:get_end_position()
 		return capsule_capsule_collision(my_x, my_y, my_x2, my_y2, self.radius, other_x, other_y, other_x2, other_y2, other.radius)
 	end
-	return circle_capsule_collision(my_x, my_y, my_x2, my_y2, self.radius, other_x, other_y, other.radius)
+	return circle_capsule_collision(other_x, other_y, other.radius, my_x, my_y, my_x2, my_y2, self.radius)
 end
 
 function CollisionBubble:capsule_collides_with_circle(x, y, radius)

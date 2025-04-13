@@ -1,9 +1,11 @@
-local Walker = require("obj.Spawn.Enemy.BaseEnemy"):extend("Walker")
+local Walker = BaseEnemy:extend("Walker")
 
 local Walksploder = Walker:extend("Walksploder")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 local Explosion = require("obj.Explosion")
 local FastWalker = Walker:extend("FastWalker")
+
+Walksploder:implement(Mixins.Behavior.ExploderEnemy)
 
 -- FastWalker.spawn_cry = "enemy_fast_walker_spawn"
 -- FastWalker.spawn_cry_volume = 0.9
@@ -40,9 +42,13 @@ local EXPLOSION_RADIUS = 14
 
 function Walksploder:new(x, y)
     self.max_hp = 1.5
+	self.hit_bubble_damage = 10
+
     self.bullet_push_modifier = 2.0
     -- self.walk_speed = 0.5
     Walksploder.super.new(self, x, y)
+	self.walk_speed = 0.075
+	self:mix_init(Mixins.Behavior.ExploderEnemy)
 end
 
 function Walksploder:get_palette()
@@ -70,7 +76,7 @@ function Walksploder:die(...)
 	local bx, by = self:get_body_center()
     local params = {
 		size = EXPLOSION_RADIUS,	
-		damage = self.max_hp,
+		damage = 10,
 		team = "enemy",
 		melee_both_teams = true,
 		particle_count_modifier = 0.85,

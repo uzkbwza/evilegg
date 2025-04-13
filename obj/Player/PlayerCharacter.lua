@@ -1,14 +1,20 @@
 local PlayerCharacter = GameObject2D:extend("PlayerCharacter")
 
+local PlayerDrone = GameObject2D:extend("PlayerDrone")
+
 local PlayerBullet = require("obj.Player.Bullet.BasePlayerBullet")
 
 local HoverFx = Effect:extend("HoverFx")
 local HoverDashFx = Effect:extend("HoverDashFx")
+local HoverFireTrail = GameObject2D:extend("HoverFireTrail")
 
 local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 
 local RocketBullet = require("obj.Player.Bullet.RocketBullet")
+
+local PlayerShadow = Effect:extend("PlayerShadow")
+
 local AimDraw = GameObject2D:extend("AimDraw")
 
 local SHOOT_DISTANCE = 6
@@ -43,6 +49,10 @@ function PlayerCharacter:new(x, y)
     self.terrain_collision_radius = 2
     self.body_height = 3
     self.is_player = true
+    self.hover_vel = Vec2()
+    self.hover_accel = Vec2()
+    self.hover_impulse = Vec2()
+	self.mouse_pos_x, self.mouse_pos_y = 0, 0
 
     self.shoot_held_time = 0
 
@@ -59,7 +69,7 @@ function PlayerCharacter:new(x, y)
     self:lazy_mixin(Mixins.Behavior.Flippable)
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
     self:lazy_mixin(Mixins.Behavior.Health)
-	
+
     -- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 
     self.sprite = textures.player_character
@@ -69,18 +79,43 @@ function PlayerCharacter:new(x, y)
     self.mouse_mode = true
     self.persist = true
 
-	self.drone = nil
-
     self:add_signal("died")
     self:add_signal("got_hurt")
-	self:init_state_machine()
+    self:init_state_machine()
+
+    signal.connect(game_state, "player_artefact_gained", self, "on_artefact_gained")
+    signal.connect(game_state, "player_artefact_removed", self, "on_artefact_removed")
+end
+
+function PlayerCharacter:on_artefact_gained(artefact, slot)
+	if artefact.key == "drone" and not self.drone then
+		self:spawn_drone()
+	end
+end
+
+function PlayerCharacter:on_artefact_removed(artefact, slot)
+    if artefact.key == "drone" then
+		if self.drone then
+			self.drone:queue_destroy()
+		end
+	end
 end
 
 function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
-    self:terrain_collision_bounce(normal_x, normal_y)
-	-- self:die()
+	if normal_x ~= 0 then
+		self.hover_vel.x = self.hover_vel.x * -1
+	end
+	if normal_y ~= 0 then
+		self.hover_vel.y = self.hover_vel.y * -1
+	end
 end
 
+
+function PlayerCharacter:spawn_drone()
+    local drone = self:spawn_object(PlayerDrone(self.pos.x, self.pos.y))
+    drone:ref("player", self)
+	self:ref("drone", drone)
+end
 
 function AimDraw:new(x, y, player)
 	AimDraw.super.new(self, x, y)
@@ -97,7 +132,7 @@ function AimDraw:update(dt)
 end
 
 
-local function laser_sight_draw(thickness, color, start_x, start_y, end_x, end_y, dash)
+function AimDraw:laser_sight_draw(thickness, color, start_x, start_y, end_x, end_y, dash)
 	graphics.set_line_width(thickness)
 	graphics.set_color(color)
 	if dash then
@@ -115,111 +150,139 @@ local LASER_SIGHT_DISTANCE_MODIFIER = 2
 
 function AimDraw:draw()
     if not self.player then return end
-	graphics.push()
+    graphics.push()
     self.player:body_translate()
 
 
     graphics.set_color(Color.white)
-	
-	if game_state.bullet_powerup then
+
+    if game_state.bullet_powerup then
         graphics.set_color(Color.white)
-		local font = fonts.main_font_bold
-		graphics.set_font(font)
-		local text = string.format("%02d", floor(frames_to_seconds(game_state.bullet_powerup_time)))
-		local width = font:getWidth(text)
-		graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2)
-	end
+        local font = fonts.main_font_bold
+        graphics.set_font(font)
+        local text = string.format("%02d", floor(frames_to_seconds(game_state.bullet_powerup_time)))
+        local width = font:getWidth(text)
+        graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2)
+    end
 
-	local aim_x, aim_y = self.player.mouse_aim_offset.x, self.player.mouse_aim_offset.y
-	local start_x, start_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 0.5)
-	local end_x, end_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 1.0)
--- if self.player.mouse_mode then
-	-- if self:is_timer_running("hide_crosshair") then
-		-- graphics.set_color(Color.darkergrey)
-	-- else
+    if self.player.mouse_mode and usersettings.use_absolute_aim then
+        local global_mouse_x, global_mouse_y = self.player.mouse_pos_x, self.player.mouse_pos_y
+        local mouse_x, mouse_y = self:to_local(global_mouse_x, global_mouse_y)
+        local laser_start_x, laser_start_y = vec2_normalized_times(mouse_x, mouse_y, self.player.aim_radius * 0.5)
+        local laser_end_x, laser_end_y = mouse_x, mouse_y
+		local mouse_dist = vec2_magnitude(mouse_x, mouse_y)
+		if mouse_dist > LASER_SIGHT_DISTANCE_MODIFIER * self.player.aim_radius then
+			laser_end_x, laser_end_y = vec2_normalized_times(mouse_x, mouse_y, LASER_SIGHT_DISTANCE_MODIFIER * self.player.aim_radius)
+		end
+		self:laser_sight_draw(3, Color.black, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
+		self:laser_sight_draw(1, Color.magenta, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
+		self:draw_crosshair(mouse_x, mouse_y)
+    else
+        local aim_x, aim_y = self.player.mouse_aim_offset.x, self.player.mouse_aim_offset.y
+        local start_x, start_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 0.5)
+        local end_x, end_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 1.0)
+        -- if self.player.mouse_mode then
+        -- if self:is_timer_running("hide_crosshair") then
+        -- graphics.set_color(Color.darkergrey)
+        -- else
+
+        local dx, dy             = vec2_rotated(aim_x, aim_y, tau / 4)
+        dx                       = dx * 0
+        dy                       = dy * 0
+
+        local start_x1, start_y1 = vec2_normalized_times(start_x, start_y, self.player.aim_radius * 0.5)
+        -- local start_x2, start_y2 = vec2_sub(start_x, start_y, dx, dy)
+        -- local end_x2, end_y2 = vec2_sub(end_x, end_y, dx, dy)
+        -- graphics.set_color(Color.white)
+        -- self:laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * 4, end_y1 * 4, true)
+        local end_x1, end_y1     = vec2_normalized_times(end_x, end_y, self.player.aim_radius)
+
+        if self.player.mouse_mode then
+            -- graphics.circle("fill", start_x1, start_y1, 5)		
+            local aim_vec_x, aim_vec_y = self.player.mouse_aim_offset.x, self.player.mouse_aim_offset.y
+            local length = vec2_magnitude(aim_vec_x, aim_vec_y) * LASER_SIGHT_DISTANCE_MODIFIER
+            local x, y = end_x1 * length, end_y1 * length
+            -- graphics.circle("line", x, y, 5)
 
 
-	local dx, dy = vec2_rotated(aim_x, aim_y, tau / 4)
-	dx = dx * 0
-	dy = dy * 0
+            self:laser_sight_draw(3, Color.black, start_x1, start_y1, x, y, true)
+            self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, x, y, true)
+			self:draw_crosshair(x, y)
+        else
+            self:laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER,
+                end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
+            self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER,
+                end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
+        end
 
-	local start_x1, start_y1 = vec2_normalized_times(start_x, start_y, self.player.aim_radius * 0.5)
-	-- local start_x2, start_y2 = vec2_sub(start_x, start_y, dx, dy)
-	-- local end_x2, end_y2 = vec2_sub(end_x, end_y, dx, dy)
-	-- graphics.set_color(Color.white)
-	-- laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * 4, end_y1 * 4, true)
-	local end_x1, end_y1  = vec2_normalized_times(end_x, end_y, self.player.aim_radius)
-	if self.player.mouse_mode and usersettings.show_relative_aim_mouse_crosshair then
-        -- graphics.circle("fill", start_x1, start_y1, 5)		
-        local length = self.player.mouse_aim_offset:magnitude() * LASER_SIGHT_DISTANCE_MODIFIER
-		local x, y = end_x1 * length, end_y1 * length
-        -- graphics.circle("line", x, y, 5)
-        local size = 9
+        -- end_x1, end_y1  = vec2_add(end_x, end_y, dx, dy)
+        -- start_x1, start_y1 = start_x, start_y
+        -- graphics.set_color(Color.black)
+        -- graphics.circle("fill", start_x1, start_y1, 2)		
+        -- graphics.circle("fill", end_x1 * 0.8, end_y1 * 0.8, 2)
+        -- graphics.set_color(Color.white)
+        -- graphics.circle("fill", start_x1, start_y1, 1)		
+        -- graphics.circle("fill", end_x1 * 0.8, end_y1 * 0.8, 1)
+    end
 
 
-		laser_sight_draw(3, Color.black, start_x1, start_y1, x, y, true)
-        laser_sight_draw(1, Color.magenta, start_x1, start_y1, x, y, true)
-		
-		graphics.push()
-        graphics.translate(x, y)
-		graphics.rotate(self.player.mouse_aim_offset:angle() + self.elapsed * 0.1)
-        graphics.set_line_width(3)
-		graphics.set_color(Color.black)
-		graphics.dashrect_centered(0, 0, size, size, 3, 3)
-		graphics.set_line_width(1)
-		graphics.set_color(Color.white)
-		graphics.dashrect_centered(0, 0, size, size, 3, 3)
 
-		graphics.set_color(Color.black)
-		graphics.circle("fill", 0,0, 3)
-		graphics.set_color(Color.white)
-		graphics.circle("fill", 0,0, 1)
-		graphics.pop()
-
-	else
-		laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER, end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
-		laser_sight_draw(1, Color.magenta, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER, end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
-	end
-	end_x1, end_y1  = vec2_add(end_x, end_y, dx, dy)
-	start_x1, start_y1 = start_x, start_y
-	graphics.set_color(Color.black)
-	graphics.circle("fill", start_x1, start_y1, 2)		
-	graphics.circle("fill", end_x1 * 0.8, end_y1 * 0.8, 2)
-	graphics.set_color(Color.white)
-	graphics.circle("fill", start_x1, start_y1, 1)		
-    graphics.circle("fill", end_x1 * 0.8, end_y1 * 0.8, 1)
-	
-
-	
-	-- laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1, end_y1)
-	-- laser_sight_draw(1, Color.white, start_x1, start_y1, end_x1, end_y1)
-	-- laser_sight_draw(3, Color.black, start_x2, start_y2, end_x2, end_y2)
-	-- laser_sight_draw(1, Color.cyan, start_x2, start_y2, end_x2, end_y2)
+    -- self:laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1, end_y1)
+    -- self:laser_sight_draw(1, Color.white, start_x1, start_y1, end_x1, end_y1)
+    -- self:laser_sight_draw(3, Color.black, start_x2, start_y2, end_x2, end_y2)
+    -- self:laser_sight_draw(1, Color.cyan, start_x2, start_y2, end_x2, end_y2)
     -- end
-	graphics.pop()
-	
-	-- local rescue_objects = self.world:get_objects_with_tag("rescue_object")
+    graphics.pop()
+
+    -- local rescue_objects = self.world:get_objects_with_tag("rescue_object")
     -- if rescue_objects then
-	-- 	for _, rescue in (rescue_objects:ipairs()) do
-	-- 		local bx, by = self.player:get_body_center()
+    -- 	for _, rescue in (rescue_objects:ipairs()) do
+    -- 		local bx, by = self.player:get_body_center()
     --         local rx, ry = rescue:get_body_center()
-	-- 		bx, by = self:to_local(bx, by)
+    -- 		bx, by = self:to_local(bx, by)
     --         rx, ry = self:to_local(rx, ry)
     --         graphics.set_color(Color.green)
-	-- 		graphics.line(bx, by, rx, ry)
-	-- 	end
-	-- end
-
+    -- 		graphics.line(bx, by, rx, ry)
+    -- 	end
+    -- end
 end
+
+function AimDraw:draw_crosshair(x, y)
+	local size = 9
+
+	graphics.push()
+	graphics.translate(x, y)
+	
+	graphics.push()
+	graphics.rotate(self.player.mouse_aim_offset:angle() + self.elapsed * 0.1)
+	graphics.set_line_width(3)
+	graphics.set_color(Color.black)
+	graphics.dashrect_centered(0, 0, size, size, 3, 3)
+	graphics.set_line_width(1)
+	graphics.set_color(Color.white)
+	graphics.dashrect_centered(0, 0, size, size, 3, 3)
+	graphics.pop()
+
+	graphics.set_color(Color.black)
+	graphics.rectangle_centered("fill", 0, 0, 4, 4)
+	graphics.set_color(Color.white)
+	graphics.rectangle_centered("fill", 0, 0, 2, 2)
+	graphics.pop()
+end 
 
 function PlayerCharacter:enter()
 	self:add_hurt_bubble(0, 0, self.hurt_bubble_radius, "main")
     self:add_tag("player")
+    self:add_tag("move_with_level_transition")
 	self:add_tag("ally")
-	self:ref("aim_draw", self:spawn_object(AimDraw(0, 0, self)))
+    self:ref("aim_draw", self:spawn_object(AimDraw(0, 0, self)))
+	self:ref("shadow", self:spawn_object(PlayerShadow(0, 0, self)))
 	self:add_move_function(function()
 		self.aim_draw:move_to(self.pos.x, self.pos.y)
-	end)
+    end)
+	if game_state.artefacts.drone then
+		self:spawn_drone()
+	end
 	-- self:ref("ground_effect", self:spawn_object(GroundEffect(0, 0, self)))
 	-- self:start_invulnerability_timer(60)
 end
@@ -285,15 +348,29 @@ function PlayerCharacter:handle_input(dt)
 			end
 		end
     else
-        local mdx, mdy = input.mouse.dxy_absolute.x, input.mouse.dxy_absolute.y
+        if usersettings.use_absolute_aim then
+            local global_mouse_x, global_mouse_y = self:get_mouse_position()
+			self.mouse_pos_x = global_mouse_x
+			self.mouse_pos_y = global_mouse_y
+            local mouse_x, mouse_y = self:to_local(global_mouse_x, global_mouse_y)
+            self.mouse_aim_offset:set(vec2_limit_length(mouse_x, mouse_y, 1))
+			self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
+		else
+			local mdx, mdy = input.mouse.dxy_absolute.x, input.mouse.dxy_absolute.y
 
-        if vec2_magnitude_squared(mdx, mdy) > 0 then
-            self.mouse_aim_offset.x = self.mouse_aim_offset.x + mdx * gametime.delta * usersettings.mouse_sensitivity
-            self.mouse_aim_offset.y = self.mouse_aim_offset.y + mdy * gametime.delta * usersettings.mouse_sensitivity
-            self.mouse_aim_offset:limit_length(1)
-        end
+			if vec2_magnitude_squared(mdx, mdy) > 0 then
+				self.mouse_aim_offset.x = self.mouse_aim_offset.x + mdx * gametime.delta * usersettings.mouse_sensitivity
+                self.mouse_aim_offset.y = self.mouse_aim_offset.y + mdy * gametime.delta * usersettings
+                .mouse_sensitivity
+				if usersettings.relative_mouse_aim_snap_to_max_range then
+                    self.mouse_aim_offset:normalize_in_place()
+				else
+					self.mouse_aim_offset:limit_length(1)
+				end
+			end
 
-        self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
+            self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
+		end
         -- self.aim_direction:normalize_in_place()
     end
 	
@@ -327,7 +404,8 @@ function PlayerCharacter:handle_input(dt)
 
 		self:move(move_amount_x * dt * self.speed, move_amount_y * dt * self.speed)
     elseif self.state == "Hover" then
-		self:apply_force(move_amount_x * self.speed, move_amount_y * self.speed)
+		self.hover_accel.x = self.hover_accel.x + move_amount_x * self.speed
+		self.hover_accel.y = self.hover_accel.y + move_amount_y * self.speed
 	end
 	
     self.shooting = self.shooting or input.shoot_held
@@ -338,11 +416,22 @@ function PlayerCharacter:handle_input(dt)
         -- if self.state == "Walk" then
 
         local fire_rate = game_state.upgrades.fire_rate
-		local modifier = 1 - (fire_rate * 0.1) * (cooldown / 8)
-        cooldown = max(cooldown * modifier, 1)
+		local modifier = 1
+		modifier = modifier - (fire_rate * 0.1) * (cooldown / PlayerBullet.cooldown)
+		if game_state.artefacts.crown_of_frenzy and self.world:get_number_of_objects_with_tag("rescue_object") == 0 then
+			modifier = modifier * 0.9
+		end
+        cooldown = cooldown * modifier
 
-        self:start_tick_timer("shoot_cooldown", round(cooldown))
-        self:start_timer("hide_crosshair", min(cooldown, 3))
+
+        cooldown = max(cooldown, 1)
+		
+        cooldown = round(cooldown)
+		
+		dbg("cooldown", cooldown)
+
+        self:start_tick_timer("shoot_cooldown", cooldown)
+        -- self:start_timer("hide_crosshair", min(cooldown, 3))
     end
 	
 	if not self.shooting then
@@ -363,7 +452,7 @@ function PlayerCharacter:fire_current_bullet()
     end
 	
     local cooldown = class.cooldown
-	local num_bullets = clamp(game_state.upgrades.bullets + (class.num_bullets_modifier or 0), 0, game_state.max_upgrades.bullets)
+	local num_bullets = clamp(game_state.upgrades.bullets + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
 
 	self:fire_bullet(class, nil, 0, 0)
     
@@ -371,15 +460,15 @@ function PlayerCharacter:fire_current_bullet()
 	
 	local spread = class.spread
 
-	if num_bullets >= 1 then
-		self:fire_bullet(class, self.aim_direction:rotated(deg2rad(spread)), 0, 2, true)
-		self:fire_bullet(class, self.aim_direction:rotated(deg2rad(-spread)), 0, -2, true)
-		-- self:fire_bullet(class, nil)
-	end
+    for i = 1, num_bullets do
+        if num_bullets >= 1 then
+            self:fire_bullet(class, self.aim_direction:rotated(deg2rad(spread * i)), 0, class.h_offset * i, true)
+            self:fire_bullet(class, self.aim_direction:rotated(deg2rad(-spread * i)), 0, -class.h_offset * i, true)
+        end
+    end
 	
-	if num_bullets >= 2 then
-		self:fire_bullet(class, self.aim_direction:rotated(deg2rad(spread * 2)), 0, 4, true)
-		self:fire_bullet(class, self.aim_direction:rotated(deg2rad(-spread * 2)), 0, -4, true)
+    if self.drone then
+		self:fire_bullet_at_position(class, self.aim_direction:clone():mul_in_place(-1), self.drone.pos.x, self.drone.pos.y, true)
 	end
 
 	return cooldown
@@ -418,35 +507,77 @@ function PlayerCharacter:is_invulnerable()
 end
 
 function PlayerCharacter:hit_by(by)
-    if self:is_invulnerable() then return end
-		
-    -- self:start_timer("death_flash", 1, function()
-    -- end)
-	
-    if game_state.hearts <= 0 then
-        self:damage(by.damage)
-	else
-        self:start_invulnerability_timer(90)
-		-- self:play_sfx("old_player_death", 0.85)
-        game_state:lose_heart()
-		game_state:random_downgrade()
-		self:emit_signal("got_hurt")
+
+	if debug.enabled then
+        if by.parent then
+			local process_float = function(x)
+				return stepify_safe(x, 0.01)
+			end
+            local hurt_bubble = self:get_bubble("hurt", "main")
+            local hx, hy = hurt_bubble:get_position()
+			local byx, byy = by:get_position()
+            local r = hurt_bubble.radius
+			local byr = by.radius
+            print("hit by " ..
+            tostring(by.parent) ..
+            " who was at " .. process_float(byx) .. ", " .. process_float(byy) .. " with radius " .. process_float(byr))
+            print("i was at " .. process_float(hx) .. ", " .. process_float(hy) .. " with radius " .. process_float(r))
+            print("which is a difference of " ..
+            process_float(hx - byx) ..
+            ", " .. process_float(hy - byy) .. " with a total distance of " .. process_float(vec2_distance(hx, hy, byx, byy)))
+            if vec2_distance(hx, hy, byx, byy) > r + byr then
+				print("this should have missed as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is greater than the sum of the radii " .. process_float(r + byr))
+            else
+				print("this should have hit as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is less than the sum of the radii " .. process_float(r + byr))
+			end
+			
+        else
+            print("hit by " .. tostring(by))
+        end
 	end
 
-	local bx, by = self:get_body_center()
+    if self:is_invulnerable() then return end
+
+    if by.damage > 0 then
+        if game_state.hearts > 0 then
+            self:start_invulnerability_timer(90)
+            -- self:play_sfx("old_player_death", 0.85)
+            game_state:lose_heart()
+            -- local percent = game_state.artefacts.stone_trinket and 50 or 100
+			-- if rng.percent(percent) then
+			game_state:random_downgrade()
+            -- end
+			
+            self:emit_signal("got_hurt")
+        elseif game_state.artefacts.sacrificial_twin then
+			game_state:use_sacrificial_twin()
+            self:emit_signal("got_hurt")
+            self:start_invulnerability_timer(90)
+        else
+            self:damage(1)
+        end
+    end
+	
+	local bcx, bcy = self:get_body_center()
+
 	local sprite = self:get_sprite()
-    local particle = self:spawn_object(DeathFlash(bx, by, sprite, self.hp == 0 and 10.0 or 3.0, Palette.player_death, 1))
+    local particle = self:spawn_object(DeathFlash(bcx, bcy, sprite, self.hp == 0 and 10.0 or 3.0, Palette.player_death, 1))
 	if self.hp > 0 then
 		particle.z_index = -1
 	end
+
+	game_state:on_damage_taken()
 end
 
 function PlayerCharacter:on_health_reached_zero()
-	self:die()
+    self:die()
+
 end
 
 function PlayerCharacter:die()
-
+	if self.shadow then
+		self.shadow:die()
+	end
     self:emit_signal("died")
 
     -- local object = self:spawn_object(DeathSplatter(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y,
@@ -456,13 +587,16 @@ function PlayerCharacter:die()
 end
 
 function PlayerCharacter:update(dt)
+
+	-- love.timer.sleep(0.0035)
+
     self:collide_with_terrain()
     if self.is_new_tick then
-		-- local s = self.sequencer
-		-- s:start(function()
-			
-		-- end)
-	end
+        -- local s = self.sequencer
+        -- s:start(function()
+
+        -- end)
+    end
 end
 
 -- function PlayerCharacter:get_palette()
@@ -551,12 +685,15 @@ function PlayerCharacter:state_Walk_update(dt)
 end
 
 function PlayerCharacter:state_Hover_enter(boost)
+    self.hover_accel:mul_in_place(0)
+    self.hover_vel:mul_in_place(0)
+	self.hover_impulse:mul_in_place(0)
 	self.hover_particle_direction:clone_from(self.moving_direction)
 	
 	if boost == nil then 
 		boost = true
 	end
-    self.vel:mul_in_place(0)
+    self.hover_vel:mul_in_place(0)
 	self:play_sfx("player_hover", 0.25)
 
 	local input = self:get_input_table()
@@ -566,10 +703,12 @@ function PlayerCharacter:state_Hover_enter(boost)
 		self:spawn_object(HoverDashFx(self.pos.x, self.pos.y, -self.moving_direction.x, -self.moving_direction.y)):ref("player", self)
 		
 		-- local input = self:get_input_table()
-		self:apply_impulse(self.moving_direction.x * HOVER_IMPULSE, self.moving_direction.y * HOVER_IMPULSE)
+		self.hover_impulse.x = self.hover_impulse.x + self.moving_direction.x * HOVER_IMPULSE
+		self.hover_impulse.y = self.hover_impulse.y + self.moving_direction.y * HOVER_IMPULSE
 	end
     self.speed = self:get_hover_speed()
     self.drag = self:get_hover_drag()
+
 end
 
 function PlayerCharacter:get_hover_drag()
@@ -589,18 +728,147 @@ function PlayerCharacter:get_hover_speed()
 end
 
 
+function PlayerCharacter:state_Hover_update(dt)
+	self.drag = self:get_hover_drag()
+	self.speed = self:get_hover_speed()
+
+	if self.is_new_tick and (self.tick % 20 == 0 or self.state_tick == 1) then
+		self:play_sfx("player_hover", 0.25)
+	end
+
+    if self.state_tick < 4 then
+        -- self:defer(function()
+        if self.moving_direction.x ~= 0 or self.moving_direction.y ~= 0 then
+            local mag = self.hover_vel:magnitude()
+            self.hover_vel.x = self.moving_direction.x * mag
+            self.hover_vel.y = self.moving_direction.y * mag
+        end
+        -- end)
+    end
+	
+	self:alive_update(dt)
+    local input = self:get_input_table()
+
+	if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
+		-- if not self.world.room.cleared then
+			self:change_state("Walk")
+		-- end
+	end
+
+	self.hover_particle_direction:splerp_in_place(self.moving_direction, 10, dt)
+	
+	if self.is_new_tick then
+        for i = 1, (1) do
+            local bx, by = self:get_body_center()
+            local offsx, offsy = rng.random_vec2_times(rng.randfn(0, 1.0))
+            bx = bx + offsx
+            by = by + offsy
+            local vel_x, vel_y = self.hover_particle_direction.x, self.hover_particle_direction.y
+            local current_vel_magnitude = self.hover_vel:magnitude()
+            vel_x = vel_x * current_vel_magnitude * 2
+            vel_y = vel_y * current_vel_magnitude * 2
+            vel_x = vel_x + self.hover_vel.x
+            vel_y = vel_y + self.hover_vel.y
+            local random = false
+            if rng.percent(15) or vec2_magnitude_squared(vel_x, vel_y) < vec2_magnitude_squared(self.moving_direction.x, self.moving_direction.y) then
+                vel_x, vel_y = rng.random_vec2_times(game_state.artefacts.boost_damage and 5 or 4)
+                random = true
+            end
+
+            vel_x, vel_y = vec2_rotated(vel_x, vel_y, rng.randfn(0, tau / 32))
+            vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y,
+                rng.randfn(1.0, 0.25) * (((not random) and game_state.artefacts.boost_damage) and 1.75 or 1.5))
+            vel_x, vel_y = vec2_clamp_magnitude(vel_x, vel_y, 1, math.huge)
+
+            local offsx2, offsy2 = vec2_normalized_times(-vel_x, -vel_y, 5)
+            offsx2 = offsx2 * abs(rng.randfn(0, 1.0))
+            offsy2 = offsy2 * abs(rng.randfn(0, 1.0))
+            bx = bx + offsx2
+            by = by + offsy2
+
+            vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y, 0.25)
+
+            -- if not random and game_state.artefacts.boost_damage then
+            --     if vec2_magnitude(vel_x, vel_y) < (4) then
+            --         vel_x, vel_y = vec2_normalized_times(vel_x, vel_y, 4)
+            --     end
+            -- end
+
+            self:spawn_object(HoverFx(bx, by - 1, vel_x, vel_y)):ref("player", self)
+        end
+        if game_state.artefacts.boost_damage and self.tick % 5 == 0 then
+			self:spawn_object(HoverFireTrail(self.pos.x, self.pos.y))
+		end
+    end
+
+		
+	self.hover_vel.x = self.hover_vel.x + self.hover_accel.x * dt
+    self.hover_vel.y = self.hover_vel.y + self.hover_accel.y * dt
+	self.hover_vel.x = self.hover_vel.x + self.hover_impulse.x
+	self.hover_vel.y = self.hover_vel.y + self.hover_impulse.y
+	-- self.pos.x = self.pos.x + self.hover_vel.x * dt
+    -- self.pos.y = self.pos.y + self.hover_vel.y * dt
+	self:move(self.hover_vel.x * dt, self.hover_vel.y * dt)
+
+    self.hover_vel.x, self.hover_vel.y = vec2_drag(self.hover_vel.x, self.hover_vel.y, self.drag, dt)
+    self.hover_impulse:mul_in_place(0)
+	self.hover_accel:mul_in_place(0)
+
+	if debug.enabled then
+		dbg("hover speed", self.hover_vel:magnitude())
+	end
+
+
+end
+
+function PlayerCharacter:state_Hover_exit()
+    self.hover_vel:mul_in_place(0.0)
+	self:stop_sfx("player_hover")
+end
+
+function PlayerCharacter:exit()
+	self:stop_sfx("player_hover")
+end
+
+HoverFx.damage_scale = 0.06
+HoverFx.hit_velocity = 0.1
+
 function HoverFx:new(x, y, vel_x, vel_y)
 	HoverFx.super.new(self, x, y)
 	self.sprite = textures.player_hover_fx
-	self.duration = 8 + max(rng.randfn(0, 3), 1)
-	self.size = max(rng.randfn(8.0, 1.25), 1.0)
+    self.duration = 8 + max(rng.randfn(0, 3), 1) * (game_state.artefacts.boost_damage and 1.5 or 1)
+	self.drag = 0.2
+	-- if game_state.artefacts.boost_damage then self.drag = 0.05 end
+	self.size = max(rng.randfn(game_state.artefacts.boost_damage and 10.0 or 8.0, 1.25), 1.0)
 	-- self.z_index = -1
-	self.vel = Vec2(vel_x, vel_y):mul_in_place(1.5)
+    self.hover_vel = Vec2(vel_x, vel_y):mul_in_place(1.5)
+	self.terrain_collision_radius = 1
+    self.body_height = 0
+	self.team = "player"
+	self.palette = game_state.artefacts.boost_damage and Palette.hover_thruster_damage or Palette.hover_thruster
+    -- self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
+end
+
+-- function HoverFx:enter()
+	-- if game_state.artefacts.boost_damage then
+	-- 	self:add_hit_bubble(0, 0, self.size * 1.3, "main", self.damage_scale * self.size)
+	-- end
+-- end
+
+function HoverFx:hit_other(other, bubble)
+    local bx, by = self:get_body_center()
+	local ox, oy = other:get_body_center()
+    local dx, dy = vec2_direction_to(bx, by, ox, oy)
+	local t = self.elapsed / self.duration
+	local scale = remap01_lower(pow(1 - t, 2), 0.1) * self.size
+	local vel_x, vel_y = vec2_normalized_times(dx, dy, self.hit_velocity * scale)
+	other:apply_impulse(vel_x, vel_y)
 end
 
 function HoverFx:update(dt)
-    self:move(-self.vel.x * dt, -self.vel.y * dt)
-	self.vel.x, self.vel.y = vec2_drag(self.vel.x, self.vel.y, 0.2, dt)
+    self:move(-self.hover_vel.x * dt, -self.hover_vel.y * dt)
+    self.hover_vel.x, self.hover_vel.y = vec2_drag(self.hover_vel.x, self.hover_vel.y, self.drag, dt)
+
 end
 
 function HoverFx:draw(elapsed, tick, t)
@@ -619,11 +887,100 @@ function HoverFx:draw_particle(floor, elapsed, tick, t)
 		-- local redmod = abs(rng.randfn(0.0, 0.05))
 		graphics.set_color(alpha * 0.5, alpha * 0.30, alpha)
 	else
-		color = Palette.hover_thruster:interpolate_clamped(t)
+		color = (self.palette):interpolate_clamped(t)
 		graphics.set_color(color)
 	end
 	graphics.rectangle_centered(t < 0.25 and "fill" or "line", 0, 0, scale, scale)
 end
+
+function HoverFireTrail:new(x, y)
+    HoverFireTrail.super.new(self, x, y)
+    self.sprite = textures.player_hover_fire_trail
+	self.team = "player"
+    self.duration = 90 + rng.randfn(0, 6)
+    self.z_index = 0
+    self.persist = false
+    self.hit_cooldown = 2
+	self.particles = {}
+	self.to_remove = {}
+    self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
+	self.random_offset = rng.randi(0, 100)
+end
+
+function HoverFireTrail:enter()
+    self:add_hit_bubble(0, 0, 9, "main", 0.25)
+end
+
+function HoverFireTrail:update(dt)
+    local hitbox = self:get_bubble("hit", "main")
+	local radius = hitbox.radius
+    hitbox.radius = approach(radius, 5, 0.05 * dt)
+    if not self.done and self.elapsed > self.duration then
+        self.done = true
+        self.melee_attacking = false
+		self:stop_sfx("player_boost_fire")
+    end
+
+	table.clear(self.to_remove)
+
+	
+    for particle in pairs(self.particles) do
+        particle.elapsed = particle.elapsed + dt
+        -- particle.pos.x = particle.pos.x + particle.vel_x * dt
+        if particle.elapsed > particle.duration then
+            table.insert(self.to_remove, particle)
+        end
+    end
+	
+	for _, particle in ipairs(self.to_remove) do
+		self.particles[particle] = nil
+	end
+
+    if self.is_new_tick and not self.done then
+        for i = 1, rng.randi(2) do
+			if rng.percent(10) then
+				local particle = {}
+				particle.x, particle.y = rng.random_vec2_times(rng.randf_range(0, self:get_bubble("hit", "main").radius * 2))
+				particle.size = rng.randfn(3, 1)
+				particle.elapsed = 0
+				particle.duration = rng.randf_range(10, 50)
+				particle.speed = rng.randf_range(0.15, 0.4)
+				self.particles[particle] = true
+			end
+		end
+	end
+
+	if self.done then 
+        if table.is_empty(self.particles) then
+            self:queue_destroy()
+        end
+    else
+		self:play_sfx_if_stopped("player_boost_fire", 0.5)
+	end
+end
+
+function HoverFireTrail:draw()
+
+    if self.elapsed < self.duration then
+        local color = Palette.trail_fire_ground:tick_color(self.tick + self.random_offset, 0, 1)
+		if color ~= Color.black then
+        	graphics.set_color(color)
+        	local size = self:get_bubble("hit", "main").radius * 2 * (1 + sin(self.elapsed * 0.3) * 0.2) * 0.75
+        	graphics.rectangle_centered(idivmod_eq_zero(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
+		end
+    end
+	
+	for particle in pairs(self.particles) do
+		graphics.set_color(Palette.fire:tick_color(particle.elapsed, 0, 3))
+		local size = particle.size * (1 - particle.elapsed / particle.duration)
+		graphics.rectangle_centered("fill", particle.x, particle.y - particle.elapsed * particle.speed, size, size)
+	end
+
+end
+
+function HoverFireTrail:exit()
+end
+
 
 function HoverDashFx:new(x, y, vel_x, vel_y)
 	HoverDashFx.super.new(self, x, y)
@@ -681,78 +1038,87 @@ function HoverFx:floor_draw()
 		self:draw_particle(true, elapsed, tick, t)
 	end
 end
+function PlayerDrone:new(x, y)
+	PlayerDrone.super.new(self, x, y)
+	self.sprite = textures.player_drone
+	self.z_index = 1000
+	self.persist = true
+	self.size = 16
+	self.player = nil
+	self.target = Vec2(x, y)
+	self:add_time_stuff()
+end
 
-function PlayerCharacter:state_Hover_update(dt)
-	self.drag = self:get_hover_drag()
-	self.speed = self:get_hover_speed()
+function PlayerDrone:enter()
+	self:add_tag("move_with_level_transition")
+end
 
-	if self.is_new_tick and (self.tick % 20 == 0 or self.state_tick == 1) then
-		self:play_sfx("player_hover", 0.25)
-	end
+function PlayerDrone:update(dt)
+    if self.player then
+        self.target.x, self.target.y = self.player.pos.x, self.player.pos.y
+    else
+        self:queue_destroy()
+    end
+    -- local offs_x, offs_y = vec2_from_polar(20, self.elapsed / 18)
+	local offs_x, offs_y = 0, 0
+	local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
+	self:move_to(x, y)
+end
 
-    if self.state_tick < 4 then
-        -- self:defer(function()
-        if self.moving_direction.x ~= 0 or self.moving_direction.y ~= 0 then
-            local mag = self.vel:magnitude()
-            self.vel.x = self.moving_direction.x * mag
-            self.vel.y = self.moving_direction.y * mag
+function PlayerDrone:draw()
+	if gametime.tick % 2 == 0 then return end
+    graphics.set_color(Color.white)
+    graphics.drawp_centered(textures.ally_drone, nil, 0)
+end
+
+
+function PlayerShadow:new(x, y, target)
+    PlayerShadow.super.new(self, x, y)
+	self.persist = true
+    self:add_sequencer()
+	self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    self.duration = 0
+    self:ref("target", target)
+	self.z_index = -2
+	self.size = 7
+    self.random_offset = rng.randi(0, 100)
+    signal.connect(self.target, "moved", self, "on_target_moved", function()
+		self:move_to(self.target.pos.x, self.target.pos.y)
+	end)
+end
+
+function PlayerShadow:die()
+    local s = self.sequencer
+    self.dead = true
+	self.size = self.size * 2.5
+    s:start(function()
+        s:tween_property(self, "size", self.size, self.size * 4, 20, "linear")
+        self:queue_destroy()
+    end)
+end
+
+function PlayerShadow:draw(elapsed)
+    local almost_dead = false
+	if not self.target then
+        if idivmod_eq_zero(self.random_offset + gametime.tick, 2, 2) then
+            return
         end
-        -- end)
-    end
-	
-	self:alive_update(dt)
-    local input = self:get_input_table()
-
-	if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
-		-- if not self.world.room.cleared then
-			self:change_state("Walk")
-		-- end
+    elseif idivmod_eq_zero(self.random_offset + gametime.tick, 1, 3) then
+		return
+    else
+		almost_dead = game_state.hearts <= 0 and idivmod_eq_zero(gametime.tick, 5, 2)
 	end
-
-	self.hover_particle_direction:splerp_in_place(self.moving_direction, 10, dt)
 	
-	if self.is_new_tick then
-		local bx, by = self:get_body_center()
-		local offsx, offsy = rng.random_vec2_times(rng.randfn(0, 1.0))
-		bx = bx + offsx
-		by = by + offsy
-		local vel_x, vel_y = self.hover_particle_direction.x, self.hover_particle_direction.y
-		local current_vel_magnitude = self.vel:magnitude()
-		vel_x = vel_x * current_vel_magnitude * 2
-		vel_y = vel_y * current_vel_magnitude * 2
-		vel_x = vel_x + self.vel.x
-		vel_y = vel_y + self.vel.y
-		if rng.percent(15) or vec2_magnitude_squared(vel_x, vel_y) < vec2_magnitude_squared(self.moving_direction.x, self.moving_direction.y) then
-			vel_x, vel_y = rng.random_vec2_times(4)
-		end
 
-		vel_x, vel_y = vec2_rotated(vel_x, vel_y, rng.randfn(0, tau / 32))
-		vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y, rng.randfn(1.0, 0.25) * 1.5)
-		vel_x, vel_y = vec2_clamp_magnitude(vel_x, vel_y, 1, math.huge)
+    local color = self.dead and Color.red or (idivmod_eq_zero(gametime.tick, 2, 2) and (almost_dead and Color.red or Color.skyblue) or (almost_dead and Color.yellow or Color.green))
+    local size = max(self.size + min(-self.size + self.elapsed * 0.2, 0), 1)
+    graphics.set_color(color)
+	graphics.set_line_width(1)
+	-- if almost_dead then
+	-- end
+    graphics.rectangle_centered("line", 0, 0, size, size * 0.75)
+    graphics.rectangle_centered("line", 0, 0, size + 4, size * 0.75 + 4)
 
-		local offsx2, offsy2 = vec2_normalized_times(-vel_x, -vel_y, 5)
-		offsx2 = offsx2 * abs(rng.randfn(0, 1.0))
-		offsy2 = offsy2 * abs(rng.randfn(0, 1.0))
-		bx = bx + offsx2
-		by = by + offsy2
-
-		vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y, 0.25)
-
-        self:spawn_object(HoverFx(bx, by - 1, vel_x, vel_y)):ref("player", self)
-    end
-
-	if debug.enabled then
-		dbg("hover speed", self.vel:magnitude())
-	end
-end
-
-function PlayerCharacter:state_Hover_exit()
-    self.vel:mul_in_place(0.1)
-	self:stop_sfx("player_hover")
-end
-
-function PlayerCharacter:exit()
-	self:stop_sfx("player_hover")
 end
 
 AutoStateMachine(PlayerCharacter, "Walk")

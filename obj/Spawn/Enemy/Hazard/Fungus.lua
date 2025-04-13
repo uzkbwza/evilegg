@@ -1,8 +1,13 @@
-local Fungus = require("obj.Spawn.Enemy.BaseEnemy"):extend("Fungus")
+local Fungus = BaseEnemy:extend("Fungus")
 
 local BASE_HP = 1
 local BASE_HP_BIG = 2
 local MAX_HP = 2
+
+local BASE_HP_FRIENDLY = 2
+local BASE_HP_BIG_FRIENDLY = 4
+local MAX_HP_FRIENDLY = 4
+local HP_GAIN_AMOUNT_FRIENDLY = 2
 
 local PROPOGATE_CHILD_FREQUENCY_MODIFIER = 1.0
 
@@ -17,13 +22,20 @@ local PROPOGATE_RADIUS = 16
 local MAX_FUNGI = 60
 
 function Fungus:new(x, y, propogate_frequency)
-    self.team = "neutral"
-	self.hitbox_team = "enemy"
-    self.max_hp = BASE_HP
+    self.team = game_state.artefacts.death_cap and "player" or "neutral"
+	self.hitbox_team = game_state.artefacts.death_cap and "player" or "enemy"
+    self.max_hp = (game_state.artefacts.death_cap and BASE_HP_FRIENDLY or BASE_HP)
+    self.base_hp_big = game_state.artefacts.death_cap and BASE_HP_BIG_FRIENDLY or BASE_HP_BIG
+	self.hp_gain_amount = game_state.artefacts.death_cap and HP_GAIN_AMOUNT_FRIENDLY or HP_GAIN_AMOUNT
 	self.propogate_frequency = propogate_frequency or PROPOGATE_FREQUENCY
 	self.hurt_bubble_radius = 3
-	self.hurt_bubble_radius_big = 6
-    -- self.hit_bubble_radius = 1
+    self.hurt_bubble_radius_big = 6
+
+	if game_state.artefacts.death_cap then
+		self.hit_bubble_damage = 0.2
+	end
+    
+	-- self.hit_bubble_radius = 1
 	self.body_height = 4
 	self.hit_bubble_radius_big = 2
     Fungus.super.new(self, x, y)
@@ -43,7 +55,8 @@ function Fungus:new(x, y, propogate_frequency)
 
     self.death_sfx_volume = 0.5
 	self.death_sfx = "hazard_fungus_die"
-	self.hit_bubble_radius = nil
+    self.hit_bubble_radius = nil
+	self.palette = nil
 end
 
 function Fungus:enter()
@@ -75,14 +88,14 @@ end
 
 
 function Fungus:update_bubble_radii()
-	if self.hp < BASE_HP_BIG then
+	if self.hp < self.base_hp_big then
         self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius)
 		-- self:set_bubble_radius("hit", "main", self.hit_bubble_radius)
 	end
 end
 
 function Fungus:on_healed()
-    if not self.big and not self.reached_max_hp and self.hp >= BASE_HP_BIG then
+    if not self.big and not self.reached_max_hp and self.hp >= self.base_hp_big then
         self.reached_max_hp = true
         local s = self.sequencer
         s:start(function()
@@ -162,7 +175,7 @@ function Fungus:start_hp_gain_timer()
 	self:start_tick_timer("gain_hp", HP_GAIN_FREQUENCY * clamp(rng.randfn(1, 0.1), 0.5, 1.5), function()
 		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and not self.big then
 			-- self:propagate()
-			self:heal(HP_GAIN_AMOUNT, true)
+			self:heal(self.hp_gain_amount, true)
 		end
 		if self.hp < MAX_HP then
 			self:start_hp_gain_timer()
@@ -174,8 +187,18 @@ function Fungus:get_palette()
 	return nil, floor(self.random_offset + self.world.tick / (self.big and 5 or 12))
 end
 
-function Fungus:get_sprite()
-	return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
+function Fungus:draw()
+    if (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick, 1, 2)) then
+		return
+	end
+	Fungus.super.draw(self)
+end
+
+function Fungus:get_sprite()	
+	if not game_state.artefacts.death_cap then
+		return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
+	end
+	return self.big and textures.hazard_friendly_mushroom2 or textures.hazard_friendly_mushroom1
 end
 
 local COLOR_MOD = 0.95

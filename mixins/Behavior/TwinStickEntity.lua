@@ -10,6 +10,7 @@ function TwinStickEntity:__mix_init()
     self.team = self.team or "enemy"
 	self.hitbox_team = self.hitbox_team or self.team
     self.shadow_radius = self.shadow_radius or 1
+	self.hit_cooldown = self.hit_cooldown or 30
     self:add_elapsed_time()
 	self:add_elapsed_ticks()
 	self:add_sequencer()
@@ -110,6 +111,14 @@ function TwinStickEntity:add_bubble(bubble_type, x, y, radius, name, x2, y2, ...
         grid:add(b, bx, by, w, h)
     end
 end
+
+-- function TwinStickEntity:change_team(team)
+	-- self.team = team
+	-- self.hitbox_team = team
+	-- self:clear_bubbles("hurt")
+	-- self:clear_bubbles("hit")
+	-- self:twinstick_enter()
+-- end
 
 function TwinStickEntity:remove_bubble(bubble_type, name)
     local bubble_list = self.bubbles[bubble_type]
@@ -253,6 +262,7 @@ function TwinStickEntity:set_hurt_bubble_position(name, x, y)
     return self:set_bubble_position("hurt", name, x, y)
 end
 
+
 function TwinStickEntity:set_hurt_bubble_capsule_end_points(name, x2, y2)
     return self:set_bubble_capsule_end_points("hurt", name, x2, y2)
 end
@@ -291,9 +301,6 @@ function TwinStickEntity:constrain_to_room()
 
     if self.pos.x - self.terrain_collision_radius <= room.left then
         self:move_to(room.left + self.terrain_collision_radius, self.pos.y)
-        -- if self.vel and self.vel.x < 0 then
-        --     self.vel.x = 0
-        -- end
 		normal_x = 1
 		collided = true
     end
@@ -466,6 +473,13 @@ function TwinStickEntity:fire_bullet(bullet, direction, offset_x, offset_y, ...)
 	return self:spawn_object(b)
 end
 
+function TwinStickEntity:fire_bullet_at_position(bullet, direction, x, y, ...)
+	direction = (direction or self.aim_direction:clone()):normalize_in_place()
+	local b = bullet(x, y, ...)
+	b.direction = direction
+	return self:spawn_object(b)
+end
+
 function TwinStickEntity:twinstick_enter()
     -- Suppose the world has "hurt_bubbles" and "hit_bubbles" by team:
     self.bubbles_grid.hurt = self.world.hurt_bubbles[self.team]
@@ -494,7 +508,6 @@ function TwinStickEntity:filter_melee_attack(bubble)
 	return true
 end
 
-local HIT_COOLDOWN = 30
 
 function TwinStickEntity.try_melee_attack(other, self, bubble)
 	self.twinstick_entity_hit_objects = self.twinstick_entity_hit_objects or {}
@@ -509,19 +522,24 @@ function TwinStickEntity.try_melee_attack(other, self, bubble)
 	end
 	if bubble:collides_with_bubble(other) then
 		if other.parent ~= self then
-			other.parent:hit_by(bubble)
+            other.parent:hit_by(bubble)
+			self:hit_other(other.parent, bubble)
             self.twinstick_entity_landed_melee_attack = true
             self.twinstick_entity_hit_objects[other.parent.id] = true
-			local s = self.sequencer
-			s:start(function()
-                s:wait(HIT_COOLDOWN)
+            local s = self.sequencer
+			local func = function()
+                s:wait(self.hit_cooldown)
                 self.twinstick_entity_hit_objects[other.parent.id] = nil
-            end)
+            end
+			s:start(func)
 
 			return true
 		end
 	end
 	return false
+end
+
+function TwinStickEntity:hit_other(other, bubble)
 end
 
 function TwinStickEntity:get_sprite()

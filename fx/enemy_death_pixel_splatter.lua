@@ -4,12 +4,14 @@ local DEATH_FX_DISTANCE = 3
 local BASE_SIZE = 14
 local MAX_SPEED = 20
 
+local CENTER_SPEED = 1
+
 local DRAG = 0.15
 
 local DeathSplatter = Effect:extend("DeathSplatter")
 
 -- TODO: use quads instead of pixels
-function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_length, vel_x, vel_y, hit_point_x, hit_point_y)
+function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_length, vel_x, vel_y, hit_point_x, hit_point_y, center_speed_modifier)
 	DeathSplatter.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
     self.duration = 20
@@ -20,7 +22,9 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 	local width, height = 0, 0
     local offset_x, offset_y = 0, 0
 
-    self.vel_x, self.vel_y = vel_x or 0, vel_y or 0
+	vel_x = vel_x or 0
+	vel_y = vel_y or 0
+    self.vel_x, self.vel_y = vel_x, vel_y
 	if texture.__isquad then
 		width, height = texture.width, texture.height
 		offset_x, offset_y = texture.x, texture.y
@@ -39,10 +43,14 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     local vel_dir_x, vel_dir_y = vec2_normalized(vel_x, vel_y)
 	self.vel_dir_x, self.vel_dir_y = vel_dir_x, vel_dir_y
     local speed = vec2_magnitude(vel_x, vel_y)
-    local dx, dy = vec2_sub(hit_point_x or 0, hit_point_y or 0, x, y)
+	local center_x, center_y = width / 2, height / 2
+	hit_point_x = hit_point_x or x + center_x
+	hit_point_y = hit_point_y or y + center_y
+    local dx, dy = vec2_sub(hit_point_x, hit_point_y, x, y)
 	self.hit_point_local_x, self.hit_point_local_y = dx, dy
 	dx = dx + width / 2
     dy = dy + height / 2
+
 
 	self.random_start_tick = rng.randi_range(0, 999)
 
@@ -71,8 +79,14 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
             local a_ = (1 + vec2_dot(vel_dir_x, vel_dir_y, diff_dir_x, diff_dir_y))
 			local b_ = a_ * 0.5 * (1 - diff_mag)
 			local speed_scale = pow(abs(b_), 2.5)
-			local speed_x, speed_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, min(speed_scale * speed, MAX_SPEED))
+			local pixel_vel_x, pixel_vel_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, min(speed_scale * speed, MAX_SPEED))
 
+			local center_dir_x, center_dir_y = vec2_direction_to(hit_point_x - x, hit_point_y - y, x2, y2)
+            local center_vel_x, center_vel_y = vec2_mul_scalar(center_dir_x, center_dir_y, (CENTER_SPEED * (center_speed_modifier or 1)))
+			
+			pixel_vel_x = (pixel_vel_x + center_vel_x)
+            pixel_vel_y = (pixel_vel_y + center_vel_y)
+			
             -- if vec2_magnitude(speed_x, speed_y) < 0.5 then
             --     speed_x, speed_y = vec2_normalized(speed_x, speed_y)
 			-- 	speed_x, speed_y = vec2_mul_scalar(speed_x, speed_y, 0.5)
@@ -91,8 +105,8 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 
 				-- vel_x = rng.randfn(speed_x, 0.005),
 				-- vel_y = rng.randfn(speed_y, 0.005),
-				vel_x = speed_x,
-				vel_y = speed_y,
+				vel_x = pixel_vel_x,
+				vel_y = pixel_vel_y,
 			}
 			
 
@@ -108,7 +122,7 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 	self.size_ratio = true_height / true_width
 
 	self.pixels = pixels
-	self.z_index = 10
+	self.z_index = 0.05
 	self:start_timer("z_index", 10, function()
 		self.z_index = -100
 	end)

@@ -97,7 +97,7 @@ function graphics.load_textures(texture_atlas)
 		texture_count = texture_count + 1
 	end
 
-	dbg("Loaded textures", texture_count)
+	-- dbg("Loaded textures", texture_count)
 
 
 	if packer then
@@ -255,8 +255,7 @@ function graphics.load()
     graphics.load_textures(false)
 
     graphics.initialize_screen_shader_presets()
-
-    graphics.set_screen_shader_from_preset(usersettings.screen_shader_preset)
+	graphics.set_screen_shader_from_preset(usersettings.screen_shader_preset)
 
     graphics.load_fonts()
 
@@ -298,7 +297,7 @@ end
 function graphics.initialize_screen_shader_presets()
 	graphics.screen_shader_presets = {
 		{
-			"soft",
+			"shader_preset_soft",
 			-- graphics.shader.basic
 			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.065, pre_blur_samples = 7 } },
 
@@ -312,7 +311,7 @@ function graphics.initialize_screen_shader_presets()
 		},
 
 		{
-			"scanline",
+			"shader_preset_scanline",
 			-- graphics.shader.basic
 			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
 			-- { shader = graphics.shader.screenfilter, args = {} },
@@ -326,7 +325,7 @@ function graphics.initialize_screen_shader_presets()
 		},
 
 		{
-			"lcd",
+			"shader_preset_lcd",
 			-- graphics.shader.basic
 			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
 			-- { shader = graphics.shader.screenfilter, args = {} },
@@ -339,7 +338,7 @@ function graphics.initialize_screen_shader_presets()
 		},
 		
 		{
-			"ledboard",
+			"shader_preset_ledboard",
 
 			{
 
@@ -370,6 +369,10 @@ function graphics.initialize_screen_shader_presets()
 end
 
 function graphics.set_screen_shader_from_preset(preset)
+	if graphics.current_screen_shader_preset == preset then
+		return
+	end
+	graphics.current_screen_shader_preset = preset
 	graphics.initialize_screen_shader_presets()
 	for i, shader_table in ipairs(graphics.screen_shader_presets) do
 		if shader_table[1] == preset then
@@ -453,11 +456,12 @@ function graphics.frame_rumble(intensity)
     if graphics.rumble_coroutine then
         s:stop(graphics.rumble_coroutine)
     end
-	graphics.rumble_coroutine = s:start(function()	
+	local func = function()	
         s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, 1, "constant0")
         graphics.rumble_coroutine = nil
 		graphics.screen_rumble_intensity = 0
-    end)
+    end
+	graphics.rumble_coroutine = s:start(func)
 end
 
 function graphics.start_rumble(intensity, duration, easing_function)
@@ -467,15 +471,19 @@ function graphics.start_rumble(intensity, duration, easing_function)
     end
 
     easing_function = easing_function or ease("outQuad")
-    graphics.rumble_coroutine = s:start(function()
+    local func = function()
         s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, duration,
             easing_function)
         graphics.rumble_coroutine = nil
         graphics.screen_rumble_intensity = 0
-    end)
+    end
+	
+    graphics.rumble_coroutine = s:start(func)
 end
 
 function graphics.draw_loop()
+
+
 	local wsx, wsy = graphics.get_dimensions()
     graphics.window_size.x = wsx
     graphics.window_size.y = wsy
@@ -498,13 +506,13 @@ function graphics.draw_loop()
 	viewport_size.y = conf.viewport_size.y
 	max_width_scale = process_scale(window_size.x / viewport_size.x)
 	max_height_scale = process_scale(window_size.y / viewport_size.y)
-    viewport_pixel_scale = process_scale(math.min(max_width_scale, max_height_scale))
+    viewport_pixel_scale = max(process_scale(math.min(max_width_scale, max_height_scale) * usersettings.zoom_level), 1)
 
 	if conf.expand_viewport then
-		local scaled_width = floor(window_width / viewport_pixel_scale) 
-		local scaled_height = floor(window_height / viewport_pixel_scale)
-		viewport_size.x = scaled_width
-		viewport_size.y = scaled_height
+		local scaled_width = round(window_width / viewport_pixel_scale) 
+		local scaled_height = round(window_height / viewport_pixel_scale)
+		viewport_size.x = stepify_floor_safe(scaled_width, 2)
+		viewport_size.y = stepify_floor_safe(scaled_height, 2)
 	end
 
 
@@ -512,6 +520,8 @@ function graphics.draw_loop()
 	canvas_size.y = floor(viewport_size.y * viewport_pixel_scale)
     canvas_pos.x = window_size.x / 2 - (canvas_size.x) / 2
     canvas_pos.y = window_size.y / 2 - (canvas_size.y) / 2
+
+	dbg("viewport_size", viewport_size)
 	
     if (abs(graphics.canvas:getWidth() - viewport_size.x) >= 1 or abs(graphics.canvas:getHeight() - viewport_size.y) >= 1) then
         graphics.canvas:release()
@@ -556,7 +566,7 @@ function graphics.draw_loop()
 
 
 		
-		for i = 2, #graphics.screen_shaders do
+		for i = 2, #(graphics.screen_shaders or dummy_table) do
 			
             local shader_table = graphics.screen_shaders[i]
             local shader = shader_table.shader
@@ -862,8 +872,8 @@ end
 
 function graphics.printp_centered(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
     local offset_x, offset_y = graphics.text_center_offset(text, font)
-    x = x + offset_x
-    y = y + offset_y
+    x = round(x + offset_x)
+    y = round(y + offset_y)
     graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
@@ -874,7 +884,7 @@ end
 
 function graphics.print_centered(text, font, x, y, r, sx, sy, ox, oy, kx, ky)
     local offset_x, offset_y = graphics.text_center_offset(text, font)
-    graphics.print(text, x + offset_x, y + offset_y, r, sx, sy, ox, oy, kx, ky)
+    graphics.print(text, round(x + offset_x), round(y + offset_y), r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics.print_outline_centered(outline_color, text, font, x, y, r, sx, sy, ox, oy, kx, ky)

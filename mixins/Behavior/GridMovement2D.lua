@@ -12,7 +12,7 @@ function GridMovement2D:move_toward_cell(x, y, speed, immediate, noclip)
 	local wx, wy = self.world.map.cell_to_world(next_cell.x, next_cell.y, 0)
 	local startx, starty = self.pos.x, self.pos.y
     local s = self.sequencer
-    s:start(function()
+	local func = function()
         self.at_cell = false
         self.moving = true
 		self.pos = Vec2(startx, starty)
@@ -27,7 +27,8 @@ function GridMovement2D:move_toward_cell(x, y, speed, immediate, noclip)
 		-- s:wait(speed)
 		self.at_cell = true
 		self.moving = false
-	end)
+	end
+    s:start(func)
 end
 
 return GridMovement2D

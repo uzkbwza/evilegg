@@ -190,10 +190,7 @@ function filesystem.load_file_native(path)
 end
 
 function filesystem.save_file(data, path)
-	local file = filesystem.open_file(path, "w")
-	file:write(data)
-	file:close()
-
+	filesystem.write(path, data)
 end
 
 function filesystem.save_file_native(data, path)

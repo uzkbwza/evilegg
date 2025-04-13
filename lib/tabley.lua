@@ -198,7 +198,7 @@ function tabley.pop(t)
   return table.remove(t)
 end
 
-function table.list_has(t, value)
+function tabley.list_has(t, value)
     for i, v in ipairs(t) do
 		if v == value then 
 			return true
@@ -206,7 +206,7 @@ function table.list_has(t, value)
 	end
 end
 
-function table.search_list(t, value)
+function tabley.search_list(t, value)
     for i, v in ipairs(t) do
 		if v == value then 
 			return i
@@ -453,7 +453,7 @@ function tabley.deserialize(str)
     return assert(loadstring(str))()
 end
 
-function table.populate_recursive(tab, ...)
+function tabley.populate_recursive(tab, ...)
     local t = tab
     local keys = { ... }
 
@@ -477,7 +477,7 @@ function table.populate_recursive(tab, ...)
 	return t[key]
 end
 
-function table.populate_recursive_from_table(tab, keys)
+function tabley.populate_recursive_from_table(tab, keys)
     local t = tab
 
     if #keys < 1 then
@@ -500,7 +500,7 @@ function table.populate_recursive_from_table(tab, keys)
 	return t[key]
 end
 
-function table.overwrite_recursive(tab, ...)
+function tabley.overwrite_recursive(tab, ...)
 	local t = tab
     local keys = { ... }
 
@@ -526,9 +526,9 @@ function table.overwrite_recursive(tab, ...)
 end
 
 function tabley.fast_remove_at(t, index)
-	local length = #t
-	t[index] = t[length]
-	t[length] = nil
+    local length = #t
+    t[index] = t[length]
+    t[length] = nil
 end
 
 function tabley.erase(t, item)
@@ -538,19 +538,20 @@ function tabley.erase(t, item)
         if item == t[i] then
             t[i] = t[n]
 			t[n] = nil
-			return
+			return true
 		end
 	end
+	return false
 end
 
 function tabley.fast_remove(t, fnKeep)
-	if type(fnKeep) == "number" then return tabley.fast_remove_at(t, fnKeep) end 
+    if type(fnKeep) == "number" then return tabley.fast_remove_at(t, fnKeep) end
 
-	if tabley.is_empty(t) then return t end
+    if tabley.is_empty(t) then return t end
 
     local j, n = 1, #t;
 
-    for i=1,n do
+    for i = 1, n do
         if (fnKeep(t, i, j)) then
             -- Move i's kept value to j's position, if it's not already there.
             if (i ~= j) then
@@ -564,8 +565,90 @@ function tabley.fast_remove(t, fnKeep)
     end
 
     return t;
-
 end
+
+function tabley.slice(t, start, end_)
+    local slice = {}
+    for i = start or 1, end_ or #t do
+        slice[i] = t[i]
+    end
+    return slice
+end
+
+
+local unpack_functions = {}
+
+function tabley.fast_unpack(t)
+    local n = #t
+	if n == 0 then return nil end
+    local func = unpack_functions[n]
+    if func then
+        return func(t)
+    end
+    return unpack(t)
+end
+
+if debug.enabled then
+	function tabley.fast_unpack(t)
+        local n = #t
+		if n == 0 then return nil end
+		local func = unpack_functions[n]
+        if func then
+            return func(t)
+        end
+		error("no fast unpack function found for " .. n .. " elements")
+	end
+end
+
+local concat = table.concat
+local loadstring = loadstring
+function createunpack(n)
+	local ret = {"local t = ...; return "}
+    for k = 1, n do
+        ret[#ret + 1] = "t[" .. k .. "]"
+        if k ~= n then
+            ret[#ret + 1] = ", "
+        end
+    end
+	local output = concat(ret)
+	return assert(loadstring(output))
+end
+
+for i = 1, 248 do
+	local func = createunpack(i)
+    unpack_functions[i] = func
+end
+
+
+-- local fast_unpack = tabley.fast_unpack
+-- local unpack = unpack
+
+-- local tabs = {}
+
+-- local num_tables = 1000000
+
+-- for i = 1, num_tables do
+--     local tab = { "a", "b", {}, true, false, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "a", "b", tab2, true, false, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }
+--     local tab2 = {}
+-- 	local len = 10
+--     for i = 1, len do
+-- 		table.insert(tab2, tab[love.math.random(1, #tab)])
+-- 	end
+
+-- 	table.insert(tabs, tab)
+-- end
+
+-- local time = love.timer.get_time()
+-- for i = 1, num_tables do
+--     local a, b, c = fast_unpack(tabs[i])
+-- end 
+-- print(love.timer.get_time() - time)
+
+-- time = love.timer.get_time()
+-- for i = 1, num_tables do
+-- 	local a, b, c = unpack(tabs[i])
+-- end
+-- print(love.timer.get_time() - time)
 
 return tabley
 

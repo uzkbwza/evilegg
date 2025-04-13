@@ -28,9 +28,9 @@ function Explosion:new(x, y, params)
 	self.explode_vfx = params.explode_vfx or DEFAULT_PARAMS.explode_vfx
 	self.explode_sfx = params.explode_sfx or DEFAULT_PARAMS.explode_sfx
     self.explode_sfx_volume = params.explode_sfx_volume or DEFAULT_PARAMS.explode_sfx_volume
-    self:ref_array("ignore_explosion_force")
+    self:ref_bongle("ignore_explosion_force")
 	for _, obj in ipairs(params.ignore_explosion_force or DEFAULT_PARAMS.ignore_explosion_force) do
-		self:ref_array_push("ignore_explosion_force", obj)
+		self:ref_bongle_push("ignore_explosion_force", obj)
 	end
 end
 
@@ -127,7 +127,7 @@ function Explosion:draw()
 	if self.explode_vfx then
 		return
 	end
-    if self.tick < 9 then
+    if self.tick < 5 then
 		graphics.set_color(Palette.explosion:get_color_clamped(idiv(self.tick, 3)))
 		local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 20) * 2
 		graphics.rectangle("fill", -size / 2, -size/2, size, size)

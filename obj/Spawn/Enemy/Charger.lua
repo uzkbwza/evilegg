@@ -1,9 +1,11 @@
-local Charger = require("obj.Spawn.Enemy.BaseEnemy"):extend("Charger")
+local Charger = BaseEnemy:extend("Charger")
 local Chargesploder = Charger:extend("Chargesploder")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 local Explosion = require("obj.Explosion")
 
-local CHARGE_SPEED = 0.045
+Chargesploder:implement(Mixins.Behavior.ExploderEnemy)
+
+local CHARGE_SPEED = 0.12
 
 local ChargerIndicator = Effect:extend("ChargerIndicator")
 
@@ -11,14 +13,14 @@ Charger.is_charger = true
 Charger.death_cry = "enemy_charger_death"
 
 function Charger:new(x, y)
-    self.max_hp = 8
+    self.max_hp = 12
+	self.hit_bubble_damage = 2
     self.hurt_bubble_radius = 6
     self.hit_bubble_radius = 4
     self.melee_both_teams = true
     Charger.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
-	
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
     self.bullet_push_modifier = 0.75
@@ -28,7 +30,24 @@ function Charger:new(x, y)
     self.body_height = 5
 end
 
+function Charger:enter()
+	self:charge(30)
+end
+
+function Charger:hit_by(object)
+	Charger.super.hit_by(self, object)
+	if self.state == "Waiting" and rng.percent(20) then
+		self:charge(6)
+		self.beginning_charge = true
+	end
+end
+
+-- function Charger:is_invulnerable()
+	-- return self.state == "Waiting"/
+-- end
+
 function Charger:state_Waiting_enter()
+    self.no_damage_flash = true
 
     -- self.pdx, self.pdy = rng.random_4_way_direction()
 
@@ -36,22 +55,36 @@ function Charger:state_Waiting_enter()
     -- end)
     self.pdx, self.pdy = self:get_body_direction_to_player()
 
-	self:start_tick_timer("drag", 6, function()
-		self.drag = 0.15
-	end)
+    self:start_tick_timer("drag", 6, function()
+        self.drag = 0.15
+    end)
+	self:charge()
+end
 
-    self:start_tick_timer("effect", 20, function()
+function Charger:charge(time)
+    if self.beginning_charge then
+        return
+    end
+	
+    self:stop_tick_timer("waiting")
+	self:stop_tick_timer("effect")
+
+	local wait_time = time or rng.randi_range(10, 40)
+	self:start_tick_timer("effect", wait_time - 5, function()
         self.pdx, self.pdy = self:get_body_direction_to_player()
 
         self:play_sfx("enemy_charger_warning", 0.75, 1.0)
         local bx, by = self:get_body_center()
         self:spawn_object(ChargerIndicator(bx + self.pdx * 8, by + self.pdy * 8, self.pdx, self.pdy))
     end)
-    self:start_tick_timer("waiting", 25, function()
-        self:change_state("Charging")
+    self:start_tick_timer("waiting", wait_time, function()
+		self:change_state("Charging")
     end)
 end
 
+function Charger:state_Waiting_exit()
+	self.no_damage_flash = false
+end
 
 function Charger.try_bump_friend(other, self, bubble)
     if other.parent == self then
@@ -85,7 +118,7 @@ function Charger:bump_recoil(dx, dy)
 		mag = vec2_magnitude(self.vel.x, self.vel.y)
 	end
     local fx, fy = vec2_normalized_times(dx or self.vel.x, dy or self.vel.y, -mag  * 0.5)
-	self.vel:mul_in_place(0)
+	self:reset_physics()
 	self:apply_impulse(fx, fy)
 end
 
@@ -101,7 +134,8 @@ function Charger:exit()
 end
 
 function Charger:state_Charging_enter()
-	self:play_sfx("enemy_charger_charge", 0.5, 1.0 )
+	self.beginning_charge = false
+	self:play_sfx("enemy_charger_charge", 0.5, 1.0)
 	self.drag = 0.0
 end
 
@@ -113,10 +147,10 @@ end
 function Charger:state_Charging_update(dt)
     self:apply_force(self.pdx * CHARGE_SPEED, self.pdy * CHARGE_SPEED)
 
-	local bx, by = self:get_body_center()
-	local bubble = self:get_bubble("hurt", "main")
-	local x, y, w, h = bubble:get_rect()
-	self.world.hurt_bubbles.enemy:each_self(x, y, w, h, self.try_bump_friend, self, bubble)
+	-- local bx, by = self:get_body_center()
+	-- local bubble = self:get_bubble("hurt", "main")
+	-- local x, y, w, h = bubble:get_rect()
+	-- self.world.hurt_bubbles.enemy:each_self(x, y, w, h, self.try_bump_friend, self, bubble)
 end
 
 function Charger:get_palette()
@@ -204,6 +238,8 @@ function Chargesploder:new(x, y)
     self.bullet_push_modifier = 3.5
     self.walk_speed = 0.5
     Chargesploder.super.new(self, x, y)
+	self:mix_init(Mixins.Behavior.ExploderEnemy)
+
 end
 
 function Chargesploder:enter()
@@ -231,7 +267,7 @@ function Chargesploder:die(...)
 	local bx, by = self:get_body_center()
     local params = {
 		size = EXPLOSION_RADIUS,	
-		damage = self.max_hp,
+		damage = 10,
 		team = "enemy",
 		melee_both_teams = true,
 		particle_count_modifier = 0.85,

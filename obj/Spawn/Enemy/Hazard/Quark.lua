@@ -1,4 +1,4 @@
-local Quark = require("obj.Spawn.Enemy.BaseEnemy"):extend("Quark")
+local Quark = BaseEnemy:extend("Quark")
 
 local SPEED = 1
 local MAX_SPEED = 1.5

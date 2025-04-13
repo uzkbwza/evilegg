@@ -314,16 +314,15 @@ function PaletteStack:get_shader(offset)
     local dirty = self.dirty
 
     local decode_palette_shader = graphics.shader.decode_palette
-    if (not dirty) and self.cached_shader then
-        return self.cached_shader
-    else
+	
+    if (dirty or not (self.cached_shader)) then
         self.cached_shader = nil
         self.cached_shader_table = {}
-		for i = 1, self.length do
-			table.insert(self.cached_shader_table, self:get_color(floor(i + offset - 1)):to_shader_table())
-		end
-
+        for i = 1, self.length do
+            table.insert(self.cached_shader_table, self:get_color(floor(i + offset - 1)):to_shader_table())
+        end
     end
+	
     decode_palette_shader:send("palette_size", self.length)
     decode_palette_shader:send("palette_offset", offset)
 	-- table.pretty_print(self.cached_shader_table)

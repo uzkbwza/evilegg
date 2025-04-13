@@ -210,7 +210,7 @@ function Polygon:unpack()
 		v[2*i-1] = self.vertices[i].x
 		v[2*i]   = self.vertices[i].y
 	end
-	return unpack(v)
+	return table.fast_unpack(v)
 end
 
 -- deep copy of the polygon

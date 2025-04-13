@@ -1,11 +1,11 @@
 
-local Eyeball = require("obj.Spawn.Enemy.BaseEnemy"):extend("Eyeball")
-local Hand = require("obj.Spawn.Enemy.BaseEnemy"):extend("Hand")
-local Foot = require("obj.Spawn.Enemy.BaseEnemy"):extend("Foot")
-local Nose = require("obj.Spawn.Enemy.BaseEnemy"):extend("Nose")
-local Mouth = require("obj.Spawn.Enemy.BaseEnemy"):extend("Mouth")
+local Eyeball = BaseEnemy:extend("Eyeball")
+local Hand = BaseEnemy:extend("Hand")
+local Foot = BaseEnemy:extend("Foot")
+local Nose = BaseEnemy:extend("Nose")
+local Mouth = BaseEnemy:extend("Mouth")
 local Explosion = require("obj.Explosion")
-local EyeballLaser = require("obj.Spawn.Enemy.BaseEnemy"):extend("EyeballLaser")
+local EyeballLaser = BaseEnemy:extend("EyeballLaser")
 local EyeballLaserShadow = GameObject2D:extend("EyeballLaserShadow")
 
 local FootShadow = GameObject2D:extend("FootShadow")
@@ -15,38 +15,46 @@ local SniffParticle = GameObject2D:extend("SniffParticle")
 
 StompExplosionFx.duration = 30
 
-Foot.search_speed = 0.1
+Foot.search_speed = 0.125
 Foot.spawn_cry = "enemy_foot_raise"
 Foot.spawn_cry_volume = 0.9
 
-Nose.sniff_radius = 128
+Nose.sniff_radius = 190
 
-EyeballLaser.accel_speed = 0.01
+EyeballLaser.accel_speed = 0.0005
 EyeballLaser.no_death_splatter = true
 EyeballLaser.death_flash_size_mod = 3.0
 
+local eyeball_limits = {
+	max_speed = 3,
+}
+
 function Eyeball:new(x, y)
     self.body_height = 4
-    self.max_hp = 2
+    self.max_hp = 3
 	
-	self.hit_bubble_radius = 5
+	self.hit_bubble_radius = 4
 	self.hurt_bubble_radius = 8
 	self.roam_chance = 2
-	self.walk_timer = 18
+    self.walk_timer = 18
+	self.drag = 0.01
     Eyeball.super.new(self, x, y)
-	self.hit_bubble_radius = nil
+	-- self.hit_bubble_radius = nil
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self.roam_diagonals = true
     self.walk_speed = 0.1
 	self.walk_toward_player_chance = 60
-	self:lazy_mixin(Mixins.Behavior.Roamer)
+    self:lazy_mixin(Mixins.Behavior.Roamer)
+    self.bullet_push_modifier = 10.6
+	self:set_physics_limits(eyeball_limits)
 
     self.declump_radius = 8
     self.declump_mass = 1
 
-	self.aim_direction = Vec2(rng.random_vec2())
+    self.aim_direction = Vec2(rng.random_vec2())
+	self.on_terrain_collision = self.terrain_collision_bounce
     -- self.declump_same_class_only = true
     -- self.self_declump_modifier = 1.5
 end
@@ -76,6 +84,9 @@ function EyeballLaser:new(x, y)
 	self.hurt_bubble_radius = 3
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
+    self:set_physics_limits({
+		max_speed = 3
+	})
     self.z_index = 10
 	-- self.melee_both_teams = true
 	self.floor_draw_color = Palette.rainbow:get_random_color()
@@ -130,14 +141,14 @@ function EyeballLaser:draw()
 
     self:body_translate()
 	
-	graphics.set_color(Color.black)
+	graphics.set_color(idivmod_eq_zero(self.tick, 4, 2) and Color.black or Color.darkgrey)
     graphics.set_line_width(rad + 2)
-	graphics.rectangle_centered("fill", start_x, start_y, rad, rad)
+	graphics.rectangle_centered("fill", start_x, start_y, rad + 2, rad + 2)
 	graphics.line(start_x, start_y, 0, 0)
-	graphics.rectangle_centered("fill", 0, 0, rad, rad)
+	graphics.rectangle_centered("fill", 0, 0, rad + 2, rad + 2)
 
 
-	graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 2))
+	graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 0.8))
     graphics.set_line_width(rad)
 	graphics.rectangle_centered("fill", start_x, start_y, rad, rad)
 	graphics.line(start_x, start_y, 0, 0)
@@ -198,17 +209,17 @@ function Eyeball:update(dt)
 
 	Eyeball.super.update(self, dt)
 
-    if self.is_new_tick and rng.percent(1) and not self:is_tick_timer_running("laser_cooldown") then
+    if self.is_new_tick and rng.percent(0.8) and not self:is_tick_timer_running("laser_cooldown") then
 		local offset_x, offset_y = vec2_mul_scalar(self.aim_direction.x, self.aim_direction.y, 6)
 		local laser = self:spawn_object(EyeballLaser(self.pos.x + offset_x, self.pos.y + offset_y))
 		laser.direction = Vec2(vec2_snap_angle(self.aim_direction.x, self.aim_direction.y, 8))
-		self:start_tick_timer("laser_cooldown", 30)
+		self:start_tick_timer("laser_cooldown", 50)
 	end
 end
 
 function Hand:new(x, y)
     self.body_height = 8
-    self.max_hp = 6
+    self.max_hp = 10
 	
 	self.hurt_bubble_radius = 12
 	
@@ -218,9 +229,10 @@ function Hand:new(x, y)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.WalkTowardPlayer)
-	self.walk_speed = 0.12
+    self.walk_speed = 0.28
+	self.bullet_push_modifier = 0.6
 
-    self.declump_radius = 8
+    self.declump_radius = 16
     self.declump_mass = 2
 
 end
@@ -331,7 +343,6 @@ function Foot:new(x, y)
     self.body_height = 4
     self.max_hp = 5
 
-	
 	self.drag = 0.036
     Foot.super.new(self, x, y)
     self.hurt_bubble_radius = 12
@@ -340,6 +351,7 @@ function Foot:new(x, y)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 
     self.declump_radius = 8
+	self.bullet_push_modifier = 0.15
 	self.self_declump_modifier = 0.25
     self.declump_mass = 1
 
@@ -347,7 +359,8 @@ function Foot:new(x, y)
 	self.melee_both_teams = true
 
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
-	self:set_flip(rng.coin_flip() and 1 or -1)
+    self:set_flip(rng.coin_flip() and 1 or -1)
+	self.intangible = true
 
 end
 
@@ -381,18 +394,27 @@ end
 
 function Foot:draw()
 
+    if self.intangible and idivmod_eq_zero(self.tick, 1, 2) then
+		return
+	end
 	Foot.super.draw(self)
+end
+
+function Foot:state_Idle_enter()
+	-- self.intangible = true
 end
 
 function Foot:state_Idle_update(dt)
 	self:set_body_height(splerp(self.body_height, 24 + sin(self.tick * 0.045 + self.random_offset_ratio * 255) * 2, 200, dt))
-	if self.is_new_tick and rng.percent(1.) then
-		self:change_state("Stomp")
-	end
+    if self.is_new_tick and rng.percent(2) or self.state_tick > 70 then
+        self:change_state("Stomp")
+    end
 end
 
 function Foot:state_Stomp_enter()
 	self.searching = false
+    self.intangible = true
+
 	
 	self:unref("target")
 	local s = self.sequencer
@@ -407,6 +429,10 @@ function Foot:state_Stomp_enter()
         s:tween(func, height, height + 10, 10, "outSine")
 		self:start_timer("fall_sfx", 25, function()
 			self:play_sfx("enemy_foot_fall", 0.9)
+        end)
+		s:start(function()
+			s:wait(30)
+            self.intangible = false
 		end)
         s:tween(func, self.body_height, 10, 45, "inExpo")
         self.searching = false
@@ -424,14 +450,20 @@ function Foot:state_Stomp_enter()
 		-- 	explode_vfx = StompExplosionFx(self.pos.x, self.pos.y, self.flip),
 		-- 	-- explode_sfx_volume = 0.5,
         -- }
-		-- self:spawn_object(Explosion(self.pos.x, self.pos.y, params))
+        -- self:spawn_object(Explosion(self.pos.x, self.pos.y, params))
+
         s:wait(1)
 		self.melee_attacking = true
 		s:wait(5)
 		self.melee_attacking = false
-		-- self.applying_physics = true
-		s:tween(func, self.body_height, height, 60, "inOutQuad")
-
+        -- self.applying_physics = true
+		s:start(function()
+			s:wait(45)
+            self.intangible = true
+		end)
+        s:tween(func, self.body_height, height, 60, "inOutQuad")
+		
+		self.intangible = true
 		self:change_state("Idle")
 	end, 100)
 end
@@ -624,7 +656,7 @@ function Nose:state_Sniff_update(dt)
     end
 end
 
-local SNIFF_FORCE = 0.8
+local SNIFF_FORCE = 0.9
 
 function Nose.do_sniff(object, self, dt)
 	local bx, by = self:get_body_center()
@@ -641,11 +673,12 @@ end
 
 
 
-Mouth.follow_allies = true
+-- Mouth.follow_allies = true
 
 function Mouth:new(x, y)
     self.body_height = 4
     self.max_hp = 5
+	self.follow_allies = rng.coin_flip()
 
     self.hurt_bubble_radius = 8
     self.hit_bubble_radius = 7

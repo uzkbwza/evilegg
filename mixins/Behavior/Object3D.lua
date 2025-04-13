@@ -15,7 +15,7 @@ function Object3D:__mix_init(x, y, z)
 	
 	self.static = false
 		
-	self.zindex = 0
+	self.z_index = 0
 end
 
 function Object3D:init3D(x, y, z)

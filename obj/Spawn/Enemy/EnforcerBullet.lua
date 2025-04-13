@@ -1,4 +1,4 @@
-local EnforcerBullet = require("obj.Spawn.Enemy.BaseEnemy"):extend("EnforcerBullet")
+local EnforcerBullet = BaseEnemy:extend("EnforcerBullet")
 
 local HOMING_SPEED = 0.035
 

@@ -56,7 +56,7 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 
     for spawn, count in pairs(tab) do
 		-- print(spawn, count)
-		table.insert(sorted_tab, { spawn = spawn, count = count })
+		table.insert(sorted_tab, { spawn = spawn, count = count.count })
 	end
     if sort_func then
         table.sort(sorted_tab, sort_func)
@@ -66,8 +66,11 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 	for _, data in ipairs(sorted_tab) do
 		local count = data.count
         local num_entries = 1
-		if data.spawn.subtype == "powerup" then 
-			num_entries = count
+        if data.spawn.subtype == "powerup" then
+            num_entries = count
+        end
+		if type(num_entries) ~= "number" then
+			print(num_entries)
 		end
 		table_length = table_length + num_entries
 	end
@@ -128,9 +131,9 @@ function RoomObject:enter()
             self:add_line("text", tr.room_has_max_points)
         end
 
-        if self.stored_room.bonus_room then
-            self:add_line("text", tr.room_is_bonus)
-        end
+        -- if self.stored_room.bonus_room then
+        --     self:add_line("text", tr.room_is_bonus)
+        -- end
 
         if self.stored_room.is_hard then
             self:add_line("text", tr.room_is_hard)
@@ -143,7 +146,7 @@ function RoomObject:enter()
             "hazard",
             "enemy",
             "rescue",
-            "item",
+            "artefact",
             "upgrade",
             "heart",
             "powerup",
@@ -208,7 +211,7 @@ function RoomObject:enter()
         -- end))
 
         -- self:add_spawn_lines(table.filtered_keys(self.stored_room.all_spawn_types, function(spawn)
-        -- 	return spawn.subtype == "item"
+        -- 	return spawn.subtype == "artefact"
         -- end))
     end)
     local floor_object = self:spawn_object(RoomFloorObject(self.pos.x, self.pos.y))
@@ -296,7 +299,7 @@ function RoomObject:draw()
 	
     local rect_offset_x, rect_offset_y = vec2_rotated(-self.direction.x, -self.direction.y, -tau / 4)
 	rect_offset_x = rect_offset_x * (rect_width - 5)
-	rect_offset_y = clamp(rect_offset_y * (rect_height - 5), -self.stored_room.room_height / 2 + rect_height / 2, self.stored_room.room_height / 2 - rect_height / 2)
+	rect_offset_y = clamp(rect_offset_y * (rect_height / 2 + 24), -self.stored_room.room_height / 2 + rect_height / 2, self.stored_room.room_height / 2 - rect_height / 2)
     local diag_offset_x, diag_offset_y = vec2_rotated(-self.direction.x, -self.direction.y, -tau / 16)
 	diag_offset_x = diag_offset_x * (13)
     diag_offset_y = diag_offset_y * (13)

@@ -1,4 +1,4 @@
-local Shielder = require("obj.Spawn.Enemy.BaseEnemy"):extend("Shielder")
+local Shielder = BaseEnemy:extend("Shielder")
 
 local SEARCH_RADIUS = 100
 local PUSH_FORCE = 0.005

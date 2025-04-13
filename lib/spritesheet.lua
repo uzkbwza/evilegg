@@ -1,5 +1,5 @@
 local SpriteSheet = Object:extend("SpriteSheet")
-	
+
 function SpriteSheet:new(texture, sprite_width, sprite_height)
     sprite_width = floor(sprite_width)
     sprite_height = floor(sprite_height)

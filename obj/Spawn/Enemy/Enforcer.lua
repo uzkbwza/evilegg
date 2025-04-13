@@ -1,17 +1,18 @@
-local Enforcer = require("obj.Spawn.Enemy.BaseEnemy"):extend("Enforcer")
+local Enforcer = BaseEnemy:extend("Enforcer")
 local EnforcerBullet = require("obj.Spawn.Enemy.EnforcerBullet")
 
 local SPAWNING_DRAG = 0.01
 local NORMAL_DRAG = 0.02
-local BULLET_SPEED = 0.8
+local BULLET_SPEED = 1.3
 
-local PLAYER_DISTANCE = 56
-local WALK_SPEED = 0.025
+local PLAYER_DISTANCE = 64
+local WALK_SPEED = 0.075
 local SPAWN_SPEED = 0.0125
 local MAX_DIST = 200
 
 function Enforcer:new(x, y)
-	self.body_height = 4
+    self.body_height = 4
+	self.max_hp = 2
 
     Enforcer.super.new(self, x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
@@ -41,7 +42,7 @@ function Enforcer:state_Spawning_update(dt)
     if player and not self.player then
 		local s = self.sequencer
 		s:start(function()
-			s:wait(rng.randi_range(120, 280))
+			s:wait(rng.randi_range(80, 180))
 			self:change_state("Normal")
         end)
 		self.player = player
@@ -102,7 +103,7 @@ function Enforcer:state_Normal_update(dt)
 			-- if rng.percent(60) then
 			-- 	self:start_tick_timer("shoot_delay", 10)
 			-- else
-				self:start_tick_timer("shoot_delay", clamp(rng.randfn(75, 10), 10, 100))
+				self:start_tick_timer("shoot_delay", clamp(rng.randfn(45, 10), 10, 100))
 			-- end
         end
 		

@@ -1,0 +1,239 @@
+local ArtefactSpawn = require("obj.Spawn.Pickup.BasePickup"):extend("ArtefactSpawn")
+
+local ArtefactSpawner = GameObject2D:extend("ArtefactSpawner")
+-- local ArtefactSpawnerFlashEffect = GameObject2D:extend("ArtefactSpawnerFlashEffect")
+
+local Splatter = require("fx.just_the_splatter")
+
+function ArtefactSpawn:new(x, y, artefact)
+    ArtefactSpawn.super.new(self, x, y)
+	
+	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
+    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    
+	self.font = fonts.image_font1
+	self.font2 = fonts.depalettized.image_font1
+	
+	self.declump_radius = 32
+	self.declump_modifier = 0.5
+	self.artefact = artefact
+    self:add_time_stuff()
+	self:init_state_machine()
+    self.text_amount = 0
+	self.z_index = 5
+	
+    self.title_palette_stack = PaletteStack(Color.black)
+	self.title_palette_stack:push(Palette.artefact_title_border, 1)
+    self.title_palette_stack:push(Palette.artefact_title, 1)
+	
+	self.desc_palette_stack = PaletteStack(Color.black)
+	self.desc_palette_stack:push(Palette.artefact_desc_border, 1)
+    self.desc_palette_stack:push(Palette.artefact_desc, 1)
+end
+
+function ArtefactSpawn:state_Dormant_enter()
+	self:hide()
+    self.pickupable = false
+    local s = self.sequencer
+    s:start(function()
+        self:ref("spawner", self:spawn_object(ArtefactSpawner(0, 0)))
+        s:wait_for_signal(self.spawner, "finished")
+		self:change_state("Idle")
+        -- self.spawner
+    end)
+end
+
+function ArtefactSpawn:get_sprite()
+	return nil
+end
+
+function ArtefactSpawn:update(dt)
+	if self.spawner then
+		self.spawner:move_to(self.pos.x, self.pos.y)
+	end
+end
+
+function ArtefactSpawn:state_Dormant_draw()
+
+end
+
+function ArtefactSpawn:state_Dormant_update(dt)
+
+end
+
+function ArtefactSpawn:state_Idle_enter()
+    self:show()
+	local s = self.sequencer
+    s:start(function()
+        s:start(function()
+            self.text_amount = 0
+			s:tween_property(self, "text_amount", 0, 1, 15, "linear")
+		end)
+		s:wait(20)
+		self.pickupable = true
+    end)
+    local players = self:get_players()
+	for _, player in players:ipairs() do
+		local bx, by = player:get_body_center()
+		local diffx, diffy = bx - self.pos.x, by -self.pos.y
+		local dist = vec2_magnitude(diffx, diffy)
+		local dx, dy = vec2_normalized(diffx, diffy)
+		local speed = 6 * max(0, (1 - dist / 100))
+		player:apply_impulse(dx * speed, dy * speed)
+	end
+end
+
+function ArtefactSpawn:state_Idle_draw()
+    local tick = self.state_tick
+	local elapsed = self.state_elapsed
+	
+	
+    -- graphics.rectangle_centered("line", self.pos.x, self.pos.y, 20 + sin(elapsed / 17) * 4, 16 + sin(elapsed / 19) * 2)
+	
+	local num_rects = 12
+	local r = ease("outCubic")(clamp(elapsed / 40, 0, 1)) * 16 + sin(elapsed / 21) * 2
+    for i = 1, num_rects do
+		local x, y = vec2_from_polar(r, tau * (i / num_rects) + elapsed / 100)
+		graphics.set_color(Palette.artefact_title_border:tick_color(tick / 5))
+		graphics.rectangle_centered("line", self.pos.x + x, self.pos.y + y + 1, 5, 5)
+		graphics.set_color(Palette.cmy:tick_color(tick / 7))
+		graphics.rectangle_centered("line", self.pos.x + x, self.pos.y + y, 5, 5)
+	end
+	
+	graphics.set_color(Color.white)
+	graphics.drawp_centered(self.artefact.icon, nil, 0, 0, sin(elapsed / 20) * 1)
+	
+	graphics.set_color(Color.black)
+	
+	local name = tr[self.artefact.name]
+    local desc = tr[self.artefact.description]:upper()
+	name = name:sub(1, name:len() * self.text_amount)
+	desc = desc:sub(1, desc:len() * self.text_amount)
+	
+	graphics.set_font(self.font2)
+	graphics.print_outline_centered(Color.black, name, self.font2, self.pos.x, self.pos.y - 16)
+	graphics.print_outline_centered(Color.black, desc, self.font2, self.pos.x, self.pos.y + 16)
+	graphics.set_font(self.font)
+    graphics.set_color(Color.white)
+	self.title_palette_stack:set_palette_offset(2, tick / 5)
+	self.title_palette_stack:set_palette_offset(3, tick / 3)
+	graphics.printp_centered(name, self.font, self.title_palette_stack, 0, self.pos.x, self.pos.y - 16)
+	self.desc_palette_stack:set_palette_offset(2, tick / 5)
+	self.desc_palette_stack:set_palette_offset(3, tick / 3)
+	graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, self.pos.x, self.pos.y + 16)
+
+
+end
+
+function ArtefactSpawn:state_Idle_update(dt)
+
+end
+
+function ArtefactSpawn:on_pickup(player)
+    game_state:gain_artefact(self.artefact)
+	self:queue_destroy()
+end
+
+function ArtefactSpawner:new(x, y)
+    ArtefactSpawner.super.new(self, x, y)
+    self:add_signal("finished")
+	self.z_index = 1
+    self:add_time_stuff()
+    self.sky_laser_bottom = 0
+    self.sky_laser_top = 0
+    self.flash_rect_size = 0
+	self.start_e = 0
+    -- self.flash_rect_filled = true
+	self.flash_rect_line_size = 0.0
+	self.flash_rect_size2 = 0
+	-- self.sky_laser_width = 1
+	
+
+    local s = self.sequencer
+    s:start(function()
+		self:play_sfx("pickup_artefact_spawn", 0.6)
+		s:start(function()
+			s:wait(18)
+			self:play_sfx("pickup_artefact_pre_boom", 1.0)
+		end)
+		s:wait(25)
+        self.start_e = self.elapsed
+
+		s:tween_property(self, "sky_laser_bottom", 0, 1, 7, "linear")
+		self:stop_sfx("pickup_artefact_pre_boom")
+		self:stop_sfx("pickup_artefact_spawn")
+		self:play_sfx("pickup_artefact_boom")
+        self:spawn_object(Splatter(self.pos.x, self.pos.y, 40, 40, 2)).z_index = -1
+		local flash_size = 100
+		-- self:spawn_object(ArtefactSpawnerFlashEffect(self.pos.x, self.pos.y))
+        s:start(function()s:tween_property(self, "flash_rect_size", flash_size, 0, 10, "inQuad")end)
+        s:start(function()
+            s:tween_property(self, "flash_rect_size2", flash_size, flash_size + 10, 10, "outQuad")
+			self.flash_rect_size2 = 0
+		end)
+        s:start(function()
+            s:tween_property(self, "flash_rect_line_size", flash_size, flash_size + 55, 12, "outQuad")
+			self.flash_rect_line_size = 0
+		end)
+        -- s:start(function()s:wait(8) self.flash_rect_filled = false end)
+        s:wait(3)
+        self:emit_signal("finished")
+        -- s:start(function()
+			-- s:tween_property(self, "sky_laser_width", 1, 0.8, 10, "inCubic")
+		-- end)
+		s:tween_property(self, "sky_laser_top", 0, 1, 8, "outCubic")
+    end)
+end
+
+function ArtefactSpawner:draw()
+	local laser_width = 12
+	local laser_height = 200
+	local laser_rect_x = self.pos.x - laser_width / 2
+	local laser_y_start = (self.sky_laser_top * laser_height) - laser_height
+    local laser_vert_amount = (self.sky_laser_bottom - self.sky_laser_top) * laser_height
+    local color = Color.white
+
+	local e = self.elapsed - self.start_e
+	
+	if e > 8 then 
+		color = Color.yellow
+	end
+
+    if e > 12 then
+		color = Color.green
+	end
+
+    if e > 16 then
+        color = Color.cyan
+    end
+	
+	if e > 20 then
+		color = Color.blue
+	end
+
+    graphics.set_color(color)
+
+    -- flash rect
+    local flash_rect_size = floor(self.flash_rect_size)
+    if flash_rect_size > 0 then
+        graphics.rectangle_centered("fill", self.pos.x, self.pos.y, max(flash_rect_size, laser_width), flash_rect_size)
+        graphics.rectangle_centered("line", self.pos.x, self.pos.y, self.flash_rect_size2, (self.flash_rect_size2))
+    end
+	if self.flash_rect_line_size > 0 then
+		graphics.rectangle_centered("line", self.pos.x, self.pos.y,
+            self.flash_rect_line_size, self.flash_rect_line_size)
+	end
+
+
+	-- laser
+
+	-- print(self.sky_laser_top, self.sky_laser_bottom)
+    graphics.rectangle("fill", laser_rect_x, laser_y_start, laser_width, laser_vert_amount)
+end
+
+AutoStateMachine(ArtefactSpawn, "Dormant")
+
+return ArtefactSpawn
+
+

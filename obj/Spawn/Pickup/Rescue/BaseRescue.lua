@@ -5,12 +5,15 @@ local BaseRescueArrowParticle = Effect:extend("BaseRescueArrowParticle")
 local HurtFlashFx = Effect:extend("HurtFlashFx")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local BaseRescuePickupParticle = Effect:extend("BaseRescuePickupParticle")
+local RingOfLoyaltyBullet = require("obj.Player.Bullet.RingOfLoyaltyBullet")
 
 local START_INVULNERABILITY = 120
 local HIT_INVULNERABILITY = 60
 local LAST_HIT_INVULNERABILITY = 70
 
 local ENEMY_AVOID_DISTANCE = 10
+
+BaseRescue.is_rescue = true
 
 function BaseRescue:new(x, y)
     BaseRescue.super.new(self, x, y)
@@ -38,9 +41,9 @@ function BaseRescue:new(x, y)
     self.pickup_sfx_volume = 0.85
 	self.avoid_enemies_speed = self.avoid_enemies_speed or 0.025
     self.avoid_enemies_radius = self.avoid_enemies_radius or 16
-	if self.auto_state_machine then
-		self:init_state_machine()
-	end
+    if self.auto_state_machine then
+        self:init_state_machine()
+    end
 
 end
 
@@ -194,6 +197,7 @@ function BaseRescue:get_default_palette()
 end
 
 function BaseRescue:on_pickup()
+	local bx, by = self:get_body_center()
     if self.holding_pickup then
 		local pickup_volume = 0.87
         if self.holding_pickup.sound then
@@ -216,6 +220,16 @@ function BaseRescue:on_pickup()
 	end
     self.floor_particle:on_pickup()
     BaseRescue.super.on_pickup(self)
+
+    if game_state.artefacts.ring_of_loyalty then
+		self:play_sfx("pickup_artefact_ring_of_loyalty_trigger", 0.7)
+		local num_bullets = 12 + (game_state.upgrades.bullets) * 8
+        for i = 1, num_bullets do
+			local bullet = self:spawn_object(RingOfLoyaltyBullet(bx, by, true))
+			bullet.direction = angle_to_vec2(tau / num_bullets * i)
+		end
+	end
+
 	-- for i = 1, 5 do
 	-- 	audio.stop_sfx_monophonic("pickup_rescue_save" .. i)
 	-- end
@@ -439,8 +453,13 @@ end
 function BaseRescueFloorParticle:on_pickup()
     local s = self.sequencer
 	self.z_index = 1
-	self.size = self.size * 1.5
+    self.size = self.size * 1.5
+	self.laser_amount = 0
+	self.picked_up = true
 	self:start_timer("on_pickup", 10)
+    s:start(function()
+        s:tween_property(self, "laser_amount", 0, 1, 20, "linear")
+    end)
     s:start(function()
         s:tween_property(self, "size", self.size, self.size * 4, 20, "linear")
         self:queue_destroy()
@@ -474,12 +493,21 @@ function BaseRescueFloorParticle:draw(elapsed)
 	
 
     local color = self.dead and Color.red or (idivmod_eq_zero(gametime.tick, 4, 2) and (almost_dead and Color.red or Color.white) or (almost_dead and Color.yellow or Color.green))
-    local size = max(self.size + sin(elapsed * 0.05) * (self.size * (self.target and 0.2 or 0)), self.size + 20 - elapsed * 2)
+    local size = max(self.size + sin(elapsed * 0.05) * (self.size * (self.target and 0.2 or 0)), self.size + 80 - elapsed * 7)
     graphics.set_color(color)
 	graphics.set_line_width(2)
 	-- if almost_dead then
 	-- end
     graphics.rectangle(self:is_timer_running("on_pickup") and "fill" or "line", -size / 2, -size * 0.33, size, size * 0.66)
+	
+    if self.laser_amount then
+		local laser_width = 10 * (1 - ease("inOutCubic")(self.laser_amount))
+        local laser_end = -400 * ease("inCubic")(self.laser_amount)
+		local laser_start = -400 * ease("outCubic")(self.laser_amount)
+		local laser_x = -laser_width / 2
+		local laser_y = laser_start
+		graphics.rectangle("fill", laser_x, laser_y, laser_width, laser_end - laser_start)
+	end
 	-- graphics.rotate(elapsed * 0.05)
 	-- graphics.ellipse("line", 0, 0, size, size * 0.5, 6)
 	

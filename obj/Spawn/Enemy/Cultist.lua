@@ -1,5 +1,5 @@
-local Cultist = require("obj.Spawn.Enemy.BaseEnemy"):extend("Cultist")
-local CultistBullet = require("obj.Spawn.Enemy.BaseEnemy"):extend("CultistBullet")
+local Cultist = BaseEnemy:extend("Cultist")
+local CultistBullet = BaseEnemy:extend("CultistBullet")
 local CultistBulletFx = Effect:extend("CultistBulletFx")
 local FloorParticle = GameObject2D:extend("FloorParticle")
 local PullParticle = GameObject2D:extend("PullParticle")
@@ -9,7 +9,7 @@ local PULL_RADIUS = 90
 local PULL_FORCE = 0.0355
 local GRAB_SPEED = 3
 local GRAB_TIME = 50
-local GRAB_RADIUS = 9
+local GRAB_RADIUS = 12
 local HURT_TIME = 49
 
 Cultist.spawn_cry = "enemy_cultist_spawn"
@@ -19,7 +19,7 @@ Cultist.death_cry_volume = 0.8
 
 function Cultist:new(x, y)
     self.body_height = 7
-    self.max_hp = 4
+    self.max_hp = 9
 	self.hit_bubble_radius = 4
     Cultist.super.new(self, x, y)
 	self.walk_speed = 0.0475
@@ -34,7 +34,7 @@ function Cultist:new(x, y)
 	self.bullet_push_modifier = 1.0
 	self.particles = {}
 	self.nearby_rescues = {}
-	self:ref_array("held_rescues")
+	self:ref_bongle("held_rescues")
 	self.hold_positions = {}
 end
 
@@ -107,19 +107,27 @@ function Cultist:update(dt)
     self.floor_particle:move_to(self:get_body_center())
     local bx, by = self:get_body_center()
     local x, y, w, h = bx - PULL_RADIUS, by - PULL_RADIUS, PULL_RADIUS * 2, PULL_RADIUS * 2
-    self.world.rescue_grid:each_self(x, y, w, h, self.gather_nearby_rescues, self)
+
+	if self.tick > 100 then
+    	self.world.rescue_grid:each_self(x, y, w, h, self.gather_nearby_rescues, self)
+	end
 
     local pulled = false
     local held = table.length(self.hold_positions) > 0
 
     for _, rescue in ipairs(self.nearby_rescues) do
         local dist = self:body_distance_to(rescue)
-        if dist < GRAB_RADIUS and self.pull_time > 180 then
+        if dist < GRAB_RADIUS and self.pull_time > 90 then
             if not self.hold_positions[rescue] then
-                self:ref_array_push("held_rescues", rescue)
+                self:ref_bongle_push("held_rescues", rescue)
                 -- self.nearby_rescues[rescue] = nil
                 rescue.grabbed_by_cultist = true
                 local rescue_pos = Vec2(self:to_local(rescue.pos.x, rescue.pos.y))
+                rescue_pos.y = 0
+				if rescue_pos.x == 0 then
+					rescue_pos.x = rng.rand_sign()
+				end
+				rescue_pos:normalize_in_place():mul_in_place(GRAB_RADIUS)
                 self.hold_positions[rescue] = rescue_pos
 
                 local s = self.sequencer
@@ -134,27 +142,25 @@ function Cultist:update(dt)
                         end
                         rescue:damage(1)
                         self:start_timer("heal_fx", 25)
-                        self:heal(1.5, true)
-                        local bx, by = self:get_body_center()
+                        self:heal(5, true)
                     end
-					self:spawn_object(BiteParticle(bx, by))
-					self:play_sfx("enemy_cultist_bite")
+                    self:spawn_object(BiteParticle(bx, by))
+                    self:play_sfx("enemy_cultist_bite")
 
                     s:wait(HURT_TIME)
                     -- while rng.percent(80) do
                     s:wait(10)
                     -- end
-					if not self.hold_positions[rescue] then
-						return
-					end
+                    if not self.hold_positions[rescue] then
+                        return
+                    end
                     rescue:damage(1)
-					self:heal(2, true)
+                    self:heal(2, true)
                     self.powered_up = true
-					self:play_sfx("enemy_cultist_powerup")
-					local bx_, by_ = self:get_body_center()
-					self:spawn_object(PowerupParticle(bx_, by_))
+                    self:play_sfx("enemy_cultist_powerup")
+                    local bx_, by_ = self:get_body_center()
+                    self:spawn_object(PowerupParticle(bx_, by_))
                     self:spawn_rescue_projectile()
-
                 end)
                 signal.connect(rescue, "destroyed", self, "on_held_rescue_destroyed", function()
                     self.hold_positions[rescue] = nil
@@ -167,12 +173,13 @@ function Cultist:update(dt)
             local dx, dy = self:body_direction_to(rescue)
             rescue:apply_force(-dx * PULL_FORCE, -dy * PULL_FORCE)
             if self.is_new_tick and rng.percent(80) then
-				for i=1,rng.randi_range(1, 2) do
-					self.pull_particle:add_particle(rescue:get_body_center())
-				end
+                for i = 1, rng.randi_range(1, 2) do
+                    self.pull_particle:add_particle(rescue:get_body_center())
+                end
             end
         end
     end
+	
     if table.is_empty(self.nearby_rescues) then
         self:stop_sfx("enemy_cultist_grab")
     end
@@ -246,10 +253,6 @@ function PowerupParticle:draw(elapsed, tick, t)
 	end
 	
 end
-
-
-
-
 
 function Cultist:spawn_rescue_projectile()
     -- local projectile = self:spawn_object(CultistProjectile(x, y))
@@ -461,6 +464,7 @@ function FloorParticle:get_particle_position(particle)
 end
 
 function FloorParticle:draw()
+	if true then return end
 
 	-- graphics.set_color(1, 1, 1, 1)
     for particle, _ in pairs(self.particles) do
@@ -481,7 +485,6 @@ function FloorParticle:draw()
 		-- end
 		::continue::
     end
-
 end
 
 function FloorParticle:floor_draw()

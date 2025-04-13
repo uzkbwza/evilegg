@@ -59,7 +59,10 @@
 		"main_font_bold",
 		"fonts",
 		"tr",
-		"translator"
+		"translator",
+		"circular_buffer",
+		"default_usersettings",
+		"bench"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

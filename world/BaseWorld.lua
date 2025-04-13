@@ -42,7 +42,10 @@ function World:new(x, y)
 	self.object_time_scale = 1
 
     self.bump_world = nil
-	self.processing = true
+    self.processing = true
+	if self.center_camera == nil then
+		self.center_camera = true
+	end
 
     -- self.draw_sort = nil
 
@@ -113,7 +116,7 @@ end
 
 function World:update_shared(dt)
 	dt = dt * self.time_scale
-	-- audio.set_position(self.camera.pos.x, self.camera.pos.y, self.camera.zindex)
+	-- audio.set_position(self.camera.pos.x, self.camera.pos.y, self.camera.z_index)
 
 	local update_objects = self:get_update_objects()
 
@@ -121,7 +124,7 @@ function World:update_shared(dt)
 		table.sort(update_objects, self.update_sort)
 	end
 
-	for _, obj in ipairs(update_objects) do
+    for _, obj in ipairs(update_objects) do
 		obj:update_shared(dt * self.object_time_scale)
 	end
 
@@ -136,8 +139,8 @@ function World:update_shared(dt)
 
     if self.deferred_functions then
         for _, t in ipairs(self.deferred_functions) do
-            local func, args = unpack(t)
-            func(args and unpack(args) or nil)
+            local func, args = table.fast_unpack(t)
+            func(args and table.fast_unpack(args) or nil)
         end
         table.clear(self.deferred_functions)
     end
@@ -176,11 +179,13 @@ function World:remove_tag(object, tag)
 end
 
 ---@return bonglewunch?
+
+local dummy_bonglewunch = bonglewunch()
 function World:get_objects_with_tag(tag)
     if self.tags and self.tags[tag] then
         return self.tags[tag]
     end
-    return nil
+    return dummy_bonglewunch
 end
 
 function World:get_number_of_objects_with_tag(tag)
@@ -213,6 +218,21 @@ function World.default_rect_function(obj)
 	local dist = tilesets.TILE_SIZE
 	local posx, posy = obj.pos.x, obj.pos.y
 	return posx - dist / 2, posy - dist / 2, dist, dist
+end
+
+function World:get_closest_object_with_tag(tag, x, y)
+	local objs = self:get_objects_with_tag(tag)
+    if not objs then return end
+    local closest_obj = nil
+    local closest_dist = nil
+    for _, obj in (objs):ipairs() do
+		local dist = vec2_distance_squared(obj.pos.x, obj.pos.y, x, y)
+		if not closest_obj or dist < closest_dist then
+			closest_obj = obj
+			closest_dist = dist
+		end
+	end
+	return closest_obj
 end
 
 function World:add_to_spatial_grid(obj, grid_name, get_rect_function)
@@ -326,21 +346,25 @@ end
 function World:draw_sorted_objects(sorted_draw_objects)
     -- for _, obj in sorted_draw_objects:ipairs() do
     for _, obj in ipairs(sorted_draw_objects) do
-        graphics.push("all")
-        local x, y = self:get_object_draw_position(obj)
-        graphics.translate(x, y)
-
-        if obj.draw_shared then
-            obj:draw_shared()
-        elseif obj.draw then
-            obj:draw()
-        end
-
-        if debug.can_draw() then
-            if obj.debug_draw_shared then obj:debug_draw_shared() end
-        end
-        graphics.pop()
+		self:draw_object(obj)
     end
+end
+
+function World:draw_object(obj)
+    graphics.push("all")
+	local x, y = self:get_object_draw_position(obj)
+	graphics.translate(x, y)
+
+	if obj.draw_shared then
+		obj:draw_shared()
+	elseif obj.draw then
+		obj:draw()
+	end
+
+	if debug.can_draw() then
+		if obj.debug_draw_shared then obj:debug_draw_shared() end
+	end
+	graphics.pop()
 end
 
 function World:get_camera_offset()
@@ -363,8 +387,15 @@ function World:get_camera_offset()
 		offset_x = offset_x + local_offset_x
 		offset_y = offset_y + local_offset_y
 
-		offset_y = -offset_y + (self.viewport_size.y / 2) / zoom
-		offset_x = -offset_x + (self.viewport_size.x / 2) / zoom
+        if self.center_camera then
+            offset_y = -offset_y + (self.viewport_size.y / 2) / zoom
+			offset_x = -offset_x + (self.viewport_size.x / 2) / zoom
+        else
+            offset_y = -offset_y
+			offset_x = -offset_x
+        end
+		
+
 	end
 
 	-- return Vec2(0, 0), 1
@@ -458,6 +489,7 @@ function World:on_object_visibility_changed(obj)
 end
 
 function World:add_object(obj)
+	if obj.is_destroyed then return end
 	if obj.world then
 		error("cannot move objects between worlds")
 	end

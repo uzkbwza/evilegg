@@ -24,11 +24,12 @@ function Rumble:start_rumble(amount, duration, easing_function)
 	local s = self.world.sequencer
 	s:stop(self.rumble_coroutine)
     easing_function = easing_function or ease("outQuad")
-    self.rumble_coroutine = s:start(function()
+	local func = function()
         s:tween_property(self, "rumble_amount", amount, 0, duration, easing_function)
         self.rumble_coroutine = nil
 		self.rumble_amount = 0
-    end)
+    end
+    self.rumble_coroutine = s:start(func)
 end
 
 function Rumble:set_rumble_directly(amount)

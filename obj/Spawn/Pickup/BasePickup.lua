@@ -38,4 +38,5 @@ end
 function BasePickup:get_sprite()
     return textures.pickup_base
 end
+
 return BasePickup

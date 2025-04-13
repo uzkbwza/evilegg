@@ -36,7 +36,7 @@ function Camera:update(dt)
 		if self.following.pos.z then
 			self.pos.x, self.pos.y, self.pos.z = self.following.pos.x, self.following.pos.y, self.following.pos.z or 0
 		else
-			self.pos.x, self.pos.y, self.pos.z = self.following.pos.x, self.following.pos.y, self.following.zindex
+			self.pos.x, self.pos.y, self.pos.z = self.following.pos.x, self.following.pos.y, self.following.z_index
 		end
     end
 end

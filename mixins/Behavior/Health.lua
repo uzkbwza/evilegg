@@ -10,7 +10,7 @@ function Health:__mix_init(hp)
 end
 
 function Health:on_health_reached_zero()
-    self:queue_destroy()
+    -- self:queue_destroy()
 end
 
 function Health:on_max_health_changed(max_hp)

@@ -1,4 +1,4 @@
-local Mortar = require("obj.Spawn.Enemy.BaseEnemy"):extend("Mortar")
+local Mortar = BaseEnemy:extend("Mortar")
 local MortarProjectile = GameObject2D:extend("MortarProjectile")
 local MortarShadow = GameObject2D:extend("MortarShadow")
 local MortarFireSmoke = Effect:extend("MortarFireSmoke")
@@ -16,7 +16,6 @@ function Mortar:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.Roamer)
-	
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
 	self.bullet_push_modifier = 0.5
 	self.declump_radius = 7
@@ -78,7 +77,7 @@ function Mortar:state_Shoot_exit()
 end
 
 function Mortar:state_Shoot_update(dt)
-    if self.state_tick > 70 then
+    if self.state_tick > 40 then
         self:change_state("Normal")
     end
 end
@@ -95,6 +94,11 @@ end
 
 local SPRITE_Y = -700
 local SPRITE_Y2 = -550
+
+function MortarProjectile:update_shared(dt)
+	local time_scale = BaseEnemy.get_time_scale(self)
+	MortarProjectile.super.update_shared(self, dt * time_scale)
+end
 
 function MortarProjectile:enter()
     self:add_tag("enemy")

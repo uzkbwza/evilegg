@@ -1,7 +1,7 @@
-local Turret = require("obj.Spawn.Enemy.BaseEnemy"):extend("Turret")
-local TurretBullet = require("obj.Spawn.Enemy.BaseEnemy"):extend("TurretBullet")
+local Turret = BaseEnemy:extend("Turret")
+local TurretBullet = BaseEnemy:extend("TurretBullet")
 
-Turret.shoot_speed = 2.5
+Turret.shoot_speed = 3.0
 Turret.shoot_delay = 240
 Turret.shoot_distance = 6
 
@@ -12,7 +12,7 @@ Turret.death_cry = "enemy_turret_death"
 Turret.death_cry_volume = 0.8
 
 function Turret:new(x, y)
-	self.max_hp = 3
+	self.max_hp = 5
 	Turret.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
@@ -34,7 +34,7 @@ function Turret:start_shoot_timer(time)
     self:start_tick_timer("shoot_timer", time, function()
 		local s = self.sequencer
         s:start(function()
-            while self.world:get_number_of_objects_with_tag("turret_shooting") >= 2 do
+            while self.world:get_number_of_objects_with_tag("turret_shooting") >= 3 do
                 s:wait(rng.randi_range(60, 120))
             end
 			self:add_tag("turret_shooting")
@@ -61,7 +61,7 @@ function Turret:shoot()
 end
 
 function Turret:enter()
-	self:start_shoot_timer(max(1, rng.randi(60, Turret.shoot_delay)))
+	self:start_shoot_timer(max(1, rng.randi(30, Turret.shoot_delay)))
 end
 
 function Turret:update(dt)
@@ -115,7 +115,7 @@ end
 TurretBullet.death_sfx = "enemy_turret_bullet_die"
 
 function TurretBullet:new(x, y)
-	self.max_hp = 4
+	self.max_hp = 5
 
     TurretBullet.super.new(self, x, y)
     self.drag = 0.005
@@ -131,7 +131,7 @@ function TurretBullet:get_sprite()
 end
 
 function TurretBullet:get_palette()
-    local offset = idiv(self.tick, 5)
+    local offset = idiv(self.tick, 3)
 
     return nil, offset
 end

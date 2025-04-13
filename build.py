@@ -5,7 +5,7 @@ import fnmatch
 import shutil
 import sys
 
-GAME_NAME = "game"
+GAME_NAME = "Evil Egg"
 
 # -----------------------------------------------------------------------------
 # Custom Exclusion Patterns
@@ -35,7 +35,7 @@ EXCLUDED_PATTERNS = [p.replace('\\', '/') for p in RAW_EXCLUDED_PATTERNS]
 
 LOVE_EXECUTABLE = r"C:\Program Files\LOVE\love.exe"  # Modify as needed
 LOVE_DLL_DIR = r"C:\Program Files\LOVE"              # Modify if needed
-OUTPUT_EXE_NAME = "game.exe"                         # Final game EXE name
+OUTPUT_EXE_NAME = f"{GAME_NAME}.exe"                         # Final game EXE name
 OUTPUT_DIR = "build"                                 # Output folder name
 ZIP_NAME = f"{GAME_NAME}.zip"                        # Final ZIP file name
 

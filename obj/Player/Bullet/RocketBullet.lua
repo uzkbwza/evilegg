@@ -1,18 +1,21 @@
 local RocketBullet = require("obj.Player.Bullet.BasePlayerBullet"):extend("RocketBullet")
 local Explosion = require("obj.Explosion")
 
-RocketBullet.cooldown = 14
+RocketBullet.cooldown = 15
 RocketBullet.spread = 9
 RocketBullet.shoot_sfx = "player_rocket_shoot"
 RocketBullet.shoot_sfx_volume = 0.5
 RocketBullet.num_bullets_modifier = 0
+RocketBullet.h_offset = 2
 local PARTICLE_LIFETIME = 30
 
 function RocketBullet:new(x, y, extra_bullet)
     RocketBullet.super.new(self, x, y, extra_bullet)
+	self.hit_vel_multip = 40
 	self.explosion_damage = self.damage * 2.5
     self.damage = 1
-	-- self.random_offset = rng.randi(1, 100)
+    -- self.random_offset = rng.randi(1, 100)
+	self.center_out_velocity_multiplier = 6
     self.particles = {}
     if extra_bullet then
 		self.speed = self.speed * 0.9

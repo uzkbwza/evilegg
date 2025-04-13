@@ -13,20 +13,13 @@ function TwinStickNormalBullet:__mix_init()
     self.damage = self.damage or 1
     self:add_update_function(function(self, dt)
 		if not self.dead then
+			self:collide_with_terrain()
+
 			if self.elapsed > self.lifetime then
 				self:defer(function() self:die() end)
 			end
 		end
     end)
-
-    self:add_move_function(function(self)
-		if not self.dead then
-			if not self.world.room.bullet_bounds:contains_circle(self.pos.x, self.pos.y, self.radius) then
-                self:move_to(self.world.room.bullet_bounds:clamp_circle(self.pos.x, self.pos.y, self.radius))
-				self:defer(function() self:die() end)
-			end
-		end
-	end)
 
 	self:add_enter_function(function(self)
         self.spawn_position = self.spawn_position or self.pos:clone()
@@ -46,23 +39,98 @@ function TwinStickNormalBullet:__mix_init()
 
 	if old_die then 
         self.die = function(self, ...)
-            self:twinstick_die()
+            self:twinstick_bullet_die()
             old_die(self, ...)
         end
 
     else
 		self.die = function(self)
-            self:twinstick_die()
+            self:twinstick_bullet_die()
 			self:queue_destroy()
 			self:emit_signal("bullet_died")
 		end
 	end
 end
 
+function TwinStickNormalBullet:add_to_hit_objects(object)
+	self.hit_objects[object.id] = true
+end
+
+function TwinStickNormalBullet:remove_from_hit_objects(object)
+	self.hit_objects[object.id] = nil
+end
+
+
+function TwinStickNormalBullet:collide_with_terrain()
+    local collided = self:constrain_to_room()
+end
+
+function TwinStickNormalBullet:constrain_to_room()
+    local room = self.world.room
+	local collided = false
+
+    if not room then return collided end
+
+	local normal_x, normal_y = 0, 0
+
+    local left = room.left
+	local right = room.right
+	local top = room.bullet_bounds.y
+	local bottom = room.bottom
+
+    if self.pos.x - self.radius <= left then
+        self:move_to(left + self.radius, self.pos.y)
+		normal_x = 1
+		collided = true
+    end
+
+    if self.pos.x + self.radius >= right then
+        self:move_to(right - self.radius, self.pos.y)
+
+		normal_x = -1
+		collided = true
+    end
+
+    if self.pos.y - self.radius <= top then
+        self:move_to(self.pos.x, top + self.radius)
+
+		normal_y = 1
+		collided = true
+    end
+
+    if self.pos.y + self.radius >= bottom then
+
+		self:move_to(self.pos.x, bottom - self.radius)
+		normal_y = -1
+		collided = true
+    end
+
+	if collided then
+		self:on_terrain_collision(normal_x, normal_y)
+	end
+	return collided
+end
+
+function TwinStickNormalBullet:on_terrain_collision(normal_x, normal_y)
+	
+	self:defer(function() self:die() end)
+end
+
+function TwinStickNormalBullet:terrain_collision_bounce(normal_x, normal_y)
+	-- if self.vel then
+	-- 	if normal_x ~= 0 then
+	-- 		self.vel.x = self.vel.x * -1
+	-- 	end
+	-- 	if normal_y ~= 0 then
+	-- 		self.vel.y = self.vel.y * -1
+	-- 	end
+	-- end
+end
+
 function TwinStickNormalBullet.try_hit(bubble, self)
     local parent = bubble.parent
 	
-    if self.hit_objects[parent] then return end
+    if self.hit_objects[parent.id] then return end
 
 	if parent.intangible then return end
 
@@ -70,10 +138,7 @@ function TwinStickNormalBullet.try_hit(bubble, self)
 	if bubble:collides_with_capsule(self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius) then
 		parent:hit_by(self)
 		self:on_hit_something(parent, bubble)
-		self.hit_objects[parent] = true
-		signal.connect(parent, "destroyed", self, "on_parent_destroyed", function()
-			self.hit_objects[parent] = nil
-		end)
+		self:add_to_hit_objects(parent)
         self.hit = true
 		if not parent.bullet_passthrough then 
 			self.hit_blocking = true
@@ -97,7 +162,7 @@ function TwinStickNormalBullet:get_rect()
 	return get_capsule_rect(self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius)
 end
 
-function TwinStickNormalBullet:twinstick_die()
+function TwinStickNormalBullet:twinstick_bullet_die()
 	self.dead = true
 end
 

@@ -93,9 +93,9 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
 	
 	if connection_id == nil then
 
-		connection_id = rng.randi(0, 1000000000)
+		connection_id = rng.randi_range(0, 1000000000)
 		while signal.unnamed_connection_ids[connection_id] do
-			connection_id = rng.randi(0, 1000000000)
+			connection_id = rng.randi_range(0, 1000000000)
 		end
 
 		signal.unnamed_connection_ids[connection_id] = true
@@ -235,18 +235,18 @@ end
 function signal.chain_connect(signal_id, ...)
     -- this function is used to chain signals together. as long as every object in the chain has a signal with the same id,
     -- emitting the signal from one object will emit the signal to the next object in the chain,
-    -- repeating until the signal is emitted from the last object. this is useful when you have a hierarchy of objects 
+    -- repeating until the signal is emitted from the last object. this is useful when you have a hierarchy of objects
     -- and you want to emit a signal from the bottom of the hierarchy to the top of the hierarchy, with each layer
-	-- responding in their own way.
-    assert(type(signal_id) == "string" or type(signal_id) == "number", 
-           "signal_id must be a string or number")
-    
-    local objects = {...}
+    -- responding in their own way.
+    assert(type(signal_id) == "string" or type(signal_id) == "number",
+        "signal_id must be a string or number")
+
+    local objects = { ... }
 
     assert(#objects >= 2, "chain_connect requires at least 2 objects")
 
     local chain_id = "chain_" .. tostring(signal_id)
-    
+
     -- Connect each object to the next in chain
     for i = 1, #objects - 1 do
         local current = objects[i]
@@ -257,7 +257,6 @@ function signal.chain_connect(signal_id, ...)
         end)
     end
 end
-
 
 ---@type Signal
 return signal

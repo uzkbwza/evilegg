@@ -1,5 +1,6 @@
-
 conf = require "conf"
+usersettings = require "usersettings"
+usersettings:initial_load()
 
 require "lib.keyprocess"
 
@@ -33,8 +34,11 @@ require "datastructure.bst2"
 
 require "lib.datetime"
 
+bench = require "lib.bench"
+
 bonglewunch = require "datastructure.bonglewunch"
 makelist = require "datastructure.smart_array"
+circular_buffer = require "datastructure.circular_buffer"
 
 ease = require "lib.ease"
 usersettings = require "usersettings"
@@ -139,8 +143,9 @@ function love.run()
 		love.math.set_random_seed(os.time())
 	end
 
-	local accumulated_time = 0
-	local frame_time = 1 / conf.fixed_tickrate
+    local accumulated_fixed_frame_rate_time = 0
+	local accumulated_capped_frame_rate_time = 0
+	local fixed_frame_time = 1 / conf.fixed_tickrate
 	
 	if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
@@ -148,7 +153,6 @@ function love.run()
 	if love.timer then love.timer.step() end
 
     local dt = 0
-	local min_delta = 1 / conf.max_fps
 
     local debug_printed_yet = false
 	
@@ -194,28 +198,48 @@ function love.run()
 
 		local frame_start = love.timer.get_time()
 
-        if not conf.use_fixed_delta then
+		local force_fixed_delta = (dt > conf.max_delta_seconds / 2)
+
+        if not (conf.use_fixed_delta or force_fixed_delta) and not usersettings.cap_framerate and not (debug.enabled and debug.fast_forward) then
             gametime.delta = delta_frame
             gametime.delta_seconds = delta_frame / TICKRATE
             step(delta_frame)
         else
-            gametime.delta = frame_time * TICKRATE
-            gametime.delta_seconds = frame_time
-            accumulated_time = accumulated_time + dt
+			if conf.use_fixed_delta or force_fixed_delta or (debug.enabled and debug.fast_forward)then
+				gametime.delta = fixed_frame_time * TICKRATE
+				gametime.delta_seconds = fixed_frame_time
+				accumulated_fixed_frame_rate_time = accumulated_fixed_frame_rate_time + dt
 
-            for i = 1, conf.max_fixed_ticks_per_frame do
-                if accumulated_time < frame_time then
-                    break
+                if debug.enabled and debug.fast_forward then
+                    step(fixed_frame_time * TICKRATE)
+                else
+                    for i = 1, conf.max_fixed_ticks_per_frame do
+                        if accumulated_fixed_frame_rate_time < fixed_frame_time then
+                            break
+                        end
+
+                        step(fixed_frame_time * TICKRATE)
+
+                        accumulated_fixed_frame_rate_time = accumulated_fixed_frame_rate_time - fixed_frame_time
+                    end
                 end
+            else -- fps cap is enabled
+                accumulated_capped_frame_rate_time = accumulated_capped_frame_rate_time + dt
+				if accumulated_capped_frame_rate_time >= 1 / usersettings.fps_cap then
+                    local capped_delta_seconds = accumulated_capped_frame_rate_time
+                    if capped_delta_seconds >= (conf.max_delta_seconds) then
+                        capped_delta_seconds = conf.max_delta_seconds
+                    end
+                    local capped_delta_frame = capped_delta_seconds * TICKRATE
+					gametime.delta = capped_delta_frame
+					gametime.delta_seconds = capped_delta_seconds
 
-                step(frame_time * TICKRATE)
-
-                accumulated_time = accumulated_time - frame_time
-            end
+                    step(capped_delta_frame)
+						
+				accumulated_capped_frame_rate_time = accumulated_capped_frame_rate_time - capped_delta_seconds
+				end
+			end
         end
-		
-		local frame_end = love.timer.get_time()
-		frame_length = frame_end - frame_start
 
 
         if gametime.is_new_tick and gametime.tick % 300 == 0 then
@@ -229,17 +253,32 @@ function love.run()
             debug_printed_yet = false
         end
 		
-		if frame_length < min_delta and not usersettings.vsync then
-            love.timer.sleep(min_delta - frame_length)
-			-- print(min_delta - frame_length)
-		end
+        manual_gc(0.001, math.huge, false)
 
-		manual_gc(0.001, math.huge, false)
+		local frame_end = love.timer.get_time()
+        frame_length = frame_end - frame_start
+		
+		-- local min_delta = 1 / ((usersettings.cap_framerate) and min(usersettings.fps_cap, conf.max_fps) or conf.max_fps)
+        local min_delta = 1 / (conf.max_fps)
+
+        if (frame_length < min_delta and (usersettings.cap_framerate) and not usersettings.vsync) and not (debug.enabled and debug.fast_forward) then
+            local sleep_start = love.timer.get_time()
+			if min_delta - frame_length > 0 then
+				love.timer.sleep((min_delta - frame_length) * 0.5)
+			end
+            local sleep_end = love.timer.get_time()
+            local sleep_duration = sleep_end - sleep_start
+			frame_length = frame_length + sleep_duration
+            dbg("sleep duration (ms)", string.format("%0.3f", sleep_duration * 1000), Color.purple)
+        end
 
 	end
 end
 
 function love.load(...)
+	
+
+
     -- fennel.dofile("main.fnl")
 
     if table.list_has(arg, "build_assets") then
@@ -268,8 +307,7 @@ function love.load(...)
     audio.load()
     tilesets.load()
 	input.load()
-	Worlds = filesystem.get_modules("world")
-    
+	
 	game = filesystem.get_modules("game").MainGame()
 	
     game:load()
@@ -277,29 +315,40 @@ end
 
 local averaged_frame_length = 0
 
+local average_fps = 0
+
 function love.update(dt)
 	if gametime.tick % 1 == 0 then 
 		-- dbg("ticks", gametime.tick)
-		local fps = love.timer.getFPS()
         -- if conf.use_fixed_delta and fps > conf.fixed_tickrate then
             -- fps = conf.fixed_tickrate
         -- end
 
-		local flen = (1000 * step_length)
-
-		if flen > averaged_frame_length then
-            averaged_frame_length = flen
-        else
-			averaged_frame_length = splerp(averaged_frame_length, flen, 1000.0, dt)
-		end
 		
 		if debug.enabled then
-            dbg("fps", fps, Color.pink)
+			local flen = (1000 * step_length)
+	
+            if flen > averaged_frame_length then
+                averaged_frame_length = flen
+            else
+                averaged_frame_length = splerp(averaged_frame_length, flen, 1000.0, dt)
+            end
+			
+            local fps = round(1000 / (1000 * frame_length))
+			
+			if fps < average_fps then
+				average_fps = fps
+			else
+				average_fps = splerp(average_fps, fps, 1000.0, dt)
+			end
+
+            dbg("fps", floor(average_fps), Color.pink)
 			debug.memory_used = (collectgarbage("count")) / 1024
 			dbg("memory use (mB)", stepify_safe(debug.memory_used, 0.001), Color.green)
             dbg("step length (ms)", string.format("%0.3f", flen), Color.pink)
             dbg("step length (ms) peakdecay", string.format("%0.3f", averaged_frame_length), Color.pink)
-			dbg("id counter", GameObject.id_counter, Color.orange)
+			dbg("frame_length (ms)", string.format("%0.3f", frame_length * 1000), Color.pink)
+			-- dbg("id counter", GameObject.id_counter, Color.orange)
 		end
 	end
 
@@ -312,7 +361,7 @@ function love.update(dt)
 
 	-- global input shortcuts
 	if input.fullscreen_toggle_pressed then
-		love.window.setFullscreen(not love.window.getFullscreen())
+		usersettings:set_setting("fullscreen", not love.window.getFullscreen())
 	end
 
     debug.update(dt)
@@ -322,29 +371,34 @@ function love.update(dt)
 end
 
 function love.draw()
-	-- graphics.interp_fraction = conf.interpolate_timestep and clamp(accumulated_time / frame_time, 0, 1) or 1
-	-- graphics.interp_fraction = stepify(graphics.interp_fraction, 0.1)
+    -- graphics.interp_fraction = conf.interpolate_timestep and clamp(accumulated_fixed_frame_rate_time / fixed_frame_time, 0, 1) or 1
+    -- graphics.interp_fraction = stepify(graphics.interp_fraction, 0.1)
 
     graphics.draw_loop()
-	
-	if gametime.tick % 10 == 0 then
-		if debug.enabled then
-			dbg("draw calls", graphics.get_stats().drawcalls, Color.magenta)
-			-- dbg("interp_fraction", graphics.interp_fraction)
-		end
-	end
-	if debug.can_draw() then
+
+    if gametime.tick % 10 == 0 then
+        if debug.enabled then
+            dbg("draw calls", graphics.get_stats().drawcalls, Color.magenta)
+            -- dbg("interp_fraction", graphics.interp_fraction)
+        end
+    end
+    if debug.can_draw() then
         debug.printlines(0, 0)
         if debug.drawing_dt_history then
-			local screen_width, screen_height = love.graphics.getDimensions()
+            local screen_width, screen_height = love.graphics.getDimensions()
             local width, height = screen_width * 0.25, screen_height * 0.125
-			graphics.translate(screen_width - width, 1)
-			graphics.set_color(0, 0, 0, 0.5)
-			graphics.rectangle("fill", 0, 0, width, height)
-			graphics.set_color(1, 1, 1, 1)
-			debug.draw_dt_history(width, height)
-		end
-	end
+            graphics.translate(screen_width - width, 1)
+            graphics.set_color(0, 0, 0, 0.5)
+            graphics.rectangle("fill", 0, 0, width, height)
+            graphics.set_color(1, 1, 1, 1)
+            debug.draw_dt_history(width, height)
+        end
+    end
+end
+
+function love.quit()
+    usersettings:save()
+	return false
 end
 
 function love.joystickadded(joystick)

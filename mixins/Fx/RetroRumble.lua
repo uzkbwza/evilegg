@@ -27,7 +27,7 @@ function RetroRumble:start_rumble(amount, duration, easing_function, x_axis, y_a
 	local s = self.world.sequencer
 	s:stop(self.rumble_coroutine)
     easing_function = easing_function or ease("outQuad")
-    self.rumble_coroutine = s:start(function()
+	local func = function()
 		if x_axis then	
 			s:tween_property(self, "rumble_amount_x", amount, 0, duration, easing_function)
 		end
@@ -37,7 +37,8 @@ function RetroRumble:start_rumble(amount, duration, easing_function, x_axis, y_a
         self.rumble_coroutine = nil
 		self.rumble_amount_x = 0
 		self.rumble_amount_y = 0
-    end)
+    end
+    self.rumble_coroutine = s:start(func)
 end
 
 function RetroRumble:set_rumble_directly(amount)

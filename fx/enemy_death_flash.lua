@@ -11,7 +11,7 @@ local SPEED = 5.0
 local DeathFlash = Effect:extend("DeathFlash")
 
 -- TODO: use quads instead of pixels
-function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
+function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, use_grey_pixels)
 	DeathFlash.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
     self.duration = 30
@@ -19,6 +19,7 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
 
 	local width, height = 0, 0
     local offset_x, offset_y = 0, 0
+
 	if texture.__isquad then
 		width, height = texture.width, texture.height
 		offset_x, offset_y = texture.x, texture.y
@@ -55,27 +56,37 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
 
 	local pixels = {}
 
-    for i = 1, PIXEL_COUNT * self.size_mod do
-        local vel_x, vel_y = rng.random_vec2()
-		vel_x = vel_x * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
-		vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
-		
+    if use_grey_pixels == nil then
+		use_grey_pixels = true
+	end
 
-		local darkergrey = Color.darkergrey
-		local alpha = clamp(rng.randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)
-        local pixel = {
-            x = vel_x * 0.25,
-            y = vel_y * 0.25,
-			vel_x = vel_x,
-            vel_y = vel_y,
-			radius = rng.randfn(1, 0.5) / 2,
-			color = Color(alpha, alpha, alpha)
-        }
-		pixels[i] = pixel
-    end
+	self.pixel_count = 0
+
+    if use_grey_pixels then
+		self.pixel_count = PIXEL_COUNT * self.size_mod
+
+		for i = 1, self.pixel_count do
+			local vel_x, vel_y = rng.random_vec2()
+			vel_x = vel_x * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
+			vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
+			
+
+			local darkergrey = Color.darkergrey
+			local alpha = clamp(rng.randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)
+			local pixel = {
+				x = vel_x * 0.25,
+				y = vel_y * 0.25,
+				vel_x = vel_x,
+				vel_y = vel_y,
+				radius = rng.randfn(1, 0.5) / 2,
+				color = Color(alpha, alpha, alpha)
+			}
+			pixels[i] = pixel
+		end
+	end
 
 	self.pixels = pixels
-    self.z_index = 11
+    self.z_index = 0.1
 	self:start_timer("z_index", 10, function()
 		self.z_index = -100
 	end)
@@ -86,7 +97,7 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length)
 end
 
 function DeathFlash:update(dt)
-	for i = 1, PIXEL_COUNT * self.size_mod do
+	for i = 1, self.pixel_count do
         local pixel = self.pixels[i]
 		pixel.x = pixel.x + pixel.vel_x * dt
 		pixel.vel_x, pixel.vel_y = vec2_drag(pixel.vel_x, pixel.vel_y, DRAG, dt)
@@ -131,7 +142,7 @@ function DeathFlash:draw(elapsed, tick, t)
 
 
     graphics.set_color(Color.darkergrey)
-    for i = 1, PIXEL_COUNT * self.size_mod do
+    for i = 1, self.pixel_count do
         local pixel = self.pixels[i]
         graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
     end
@@ -180,7 +191,7 @@ function DeathFlash:floor_draw()
 	end
 
 	
-	for i = 1, PIXEL_COUNT * self.size_mod do
+	for i = 1, self.pixel_count do
 		local pixel = self.pixels[i]
 		graphics.set_color(pixel.color)
 		graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)

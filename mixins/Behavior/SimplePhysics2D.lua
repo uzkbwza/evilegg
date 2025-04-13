@@ -32,7 +32,7 @@ end
 
 function SimplePhysics2D:set_physics_limits(t)
     if t.max_speed then
-		self.max_speed = t.max_speed
+        self.max_speed = t.max_speed
         self:add_manipulate_velocity_function(function(self, dt)
             local speed = self.vel:magnitude()
             if speed > self.max_speed then
@@ -41,7 +41,7 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
-	
+
     if t.max_horizontal_speed then
         self.max_horizontal_speed = t.max_horizontal_speed
         self:add_manipulate_velocity_function(function(self, dt)
@@ -50,7 +50,7 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
-	
+
     if t.max_vertical_speed then
         self.max_vertical_speed = t.max_vertical_speed
         self:add_manipulate_velocity_function(function(self, dt)
@@ -59,15 +59,15 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
-	
-	if t.max_upward_speed then
-		self.max_upward_speed = t.max_upward_speed
-		self:add_manipulate_velocity_function(function(self, dt)
-			if self.vel.y < -self.max_upward_speed then
-				self.vel.y = -self.max_upward_speed
-			end
-		end)
-	end
+
+    if t.max_upward_speed then
+        self.max_upward_speed = t.max_upward_speed
+        self:add_manipulate_velocity_function(function(self, dt)
+            if self.vel.y < -self.max_upward_speed then
+                self.vel.y = -self.max_upward_speed
+            end
+        end)
+    end
 
     if t.max_downward_speed then
         self.max_downward_speed = t.max_downward_speed
@@ -77,7 +77,7 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
-	
+
     if t.max_rightward_speed then
         self.max_rightward_speed = t.max_rightward_speed
         self:add_manipulate_velocity_function(function(self, dt)
@@ -86,7 +86,7 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
-	
+
     if t.max_leftward_speed then
         self.max_leftward_speed = t.max_leftward_speed
         self:add_manipulate_velocity_function(function(self, dt)
@@ -95,6 +95,12 @@ function SimplePhysics2D:set_physics_limits(t)
             end
         end)
     end
+end
+
+function SimplePhysics2D:reset_physics()
+	self.vel:mul_in_place(0)
+	self.accel:mul_in_place(0)
+	self.impulses:mul_in_place(0)
 end
 
 function SimplePhysics2D:apply_force_relative(forcex, forcey)

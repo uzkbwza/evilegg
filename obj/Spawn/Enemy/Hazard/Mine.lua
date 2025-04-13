@@ -1,4 +1,4 @@
-local Mine = require("obj.Spawn.Enemy.BaseEnemy"):extend("Mine")
+local Mine = BaseEnemy:extend("Mine")
 local Exploder = Mine:extend("Exploder")
 local Blinker = Mine:extend("Blinker")
 local Explosion = require("obj.Explosion")
@@ -44,11 +44,12 @@ end
 local EXPLOSION_RADIUS = 28
 
 function Exploder:new(x, y)
-    self.max_hp = 6
-    self.hit_bubble_damage = 2
+    self.max_hp = 4
+    self.hit_bubble_damage = 10
     self.hit_bubble_radius = 4
     self.hurt_bubble_radius = 6
     Exploder.super.new(self, x, y)
+	self:lazy_mixin(Mixins.Behavior.ExploderEnemy)
 end
 
 function Exploder:enter()
@@ -66,7 +67,7 @@ function Exploder:die()
     local bx, by = self:get_body_center()
 	local params = {
 		size = EXPLOSION_RADIUS,	
-		damage = self.max_hp,
+		damage = 10,
 		team = "enemy",
 		melee_both_teams = true,
 		particle_count_modifier = 0.95,
@@ -94,7 +95,7 @@ end
 
 function Blinker:state_Waiting_enter()
     self.z_index = 0
-    self.vel:mul_in_place(0)
+    self:reset_physics()
     self.applying_physics = true
     self.melee_attacking = true
     self.intangible = false
@@ -127,8 +128,13 @@ function Blinker:state_Blinking_enter()
         local y = rng.randf(self.world.room.top, self.world.room.bottom)
 		self.start_x, self.start_y = self.pos.x, self.pos.y
         self.blink_target_x, self.blink_target_y = x, y
-		s:wait(5)
-		s:tween(function(t) self:blink_tween(t) end, 0, 1, 30, "inOutExpo")
+        s:wait(5)
+		
+        s:wait(10)
+		s:tween(function(t) self:blink_tween(t) end, 0, 1, 10, "inOutExpo")
+        s:wait(10)
+        -- self:blink_tween(1.0)
+		
 		s:wait(14)
 		self:play_sfx("hazard_blinker_reappear", 0.65)
         self:change_state("Waiting")

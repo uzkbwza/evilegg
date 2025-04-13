@@ -5,7 +5,7 @@ local audio = {
     -- sfx_volume = 1.0,
     -- music_volume = 1.0,
     default_rolloff = 0.00000001,
-    default_zindex = 0,
+    default_z_index = 0,
     sound_objects = {},
     object_sounds = {},
 	-- max_volume = 1.0,
@@ -57,12 +57,12 @@ function audio.update(dt)
         end
     end
     if debug.enabled then
-		dbg("audio.object_sounds", table.length(audio.sound_objects))
+		-- dbg("audio.object_sounds", table.length(audio.sound_objects))
 	end
 end
 
 function audio.set_position(x, y, z)
-    -- love.audio.set_position(x, y, z or audio.default_zindex)
+    -- love.audio.set_position(x, y, z or audio.default_z_index)
 end
 
 function audio.play_sfx_monophonic(name, volume, pitch, loop)
@@ -190,7 +190,14 @@ function audio.play_music(src, volume)
     src:setVolume(volume and (volume * usersettings.music_volume) or usersettings.music_volume)
     src:setLooping(true)
     src:play()
-	audio.playing_music = src
+    audio.playing_music = src
+	audio.playing_music_volume = volume or 1
+end
+
+function audio.usersettings_update()
+    if audio.playing_music then
+        audio.playing_music:setVolume(usersettings.music_volume * audio.playing_music_volume)
+    end
 end
 
 function audio.stop_music()

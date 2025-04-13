@@ -20,11 +20,13 @@ end
 function MainGame:load()
     MainGame.super.load(self)
 
-    fonts.main_font = fonts["PixelOperatorMono8"]
-    fonts.hud_font = fonts["PixelOperatorMono8"]
-    fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
-	fonts.bonus_font = fonts.image_font1
+    -- fonts.main_font = fonts["PixelOperatorMono8"]
+    -- fonts.hud_font = fonts["PixelOperatorMono8"]
+    -- fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
     fonts.cn_jp_kr = fonts["quan8"]
+    fonts.main_font = fonts.depalettized.image_font2
+    fonts.hud_font = fonts.depalettized.image_font2
+	fonts.main_font_bold = fonts.depalettized.image_font2
 end
 
 function MainGame:update(dt)
@@ -68,20 +70,21 @@ end
 GlobalGameState.max_upgrades = {
 	fire_rate = 1,
 	range = 2,
-	bullets = 2,
-    damage = 2,
+	bullets = 1,
+    damage = 1,
     -- knockback = 1, -- combined with bullet speed
 	bullet_speed = 2,
 	-- boost = 1,
 }
 
-GlobalGameState.max_items = 8
+GlobalGameState.max_artefacts = 8
 GlobalGameState.max_hearts = 2
-GlobalGameState.xp_until_upgrade = 22
-GlobalGameState.xp_until_heart = 22
-GlobalGameState.xp_until_item = 30
+GlobalGameState.xp_until_upgrade = 2100
+GlobalGameState.xp_until_heart = 3500
+GlobalGameState.xp_until_artefact = 4000
 
 function GlobalGameState:new()
+	self.enable_adaptive_difficulty = false
     self.level = 1
     self.wave = 1
     self.difficulty = 1
@@ -97,22 +100,52 @@ function GlobalGameState:new()
     self.all_bonuses = {}
 
     self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
-    self.xp_until_heart = 1
+    self.xp_until_heart = 14
+    self.xp_until_upgrade = 1020
     -- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
-    self.xp_until_item = GlobalGameState.xp_until_item
+    self.xp_until_artefact = 2100
+
+	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
+	self.heart_xp_target = self.xp + self.xp_until_heart
+	self.artefact_xp_target = self.xp + self.xp_until_artefact
+
+	self.reached_upgrade_xp_at = 0
+	self.reached_heart_xp_at = 0
+	self.reached_artefact_xp_at = 0
 
     self.num_queued_upgrades = 0
-    self.num_queued_items = 0
+    self.num_queued_artefacts = 0
     self.num_queued_hearts = 0
 
 	self.bullet_powerup = nil
 	self.bullet_powerup_time = 0
 
-    self.hearts = 0
+	self.game_over = false
 
-    self.items = {
+	self.used_sacrificial_twin = false
+
+    self.hearts = 1
+
+    self.rescue_chain_difficulty = 0
+	self.bonus_difficulty_modifier = 0
+
+    self.artefacts = {
 
     }
+
+    self.artefact_slots = {
+		
+	}
+
+	self.last_spawned_artefacts = {
+    }
+	
+	self.secondary_weapon = nil
+	self.secondary_weapon_ammo = 0
+	
+	self.recently_selected_artefacts = {}
+	self.recently_selected_upgrades = {}
+	self.selected_artefact_slot = 1
 
     self.upgrades = {
         fire_rate = 0,
@@ -124,37 +157,45 @@ function GlobalGameState:new()
     }
 
     if debug.enabled then
-        self.level = 1
-		self.hearts = 0
+		-- self.num_queued_artefacts = 1
+		-- self.level = 12
+		-- self.hearts = self.max_hearts
+		-- self.upgrades.fire_rate = self.max_upgrades.fire_rate
+		-- self.upgrades.range = self.max_upgrades.range
+		-- self.upgrades.bullets = self.max_upgrades.bullets
+		-- self.upgrades.damage = self.max_upgrades.damage
+        -- self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
 
-        -- self.num_queued_upgrades = 100
-        -- self.num_queued_powerups = 100
-        self.num_queued_items = 100
-        -- self.num_queued_hearts = 100
+		-- for i = 1, 100 do
+            -- table.pretty_print(self:get_random_available_upgrade())
+        -- end
     end
 
     signal.register(self, "player_upgraded")
     signal.register(self, "player_heart_gained")
+	signal.register(self, "player_heart_lost")
     signal.register(self, "player_powerup_gained")
     signal.register(self, "player_downgraded")
     signal.register(self, "xp_threshold_reached")
+	signal.register(self, "player_artefact_gained")
+	signal.register(self, "player_artefact_removed")
+    signal.register(self, "player_artefact_slot_changed")
+	signal.register(self, "used_sacrificial_twin")
 
-    if debug.enabled then
-        -- for i = 1, 100 do
-            -- table.pretty_print(self:get_random_available_upgrade())
-        -- end
-    end
+	self.score_categories = {}
 end
 
 function GlobalGameState:update(dt)
     if debug.enabled then
-		dbg("xp", self.xp)
-		dbg("xp_until_upgrade", self.xp_until_upgrade)
-		dbg("xp_until_heart", self.xp_until_heart)
-		dbg("xp_until_item", self.xp_until_item)
-		dbg("num_queued_upgrades", self.num_queued_upgrades)
-		dbg("num_queued_hearts", self.num_queued_hearts)
-		dbg("num_queued_items", self.num_queued_items)
+		-- dbg("xp", self.xp)
+		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
+		-- dbg("xp_until_heart", self.xp_until_heart)
+		-- dbg("xp_until_artefact", self.xp_until_artefact)
+		-- dbg("num_queued_upgrades", self.num_queued_upgrades)
+		-- dbg("num_queued_hearts", self.num_queued_hearts)
+        -- dbg("num_queued_artefacts", self.num_queued_artefacts)
+		dbg("difficulty_modifier", self:get_difficulty_modifier())
+		dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
 	end
 end
 
@@ -170,43 +211,135 @@ function GlobalGameState:level_bonus(bonus_name)
     self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] or 0
     self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] + 1
 	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] or 0
-	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] + 1
+    self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] + 1
+end
+
+function GlobalGameState:set_selected_artefact_slot(slot)
+    local old = self.selected_artefact_slot
+    self.selected_artefact_slot = slot
+    if old ~= slot then
+        signal.emit(self, "player_artefact_slot_changed", slot, old)
+    end
+end
+
+
+function GlobalGameState:gain_artefact(artefact)
+	if self.artefacts[artefact.key] then
+		return
+	end
+
+	-- if self.artefact_slots[self.selected_artefact_slot] then
+	self:remove_artefact(self.selected_artefact_slot)
+	-- end
+
+    self.artefact_slots[self.selected_artefact_slot] = artefact
+
+	local slot = self.selected_artefact_slot
+	
+    self.artefacts[artefact.key] = { slot = self.selected_artefact_slot, artefact = artefact }
+
+	
+	local found_free_space = false
+	for i = 1, GlobalGameState.max_artefacts do
+		if not self.artefact_slots[i] then
+			self:set_selected_artefact_slot(i)
+			found_free_space = true
+			break
+		end
+	end
+	if not found_free_space then
+		self:set_selected_artefact_slot(self.selected_artefact_slot + 1)
+		if self.selected_artefact_slot > GlobalGameState.max_artefacts then
+			self:set_selected_artefact_slot(1)
+		end
+	end
+
+	signal.emit(self, "player_artefact_gained", artefact, slot)
+end
+
+function GlobalGameState:remove_artefact(slot)
+    if not self.artefact_slots[slot] then
+        return
+    end
+    local artefact = self.artefact_slots[slot]
+	
+	self.artefacts[artefact.key] = nil
+    self.artefact_slots[slot] = nil
+
+    if artefact.remove_function then
+		artefact.remove_function(self, slot)
+	end
+
+	signal.emit(self, "player_artefact_removed", artefact, slot)
+end
+
+function GlobalGameState:on_game_over()
+	self.game_over = true
 end
 
 function GlobalGameState:gain_xp(amount)
+	if self.game_over then return end
     self.xp = self.xp + amount
-    self.xp_until_upgrade = self.xp_until_upgrade - amount
-    self.xp_until_heart = self.xp_until_heart - amount
+
+	if not self:is_fully_upgraded() then
+		self.xp_until_upgrade = self.xp_until_upgrade - amount
+	end
+	self.xp_until_heart = self.xp_until_heart - amount
     -- self.xp_until_powerup = self.xp_until_powerup - amount
-    self.xp_until_item = self.xp_until_item - amount
+	self.xp_until_artefact = self.xp_until_artefact - amount
     if self.xp_until_upgrade <= 0 then
-        self.xp_until_upgrade = self.xp_until_upgrade + GlobalGameState.xp_until_upgrade + rng.randi(-1, 1)
+		self.xp_until_upgrade = self.xp_until_upgrade + GlobalGameState.xp_until_upgrade + rng.randi(-100, 100)
         self:on_upgrade_xp_threshold_reached()
     end
-    if self.xp_until_heart <= 0 then
-        self.xp_until_heart = self.xp_until_heart + GlobalGameState.xp_until_heart + rng.randi(-1, 1)
+	if self.xp_until_heart <= 0 then
+        self.xp_until_heart = self.xp_until_heart + GlobalGameState.xp_until_heart + rng.randi(-100, 100)
         self:on_heart_xp_threshold_reached()
     end
     -- if self.xp_until_powerup <= 0 then
     --     self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng.randi(-1, 1) - (self.level * 0.45), 8)
     --     self:on_powerup_xp_threshold_reached()
     -- end
-    if self.xp_until_item <= 0 then
-        self.xp_until_item = self.xp_until_item + GlobalGameState.xp_until_item + rng.randi(-1, 1)
-        self:on_item_xp_threshold_reached()
+    if self.xp_until_artefact <= 0 then
+        self.xp_until_artefact = self.xp_until_artefact + GlobalGameState.xp_until_artefact + rng.randi(-100, 100)
+        self:on_artefact_xp_threshold_reached()
     end
 end
 
 function GlobalGameState:on_level_start()
 	self.level = self.level + 1
     self.any_room_failures = false
-	self.level_bonuses = {}
+	self.any_damage_taken = false
+    self.level_bonuses = {}
+    if debug.enabled then
+        print("--- Score Categories ---")
+        local sum = 0
+        for k, v in pairs(self.score_categories) do
+            sum = sum + v
+        end
+        for k, v in pairs(self.score_categories) do
+            local percent = (v / sum) * 100
+            print(string.format("%s: %d (%.2f%%)", k, v, percent))
+        end
+        print("------------------------")
+    end
+	self.bonus_difficulty_modifier = approach(self.bonus_difficulty_modifier, 0, stepify(self.bonus_difficulty_modifier * 0.2, 0.05))
+end
+
+function GlobalGameState:on_damage_taken()
+	self.any_damage_taken = true
+end
+
+function GlobalGameState:apply_level_bonus_difficulty(bonus)
+	self.bonus_difficulty_modifier = self.bonus_difficulty_modifier + (bonus or 0)
 end
 
 function GlobalGameState:on_room_clear()
     self:level_bonus("room_clear")
 	if not self.any_room_failures then
 		self:level_bonus("all_rescues")
+	end
+	if not self.any_damage_taken then
+		self:level_bonus("no_damage")
 	end
 end
 
@@ -215,31 +348,57 @@ function GlobalGameState:on_rescue(rescue_object)
     self.rescues_saved = self.rescues_saved + 1
 	-- self:gain_xp(0.5)
     self.rescue_chain = self.rescue_chain + 1
+	self.rescue_chain_difficulty = min(self.rescue_chain_difficulty + 1, 30)
 	self:level_bonus("rescue")
 end
 
 function GlobalGameState:on_rescue_failed()
     -- self.score_multiplier = self.score_multiplier - 0.25
-	self.rescue_chain = 0
-	self.any_room_failures = true
+	self.rescue_chain_difficulty = max(self.rescue_chain_difficulty - 12, 0)
+    self.rescue_chain = 0
+    self.any_room_failures = true
+end
+
+function GlobalGameState:get_max_upgrade(upgrade_type)
+	local offset = 0
+    if self.artefacts.more_bullets and upgrade_type == "bullets" then
+		offset = offset + 1
+	end
+    return self.max_upgrades[upgrade_type] + offset
 end
 
 function GlobalGameState:is_fully_upgraded()
     for k, v in pairs(self.upgrades) do
-		if not GlobalGameState.max_upgrades[k] then
-			return false
-		end
-        if v < GlobalGameState.max_upgrades[k] then
+        if not self:get_max_upgrade(k) then
+            return false
+        end
+        if v < self:get_max_upgrade(k) then
             return false
         end
     end
     return true
 end
 
+function GlobalGameState:add_kill()
+	-- if self.game_over then return end
+    self.enemies_killed = self.enemies_killed + 1
+end
+
+function GlobalGameState:add_score_multiplier(multiplier)
+	if self.game_over then return end
+    self.score_multiplier = self.score_multiplier + multiplier
+end
+
 function GlobalGameState:gain_heart(heart)
     self.hearts = self.hearts + 1
 	if self.hearts > GlobalGameState.max_hearts then
         self.hearts = GlobalGameState.max_hearts
+		if self.artefacts.stone_trinket and not self:is_fully_upgraded() then
+			local upgrade = self:get_random_available_upgrade(false)
+			if upgrade then
+				self:upgrade(upgrade)
+			end
+		end
 		game_state:level_bonus("overheal")
     else
 		signal.emit(self, "player_heart_gained", heart)
@@ -264,21 +423,17 @@ function GlobalGameState:get_bullet_powerup()
 end
 
 function GlobalGameState:lose_heart()
-    self.hearts = self.hearts - 1
-	if self.hearts < 0 then
-		self.hearts = 0
-	end
-end
-
-function GlobalGameState:on_enemy_killed()
-	
+    if self.hearts > 0 then
+        self.hearts = self.hearts - 1
+        signal.emit(self, "player_heart_lost")
+    end
 end
 
 function GlobalGameState:upgrade(upgrade)
 	local type = upgrade.upgrade_type
     self.upgrades[type] = self.upgrades[type] + 1
-    if self.upgrades[type] > GlobalGameState.max_upgrades[type] then
-        self.upgrades[type] = GlobalGameState.max_upgrades[type]
+    if self.upgrades[type] > self:get_max_upgrade(type) then
+        self.upgrades[type] = self:get_max_upgrade(type)
     else
 		signal.emit(self, "player_upgraded", upgrade)
 	end
@@ -318,6 +473,9 @@ end
 
 function GlobalGameState:on_upgrade_xp_threshold_reached()
     self.num_queued_upgrades = self.num_queued_upgrades + 1
+	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
+	self.reached_upgrade_xp_at = self.xp
+
 	if not self:is_fully_upgraded() then
 		signal.emit(self, "xp_threshold_reached", "upgrade")
 	end
@@ -325,6 +483,8 @@ end
 
 function GlobalGameState:on_heart_xp_threshold_reached()
     self.num_queued_hearts = self.num_queued_hearts + 1
+	self.heart_xp_target = self.xp + self.xp_until_heart
+	self.reached_heart_xp_at = self.xp
 	signal.emit(self, "xp_threshold_reached", "heart")
 end
 
@@ -333,9 +493,11 @@ end
 	-- signal.emit(self, "xp_threshold_reached", "powerup")
 -- end
 
-function GlobalGameState:on_item_xp_threshold_reached()
-    self.num_queued_items = self.num_queued_items + 1
-	signal.emit(self, "xp_threshold_reached", "item")
+function GlobalGameState:on_artefact_xp_threshold_reached()
+    self.num_queued_artefacts = self.num_queued_artefacts + 1
+	self.artefact_xp_target = self.xp + self.xp_until_artefact
+	self.reached_artefact_xp_at = self.xp
+	signal.emit(self, "xp_threshold_reached", "artefact")
 end
 
 local MIN_SCORE_MULTIPLIER = 0.01
@@ -362,9 +524,45 @@ function GlobalGameState:get_score_multiplier()
 	end
 
 	multiplier = multiplier + (rescue_chain_multiplier)
+    -- multiplier = multiplier + (self.rescue_chain * 0.5)
+	
+    multiplier = multiplier * (1 + self:get_difficulty_modifier(false))
+	
     multiplier = stepify_floor(clamp(multiplier, 1, RESCUE_CHAIN_MULTIPLIER_CAP), MIN_SCORE_MULTIPLIER)
-	-- multiplier = multiplier + (self.rescue_chain * 0.5)
+
 	return multiplier
+end
+
+
+local DIFFICULTY_MULTIPLIER = 0.4
+
+function GlobalGameState:get_difficulty_modifier(include_rescue_chain)
+
+	if not self.enable_adaptive_difficulty then
+		return 0
+	end
+
+    if include_rescue_chain == nil then
+		include_rescue_chain = true
+	end
+
+    local upgrade_sum = 0
+    for upgrade, count in pairs(self.upgrades) do
+        upgrade_sum = upgrade_sum + count
+    end
+
+    local upgrade_modifier = upgrade_sum / 12
+	local heart_modifier = self.hearts / 6
+
+	local rescue_modifier = include_rescue_chain and (min(self.rescue_chain_difficulty / 30, 1) * 0.35) or 0
+	local bonus_difficulty_modifier = self.bonus_difficulty_modifier
+
+	local modifier = upgrade_modifier + heart_modifier + rescue_modifier + bonus_difficulty_modifier
+
+	local level_multiplier = min(self.level - 1, 4) / 4
+
+
+	return modifier * level_multiplier * DIFFICULTY_MULTIPLIER
 end
 
 function GlobalGameState:determine_score(score)
@@ -379,8 +577,8 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
     for k, v in pairs(PickupTable.upgrades) do
         if not v.base then
 			if not allow_nil then
-				if GlobalGameState.max_upgrades[v.upgrade_type] then
-					if self.upgrades[v.upgrade_type] < GlobalGameState.max_upgrades[v.upgrade_type] then
+				if self:get_max_upgrade(v.upgrade_type) then
+					if self.upgrades[v.upgrade_type] < self:get_max_upgrade(v.upgrade_type) then
 						table.insert(tab, v)
 					end
 				end
@@ -390,9 +588,16 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
 		end
     end
 
-	local v = rng.weighted_choice(tab, "spawn_weight")
-	if allow_nil and GlobalGameState.max_upgrades[v.upgrade_type] then
-		if self.upgrades[v.upgrade_type] < GlobalGameState.max_upgrades[v.upgrade_type] then
+    local v = rng.weighted_choice(tab, function(upgrade)
+		local weight = upgrade.spawn_weight
+		if table.list_has(self.recently_selected_upgrades, upgrade.upgrade_type) then
+			weight = weight / 100
+		end
+		return weight
+	end)
+	
+	if allow_nil and v and self:get_max_upgrade(v.upgrade_type) then
+		if self.upgrades[v.upgrade_type] < self:get_max_upgrade(v.upgrade_type) then
             return v
         else
 			return nil
@@ -402,8 +607,52 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
 	return v
 end
 
-function GlobalGameState:get_random_available_item()
-    return rng.choose(table.values(PickupTable.items))
+function GlobalGameState:use_sacrificial_twin()
+	self:remove_artefact(self.artefacts.sacrificial_twin.slot)
+	self.used_sacrificial_twin = true
+	signal.emit(self, "used_sacrificial_twin")
+end
+
+function GlobalGameState:prune_artefact(artefact)
+    table.insert(self.recently_selected_artefacts, artefact.key)
+	if #self.recently_selected_artefacts > 3 then
+		table.remove(self.recently_selected_artefacts, 1)
+	end
+end
+
+function GlobalGameState:prune_upgrade(upgrade)
+    table.insert(self.recently_selected_upgrades, upgrade.upgrade_type)
+	if #self.recently_selected_upgrades > 3 then
+		table.remove(self.recently_selected_upgrades, 1)
+	end
+end
+
+function GlobalGameState:get_random_available_artefact()
+
+    local tab = {}
+    for k, v in pairs(PickupTable.artefacts) do
+        if not v.base then
+			if self.artefacts[v.key] then
+				goto continue
+			end
+			if self.last_spawned_artefacts[v.key] then
+				goto continue
+			end
+            if table.list_has(self.recently_selected_artefacts, v.key) then
+                goto continue
+            end
+			if self.used_sacrificial_twin and v.key == "sacrificial_twin" then
+				goto continue
+			end
+			table.insert(tab, v)
+			::continue::
+		end
+    end
+
+    local v = rng.weighted_choice(tab, "spawn_weight")
+
+
+	return v
 end
 
 function GlobalGameState:get_random_powerup()
@@ -430,7 +679,7 @@ function GlobalGameState:get_random_heart()
 end
 
 function GlobalGameState:consume_upgrade()
-    self.num_queued_upgrades = self.num_queued_upgrades - 1
+    self.num_queued_upgrades = max(0, self.num_queued_upgrades - 1)
 end
 
 -- function GlobalGameState:consume_powerup()
@@ -438,15 +687,19 @@ end
 -- end
 
 function GlobalGameState:consume_heart()
-    self.num_queued_hearts = self.num_queued_hearts - 1
+    self.num_queued_hearts = max(0, self.num_queued_hearts - 1)
 end
 
-function GlobalGameState:consume_item()
-    self.num_queued_items = self.num_queued_items - 1
+function GlobalGameState:consume_artefact()
+    self.num_queued_artefacts = max(0, self.num_queued_artefacts - 1)
 end
 
-function GlobalGameState:add_score(score)
+function GlobalGameState:add_score(score, score_category)
+	if score <= 0 then return end
     self.score = self.score + score
+	assert(type(score_category) == "string", "score_category must be a string")
+	self.score_categories[score_category] = self.score_categories[score_category] or 0
+	self.score_categories[score_category] = self.score_categories[score_category] + score
 end
 
 return MainGame

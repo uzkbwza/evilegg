@@ -4,8 +4,11 @@ local random = love.math.random
 
 love.math.setRandomSeed(os.time())
 
-function rng.randi(...)
-	return random(...)
+function rng.randi(a, b)
+    if a == nil then
+        return random(0xffffffff)
+    end
+	return random(a, b)
 end
 
 function rng.randf(min_, max_)
@@ -30,8 +33,8 @@ function rng.randi_range(min_, max_)
 	return random(min_, max_)
 end
 
-function rng.sign()
-	return rng() < 0.5 and -1 or 1
+function rng.rand_sign()
+	return rng.coin_flip() and -1 or 1
 end
 
 function rng.random_seed(seed)
@@ -169,15 +172,15 @@ local DIAGONAL_DIRECTIONS = {
 	{-1, 1},
 }
 function rng.random_8_way_direction()
-	return unpack(_8_WAY_DIRECTIONS[random(1, #_8_WAY_DIRECTIONS)])
+	return table.fast_unpack(_8_WAY_DIRECTIONS[random(1, #_8_WAY_DIRECTIONS)])
 end
 
 function rng.random_4_way_direction()
-	return unpack(_4_WAY_DIRECTIONS[random(1, #_4_WAY_DIRECTIONS)])
+	return table.fast_unpack(_4_WAY_DIRECTIONS[random(1, #_4_WAY_DIRECTIONS)])
 end
 
 function rng.random_diagonal_direction()
-	return unpack(DIAGONAL_DIRECTIONS[random(1, #DIAGONAL_DIRECTIONS)])
+	return table.fast_unpack(DIAGONAL_DIRECTIONS[random(1, #DIAGONAL_DIRECTIONS)])
 end
 
 

@@ -1,5 +1,5 @@
 local LoadSaveScreen = CanvasLayer:extend("LoadSaveScreen")
-local TextInputBox = require "ui.text_input"
+local TextInputBox = require "screen.Editor.text_input"
 
 function LoadSaveScreen:new()
 	LoadSaveScreen.super.new(self)

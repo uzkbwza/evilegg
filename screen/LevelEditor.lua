@@ -1,5 +1,5 @@
 local Tilemap = require "tile.tilemap"
-local TextInputBox = require "ui.text_input"
+local TextInputBox = require "screen.Editor.text_input"
 
 local LevelEditor = CanvasLayer:extend("LevelEditor")
 
@@ -219,8 +219,8 @@ function LevelEditor:camera_zoom(amount)
 
     self:update_mouse_positions()
 
-    dbg("zoom_level", self.zoom_level)
-    dbg("zoom", self.zoom)
+    -- dbg("zoom_level", self.zoom_level)
+    -- dbg("zoom", self.zoom)
 end
 
 function LevelEditor:build_from_level_data(level_data)
@@ -1696,9 +1696,9 @@ function LevelEditor:update(dt)
 	
 	self.showing_data_editor = self.paint_mode == "data"
 
-	if debug.enabled then
-		dbg("self.offset", floor(self.offset.x) .. ", " .. floor(self.offset.y))
-	end
+	-- if debug.enabled then
+		-- dbg("self.offset", floor(self.offset.x) .. ", " .. floor(self.offset.y))
+	-- end
 end
 
 function LevelEditor:flood_fill(cx, cy, cz, tile)
@@ -1962,10 +1962,10 @@ function LevelEditor:draw()
 
 	graphics.origin()
 
-    if debug.enabled then
-        dbg("mcell", self.mcell)
-        dbg("mpos", self.mpos)
-    end
+    -- if debug.enabled then
+    --     dbg("mcell", self.mcell)
+    --     dbg("mpos", self.mpos)
+    -- end
 	
 	graphics.set_font(fonts["PixelOperator8"])
 	if self.showing_ui then
@@ -2327,13 +2327,13 @@ function LevelEditor:draw_tiles()
 	local max_z = show_all_layers and bounds_max_z or self.layer
 	local fade_layers = self.layer_display_type == LAYER_DISPLAY_CURRENT_HIGHLIGHTED
 
-	if debug.enabled then
-		dbg("bounds",
-			tostring(min_x) ..
-			", " ..
-			tostring(min_y) ..
-			", " .. tostring(min_z) .. ", " .. tostring(max_x) .. ", " .. tostring(max_y) .. ", " .. tostring(max_z))
-	end
+	-- if debug.enabled then
+		-- dbg("bounds",
+		-- 	tostring(min_x) ..
+		-- 	", " ..
+		-- 	tostring(min_y) ..
+		-- 	", " .. tostring(min_z) .. ", " .. tostring(max_x) .. ", " .. tostring(max_y) .. ", " .. tostring(max_z))
+	-- end
 
 	local object_print_at = {}
 

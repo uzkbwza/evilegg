@@ -3,6 +3,7 @@ local debuggy = setmetatable({}, { __index = debug })
 debuggy.enabled = usersettings.debug_enabled
 debuggy.draw = false
 debuggy.draw_bounds = false
+debuggy.fast_forward = false
 debuggy.drawing_dt_history = true
 debuggy.build_assets = true
 debuggy.dt_history = {}
@@ -91,10 +92,10 @@ function debuggy.draw_dt_history(width, height)
 	table.clear(dt_history_points)
 
 	local min_time = gametime.love_time - debuggy.dt_history_seconds
-	local highest_dt = 1 / 30
+	local highest_dt = 1 / 60
 	local reference_dt = 1 / 60
-	local highest_memory_used = 32
-	local reference_memory_used = 16
+	local highest_memory_used = 128
+	local reference_memory_used = 64
 
 	for i = 1, #debuggy.dt_history do
 		local dt = debuggy.dt_history[i]
@@ -244,6 +245,13 @@ function debuggy.update(dt)
 				break
 			end
 		end
+	end
+
+
+	if input.debug_fast_forward_held then
+		debuggy.fast_forward = true
+	else
+		debuggy.fast_forward = false
 	end
 
 	table.insert(debuggy.dt_history, {

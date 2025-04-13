@@ -35,16 +35,20 @@ function bonglewunch:random()
 end
 
 function bonglewunch:ipairs()
-	local index = 0
-	local t = self.__array
-	return function()
-		index = index + 1
-		if t[index] then
-			return index, t[index]
-		else
-			return nil
-		end
-	end
+    local index = 0
+    local t = self.__array
+    return function()
+        index = index + 1
+        if t[index] then
+            return index, t[index]
+        else
+            return nil
+        end
+    end
+end
+
+function bonglewunch:is_empty()
+    return self.__length == 0
 end
 
 function bonglewunch:add(obj)

@@ -98,7 +98,7 @@ function Object:dyna_mixin(cls, ...)
             local len = #args
 
             if args[1] == nil then
-                cls.__mix_init(self, unpack(args), unpack(mixins[cls], len + 1))
+                cls.__mix_init(self, table.fast_unpack(mixins[cls]))
             else
                 cls.__mix_init(self, ...)
             end
@@ -132,7 +132,9 @@ function Object:mix_init(cls, ...)
             local len = #args
 
             if args[1] == nil then
-                cls.__mix_init(self, unpack(args), unpack(mixins[cls], len + 1))
+				-- local merged = table.extend(args, table.slice(mixins[cls], len + 1))
+
+                cls.__mix_init(self, table.fast_unpack(mixins[cls]))
             else
                 cls.__mix_init(self, ...)
             end

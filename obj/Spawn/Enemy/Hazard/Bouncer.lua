@@ -1,4 +1,4 @@
-local Bouncer = require("obj.Spawn.Enemy.BaseEnemy"):extend("Bouncer")
+local Bouncer = BaseEnemy:extend("Bouncer")
 
 local TRAIL_COLOR = Palette.rainbow:get_color(16):clone()
 local trail_mod = 0.8
@@ -15,7 +15,7 @@ function Bouncer:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 	self.drag = 0.3
-    self.bullet_push_modifier = 0.7
+    self.bullet_push_modifier = 2.7
     self.terrain_collision_radius = 4
     self.hurt_bubble_radius = 6
 	self.hit_bubble_radius = 5

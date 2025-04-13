@@ -11,7 +11,7 @@ local Enemies = {
     
 	Walker = {
         level = 1,
-		-- max_level = 20,
+		max_level = 9,
         spawn_points = 10,
 		icon = textures.enemy_base,
     },
@@ -36,7 +36,7 @@ local Enemies = {
 	
     Roamer = {
         level = 2,
-		-- max_level = 7,
+		max_level = 10,
         icon = textures.enemy_roamer1,
 		spawn_points = 10,
 	},
@@ -53,26 +53,57 @@ local Enemies = {
 	
 	Hopper = {
         level = 2,
-		spawn_points = 20,
+        spawn_points = 20,
+		max_level = 18,
 		icon = textures.enemy_hopper1,
     },
+
+	FastHopper = {
+		level = 2,
+		min_level = 15,
+		spawn_points = 35,
+        room_select_weight = 1000,
+		extra_score = 50,
+		icon = textures.enemy_fasthopper1,
+	},
 
 	BigHopper = {
         -- inherit = { "Hopper" },
 		level = 4,
         min_level = 3,
+		max_level = 30,
 		extra_score = 0,
 		spawn_points = 100,
 		spawn_weight_modifier = 0.66,
 		icon = textures.enemy_bighopper1,
 	},
 
+	Shotgunner = {
+		level = 4,
+		min_level = 14,
+		spawn_points = 150,
+		extra_score = 150,
+		icon = textures.enemy_shotgunner1,
+		spawn_group = { "basic", "police" },
+	},
+
     Enforcer = {
         level = 3,
 		extra_score = 10,
-		spawn_points = 25,
+		spawn_points = 45,
 		icon = textures.enemy_enforcer3,
+		spawn_group = { "basic", "police" },
     },
+
+    Sniper = {
+        level = 2,
+		extra_score = 25,
+		spawn_points = 100,
+		icon = textures.enemy_sniper,
+        spawn_group = { "police" },
+        -- spawn_group = { "basic", "police" },
+		-- basic_select_weight_modifier = 0.05,
+	},
 
 	Turret = {
         level = 4,
@@ -95,13 +126,24 @@ local Enemies = {
     },
 
     Cultist = {
-        level = 3,
+        level = 4,
 		min_level = 5,
 		-- room_select_weight = 250,
 		spawn_points = 50,
-        spawn_weight_modifier = 0.35,
+        spawn_weight_modifier = 0.45,
 		extra_score = 100,
 		icon = textures.enemy_cultist,
+	},
+
+    Gnome = {
+        level = 4,
+		min_level = 10,
+		-- room_select_weight = 250,
+		spawn_points = 100,
+        -- spawn_weight_modifier = 0.65,
+		extra_score = 200,
+        icon = textures.enemy_gnome1,
+		-- max_spawns = 6
 	},
 	
     Charger = {
@@ -141,7 +183,7 @@ local Enemies = {
 	
     Hand = {
         level = 2,
-		extra_score = 100,
+		extra_score = 150,
         spawn_points = 50,
 		min_level = 7,
 		icon = textures.enemy_hand1,
@@ -153,6 +195,7 @@ local Enemies = {
     Foot = {
 		level = 2,
 		spawn_points = 50,
+		extra_score = 50,
 		icon = textures.enemy_foot1,
 		min_level = 7,
 		spawn_group = { "bodypart", "basic" },
@@ -162,9 +205,10 @@ local Enemies = {
 	
 	Nose = {
 		level = 3,
-		spawn_points = 75,
+		spawn_points = 65,
 		min_level = 7,
-		spawn_weight_modifier = 0.65,
+		extra_score = 50,
+		spawn_weight_modifier = 0.45,
 		icon = textures.enemy_nose1,
 		spawn_group = { "bodypart" },
 		basic_select_weight_modifier = 0.01,
@@ -172,7 +216,7 @@ local Enemies = {
 	
 	Mouth = {
 		level = 4,
-        extra_score = 200,
+        extra_score = 450,
 		min_level = 7,
         spawn_points = 55,
 		spawn_weight_modifier = 0.55,
@@ -213,7 +257,7 @@ local Hazards = {
 	
 	Exploder = {
         level = 1,
-		min_level = 4,
+		min_level = 8,
         spawn_points = 65,
 		room_select_weight = 300,
 		icon = textures.hazard_exploder,
@@ -223,7 +267,7 @@ local Hazards = {
 	Blinker = {
 		level = 1,
 		min_level = 3,
-        spawn_points = 20,
+        spawn_points = 9,
 		room_select_weight = 300,
 		icon = textures.hazard_blinker,
     },

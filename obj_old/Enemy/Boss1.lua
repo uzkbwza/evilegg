@@ -211,14 +211,14 @@ function Boss1:spawn_birds(one)
 		local chance = min(100 * (1 - self.health / self.max_health), 90)
 		for i=1,one and 1 or 3 do
 			if rng.percent((i>1 and 50) or chance) then
-				local ydir = rng.sign()
+				local ydir = rng.rand_sign()
 				local y = middle.y
 				if self.player then	
 					y = self.player.pos.y
 				end
 				y = y + 96 * ydir + (i-1) * 16 * -ydir
 				y = clamp(y, middle.y - 96, middle.y + 80)
-				local x = middle.x + 80 * rng.sign()
+				local x = middle.x + 80 * rng.rand_sign()
 				local f = FlyerEnemy(x, y)
 
 				f.ignore_despawn = true

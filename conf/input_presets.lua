@@ -2,7 +2,7 @@ return {
 	nothing = {
 		actions = {},
 		vectors = {},
-	},
+    },
 
 	basic = {
 		actions = {
@@ -14,11 +14,6 @@ return {
 			secondary = {
 				keyboard = { "x", "rshift" },
 				joystick = { "b" }
-			},
-			
-			menu = {
-				keyboard = { "escape", },
-				joystick = { "start" }
 			},
 			
 			move_up = {
@@ -68,25 +63,78 @@ return {
 			},
 		}
     },
-	
-	twinstick = {
-		actions = {
-			primary = {
-				keyboard = { "z", "return" },
-                joystick = { "a" },
-				mouse = { "lmb" }
-
+		
+    ui = {
+        actions = {
+			ui_confirm = {
+				keyboard = { "return", "space" },
+				joystick = { "a" },
+				-- mouse = { "lmb" }
 			},
 
+			ui_cancel = {
+				keyboard = { "escape", },
+				joystick = { "b" },
+				-- mouse = { "rmb" }
+			},
+		
+			ui_nav_up = {
+				keyboard = { "up", "w" },
+                joystick = { "dpup" },
+				joystick_axis = {
+					axis = "lefty",
+                    dir = -1,
+					deadzone = 0.5,
+				}
+            },
+			
+			ui_nav_down = {
+				keyboard = { "down", "s" },
+				joystick = { "dpdown" },
+				joystick_axis = {
+					axis = "lefty",
+                    dir = 1,
+					deadzone = 0.5,
+				}
+            },
+			
+			ui_nav_left = {
+				keyboard = { "left", "a" },
+				joystick = { "dpleft" },
+				joystick_axis = {
+					axis = "leftx",
+                    dir = -1,
+					deadzone = 0.5,
+				}
+            },
+			
+			ui_nav_right = {
+				keyboard = { "right", "d" },
+				joystick = { "dpright" },
+				joystick_axis = {
+					axis = "leftx",
+                    dir = 1,
+					deadzone = 0.5,
+				}
+            },
+        },
+		vectors = {
+			ui_nav = {
+				left = "ui_nav_left",
+				right = "ui_nav_right",
+				up = "ui_nav_up",
+				down = "ui_nav_down",
+			},
+		}
+    },
+	
+		
+	twinstick = {
+        actions = {
             shoot = {
 				mouse = { "lmb" },
 			},
-			
-			secondary = {
-				keyboard = { "x", "rshift" },
-				joystick = { "b" }
-			},
-			
+
 			menu = {
 				keyboard = { "escape", },
 				joystick = { "start" }
@@ -225,10 +273,6 @@ return {
 				}
 			},
 
-			confirm = {
-				keyboard = { "return", },
-				joystick = { "start", "a" }
-			},
 
 		},
 		
@@ -258,5 +302,6 @@ return {
 				down = "aim_down_analog",
 			},
 		}
-	}
+	},
+
 }

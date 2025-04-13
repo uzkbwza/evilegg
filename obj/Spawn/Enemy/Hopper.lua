@@ -1,9 +1,11 @@
-local Hopper = require("obj.Spawn.Enemy.BaseEnemy"):extend("Hopper")
-local HopperBullet = require("obj.Spawn.Enemy.HopperBullet")
+local Hopper = BaseEnemy:extend("Hopper")
+local FastHopper = Hopper:extend("FastHopper")
+local BigHopper = Hopper:extend("BigHopper")
+local HopperBullet = BaseEnemy:extend("HopperBullet")
 
 function Hopper:new(x, y)
     Hopper.super.new(self, x, y)
-	self.drag = 0.05
+	self.drag = self.drag or 0.05
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
@@ -60,7 +62,7 @@ function Hopper:state_Hopping_enter()
 end
 
 function Hopper:state_Hopping_exit()
-	if rng.percent(100) then
+	-- if rng.percent(100) then
 		self:play_sfx(self.shoot_sfx, 1.0, 1.0)
 		for i = 1, self.number_hop_bullets do
 			local angle = (tau / self.number_hop_bullets) * i + self.elapsed
@@ -68,7 +70,7 @@ function Hopper:state_Hopping_exit()
 			bullet:apply_impulse(cos(angle) * self.bullet_speed, sin(angle) * self.bullet_speed * 0.75)
 			bullet.bullet_index = floor(i / self.number_hop_bullets)
 		end
-	end
+	-- end
 end
 
 function Hopper:state_Hopping_update(dt)
@@ -87,6 +89,95 @@ function Hopper:get_sprite()
     return self.sprite
 end
 
-AutoStateMachine(Hopper, "Waiting")
+function FastHopper:new(x, y)
+	self.max_hp = 2
+	self.drag = 0.325
+	self.hop_speed = 7.5
+	self.number_hop_bullets = floor(rng.randfn(3, 0.15))
+	self.min_wait_time = 20
+	self.max_wait_time = 90
+	self.max_start_time = 90
+	-- self.hop_speed = 1.5
+	self.bullet_speed = 1
+    FastHopper.super.new(self, x, y)
+end
 
-return Hopper
+
+function FastHopper:get_sprite()
+    return self.sprite == textures.enemy_hopper1 and textures.enemy_fasthopper1
+        or self.sprite == textures.enemy_hopper2 and textures.enemy_fasthopper2
+		or self.sprite == textures.enemy_hopper3 and textures.enemy_fasthopper3
+end
+
+
+function BigHopper:new(x, y)
+    self.default_body_height = 8
+    self.number_hop_bullets = 30
+    self.hop_speed = 1.0
+    self.max_hp = 10
+    self.min_wait_time = 120
+    self.max_wait_time = 360
+    self.drag = 0.05
+    BigHopper.super.new(self, x, y)
+
+    self.terrain_collision_radius = self.terrain_collision_radius * 2
+    self.hurt_bubble_radius = self.hurt_bubble_radius * 2
+    self.hit_bubble_radius = self.hit_bubble_radius * 2
+    self.body_height_mod = 15
+    self.hop_sfx = "enemy_big_hopper_hop"
+    self.shoot_sfx = "enemy_big_hopper_shoot"
+end
+
+
+
+function BigHopper:state_Hopping_enter()
+	BigHopper.super.state_Hopping_enter(self)
+	self.drag = 0.025
+end
+
+function BigHopper:state_Hopping_exit()
+	BigHopper.super.state_Hopping_exit(self)
+	self.drag = 0.05
+end
+
+function BigHopper:update(dt)
+	BigHopper.super.update(self, dt)
+end
+
+function BigHopper:get_sprite()
+    return self.sprite == textures.enemy_hopper1 and textures.enemy_bighopper1
+        or self.sprite == textures.enemy_hopper2 and textures.enemy_bighopper2
+		or self.sprite == textures.enemy_hopper3 and textures.enemy_bighopper3
+end
+
+function HopperBullet:new(x, y)
+	self.max_hp = 1
+
+    HopperBullet.super.new(self, x, y)
+    self.drag = 0.0
+    self.hit_bubble_radius = 1
+	self.hurt_bubble_radius = 3
+    self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
+    self.z_index = 10
+end
+
+function HopperBullet:get_sprite()
+    return textures.enemy_hopper_bullet
+end
+
+function HopperBullet:get_palette()
+	local palette, offset = HopperBullet.super.get_palette(self)
+
+	offset = idiv(self.tick + self.bullet_index, 3)
+
+	return palette, offset
+end
+
+function HopperBullet:update(dt)
+end
+
+
+AutoStateMachine(Hopper, "Waiting")
+AutoStateMachine(FastHopper, "Waiting")
+AutoStateMachine(BigHopper, "Waiting")
+return {Hopper, FastHopper, BigHopper}

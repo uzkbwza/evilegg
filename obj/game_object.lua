@@ -16,7 +16,6 @@ function GameObject:new()
     self:add_signal("update_changed")
     self:add_signal("visibility_changed")
 
-
     self._update_functions = nil
     self._draw_functions = nil
 
@@ -28,7 +27,7 @@ function GameObject:new()
 
     self.static = false
 
-    self.zindex = 0
+    self.z_index = 0
 end
 
 if debug.enabled then
@@ -64,43 +63,77 @@ function GameObject:ref(name, object)
 		self:unref(name)
 	end
 	self[name] = object
-	signal.connect(object, "destroyed", self, "on_ref_destroyed", function() self[name] = nil end, true)
+	signal.connect(object, "destroyed", self, "on_ref_destroyed_" .. name, function() self[name] = nil end, true)
 	return object
 end
 
 function GameObject:unref(name)
-	if not self[name] then return end
-	signal.disconnect(self[name], "destroyed", self, "on_ref_destroyed")
-	self[name] = nil
+    if not self[name] then return end
+    signal.disconnect(self[name], "destroyed", self, "on_ref_destroyed_" .. name)
+    self[name] = nil
 end
 
+
 function GameObject:ref_array(name)
+	self[name] = {}
+	return self[name]
+end
+
+function GameObject:ref_array_push(name, obj)
+	local array = self[name]
+	if table.list_has(array, obj) then return end
+	table.insert(array, obj)
+	signal.connect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed",
+		function()
+			table.erase(array, obj)
+		end,
+        true)
+	return obj
+end
+
+function GameObject:ref_array_remove(name, obj)	
+	if table.erase(self[name], obj) then
+		signal.disconnect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed")
+	end
+end
+
+function GameObject:ref_array_clear(name)
+	local array = self[name]
+    if not array then return end
+	for i=#array, 1, -1 do
+        signal.disconnect(array[i], "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed")
+		array[i] = nil
+	end
+end
+
+function GameObject:ref_bongle(name)
 	local array = bonglewunch()
 	self[name] = array
 	return array
 end
 
-function GameObject:ref_array_push(name, obj)
+function GameObject:ref_bongle_push(name, obj)
 	local array = self[name]
 	if array:has(obj) then return end
 	array:push(obj)
-	signal.connect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed",
+	signal.connect(obj, "destroyed", self, "on_object_in_ref_bongle_" .. name .. "_destroyed",
 		function()
 			self[name]:remove(obj)
 		end,
 	true)
+	return obj
 end
 
-function GameObject:ref_array_remove(name, obj)
+function GameObject:ref_bongle_remove(name, obj)
 	local array = self[name]
 	if not array:has(obj) then return end
 	
-	signal.disconnect(obj, "destroyed", self, "on_object_in_ref_array_" .. name .. "_destroyed")
+	signal.disconnect(obj, "destroyed", self, "on_object_in_ref_bongle_" .. name .. "_destroyed")
 	
 	array:remove(obj)
 end
 
-function GameObject:ref_array_clear(name)
+function GameObject:ref_bongle_clear(name)
 	local array = self[name]
     if not array then return end
 	local to_remove = {}
@@ -108,7 +141,7 @@ function GameObject:ref_array_clear(name)
 		table.insert(to_remove, obj)
 	end
 	for _, obj in to_remove do
-		self:ref_array_remove(name, obj)
+		self:ref_bongle_remove(name, obj)
 	end
 end
 
@@ -135,10 +168,10 @@ function GameObject:tick_pulse(pulse_length, offset)
 end
 
 function GameObject:add_sequencer()
-    if self.sequencer then
-        return	
+	if self.sequencer then
+		return
 	end
-	-- assert(self.sequencer == nil, "GameObject:add_sequencer() called but sequencer already exists")
+	
 	self.sequencer = Sequencer()
 	self:add_update_function(self._update_sequencer)
 end
@@ -219,24 +252,24 @@ end
 
 		
 -- does not affect transform, only world traversal
-function GameObject:add_child(child)
+-- function GameObject:add_child(child)
 
-    if self.children == nil then
-        self.children = {}
-        self:add_update_function(GameObject.update_children)
-        signal.connect(child, "destroyed", self, "on_child_destroyed")
-    end
-    table.insert(self.children, child)
-    child.parent = self
-end
+--     if self.children == nil then
+--         self.children = {}
+--         self:add_update_function(GameObject.update_children)
+--         signal.connect(child, "destroyed", self, "on_child_destroyed")
+--     end
+--     table.insert(self.children, child)
+--     child.parent = self
+-- end
 
-function GameObject:on_child_destroyed(child)
-	self:remove_child(child)
-end
+-- function GameObject:on_child_destroyed(child)
+-- 	self:remove_child(child)
+-- end
 
-function GameObject:remove_child(child)
-	table.fast_remove(self.children, function (v) return v == child end)
-end
+-- function GameObject:remove_child(child)
+-- 	table.fast_remove(self.children, function (v) return v == child end)
+-- end
 
 function GameObject:update_shared(dt, ...)
     if self._update_functions then
@@ -249,9 +282,15 @@ function GameObject:update_shared(dt, ...)
 end
 
 function GameObject:queue_destroy()
-	self.is_queued_for_destruction = true
-	self:defer(self.destroy)
+    self.is_queued_for_destruction = true
+    self:defer(self.destroy)
 end
+
+
+function GameObject:get_mouse_position()
+	return self.world:get_mouse_position()
+end
+
 
 function GameObject:start_tick_timer(name, duration, callback)
 	name = name or (self.tick_timers and #self.tick_timers + 1 or 1)
@@ -259,18 +298,25 @@ function GameObject:start_tick_timer(name, duration, callback)
     if self.tick_timers == nil then
         self.tick_timers = {}
         self:add_update_function(function(obj, dt)
-			if obj.tick_timers == nil then return end
+
+			local to_remove = nil
+			local num_to_remove = 0
             for k, v in pairs(obj.tick_timers) do
-			if self.is_new_tick then
-				v.elapsed = v.elapsed + 1
-			end
-			if v.elapsed >= v.duration then
-				obj.tick_timers[k] = nil
-				if v.callback then
-					v.callback()
+				if self.is_new_tick then
+					v.elapsed = v.elapsed + 1
 				end
-			end
+				if v.elapsed >= v.duration then
+					to_remove = to_remove or {}
+					num_to_remove = num_to_remove + 1
+					table.insert(to_remove, k)
+					if v.callback then
+						v.callback()
+					end
+				end
             end
+			for i=1, num_to_remove do 
+				obj.tick_timers[to_remove[i]] = nil
+			end
         end)
     end
     if self.tick_timers[name] then
@@ -342,6 +388,14 @@ end
 
 function GameObject:tick_timer_time_left(name)
     return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
+end
+
+function GameObject:timer_duration(name)
+    return (self.timers and self.timers[name] and self.timers[name].duration) or nil
+end
+
+function GameObject:tick_timer_duration(name)
+    return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration) or nil
 end
 
 function GameObject:stop_timer(name)
@@ -435,22 +489,16 @@ function GameObject:hide()
     if not self.visible then
         return
     end
-	local different = self.visible
 	self.visible = false
-	if different then
-		self:emit_signal("visibility_changed")
-	end
+	self:emit_signal("visibility_changed")
 end
 
 function GameObject:show()
 	if self.visible then
 		return
 	end
-	local different = self.visible	
 	self.visible = true
-	if different then
-		self:emit_signal("visibility_changed")
-	end
+	self:emit_signal("visibility_changed")
 end
 
 
@@ -542,7 +590,7 @@ end
 function GameObject:debug_draw_bounds_shared()
 	love.graphics.push()
 
-	love.graphics.translate(self.pos.x, self.pos.y + self.zindex)
+	love.graphics.translate(self.pos.x, self.pos.y + self.z_index)
 	
 	if self.collision_rect then
 		local offset_x, offset_y = self:get_collision_rect_offset()
@@ -612,7 +660,7 @@ end
 --     -- if self.pos.z then
 --     -- 	z = self.pos.z
 --     -- else
---     -- 	z = z or (relative and (audio.default_zindex) or self.zindex + audio.default_zindex)
+--     -- 	z = z or (relative and (audio.default_z_index) or self.z_index + audio.default_z_index)
 --     -- end
 --     -- audio.set_src_position(t.src, x, y, z)
 --     -- t.src:setPosition(x, y, z)
@@ -702,12 +750,11 @@ end
 
 
 function GameObject:enter_shared()
-
-	if self._enter_functions then
-		for _, func in ipairs(self._enter_functions) do
-			func(self)
-		end
-	end
+    if self._enter_functions then
+        for _, func in ipairs(self._enter_functions) do
+            func(self)
+        end
+    end
     self:enter()
 end
 
@@ -720,6 +767,7 @@ end
 function GameObject:has_tag(tag)
     return self.world:has_tag(self, tag)
 end
+
 function GameObject:get_closest_object_with_tag(tag)
 	local objs = self:get_objects_with_tag(tag)
     if not objs then return end
@@ -776,11 +824,11 @@ function GameObject:remove_signal(signal_name)
 end
 
 function GameObject:emit_signal(signal_name, ...)
-    if not debug.enabled then
-		if not signal.get(self, signal_name) then
-			return
-		end
-	end
+    -- if not debug.enabled then
+	-- 	if not signal.get(self, signal_name) then
+	-- 		return
+	-- 	end
+	-- end
 	signal.emit(self, signal_name, ...)
 end
 

@@ -40,7 +40,6 @@ function process_keys(tab, process_func, ...)
 		end
     end
 	
-
 	return tab
 end
 
