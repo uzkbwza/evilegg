@@ -37,6 +37,8 @@ input.mouse = {
     is_touch = false,
 }
 
+input.last_input_device = "mkb"
+
 input.signals = {}
 
 function input.load()
@@ -491,7 +493,6 @@ function input.read_mouse_input(x, y, dx, dy, istouch)
 		input.mouse.cached_mouse_data.dxy_relative.x = d_relative_x
 	end
     input.mouse.cached_mouse_data.istouch = istouch
-
 end
 
 function input.on_text_input(text)

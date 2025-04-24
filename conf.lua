@@ -21,6 +21,9 @@ local conf = {
 	-- game settings
     name = "EVIL EGG",
     folder = nil,
+
+	manual_gc = true,
+
 	-- window_title = "EVIL EGG",
 
     room_size = {
@@ -62,6 +65,15 @@ local conf = {
 			mouse = { "lmb" },
 		},
 
+		secondary_weapon = {
+			mouse = { "rmb" },
+			joystick_axis = { 
+				axis = "triggerright",
+				dir = 1,
+				deadzone = 0.25,
+			},
+		},
+
 		hover = {
 			keyboard = { "space" },
 			joystick_axis = { 
@@ -73,7 +85,7 @@ local conf = {
 
 		skip_bonus_screen = {
 			keyboard = { "tab", "escape" },
-			joystick = { "start" }
+			joystick = { "start", "a" }
 		},
 		
 		restart = {
@@ -260,10 +272,10 @@ function love.conf(t)
 	t.window.icon           = nil
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
-    -- if not IS_EXPORT then
-	-- t.window.width          = 1920
-	-- t.window.height         = 1080
-	-- end
+    if not IS_EXPORT then
+		-- t.window.width          = 1920
+		-- t.window.height         = 1080
+	end
 
 
 	t.window.borderless     = false

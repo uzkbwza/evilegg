@@ -73,34 +73,34 @@ function TwinStickNormalBullet:constrain_to_room()
 
 	local normal_x, normal_y = 0, 0
 
-    local left = room.left
-	local right = room.right
+    local left = room.left - self.radius / 2
+	local right = room.right + self.radius / 2
 	local top = room.bullet_bounds.y
-	local bottom = room.bottom
+	local bottom = room.bottom + self.radius / 2
 
-    if self.pos.x - self.radius <= left then
-        self:move_to(left + self.radius, self.pos.y)
+    if self.pos.x <= left then
+        self:move_to(left, self.pos.y)
 		normal_x = 1
 		collided = true
     end
 
-    if self.pos.x + self.radius >= right then
-        self:move_to(right - self.radius, self.pos.y)
+    if self.pos.x >= right then
+        self:move_to(right, self.pos.y)
 
 		normal_x = -1
 		collided = true
     end
 
-    if self.pos.y - self.radius <= top then
-        self:move_to(self.pos.x, top + self.radius)
+    if self.pos.y <= top then
+        self:move_to(self.pos.x, top)
 
 		normal_y = 1
 		collided = true
     end
 
-    if self.pos.y + self.radius >= bottom then
+    if self.pos.y >= bottom then
 
-		self:move_to(self.pos.x, bottom - self.radius)
+		self:move_to(self.pos.x, bottom)
 		normal_y = -1
 		collided = true
     end

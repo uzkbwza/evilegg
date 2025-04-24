@@ -1,4 +1,5 @@
 ---@diagnostic disable: lowercase-global
+
 function UUID()
 	local fn = function(x)
 		local r = love.math.random(16) - 1

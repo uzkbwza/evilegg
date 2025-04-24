@@ -4,6 +4,9 @@ local Walksploder = Walker:extend("Walksploder")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 local Explosion = require("obj.Explosion")
 local FastWalker = Walker:extend("FastWalker")
+local BigWalker = Walker:extend("BigWalker")
+local BigWalkerBullet = BaseEnemy:extend("BigWalkerBullet")
+
 
 Walksploder:implement(Mixins.Behavior.ExploderEnemy)
 
@@ -44,7 +47,7 @@ function Walksploder:new(x, y)
     self.max_hp = 1.5
 	self.hit_bubble_damage = 10
 
-    self.bullet_push_modifier = 2.0
+    -- self.bullet_push_modifier = 2.0
     -- self.walk_speed = 0.5
     Walksploder.super.new(self, x, y)
 	self.walk_speed = 0.075
@@ -91,11 +94,75 @@ function FastWalker:new(x, y)
 	self.max_hp = 2
     FastWalker.super.new(self, x, y)
     self.walk_speed = 0.1
-	self.bullet_push_modifier = 4.5
+	self.bullet_push_modifier = 1.5
 end
 
 function FastWalker:get_sprite()
     return textures.enemy_fastwalker
 end
 
-return{ Walker, Walksploder, FastWalker }
+function BigWalker:new(x, y)
+    self.max_hp = 3
+    BigWalker.super.new(self, x, y)
+    self.walk_speed = 0.08
+    self.bullet_push_modifier = 0.1
+	self.hurt_bubble_radius = 7
+	self.terrain_collision_radius = 4
+	self.declump_radius = 7
+	self.declump_mass = 2
+	self.hit_bubble_radius = 5
+    self.body_height = 7
+	self.shoot_offset = round(rng.randfn(0, 15))
+end
+
+function BigWalker:get_sprite()
+    return textures.enemy_bigwalker
+end
+
+BigWalker.bullet_speed = 2.5
+
+function BigWalker:update(dt)
+	
+	BigWalker.super.update(self, dt)
+	if self.is_new_tick and self.tick > 60 and (self.world.timescaled.tick + self.shoot_offset) % 130 == 0 and not self:is_tick_timer_running("shoot_cooldown") then
+		local bx, by = self:get_body_center()
+		local pbx, pby = self:closest_last_player_body_pos()
+        local dx, dy = vec2_direction_to(bx, by, pbx, pby)
+		dx, dy = vec2_mul_scalar(dx, dy, BigWalker.bullet_speed)
+        self:spawn_object(BigWalkerBullet(bx, by)):apply_impulse(vec2_rotated(dx, dy, rng.randfn(0, tau / 20)))
+        self:play_sfx("enemy_bigwalker_shoot")
+        self.shoot_offset = round(rng.randfn(0, 15))
+		self:start_tick_timer("shoot_cooldown", 45)
+	end
+end
+
+
+function BigWalkerBullet:new(x, y)
+	self.max_hp = 2
+
+    BigWalkerBullet.super.new(self, x, y)
+    self.drag = 0.0
+    self.hit_bubble_radius = 4
+	self.hurt_bubble_radius = 5
+    self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+	self.bullet_push_modifier = 0.5
+    self.z_index = 10
+end
+
+function BigWalkerBullet:get_sprite()
+    return textures.enemy_bigwalker_bullet
+end
+
+function BigWalkerBullet:get_palette()
+	local palette, offset = BigWalkerBullet.super.get_palette(self)
+
+	offset = idiv(self.tick, 3)
+
+	return palette, offset
+end
+
+function BigWalkerBullet:update(dt)	
+end
+
+return{ Walker, Walksploder, FastWalker, BigWalker }

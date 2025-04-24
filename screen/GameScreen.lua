@@ -53,9 +53,6 @@ function GameScreen:get_mouse_mode()
 	return false, true
 end
 
-function GameScreen:draw()
-end
-
 function GameScreen:get_clear_color()
 	if self.game_layer then
 		return self.game_layer:get_clear_color()

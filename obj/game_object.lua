@@ -153,13 +153,23 @@ function GameObject:_update_elapsed_time(dt)
 	self.elapsed = self.elapsed + dt
 end
 
-function GameObject:_update_elapsed_ticks(_dt)
+function GameObject:_update_elapsed_ticks(dt)
 	self.is_new_tick = false
-	local old = self.tick
-	self.tick = floor(self.elapsed)
-	if self.tick ~= old then
+	
+	self.tick_accumulator = self.tick_accumulator + dt
+
+	if self.tick_accumulator >= 1 then
+		self.tick = self.tick + 1
+		self.tick_accumulator = self.tick_accumulator - 1
 		self.is_new_tick = true
 	end
+
+	-- local old = self.tick
+	-- self.tick = floor(self.elapsed)
+	-- if self.tick ~= old then
+	-- 	self.is_new_tick = true
+	-- end
+	
 end
 
 function GameObject:tick_pulse(pulse_length, offset)
@@ -185,9 +195,12 @@ end
 function GameObject:add_elapsed_ticks()
 	if self.tick ~= nil then return end
 
-	if self.elapsed == nil then 
-		self:add_elapsed_time()
-	end
+    if self.elapsed == nil then
+        self:add_elapsed_time()
+    end
+
+	self.tick_accumulator = 0
+
 	self.tick = 1
 	self:add_update_function(self._update_elapsed_ticks)
 end
@@ -297,25 +310,35 @@ function GameObject:start_tick_timer(name, duration, callback)
 
     if self.tick_timers == nil then
         self.tick_timers = {}
-        self:add_update_function(function(obj, dt)
-
+        self:add_update_function(function(self, dt)
+            if self.tick_timers == nil then return end
+			if self.is_destroyed then return end
 			local to_remove = nil
 			local num_to_remove = 0
-            for k, v in pairs(obj.tick_timers) do
+            for k, v in pairs(self.tick_timers) do
 				if self.is_new_tick then
 					v.elapsed = v.elapsed + 1
 				end
 				if v.elapsed >= v.duration then
-					to_remove = to_remove or {}
-					num_to_remove = num_to_remove + 1
-					table.insert(to_remove, k)
-					if v.callback then
-						v.callback()
+                    
+					local changed = false
+                    if v.callback then
+                        v.callback()
+                    end
+
+                    if v ~= self.tick_timers[k] then
+                        changed = true
+                    end
+					
+					if not changed then
+						to_remove = to_remove or {}
+						num_to_remove = num_to_remove + 1
+						table.insert(to_remove, k)
 					end
 				end
             end
 			for i=1, num_to_remove do 
-				obj.tick_timers[to_remove[i]] = nil
+				self.tick_timers[to_remove[i]] = nil
 			end
         end)
     end
@@ -335,23 +358,34 @@ function GameObject:start_timer(name, duration, callback)
 
     if self.timers == nil then
         self.timers = {}
-		self.timers_to_remove = {}
-		self:add_update_function(function(obj, dt)
-            if obj.timers == nil then return end
-            for k, v in pairs(obj.timers) do
-                v.elapsed = v.elapsed + dt
-                if v.elapsed >= v.duration then
-                    table.insert(self.timers_to_remove, k)
+        self:add_update_function(function(self, dt)
+            if self.timers == nil then return end
+			if self.is_destroyed then return end
+			local to_remove = nil
+			local num_to_remove = 0
+            for k, v in pairs(self.timers) do
+				v.elapsed = v.elapsed + dt
+				if v.elapsed >= v.duration then
+                    
+					local changed = false
                     if v.callback then
                         v.callback()
                     end
-                end
-            end
-			for _, k in ipairs(self.timers_to_remove) do
-				obj.timers[k] = nil
-			end
-			table.clear(self.timers_to_remove)
 
+                    if v ~= self.timers[k] then
+                        changed = true
+                    end
+					
+					if not changed then
+						to_remove = to_remove or {}
+						num_to_remove = num_to_remove + 1
+						table.insert(to_remove, k)
+					end
+				end
+            end
+			for i=1, num_to_remove do 
+				self.timers[to_remove[i]] = nil
+			end
         end)
     end
     if self.timers[name] then
@@ -387,7 +421,15 @@ function GameObject:timer_time_left(name)
 end
 
 function GameObject:tick_timer_time_left(name)
-    return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
+	return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
+end
+
+function GameObject:timer_time_left_ratio(name)
+	return 1 - ((self:timer_time_left(name) or 1) / (self:timer_duration(name) or 1))
+end
+
+function GameObject:tick_timer_time_left_ratio(name)
+	return 1 - ((self:tick_timer_time_left(name) or 1) / (self:tick_timer_duration(name) or 1))
 end
 
 function GameObject:timer_duration(name)
@@ -399,7 +441,9 @@ function GameObject:tick_timer_duration(name)
 end
 
 function GameObject:stop_timer(name)
-	self.timers[name] = nil
+	if self.timers then
+		self.timers[name] = nil
+	end
 end
 
 function GameObject:end_timer(name)

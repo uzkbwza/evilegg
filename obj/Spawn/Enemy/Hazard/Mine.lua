@@ -131,8 +131,8 @@ function Blinker:state_Blinking_enter()
         s:wait(5)
 		
         s:wait(10)
-		s:tween(function(t) self:blink_tween(t) end, 0, 1, 10, "inOutExpo")
-        s:wait(10)
+		s:tween(function(t) self:blink_tween(t) end, 0, 1, 14, "inOutExpo")
+        s:wait(12)
         -- self:blink_tween(1.0)
 		
 		s:wait(14)

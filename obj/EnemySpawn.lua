@@ -1,4 +1,5 @@
 local EnemySpawn = GameObject2D:extend("EnemySpawn")
+local BigEnemySpawn = EnemySpawn:extend("BigEnemySpawn")
 
 local TIME = 45
 local SIZE = 15
@@ -50,15 +51,25 @@ function EnemySpawn:draw()
 	graphics.pop()
 end
 
+function EnemySpawn:get_scale() 
+	return 1
+end
+
+function EnemySpawn:get_min_size()
+	return 0
+end
+
 function EnemySpawn:do_rect()
 	local cross_time = 30
 	local fill = self.tick < TIME - 25 and "line" or "fill"
+	local scale = self:get_scale()
     if self.tick > TIME - cross_time then
-		local rect_size = 5
-		local cross_distance = 10
+		local rect_size = 5 * scale
+		local cross_distance = 10 * scale
         local t = ease("outExpo")((self.tick - (TIME - cross_time)) / cross_time)
 		t = remap(t, 0, 1, 0.25, 1)
-		local distance = cross_distance * (1 - t)
+        local distance = cross_distance * (1 - t)
+		rect_size = max(rect_size, self:get_min_size())
         graphics.rectangle(fill, -distance - rect_size / 2, -distance - rect_size / 2, rect_size, rect_size)
         graphics.rectangle(fill, distance - rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
         graphics.rectangle(fill, -distance - rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
@@ -69,10 +80,20 @@ function EnemySpawn:do_rect()
 		graphics.rectangle(fill, -rect_size / 2, distance - rect_size / 2, rect_size, rect_size)
     end
     local time_left = self:tick_timer_time_left("spawn")
-    local size = 5 + (SIZE - 3) * 2 * (pow((time_left / TIME), 1.5))
+    local size = (5 + (SIZE - 3) * 2 * (pow((time_left / TIME), 1.5))) * scale
+	size = max(size, self:get_min_size())
     graphics.rectangle(fill, -size / 2, -size / 2, size, size)
 end
 
+function BigEnemySpawn:get_scale()
+	return 2
+end
 
+function BigEnemySpawn:get_min_size()
+	return 32
+end
 
-return EnemySpawn
+return {
+    EnemySpawn = EnemySpawn,
+    BigEnemySpawn = BigEnemySpawn,
+} 

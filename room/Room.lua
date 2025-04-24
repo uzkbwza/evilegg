@@ -5,9 +5,8 @@ local SpawnDataTable = require("obj.spawn_data")
 local debug_force_enabled = false
 local debug_force = "bonus_police"
 
-
 local debug_enemy_enabled = false
-local debug_enemy = "Cultist"
+local debug_enemy = "HoopSnake"
 local num_debug_enemies = 1
 
 Room.narrative_types = {
@@ -99,7 +98,7 @@ Room.narrative_types = {
 		sub_narratives = {
 			[1] = {
                 type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", },
+				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand" },
                 points = 100,
 				disable_hazards = true,
                 max_difficulty = 3,
@@ -107,7 +106,7 @@ Room.narrative_types = {
 			},
 			[2] = {
 				type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", },
+				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand" },
                 points = 175,
 				disable_hazards = true,
                 max_difficulty = 4,
@@ -307,7 +306,7 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
 
 	self.wave = 1
     self.elapsed = 0
-	self.tick = 0
+    self.tick = 0
 
 	-- Calculate room dimensions
 	local room_width = conf.room_size.x
@@ -402,7 +401,11 @@ function Room:build(params)
 
     self.total_score = self.total_enemy_score + self.total_rescue_score
 	
-	print("level generated at difficulty " .. self.level)
+	-- print("level generated at difficulty " .. self.level)
+end
+
+function Room:should_spawn_waves()
+	return true
 end
 
 function Room:add_spawn_type(spawn_type)

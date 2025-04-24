@@ -1,17 +1,18 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 
+
+local debug_start = "game"
+
 function MainScreen:new()
-	MainScreen.super.new(self)
+    MainScreen.super.new(self)
 end
 
 function MainScreen:enter()
 	if debug.enabled then
-		-- self:start_game()
-		self:start_main_menu()
+		self["start_" .. debug_start](self)
 	else
-		self:start_main_menu()
+		self:start_title_screen()
 	end
-	-- self:push(Screens.TestPaletteCyclingScreen)
 end
 
 function MainScreen:connect_restart(screen)
@@ -34,6 +35,14 @@ function MainScreen:connect_start_game(screen)
     signal.connect(screen, "start_game_requested", self, "start_game")
 end
 
+function MainScreen:connect_start_main_menu(screen)
+    signal.connect(screen, "start_main_menu_requested", self, "start_main_menu")
+end
+
+function MainScreen:connect_start_title_screen(screen)
+    signal.connect(screen, "start_title_screen_requested", self, "start_title_screen")
+end
+
 function MainScreen:start_game()
 	self:defer(function()
 		global_state:reset_game_state()
@@ -44,19 +53,27 @@ function MainScreen:start_game()
 end
 
 function MainScreen:get_clear_color()
-	if self.current_screen then
-		if self.current_screen.get_clear_color then
-			return self.current_screen:get_clear_color()
-		end
-	end
-	return Color.transparent
+    if self.current_screen then
+        if self.current_screen.get_clear_color then
+            return self.current_screen:get_clear_color()
+        end
+    end
+    return Color.transparent
+end
+
+function MainScreen:start_title_screen()
+	self:defer(function()
+        self:set_current_screen(Screens.TitleScreen)
+		self:connect_start_main_menu(self.current_screen)
+	end)
 end
 
 function MainScreen:start_main_menu()
 	self:defer(function()
 		self:set_current_screen(Screens.MainMenuScreen)
 		self:connect_start_game(self.current_screen)
-		self:connect_options_menu(self.current_screen)
+        self:connect_options_menu(self.current_screen)
+		self:connect_start_title_screen(self.current_screen)
 	end)
 end
 

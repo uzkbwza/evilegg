@@ -49,11 +49,17 @@ function BasePlayerBullet:new(x, y, extra_bullet)
             self.push_modifier = self.push_modifier * 0.1
             self.radius = self.radius * 0.5
         end
-        self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.5)
+        self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.2)
         self.push_modifier = self.push_modifier * (1 + (game_state.upgrades.bullet_speed) * 0.4)
         self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
         local base_speed = self.speed
-        self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
+        -- self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
+        self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.5)
+        -- if game_state.upgrades.range == 1 then
+        --     self.lifetime = self.lifetime * (26 / 16)
+        -- elseif game_state.upgrades.range >= 2 then
+        --     self.lifetime = self.lifetime * ((36 / 16) + ((game_state.upgrades.range - 2) * 10))
+        -- end
         if game_state.upgrades.range == 1 then
             self.lifetime = self.lifetime * (26 / 16)
         elseif game_state.upgrades.range >= 2 then

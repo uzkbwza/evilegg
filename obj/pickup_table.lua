@@ -190,13 +190,16 @@ local Artefacts = {
         spawn_weight = 1000,
 	},
 
-	RingOfVengeanceArtefact = {
+	RingOfLoyaltyArtefact = {
         icon = textures.pickup_artefact_ring_of_loyalty,
 		key = "ring_of_loyalty",
 		name = "artefact_ring_of_loyalty_name",
 		description = "artefact_ring_of_loyalty_desc",
         spawn_weight = 1000,
         -- spawn_weight = 10000000,
+		-- must_not_have_artefacts = {
+		-- 	"clock"
+		-- }
 	},
 
 	BoostDamageArtefact = {
@@ -228,7 +231,7 @@ local Artefacts = {
 		key = "death_cap",
 		name = "artefact_death_cap_name",
 		description = "artefact_death_cap_desc",
-        spawn_weight = 1000000,
+        spawn_weight = 1000,
     },
 	
 	ClockArtefact = {
@@ -237,7 +240,22 @@ local Artefacts = {
 		name = "artefact_clock_name",
 		description = "artefact_clock_desc",
         spawn_weight = 1000,
+        -- requires_artefacts = {
+		-- 	"ring_of_loyalty"
+		-- }
+        -- must_not_have_artefacts = {
+		-- 	"ring_of_loyalty"
+		-- }
     },
+
+    WarBellArtefact = {
+		icon = textures.pickup_artefact_warbell,
+		key = "warbell",
+		name = "artefact_warbell_name",
+		description = "artefact_warbell_desc",
+        spawn_weight = 1000,
+        -- spawn_weight = 10000000000000,
+	},
 	
 	-- Secondary Weapons
 

@@ -1,9 +1,9 @@
 local Turret = BaseEnemy:extend("Turret")
 local TurretBullet = BaseEnemy:extend("TurretBullet")
-
+local MuzzleFlashSmoke = require("fx.muzzle_flash_smoke")
 Turret.shoot_speed = 3.0
 Turret.shoot_delay = 240
-Turret.shoot_distance = 6
+Turret.shoot_distance = 10
 
 Turret.spawn_cry = "enemy_turret_spawn"
 Turret.spawn_cry_volume = 0.9
@@ -13,21 +13,23 @@ Turret.death_cry_volume = 0.8
 
 function Turret:new(x, y)
 	self.max_hp = 5
+	self.body_height = 6
 	Turret.super.new(self, x, y)
-    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
 	self.applying_physics = false
 	self.declump_radius = 16
-    self.declump_mass = 1
-    self.hit_bubble_radius = 4
-    self.hurt_bubble_radius = 6
+	self.declump_mass = 1
+	self.hit_bubble_radius = 4
+	self.hurt_bubble_radius = 7
 	self.aim_dir_x, self.aim_dir_y = 0, 0
-    self.gun_angle = 0
+	self.gun_angle = 0
 
 	self.highlight_circle = -1
 
-	self.hurts_allies = rng.chance(1/3)
+	self.hurts_allies = rng.chance(1 / 3)
 end
+
 
 function Turret:start_shoot_timer(time)
 	time = time or Turret.shoot_delay
@@ -51,17 +53,27 @@ function Turret:start_shoot_timer(time)
 	end)
 end
 
+
+local SPREAD = deg2rad(5)
 function Turret:shoot()
-    local shoot_x, shoot_y = vec2_snap_angle(self.aim_dir_x, self.aim_dir_y, 32)
+    local shoot_x, shoot_y = vec2_rotated(self.aim_dir_x, self.aim_dir_y, rng.randfn(0, SPREAD))
     local bx, by = self:get_body_center()
 	local bulletx, bullety = bx + shoot_x * self.shoot_distance, by + shoot_y * self.shoot_distance
     local bullet = self:spawn_object(TurretBullet(bulletx, bullety))
     bullet:apply_impulse(shoot_x * self.shoot_speed, shoot_y * self.shoot_speed)
 	self:play_sfx("enemy_turret_shoot", 0.75)
+	for i = 1, 3 do
+		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng.randi_range(50, 120), abs(rng.randfn(12, 3)), Palette.muzzle_flash_smoke, rng.randf_range(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng.randf_range(0, 60)))
+	end
 end
 
 function Turret:enter()
 	self:start_shoot_timer(max(1, rng.randi(30, Turret.shoot_delay)))
+	self:add_hurt_bubble(0, self.body_height, self.hurt_bubble_radius, "main")
+	self:add_hit_bubble(0, self.body_height, self.hit_bubble_radius, "main", 1)
+	self:add_hurt_bubble(-3, self.body_height, 5, "main2")
+	self:add_hurt_bubble(3, self.body_height, 5, "main3")
+	self:add_hurt_bubble(0, self.body_height-4, 5, "main4")
 end
 
 function Turret:update(dt)
@@ -71,7 +83,7 @@ function Turret:update(dt)
 		self.aim_dir_x, self.aim_dir_y = self:get_body_direction_to_player()
 	end
     self.gun_angle = vec2_angle(self.aim_dir_x, self.aim_dir_y)
-	if self.is_new_tick and self.tick % 60 == 0 then
+	if self.is_new_tick and (self.tick) % 60 == 0 then
 		local s = self.sequencer
         s:start(function()
             s:tween_property(self, "highlight_circle", 60, 0, 40, "linear")
@@ -98,17 +110,33 @@ function Turret:draw()
 		graphics.rectangle_centered("line", 0, 0, self.highlight_circle, self.highlight_circle)
 	end
 
-    Turret.super.draw(self)
+    -- Turret.super.draw(self)
     graphics.set_color(1, 1, 1, 1)
 	local index, rot, y_scale = get_32_way_from_5_base_sprite(self.gun_angle)
 	local gun_texture = gun_textures[index]
 
 	local palette, offset = self:get_palette_shared()
+	
+	graphics.drawp_centered(textures.enemy_turret_base, palette, offset)
+	
 
-    if palette == Palette[self:get_sprite()] then
-		offset = idiv(self.tick, 5)
+	local normal = false
+	if palette == Palette[self:get_sprite()] then
+		palette = Palette[gun_texture]
+		offset = (self.tick + self.random_offset)
+		normal = true
 	end
-	graphics.drawp_centered(gun_texture, palette, offset, 0, 0, rot, 1, y_scale)
+	
+	self:body_translate()
+	graphics.set_color(Color.black)
+	graphics.draw_centered_outline(Color.black, gun_texture, 0, 2, rot, 1, y_scale)
+	graphics.draw_centered_outline(Color.black, gun_texture, 0, 1, rot, 1, y_scale)
+	graphics.draw_centered_outline(Color.black, gun_texture, 0, 0, rot, 1, y_scale)
+	graphics.set_color(Color.white)
+	local tick_length = normal and 4 or 1
+	graphics.drawp_centered(gun_texture, palette, idiv(offset + (2), tick_length), 0, 2, rot, 1, y_scale)
+	graphics.drawp_centered(gun_texture, palette, idiv(offset + 1, tick_length), 0, 1, rot, 1, y_scale)
+	graphics.drawp_centered(gun_texture, palette, idiv(offset, tick_length), 0, 0, rot, 1, y_scale)
 end
 
 
@@ -120,7 +148,7 @@ function TurretBullet:new(x, y)
     TurretBullet.super.new(self, x, y)
     self.drag = 0.005
     self.hit_bubble_radius = 5
-	self.hurt_bubble_radius = 8
+	self.hurt_bubble_radius = 7
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self.z_index = 10

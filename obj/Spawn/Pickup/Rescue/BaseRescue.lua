@@ -6,6 +6,7 @@ local HurtFlashFx = Effect:extend("HurtFlashFx")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local BaseRescuePickupParticle = Effect:extend("BaseRescuePickupParticle")
 local RingOfLoyaltyBullet = require("obj.Player.Bullet.RingOfLoyaltyBullet")
+local WarbellProjectile = require("obj.Player.Bullet.GreenoidSelfDefenseBullet")
 
 local START_INVULNERABILITY = 120
 local HIT_INVULNERABILITY = 60
@@ -44,6 +45,7 @@ function BaseRescue:new(x, y)
     if self.auto_state_machine then
         self:init_state_machine()
     end
+	self.random_offset = rng.randi()
 
 end
 
@@ -294,32 +296,56 @@ function BaseRescue:update_shared(dt)
 	end
 end
 
+local WARBELL_RADIUS = 90
+
 function BaseRescue:update(dt)
-	self:collide_with_terrain()
+    self:collide_with_terrain()
     if self.avoid_enemies then
-		self.nearby_enemy_hit_bubbles = {}
+        self.nearby_enemy_hit_bubbles = {}
         self:each_nearby_bubble_self("hit", "enemy", self.avoid_enemies_radius, self.try_avoid_enemy)
         self:each_nearby_bubble_self("hit", "neutral", self.avoid_enemies_radius, self.try_avoid_enemy)
-		local average_x, average_y = 0, 0
-		local num_enemies = 0
-		for i=1, #self.nearby_enemy_hit_bubbles do
-			local hit_bubble = self.nearby_enemy_hit_bubbles[i]
-			local bx, by = hit_bubble:get_position()
-			average_x = average_x + bx
-			average_y = average_y + by
-			num_enemies = num_enemies + 1
-		end
-		if num_enemies > 0 then
-			average_x = average_x / num_enemies
-			average_y = average_y / num_enemies
-			local bx, by = self:get_body_center()
-			local dx, dy = vec2_direction_to(average_x, average_y, bx, by)
-			self:apply_force(dx * self.avoid_enemies_speed, dy * self.avoid_enemies_speed)
-		end
-		
+        local average_x, average_y = 0, 0
+        local num_enemies = 0
+        for i = 1, #self.nearby_enemy_hit_bubbles do
+            local hit_bubble = self.nearby_enemy_hit_bubbles[i]
+            local bx, by = hit_bubble:get_position()
+            average_x = average_x + bx
+            average_y = average_y + by
+            num_enemies = num_enemies + 1
+        end
+        if num_enemies > 0 then
+            average_x = average_x / num_enemies
+            average_y = average_y / num_enemies
+            local bx, by = self:get_body_center()
+            local dx, dy = vec2_direction_to(average_x, average_y, bx, by)
+            self:apply_force(dx * self.avoid_enemies_speed, dy * self.avoid_enemies_speed)
+        end
+    end
 
-	end
+    if self.is_new_tick and game_state.artefacts.warbell then
+        if (self.tick + self.random_offset) % 13 == 0 then
+            local bx, by = self:get_body_center()
+            local x, y = bx - WARBELL_RADIUS, by - WARBELL_RADIUS
+            local w, h = WARBELL_RADIUS * 2, WARBELL_RADIUS * 2
+            local hurt_bubbles = self.world.hurt_bubbles.enemy:query(x, y, w, h)
+			local valid = {}
+            for i = 1, #hurt_bubbles do
+                local bubble = hurt_bubbles[i]
+                if bubble.parent and bubble.parent:has_tag("wave_enemy") then
+                    table.insert(valid, bubble)
+                end
+            end
+			local aiming_at = rng.choose(valid)
+			if aiming_at then
+				local bubble_x, bubble_y = aiming_at:get_position()
+                local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
+                self:spawn_object(WarbellProjectile(bx, by)).direction = Vec2(dx, dy)
+				self:play_sfx("ally_rescue_shoot", 0.35)
+			end
+        end
+    end
 end
+
 
 function BaseRescue.try_avoid_enemy(bubble, self)
 	table.insert(self.nearby_enemy_hit_bubbles, bubble)

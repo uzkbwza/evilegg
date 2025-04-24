@@ -175,6 +175,7 @@ end
 function ExplosionSmoke:floor_draw()
 	if self.tick <= 10 then return end
     local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 6)
+	
 	if not self.is_new_tick then return end
 	if not rng.percent(5) then return end
 

@@ -13,6 +13,7 @@ local Enemies = {
         level = 1,
 		max_level = 9,
         spawn_points = 10,
+		room_select_weight = 2000,
 		icon = textures.enemy_base,
     },
 
@@ -28,12 +29,22 @@ local Enemies = {
         -- inherit = { "Walker" },
 		level = 1,
 		min_level = 7,
-		room_select_weight = 500,
+		-- room_select_weight = 500,
 		spawn_points = 15,
 		extra_score = 0,
 		icon = textures.enemy_fastwalker,
     },
-	
+
+	BigWalker = {
+		-- inherit = { "Walker" },
+		level = 1,
+		min_level = 11,
+		room_select_weight = 700,
+		spawn_points = 20,
+		extra_score = 100,
+		icon = textures.enemy_bigwalker,
+    },
+		
     Roamer = {
         level = 2,
 		max_level = 10,
@@ -113,7 +124,7 @@ local Enemies = {
 		min_level = 5,
         spawn_points = 100,
 		-- room_select_weight = 1000,
-		icon = textures.enemy_turret_gun1,
+		icon = textures.enemy_turret_icon,
 	},
 
 	Shielder = {
@@ -139,8 +150,8 @@ local Enemies = {
         level = 4,
 		min_level = 10,
 		-- room_select_weight = 250,
-		spawn_points = 100,
-        -- spawn_weight_modifier = 0.65,
+		spawn_points = 150,
+        spawn_weight_modifier = 1.25,
 		extra_score = 200,
         icon = textures.enemy_gnome1,
 		-- max_spawns = 6
@@ -169,10 +180,28 @@ local Enemies = {
 		spawn_points = 90,
 		icon = textures.enemy_mortar5,
     },
+
+    Cuboid = {
+        level = 2,
+		min_level = 8,
+		extra_score = 100,
+		spawn_points = 120,
+        icon = textures.enemy_cube4,
+		-- spawn_group = { "basic" },
+    },
+	
+	HoopSnake = {
+		level = 3,
+        spawn_points = 175,
+        min_level = 10,
+		extra_score = 100,
+        icon = textures.enemy_hoop_snake2,
+		enemy_spawn_effect = "BigEnemySpawn",
+	},
 	
     Eyeball = {
 		level = 1,
-        spawn_points = 20,
+        spawn_points = 35,
 		extra_score = 75,
 		min_level = 7,
         icon = textures.enemy_eyeball1,

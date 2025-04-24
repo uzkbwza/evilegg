@@ -122,7 +122,7 @@ function Shotgunner:new(x, y)
 	self.bullet_push_modifier = 1.0
 	self.walk_frequency = 4
 	self.roam_chance = 6
-	self.walk_speed = self.walk_speed or 0.9
+	self.walk_speed = self.walk_speed or 0.7
 	self.aim_direction = Vec2(rng.random_vec2())
 end
 
@@ -156,7 +156,7 @@ function Shotgunner:update(dt)
         self.aim_direction.x, self.aim_direction.y = dx, dy
 
 		if rng.percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 then 
-			self:start_tick_timer("shoot_timer", 85)
+			self:start_tick_timer("shoot_timer", 125)
 			self:shoot()
 		end
 	end

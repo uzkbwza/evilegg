@@ -4,9 +4,14 @@ require "table.clear"
 require "table.new"
 
 function tabley.length (t)
-  local count = 0
-  for _ in pairs(t) do count = count + 1 end
-  return count
+    local count = 0
+    local next = next
+    local key, _ = next(t)
+    while key do
+        count = count + 1
+        key, _ = next(t, key)
+    end
+    return count
 end
 
 function tabley.find(t, value)
@@ -610,7 +615,7 @@ function createunpack(n)
             ret[#ret + 1] = ", "
         end
     end
-	local output = concat(ret)
+    local output = concat(ret)
 	return assert(loadstring(output))
 end
 

@@ -164,7 +164,9 @@ function HUDLayer:start_after_level_bonus_screen()
 			end
 		end
 		
-		wait(40)
+		wait(5)
+		self.after_level_bonus_screen.start_prompt = true
+		wait(595)
 		
 		for i = #self.after_level_bonus_screen.bonuses, 1, -1 do
 			local bonus = self.after_level_bonus_screen.bonuses[i]
@@ -262,7 +264,7 @@ function HUDLayer:pre_world_draw()
     graphics.set_color(Color.white)
     graphics.print(string.format("LVL%2d ", game_state.level % 100), 0, 0)
     graphics.print(string.format("WAVE%01d ", game_state.wave), charwidth * 7, 0)
-    graphics.print(string.format("%d [×%-.2f]", self.score_display, game_state:get_score_multiplier()), charwidth * 13, 0)
+    graphics.print(string.format("%d [×%-.2f ×%dGNOIDS]", self.score_display, game_state:get_score_multiplier(false), game_state:get_rescue_chain_multiplier()), charwidth * 13, 0)
     graphics.pop()
     graphics.push()
     graphics.translate(left, bottom)
@@ -421,6 +423,12 @@ function HUDLayer:pre_world_draw()
             graphics.set_color(Color.cyan)
         end
         graphics.printp("TOTAL", font2, nil, 0, -0, y)
+
+		local input = self:get_input_table()
+
+		if self.after_level_bonus_screen.start_prompt then
+        	graphics.printp("PRESS " .. (input.last_input_device == "gamepad" and "START" or "TAB") .. " TO CONTINUE", font2, nil, 0, -0, y + 10)
+		end
         graphics.printp(
         string.format("%8d×%-.2f", self.after_level_bonus_screen.total.score,
             self.after_level_bonus_screen.total.score_multiplier), font2, nil, 0, 60, y)
@@ -443,11 +451,6 @@ function HUDLayer:create_persistent_ui()
 			color2 = Color.darkred,
 		},
 		{
-			name = "range",
-			color1 = Color.yellow,
-			color2 = Color.orange,
-		},
-		{
 			name = "bullets",
 			color1 = Color.magenta,
 			color2 = Color.purple,
@@ -456,6 +459,11 @@ function HUDLayer:create_persistent_ui()
 			name = "bullet_speed",
 			color1 = Color.green,
 			color2 = Color.darkgreen,
+		},
+		{
+			name = "range",
+			color1 = Color.yellow,
+			color2 = Color.orange,
 		},
 	}
 
@@ -486,5 +494,67 @@ function HUDLayer:create_persistent_ui()
 		},
 	}
 end
+
+
+function HUDLayer:draw()
+    HUDLayer.super.draw(self)
+	graphics.push("all")
+	local parent = self.parent
+    if parent.ui_layer.state == "Paused" and not parent.ui_layer.options_menu then
+        -- if parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y < -20 then
+		-- 	self.draw_guide_on_bottom = true
+		-- elseif parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y > 20 then
+		-- 	self.draw_guide_on_bottom = false
+		-- end
+		if self.draw_guide_on_bottom then
+            graphics.push()
+            graphics.translate(0, conf.viewport_size.y / 2 + 50)
+            self:draw_guide_placeholder()
+            graphics.pop()
+        else
+            self:draw_guide_placeholder()
+        end
+    end
+	graphics.pop()
+end
+
+function HUDLayer:draw_guide_placeholder()
+    local x_start = (graphics.main_viewport_size.x - conf.viewport_size.x) / 2
+
+	graphics.translate(x_start, 0)
+	
+	local font = fonts.depalettized.image_font1
+	graphics.set_font(font)
+    graphics.set_color(Color.white)
+
+	-- todo: localize
+	local gamepad = input.last_input_device == "gamepad"
+
+    local controls = {
+        { label = gamepad and "LEFT STICK" or "WASD", action = "MOVE"},
+        { label = gamepad and "RIGHT STICK" or "MOUSE", action = "SHOOT"},
+        { label = gamepad and "LEFT TRIGGER" or "SPACE", action = "BOOST" },
+        -- { label = "RMB/RIGHT TRIGGER: ", action = "SECONDARY WEAPON" },
+		{ label = "", action = "SAVE THE GREENOIDS" },
+    }
+	
+    local vert = 11
+
+	-- graphics.translate(-conf.viewport_size.x / 2, -conf.viewport_size.y / 2)
+
+	graphics.translate(11, 0)
+	for i, control in ipairs(controls) do
+		local label = control.label
+		if #label > 0 then
+			label = control.label .. " - "
+		end
+		graphics.translate(0, vert)
+		graphics.set_color(Color.white)
+		graphics.print_outline(Color.black, label, 0, 0)
+		graphics.set_color(Color.green)
+		graphics.print_outline(Color.black, control.action, font:getWidth(label), 0)
+	end
+end
+
 
 return HUDLayer

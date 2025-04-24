@@ -28,7 +28,7 @@ local HOVER_IMPULSE = 2.0
 
 local WALK_DRAG = 0.1
 local HOVER_DRAG = 0.05
-local HOVER_DRAG_UPGRADE = 0.085
+local HOVER_DRAG_UPGRADE = 0.075
 
 local MIN_HOVER_TIME = 14
 local PICKUP_RADIUS = 8
@@ -102,11 +102,15 @@ function PlayerCharacter:on_artefact_removed(artefact, slot)
 end
 
 function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
+	self.bounce_sfx_horizontal = false
+	self.bounce_sfx_vertical = false
 	if normal_x ~= 0 then
 		self.hover_vel.x = self.hover_vel.x * -1
+        self.bounce_sfx_horizontal = true
 	end
 	if normal_y ~= 0 then
 		self.hover_vel.y = self.hover_vel.y * -1
+		self.bounce_sfx_vertical = true
 	end
 end
 
@@ -712,18 +716,18 @@ function PlayerCharacter:state_Hover_enter(boost)
 end
 
 function PlayerCharacter:get_hover_drag()
-	-- local boost = game_state.upgrades.boost
-	-- if boost > 0 then
-	-- 	return HOVER_DRAG_UPGRADE
-	-- end
+	local boost = game_state.artefacts.boost_damage
+	if boost then
+		return HOVER_DRAG_UPGRADE
+	end
 	return HOVER_DRAG
 end
 
 function PlayerCharacter:get_hover_speed()
-	-- local boost = game_state.upgrades.boost
-	-- if boost > 0 then
-	-- return HOVER_SPEED_UPGRADE
-	-- end
+	local boost = game_state.artefacts.boost_damage
+	if boost then
+	return HOVER_SPEED_UPGRADE
+	end
 	return HOVER_SPEED
 end
 
@@ -796,7 +800,7 @@ function PlayerCharacter:state_Hover_update(dt)
 
             self:spawn_object(HoverFx(bx, by - 1, vel_x, vel_y)):ref("player", self)
         end
-        if game_state.artefacts.boost_damage and self.tick % 5 == 0 then
+        if game_state.artefacts.boost_damage and (self.state_tick - 1) % (self.hover_vel:magnitude() > 2.0 and 5 or 15) == 0 then
 			self:spawn_object(HoverFireTrail(self.pos.x, self.pos.y))
 		end
     end
@@ -818,6 +822,19 @@ function PlayerCharacter:state_Hover_update(dt)
 		dbg("hover speed", self.hover_vel:magnitude())
 	end
 
+
+    if self.bounce_sfx_horizontal then
+        if abs(self.hover_vel.x) > 0.3 then
+            self:play_sfx("entity_bounce")
+        end
+		self.bounce_sfx_horizontal = false
+	end
+	if self.bounce_sfx_vertical then
+		if abs(self.hover_vel.y) > 0.3 then
+			self:play_sfx("entity_bounce")
+		end
+		self.bounce_sfx_vertical = false
+	end
 
 end
 
@@ -908,7 +925,7 @@ function HoverFireTrail:new(x, y)
 end
 
 function HoverFireTrail:enter()
-    self:add_hit_bubble(0, 0, 9, "main", 0.25)
+    self:add_hit_bubble(0, 0, 9, "main", 0.15)
 end
 
 function HoverFireTrail:update(dt)
@@ -955,7 +972,7 @@ function HoverFireTrail:update(dt)
             self:queue_destroy()
         end
     else
-		self:play_sfx_if_stopped("player_boost_fire", 0.5)
+		self:play_sfx_if_stopped("player_boost_fire", 0.25)
 	end
 end
 

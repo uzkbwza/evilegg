@@ -34,6 +34,8 @@ require "datastructure.bst2"
 
 require "lib.datetime"
 
+require "lib.func"
+
 bench = require "lib.bench"
 
 bonglewunch = require "datastructure.bonglewunch"
@@ -199,6 +201,7 @@ function love.run()
 		local frame_start = love.timer.get_time()
 
 		local force_fixed_delta = (dt > conf.max_delta_seconds / 2)
+		-- local force_fixed_delta = false
 
         if not (conf.use_fixed_delta or force_fixed_delta) and not usersettings.cap_framerate and not (debug.enabled and debug.fast_forward) then
             gametime.delta = delta_frame
@@ -253,7 +256,9 @@ function love.run()
             debug_printed_yet = false
         end
 		
-        manual_gc(0.001, math.huge, false)
+		if conf.manual_gc then
+			manual_gc(0.001, math.huge, false)
+		end
 
 		local frame_end = love.timer.get_time()
         frame_length = frame_end - frame_start
@@ -403,6 +408,7 @@ end
 
 function love.joystickadded(joystick)
 	input.joystick_added(joystick)
+	input.last_input_device = "gamepad"
 end
 
 function love.joystickremoved(joystick)
@@ -410,34 +416,61 @@ function love.joystickremoved(joystick)
 end
 
 function love.keypressed(key)
-	input.on_key_pressed(key)
+    input.on_key_pressed(key)
+	input.last_input_device = "mkb"
 end
 
 function love.gamepadpressed(gamepad, button)
 	input.on_joystick_pressed(gamepad, button)
+	input.last_input_device = "gamepad"
 end
 
 function love.joystickpressed(joystick, button)
 	input.on_joystick_pressed(joystick, button)
+	input.last_input_device = "gamepad"
+end
+
+function love.gamepadaxis(gamepad, axis, value)
+    -- input.on_joystick_axis(gamepad, axis, value)
+    input.last_input_device = "gamepad"
+end
+
+function love.gamepadreleased(gamepad, button)
+	-- input.on_joystick_released(gamepad, button)
+	input.last_input_device = "gamepad"
+end
+
+function love.joystickreleased(joystick, button)
+    -- input.on_joystick_released(joystick, button)
+    input.last_input_device = "gamepad"
+end
+
+function love.joystickhat(joystick, hat, value)
+    -- input.on_joystick_hat(joystick, hat, value)
+    input.last_input_device = "gamepad"
 end
 
 function love.mousepressed(x, y, button)
 	input.on_mouse_pressed(x, y, button)
+	input.last_input_device = "mkb"
 end
 
 function love.mousereleased(x, y, button)
 	input.on_mouse_released(x, y, button)
+	input.last_input_device = "mkb"
 end
 
 function love.textinput(text)
     input.on_text_input(text)
+	input.last_input_device = "mkb"
 end
 
 function love.mousemoved(x, y, dx, dy, istouch)
 	input.read_mouse_input(x, y, dx, dy, istouch)
+	input.last_input_device = "mkb"
 end
 
 function love.wheelmoved(x, y)
 	input.on_mouse_wheel_moved(x, y)
-
+	input.last_input_device = "mkb"
 end

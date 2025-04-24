@@ -29,7 +29,7 @@ function Gnome:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.Roamer)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
-	self.bullet_push_modifier = 1.2
+	self.bullet_push_modifier = 0.8
 end
 
 function Gnome:enter()
@@ -56,6 +56,7 @@ function Gnome:death_sequence(hit_by)
     if not self:should_live() then
         Gnome.super.death_sequence(self, hit_by)
     else
+		self.started_death_sequence = false
 		self:change_state("Respawning")
 	end
 end
@@ -138,6 +139,7 @@ function Gnome:state_Normal_update(dt)
 		end
     end
 	
+	-- print(self:is_invulnerable())
 end
 
 function Gnome:state_Respawning_enter()
@@ -173,13 +175,14 @@ function Gnome:state_Respawning_update(dt)
     local num_other_gnomes = (self.world:get_number_of_objects_with_tag("gnome") - 1)
 
 
-	local base = 1.007
+	local base = 1.01
 	local mul = 1.3
     local offs = -0.4
-    local t = 0.8
+    local t = 0.4
+	local p = 80
 	local g = num_other_gnomes * 80
 	
-	local goal_tick = max(round(lerp(logb(num_other_gnomes * mul + offs, base), g, t)), 60)
+	local goal_tick = max(round(lerp(logb(num_other_gnomes * mul + offs, base), g, t)), p)
 	
     if debug.enabled then
 		dbg("gnome_respawn_goal_tick", goal_tick)
@@ -187,7 +190,8 @@ function Gnome:state_Respawning_update(dt)
 
 	if self.state_tick > goal_tick then
 		self:play_sfx("enemy_gnome_respawn_exit", 0.75, 1.0)
-		self:set_hp(self.max_hp)
+		self.number_of_revives = (self.number_of_revives or 0) + 1
+		self:set_hp(self.max_hp - self.number_of_revives)
 		self:change_state("Normal")
 		return
 	end
@@ -282,6 +286,12 @@ function GnomeBullet:draw()
     local index, rotation, y_scale = get_16_way_from_3_base_sprite(self.vel:angle())
 	local palette, offset = self:get_palette_shared()
 	graphics.drawp_centered(bullet_textures[index], palette, offset, 0, 0, rotation, 1, y_scale)
+	local scale = 16 - ((self.tick - 1) * 4)
+	if scale > 0 then
+		graphics.set_color(palette:tick_color(self.tick + self.random_offset))
+		graphics.rotate(deg2rad(45))
+		graphics.rectangle_centered("fill", 0, 0, scale, scale)
+	end
 end
 
 function GnomeBullet:get_palette()

@@ -72,6 +72,12 @@ return {
 				-- mouse = { "lmb" }
 			},
 
+			ui_title_screen_start = {
+				keyboard = { "return", "space" },
+				joystick = { "start", "a" },
+				mouse = { "lmb" }
+			},
+
 			ui_cancel = {
 				keyboard = { "escape", },
 				joystick = { "b" },

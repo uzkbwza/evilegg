@@ -984,3 +984,12 @@ function vec3_distance_squared_table(a, b)
     return dx * dx + dy * dy + dz * dz
 end
 
+
+Vec2.UP = Vec2(0, -1)
+Vec2.DOWN = Vec2(0, 1)
+Vec2.LEFT = Vec2(-1, 0)
+Vec2.RIGHT = Vec2(1, 0)
+
+CARDINAL_DIRECTIONS = { Vec2.UP, Vec2.DOWN, Vec2.LEFT, Vec2.RIGHT }
+ORDINAL_DIRECTIONS = { Vec2(1, 1), Vec2(-1, 1), Vec2(-1, -1), Vec2(1, -1) }
+ALL_DIRECTIONS = { Vec2(0, 0), Vec2(1, 0), Vec2(0, 1), Vec2(-1, 0), Vec2(0, -1), Vec2(1, 1), Vec2(-1, 1), Vec2(-1, -1), Vec2(1, -1) }

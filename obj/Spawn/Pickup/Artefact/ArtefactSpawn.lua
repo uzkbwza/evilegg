@@ -9,14 +9,14 @@ function ArtefactSpawn:new(x, y, artefact)
     ArtefactSpawn.super.new(self, x, y)
 	
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
-    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    -- self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     
 	self.font = fonts.image_font1
 	self.font2 = fonts.depalettized.image_font1
 	
-	self.declump_radius = 32
-	self.declump_modifier = 0.5
+	-- self.declump_radius = 32
+	-- self.declump_modifier = 0.5
 	self.artefact = artefact
     self:add_time_stuff()
 	self:init_state_machine()
@@ -96,9 +96,9 @@ function ArtefactSpawn:state_Idle_draw()
     for i = 1, num_rects do
 		local x, y = vec2_from_polar(r, tau * (i / num_rects) + elapsed / 100)
 		graphics.set_color(Palette.artefact_title_border:tick_color(tick / 5))
-		graphics.rectangle_centered("line", self.pos.x + x, self.pos.y + y + 1, 5, 5)
+		graphics.rectangle_centered("line", x, y + 1, 5, 5)
 		graphics.set_color(Palette.cmy:tick_color(tick / 7))
-		graphics.rectangle_centered("line", self.pos.x + x, self.pos.y + y, 5, 5)
+		graphics.rectangle_centered("line", x, y, 5, 5)
 	end
 	
 	graphics.set_color(Color.white)
@@ -112,16 +112,16 @@ function ArtefactSpawn:state_Idle_draw()
 	desc = desc:sub(1, desc:len() * self.text_amount)
 	
 	graphics.set_font(self.font2)
-	graphics.print_outline_centered(Color.black, name, self.font2, self.pos.x, self.pos.y - 16)
-	graphics.print_outline_centered(Color.black, desc, self.font2, self.pos.x, self.pos.y + 16)
+	graphics.print_outline_centered(Color.black, name, self.font2, 0, -16)
+	graphics.print_outline_centered(Color.black, desc, self.font2, 0, 16)
 	graphics.set_font(self.font)
     graphics.set_color(Color.white)
 	self.title_palette_stack:set_palette_offset(2, tick / 5)
 	self.title_palette_stack:set_palette_offset(3, tick / 3)
-	graphics.printp_centered(name, self.font, self.title_palette_stack, 0, self.pos.x, self.pos.y - 16)
+	graphics.printp_centered(name, self.font, self.title_palette_stack, 0, 0, -16)
 	self.desc_palette_stack:set_palette_offset(2, tick / 5)
 	self.desc_palette_stack:set_palette_offset(3, tick / 3)
-	graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, self.pos.x, self.pos.y + 16)
+	graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, 0, 16)
 
 
 end

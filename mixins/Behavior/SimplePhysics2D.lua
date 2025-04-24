@@ -37,7 +37,7 @@ function SimplePhysics2D:set_physics_limits(t)
             local speed = self.vel:magnitude()
             if speed > self.max_speed then
                 self.vel:normalize_in_place()
-                self.vel:mul_in_place(t.max_speed)
+                self.vel:mul_in_place(self.max_speed)
             end
         end)
     end

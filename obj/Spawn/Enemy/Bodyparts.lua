@@ -47,7 +47,7 @@ function Eyeball:new(x, y)
     self.walk_speed = 0.1
 	self.walk_toward_player_chance = 60
     self:lazy_mixin(Mixins.Behavior.Roamer)
-    self.bullet_push_modifier = 10.6
+    self.bullet_push_modifier = 2.0
 	self:set_physics_limits(eyeball_limits)
 
     self.declump_radius = 8
@@ -77,7 +77,7 @@ end
 
 function EyeballLaser:new(x, y)
 	self.body_height = 4
-	self.max_hp = 1
+	self.max_hp = 2
     EyeballLaser.super.new(self, x, y)
     self.drag = 0.01
     -- self.hit_bubble_radius = 2
@@ -188,7 +188,6 @@ end
 
 
 function Eyeball:update(dt)
-
 	
     if self.is_new_tick and not self:is_tick_timer_running("aim_update") then
         local dist = max(self:get_body_distance_to_player(), 1)

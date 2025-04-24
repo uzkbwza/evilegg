@@ -22,10 +22,18 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
     self.children = {}
     self.deferred_queue = {}
 
-    self.viewport_size = Vec2(viewport_size_x or (graphics.main_viewport_size or conf.viewport_size).x, viewport_size_y or (graphics.main_viewport_size or conf.viewport_size).y)
+	if self.expand_viewport == nil then
+		self.expand_viewport = true
+	end
+	
+	if self.expand_viewport then
+		self.viewport_size = Vec2(viewport_size_x or (graphics.main_viewport_size or conf.viewport_size).x, viewport_size_y or (graphics.main_viewport_size or conf.viewport_size).y)
+	else
+		self.viewport_size = Vec2(viewport_size_x or (conf.viewport_size).x, viewport_size_y or (conf.viewport_size).y)
+	end
 
     if viewport_size_x == nil and viewport_size_y == nil then
-        self.expand_viewport = true
+
         if self.viewport_size.x == 0 or self.viewport_size.y == 0 then
             self.viewport_size = Vec2(conf.viewport_size.x, conf.viewport_size.y)
         end

@@ -8,6 +8,7 @@ local LINE_TIME = 2
 
 local RECT_LINE_WIDTH = 1
 local RECT_WIDTH = 55
+local EGG_ROOM_WIDTH = 41
 local PADDING = 1
 
 function RoomObject:new(x, y, room)
@@ -22,6 +23,7 @@ function RoomObject:new(x, y, room)
     self.lines = {}
 	self:add_sequencer()
 	self.die_alpha = 1
+	self.max_height = 0
 	
     self.z_index = 1
     self.icon_stencil_function = function()
@@ -91,7 +93,7 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 			local middle_x, middle_y = floor(width / 2), floor(height / 2)
 			local icon_quad = graphics.new_quad(middle_x - ICON_SIZE / 2, middle_y - ICON_SIZE / 2, ICON_SIZE, ICON_SIZE, width, height)
 			-- local icon_quad = graphics.new_quad(0, 0, width, height, icon)
-			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad))
+			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, ICON_SIZE, ICON_SIZE))
 			current_icon = current_icon + 1
 			counter = counter + 1
 
@@ -118,6 +120,12 @@ function RoomObject:enter()
 
 
     s:start(function()
+
+        if self.stored_room.is_egg_room then
+			self:add_big_egg()
+			return
+		end
+
         -- self:add_spawn_lines(self.stored_room.all_spawn_types)
 
         -- self:add_line("text", "ENEMIES")
@@ -220,6 +228,10 @@ function RoomObject:enter()
     self:bind_destruction(floor_object)
 end
 
+function RoomObject:add_big_egg()
+	self:add_line("big_egg", nil, 54 + PADDING, false)
+end
+
 function RoomObject:close_animation()
 	local s = self.world.sequencer
 	s:start(function()
@@ -239,6 +251,9 @@ function RoomObject:update(dt)
 
 
     RoomObject.super.update(self, dt)
+	
+    self.max_height = self.max_height + dt * 10
+	
 	for _, line in pairs(self.lines) do
         line.t = min(line.t + dt)
     end
@@ -286,7 +301,11 @@ function RoomObject:draw()
 	offset_y = floor(offset_y * 3)
 
 	local rect_width = RECT_WIDTH + RECT_LINE_WIDTH * 2 + PADDING * 2
-    local rect_height = total_height + PADDING * 2
+    local rect_height = min(total_height, self.max_height) + PADDING * 2
+
+	if self.stored_room.is_egg_room then
+		rect_width = EGG_ROOM_WIDTH + RECT_LINE_WIDTH * 2 + PADDING * 2
+	end
 
     -- if self.direction.x == 1 then
 	-- 	graphics.translate(1, 0)
@@ -385,6 +404,10 @@ end
 -- end
 
 function RoomObject:draw_line(line, y)
+	if self.max_height < y + line.height then
+		return
+	end
+
 	local die_alpha = self.die_alpha or 1
     graphics.set_color(die_alpha, die_alpha, die_alpha, 1)
     if line.type == "text" then
@@ -402,7 +425,12 @@ function RoomObject:draw_line(line, y)
         graphics.set_color(Color.darkergrey * die_alpha)
         local y_ = y + floor(line.height / 2)
         graphics.line(4, y_, RECT_WIDTH - 4, y_)
-    end
+	elseif line.type == "big_egg" then
+		graphics.push()
+		graphics.translate(- RECT_LINE_WIDTH / 2, 0)
+        graphics.draw(textures.hud_room_egg, 0, y, 0, 1, 1, 0, 0)
+		graphics.pop()
+	end
 end
 
 local MAX_PARTICLE_DISTANCE = 125

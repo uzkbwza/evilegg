@@ -13,7 +13,7 @@ Charger.is_charger = true
 Charger.death_cry = "enemy_charger_death"
 
 function Charger:new(x, y)
-    self.max_hp = 12
+    self.max_hp = 10
 	self.hit_bubble_damage = 2
     self.hurt_bubble_radius = 6
     self.hit_bubble_radius = 4

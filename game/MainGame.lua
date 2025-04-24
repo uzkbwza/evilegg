@@ -73,13 +73,13 @@ GlobalGameState.max_upgrades = {
 	bullets = 1,
     damage = 1,
     -- knockback = 1, -- combined with bullet speed
-	bullet_speed = 2,
+	bullet_speed = 1,
 	-- boost = 1,
 }
 
 GlobalGameState.max_artefacts = 8
 GlobalGameState.max_hearts = 2
-GlobalGameState.xp_until_upgrade = 2100
+GlobalGameState.xp_until_upgrade = 2600
 GlobalGameState.xp_until_heart = 3500
 GlobalGameState.xp_until_artefact = 4000
 
@@ -186,17 +186,27 @@ function GlobalGameState:new()
 end
 
 function GlobalGameState:update(dt)
-    if debug.enabled then
+	if debug.enabled then
 		-- dbg("xp", self.xp)
 		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
 		-- dbg("xp_until_heart", self.xp_until_heart)
 		-- dbg("xp_until_artefact", self.xp_until_artefact)
 		-- dbg("num_queued_upgrades", self.num_queued_upgrades)
 		-- dbg("num_queued_hearts", self.num_queued_hearts)
-        -- dbg("num_queued_artefacts", self.num_queued_artefacts)
+		-- dbg("num_queued_artefacts", self.num_queued_artefacts)
 		dbg("difficulty_modifier", self:get_difficulty_modifier())
 		dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
 	end
+end
+
+function GlobalGameState:get_upgrade_ratio()
+	local total = 0
+	local max_total = 0
+	for upgrade_type, max_upgrade in pairs(GlobalGameState.max_upgrades) do
+		total = total + self.upgrades[upgrade_type]
+		max_total = max_total + max_upgrade
+	end
+	return total / max_total
 end
 
 function GlobalGameState:drain_bullet_powerup_time(dt)
@@ -282,13 +292,16 @@ function GlobalGameState:gain_xp(amount)
     self.xp = self.xp + amount
 
 	if not self:is_fully_upgraded() then
+		local ratio = remap_clamp(self:get_upgrade_ratio(), 0.0, 5/7, 2.0, 0.4)
+		local amount = (amount) * ratio
+		-- print(self:get_upgrade_ratio(), ratio)
 		self.xp_until_upgrade = self.xp_until_upgrade - amount
 	end
 	self.xp_until_heart = self.xp_until_heart - amount
     -- self.xp_until_powerup = self.xp_until_powerup - amount
 	self.xp_until_artefact = self.xp_until_artefact - amount
     if self.xp_until_upgrade <= 0 then
-		self.xp_until_upgrade = self.xp_until_upgrade + GlobalGameState.xp_until_upgrade + rng.randi(-100, 100)
+		self.xp_until_upgrade = self.xp_until_upgrade + (GlobalGameState.xp_until_upgrade + rng.randi(-100, 100))
         self:on_upgrade_xp_threshold_reached()
     end
 	if self.xp_until_heart <= 0 then
@@ -504,33 +517,45 @@ local MIN_SCORE_MULTIPLIER = 0.01
 local MAX_CHAIN = 20
 local EXTRA_CHAIN_MULTIPLIER = 0.685
 local EXTRA_CHAIN_BASE = 1.4
-local RESCUE_CHAIN_MULTIPLIER_CAP = 50
+local RESCUE_CHAIN_MULTIPLIER_CAP = 20
+local MAX_SCORE_MULTIPLIER = 30
 
-function GlobalGameState:get_score_multiplier()
+function GlobalGameState:get_score_multiplier(include_rescue_chain)
     local multiplier = self.score_multiplier
 
+    if include_rescue_chain == nil then
+        include_rescue_chain = true
+    end
+
+
+    if include_rescue_chain then
+        multiplier = multiplier + self:get_rescue_chain_multiplier()
+    end
+
+    multiplier = multiplier * (1 + self:get_difficulty_modifier(false))
+    multiplier = stepify_floor(multiplier, MIN_SCORE_MULTIPLIER)
+    multiplier = min(multiplier, MAX_SCORE_MULTIPLIER)
+
+    return multiplier
+end
+
+function GlobalGameState:get_rescue_chain_multiplier()
     local rescue_chain_multiplier = self.rescue_chain
-	local max_chain = MAX_CHAIN - 4
+    local max_chain = MAX_CHAIN - 4
 
     if rescue_chain_multiplier > max_chain then
         local extra = rescue_chain_multiplier - max_chain
-		
-		local scaled_extra = (logb(extra + 1.50, EXTRA_CHAIN_BASE) * EXTRA_CHAIN_MULTIPLIER) + (extra * MIN_SCORE_MULTIPLIER - MIN_SCORE_MULTIPLIER)
+
+        local scaled_extra = (logb(extra + 1.50, EXTRA_CHAIN_BASE) * EXTRA_CHAIN_MULTIPLIER) +
+            (extra * MIN_SCORE_MULTIPLIER - MIN_SCORE_MULTIPLIER)
         scaled_extra = min(scaled_extra, extra)
 
-		rescue_chain_multiplier = max_chain + scaled_extra
-	else
-		rescue_chain_multiplier = self.rescue_chain
-	end
+        rescue_chain_multiplier = max_chain + scaled_extra
+    else
+        rescue_chain_multiplier = self.rescue_chain
+    end
 
-	multiplier = multiplier + (rescue_chain_multiplier)
-    -- multiplier = multiplier + (self.rescue_chain * 0.5)
-	
-    multiplier = multiplier * (1 + self:get_difficulty_modifier(false))
-	
-    multiplier = stepify_floor(clamp(multiplier, 1, RESCUE_CHAIN_MULTIPLIER_CAP), MIN_SCORE_MULTIPLIER)
-
-	return multiplier
+    return clamp(rescue_chain_multiplier, 0, RESCUE_CHAIN_MULTIPLIER_CAP)
 end
 
 
@@ -641,8 +666,24 @@ function GlobalGameState:get_random_available_artefact()
             if table.list_has(self.recently_selected_artefacts, v.key) then
                 goto continue
             end
-			if self.used_sacrificial_twin and v.key == "sacrificial_twin" then
-				goto continue
+            if self.used_sacrificial_twin and v.key == "sacrificial_twin" then
+                goto continue
+            end
+			
+			if v.requires_artefacts then
+				for _, artefact in pairs(v.requires_artefacts) do
+					if not self.artefacts[artefact] then
+						goto continue
+					end
+				end
+			end
+
+			if v.must_not_have_artefacts then
+				for _, artefact in pairs(v.must_not_have_artefacts) do
+					if self.artefacts[artefact] then
+						goto continue
+					end
+				end
 			end
 			table.insert(tab, v)
 			::continue::

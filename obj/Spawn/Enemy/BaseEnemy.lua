@@ -39,8 +39,8 @@ function BaseEnemy:hazard_init()
 end
 
 function BaseEnemy:life_flash()
-	local bx, by = self:get_body_center()
-	self:spawn_object(LifeFlash(bx, by, self:get_sprite()))
+    local bx, by = self:get_body_center()
+    self:spawn_object(LifeFlash(bx, by, self.pos.x, self.pos.y, self:get_sprite(), self.life_flash_size_mod or 1))
 end
 
 function BaseEnemy:get_score()
@@ -108,7 +108,7 @@ function BaseEnemy:hit_by(object)
 
 	local invuln = self:is_invulnerable()
 
-	if not self.no_damage_flash and not invuln then
+	if not self.no_damage_flash and not invuln and not self.started_death_sequence then
 		self:start_timer("damage_flash", 12)
 	end
 
@@ -117,10 +117,14 @@ function BaseEnemy:hit_by(object)
         self:damage(damage)
     end
 	
-    if self.hp <= 0 then
+    if self.hp <= 0 and not self.started_death_sequence then
+		self.started_death_sequence = true
         self:death_sequence(object)
+		self:stop_timer("damage_flash")
 	else
-		if self.hurt_sfx and not invuln then
+		if self.started_death_sequence then
+			-- self:play_sfx("enemy_exploder_beep", 0.5)
+		elseif self.hurt_sfx and not invuln then
 			self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
 		elseif not (self:has_tag("enemy_bullet") or self:has_tag("hazard")) and not invuln then
             self:play_sfx("enemy_hurt", 0.25, 1.0)

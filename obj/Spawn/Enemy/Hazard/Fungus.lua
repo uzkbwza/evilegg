@@ -4,10 +4,11 @@ local BASE_HP = 1
 local BASE_HP_BIG = 2
 local MAX_HP = 2
 
-local BASE_HP_FRIENDLY = 2
-local BASE_HP_BIG_FRIENDLY = 4
-local MAX_HP_FRIENDLY = 4
-local HP_GAIN_AMOUNT_FRIENDLY = 2
+local BASE_HP_FRIENDLY = 1.3
+local BASE_HP_BIG_FRIENDLY = 2.6
+local MAX_HP_FRIENDLY = 2.6
+local HP_GAIN_AMOUNT_FRIENDLY = 1.3
+local FRIENDLY_DAMAGE = 0.35
 
 local PROPOGATE_CHILD_FREQUENCY_MODIFIER = 1.0
 
@@ -25,6 +26,7 @@ function Fungus:new(x, y, propogate_frequency)
     self.team = game_state.artefacts.death_cap and "player" or "neutral"
 	self.hitbox_team = game_state.artefacts.death_cap and "player" or "enemy"
     self.max_hp = (game_state.artefacts.death_cap and BASE_HP_FRIENDLY or BASE_HP)
+	self.highest_hp = (game_state.artefacts.death_cap and MAX_HP_FRIENDLY or MAX_HP)
     self.base_hp_big = game_state.artefacts.death_cap and BASE_HP_BIG_FRIENDLY or BASE_HP_BIG
 	self.hp_gain_amount = game_state.artefacts.death_cap and HP_GAIN_AMOUNT_FRIENDLY or HP_GAIN_AMOUNT
 	self.propogate_frequency = propogate_frequency or PROPOGATE_FREQUENCY
@@ -114,10 +116,11 @@ function Fungus:on_healed()
 			end
 			self.big = true
 			self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius_big)
-			self:add_hit_bubble(-2.5, 2, self.hit_bubble_radius_big, "main1", 1)
-			self:add_hit_bubble(-2.5, -2, self.hit_bubble_radius_big, "main2", 1)
-			self:add_hit_bubble(2.5, 2, self.hit_bubble_radius_big, "main3", 1)
-			self:add_hit_bubble(2, -2, self.hit_bubble_radius_big, "main4", 1)
+			local damage = game_state.artefacts.death_cap and FRIENDLY_DAMAGE or 1
+			self:add_hit_bubble(-2.5, 2, self.hit_bubble_radius_big, "main1", damage)
+			self:add_hit_bubble(-2.5, -2, self.hit_bubble_radius_big, "main2", damage)
+			self:add_hit_bubble(2.5, 2, self.hit_bubble_radius_big, "main3", damage)
+			self:add_hit_bubble(2, -2, self.hit_bubble_radius_big, "main4", damage)
 			-- self:add_hit_bubble(0, 0, self.hit_bubble_radius_big * 2, "main5", 1)
 			-- self:set_bubble_radius("hit", "main", self.hit_bubble_radius_big)
 			self.declump_radius = 16
@@ -166,7 +169,6 @@ function Fungus:propagate()
 
 	if valid then
 		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng.randfn(1, 0.4), 0.1, 1.9)), test_x, test_y)
-		fungus.max_hp = BASE_HP
 	end
 
 end
@@ -177,25 +179,25 @@ function Fungus:start_hp_gain_timer()
 			-- self:propagate()
 			self:heal(self.hp_gain_amount, true)
 		end
-		if self.hp < MAX_HP then
+		if self.hp < self.highest_hp then
 			self:start_hp_gain_timer()
 		end
 	end)
 end
 
 function Fungus:get_palette()
-	return nil, floor(self.random_offset + self.world.tick / (self.big and 5 or 12))
+	return nil, floor(self.random_offset + gametime.tick / (self.big and 5 or 12))
 end
 
 function Fungus:draw()
-    if (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick, 1, 2)) then
-		return
-	end
+    -- if (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick + self.random_offset, 1, 5)) then
+		-- return
+	-- end
 	Fungus.super.draw(self)
 end
 
 function Fungus:get_sprite()	
-	if not game_state.artefacts.death_cap then
+	if not (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick + self.random_offset, 1, 2)) then
 		return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
 	end
 	return self.big and textures.hazard_friendly_mushroom2 or textures.hazard_friendly_mushroom1

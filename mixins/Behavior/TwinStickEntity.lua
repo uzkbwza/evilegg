@@ -344,13 +344,25 @@ function TwinStickEntity:on_terrain_collision(normal_x, normal_y)
 end
 
 function TwinStickEntity:terrain_collision_bounce(normal_x, normal_y)
-	if self.vel then
-		if normal_x ~= 0 then
-			self.vel.x = self.vel.x * -1
-		end
-		if normal_y ~= 0 then
-			self.vel.y = self.vel.y * -1
-		end
+    local bounced = false
+    if self.vel then
+        if normal_x ~= 0 then
+            self.vel.x = self.vel.x * -1
+            bounced = true
+        end
+        if normal_y ~= 0 then
+            self.vel.y = self.vel.y * -1
+            bounced = true
+        end
+    end
+    if bounced then
+        self:on_terrain_collision_bounce()
+    end
+end
+
+function TwinStickEntity:on_terrain_collision_bounce()
+	if abs(self.vel.x) > 0.3 or abs(self.vel.y) > 0.3 then
+		self:play_sfx_if_stopped(self.bounce_sfx or "entity_bounce", self.bounce_sfx_volume or 1, 1.0)
 	end
 end
 

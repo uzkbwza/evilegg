@@ -11,11 +11,13 @@ local SPEED = 3.0
 local LifeFlash = Effect:extend("LifeFlash")
 
 -- TODO: use quads instead of pixels
-function LifeFlash:new(x, y, texture, size_mod)
+function LifeFlash:new(x, y, splatter_x, splatter_y, texture, size_mod)
 	LifeFlash.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
     self.duration = 20
-	self.reversed = false	
+	self.reversed = false
+	self.splatter_x = splatter_x - x
+	self.splatter_y = splatter_y - y
 
 	local width, height = 0, 0
     local offset_x, offset_y = 0, 0
@@ -119,8 +121,9 @@ function LifeFlash:draw(elapsed, tick, t)
 
 	local color = Color.white
     graphics.set_color(color.r * COLOR_MOD, color.g * COLOR_MOD, color.b * COLOR_MOD, color.a)
+	graphics.translate(self.splatter_x, self.splatter_y)
     for i = 1, PIXEL_COUNT * self.size_mod do
-        local pixel = self.pixels[i]
+		local pixel = self.pixels[i]
         graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
     end
 end
@@ -131,6 +134,7 @@ function LifeFlash:floor_draw()
 	end
 	local color = Color.white
     graphics.set_color(color.r * COLOR_MOD, color.g * COLOR_MOD, color.b * COLOR_MOD, color.a)
+	graphics.translate(self.splatter_x, self.splatter_y)
 	
 	for i = 1, PIXEL_COUNT * self.size_mod do
 		local pixel = self.pixels[i]

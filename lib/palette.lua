@@ -114,16 +114,21 @@ function Palette:random_color()
 end
 
 function Palette:interpolate(t)
-    return self:get_color(round(t * self.length))
+	return self:get_color(round(t * self.length))
 end
 
 function Palette:interpolate_clamped(t)
     return self:get_color_clamped(round(t * self.length))
 end
 
+function Palette:interpolate_index(t)
+	return round(clamp(t, 0, 1) * self.length)
+end
+
 function Palette:get_color_index(color)
 	return Palette:get_color_index_unpacked(color.r, color.g, color.b)
 end
+
 
 function Palette:get_color_unpacked(index)
     local color = self.colors[(index - 1) % self.length + 1]

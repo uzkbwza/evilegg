@@ -729,11 +729,13 @@ function graphics.draw_fit(texture, start_x, start_y, end_x, end_y)
 	graphics.draw(texture, start_x - offset_x, start_y - offset_y, 0, scale, scale)
 end
 
-function graphics.get_quad_table(texture, quad)
+function graphics.get_quad_table(texture, quad, width, height)
     return {
         texture = texture,
 		__isquad = true,
         quad = quad,
+		width = width,
+		height = height,
     }
 end
 
@@ -793,13 +795,28 @@ function graphics.drawp_centered(texture, palette, offset, x, y, r, sx, sy, ox, 
 end
 
 function graphics.draw_quad_centered(texture, quad, width, height, x, y, r, sx, sy, ox, oy, kx, ky)
-	ox = ox or 0
-	oy = oy or 0
-	local offset_x = width / 2
-	local offset_y = height / 2
-	graphics.draw(texture, quad, x, y, r, sx, sy, ox + offset_x, oy + offset_y, kx, ky)
-
+    ox = ox or 0
+    oy = oy or 0
+    local offset_x = width / 2
+    local offset_y = height / 2
+    graphics.draw(texture, quad, x, y, r, sx, sy, ox + offset_x, oy + offset_y, kx, ky)
 end
+
+function graphics.draw_outline(color, texture, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.push("all")
+	graphics.set_color(color)
+	graphics.draw(texture, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x + 1, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x - 1, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw(texture, x, y - 1, r, sx, sy, ox, oy, kx, ky)
+    graphics.pop()
+	graphics.draw(texture, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
 
 function graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 
@@ -814,6 +831,37 @@ function graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 	local offset_x = round(texture:getWidth() / 2)
 	local offset_y = round(texture:getHeight() / 2)
 	graphics.draw(texture, x, y, r, sx, sy, ox + offset_x, oy + offset_y, kx, ky)
+end
+
+function graphics.draw_centered_outline(color, texture, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.push("all")
+	graphics.set_color(color)
+	graphics.draw_centered(texture, x + 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x - 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x + 1, y - 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x - 1, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x + 1, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x - 1, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x, y + 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.draw_centered(texture, x, y - 1, r, sx, sy, ox, oy, kx, ky)
+	graphics.pop()
+	graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
+function graphics.drawp_outline(color, texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.push("all")
+	graphics.set_color(color)
+	graphics.draw_outline(color, texture, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.pop()
+	graphics.drawp(texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
+function graphics.drawp_centered_outline(color, texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.push("all")
+	graphics.set_color(color)
+	graphics.draw_centered_outline(color, texture, x, y, r, sx, sy, ox, oy, kx, ky)
+	graphics.pop()
+	graphics.drawp_centered(texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics.set_clear_color(color)

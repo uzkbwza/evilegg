@@ -11,7 +11,7 @@ return {
 		text_key = "bonus_no_damage",
 		score = 2000,
 		score_multiplier = 0.02,
-        xp = 100,
+        xp = 10,
 		difficulty_modifier = 0.05,
     },
 
@@ -19,7 +19,7 @@ return {
 		text_key = "bonus_overheal",
 		score = 1000,
 		score_multiplier = 0.01,
-		xp = 100,
+		xp = 10,
         difficulty_modifier = 0.025,
     },
 	

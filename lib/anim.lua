@@ -34,7 +34,19 @@ function Animation:new(...)
 	assert(frame_table[1] ~= nil, "animation must start on frame 1")
 	assert(not table.is_empty(frame_table), "no frames passed")
 	self.data = self:process_frame_table(frame_table)
+end
 
+function Animation.from_lengths(lengths)
+    local frames = {}
+    local total_time = 1
+    for i, tab in ipairs(lengths) do
+        local length = tab[1]
+        local tex = tab[2]
+		frames[total_time] = tex
+        total_time = total_time + length
+    end
+	frames[total_time] = "end"
+	return Animation(frames)
 end
 
 function Animation.from_sequence(tex_name, start_tex, finish_tex, frame_duration)
@@ -62,6 +74,12 @@ function Animation:get_frame(delta, loop_type)
 	end
 
 	return self.data.frames[frame_number]
+end
+
+function Animation:loop(delta)
+    local frame_number = 1 + floor(delta) % self.data.anim_length
+	local texture = self.data.frames[frame_number]
+	return texture
 end
 
 function Animation:process_frame_table(frames)

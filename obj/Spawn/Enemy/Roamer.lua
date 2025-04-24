@@ -86,7 +86,7 @@ local EXPLOSION_RADIUS = 20
 function Roamsploder:new(x, y)
     self.max_hp = 2
 	self.hit_bubble_damage = 10
-    self.bullet_push_modifier = 3.5
+    -- self.bullet_push_modifier = 3.5
     self.walk_speed = 0.75
     Roamsploder.super.new(self, x, y)
 	self:mix_init(Mixins.Behavior.ExploderEnemy)

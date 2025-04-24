@@ -50,7 +50,7 @@ function remap01_upper(value, ostop)
 end
 
 function remap_clamp(value, istart, istop, ostart, ostop)
-    return clamp(remap(value, istart, istop, ostart, ostop), ostart, ostop)
+    return clamp(remap(value, istart, istop, ostart, ostop), min(ostart, ostop), max(ostart, ostop))
 end
 
 function remap_pow(value, istart, istop, ostart, ostop, power)

@@ -1,8 +1,9 @@
 local GameWorld = World:extend("GameWorld")
 local O = require("obj")
-local EnemySpawn = require("obj.EnemySpawn")
+local EnemySpawns = require("obj.EnemySpawn")
 local SpawnDataTable = require("obj.spawn_data")
 local Room = require("room.Room")
+local EggRoom = require("room.EggRoom")
 local shash = require "lib.shash"
 local ScoreNumberEffect = require("fx.score_number_effect")
 local TextPopupEffect = require("fx.text_popup_effect")
@@ -14,6 +15,9 @@ local MAX_HAZARDS = 50
 
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
+
+local EGG_ROOM_START = 30
+local EGG_ROOM_PERIOD = 10
 
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
@@ -94,7 +98,7 @@ function GameWorld:enter()
 	self.camera.persist = true
 
 	game_state.level = game_state.level - 1
-	local start_room = self:create_random_room()
+	local start_room = self:create_room()
 
 	self:initialize_room(start_room)
 
@@ -161,7 +165,7 @@ function GameWorld:enter()
 	end)
 end
 
-function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duration)
+function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duration, ignore_queue)
 	if debug.enabled then
 		print("notifying: " .. text)
 	end
@@ -178,14 +182,19 @@ function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duratio
 		sound = sound,
 		sound_volume = sound_volume,
 		palette_stack = palette_stack,
-		duration = duration,
+        duration = duration,
+		ignore_queue = ignore_queue,
 	}
 
 	-- self:notify_all_players(notification)
-	table.insert(self.notification_queue, notification)
+	if not ignore_queue then
+        table.insert(self.notification_queue, notification)
+    else
+		self:play_notification(notification)
+	end
 end
 
-function GameWorld:create_random_room(room_params)
+function GameWorld:create_room(room_params)
 	local level_history = nil
 	-- local old_room = self.room
 	-- if old_room then
@@ -194,17 +203,23 @@ function GameWorld:create_random_room(room_params)
 
 
 	local level = game_state.level
-	level = level + 1
+    level = level + 1
 
-	local room = Room(self, level, game_state.difficulty, level_history, MAX_ENEMIES, MAX_HAZARDS)
-
+	local room
+	
+	if room_params and room_params.egg_room then
+		room = EggRoom(self, level, game_state.difficulty, level_history, MAX_ENEMIES, MAX_HAZARDS)
+	else
+		room = Room(self, level, game_state.difficulty, level_history, MAX_ENEMIES, MAX_HAZARDS)
+	end
+	
 	-- for _, room in ipairs(self.current_room_selection or {}) do
 	-- 	for obj, _ in pairs(room.all_spawn_types) do
 	-- 		room.redundant_spawns[obj] = true
 	-- 	end
 	-- end
-
 	room:build(room_params)
+	
 
 	return room
 end
@@ -225,9 +240,15 @@ function GameWorld:initialize_room(room)
 			self:create_player()
 		end
 
+        if self.room.initialize then
+			self.room:initialize(self)
+		end
+
 		s:wait(15)
 
-		self:spawn_wave()
+		if self.room:should_spawn_waves() then
+			self:spawn_wave()
+		end
 	end)
 
 	self:ref("camera_target", GameObject2D(CAMERA_TARGET_OFFSET.x, CAMERA_TARGET_OFFSET.y))
@@ -293,6 +314,7 @@ function GameWorld:on_rescue_picked_up(rescue_object)
 		end)
 	end
 	game_state:on_rescue(rescue_object)
+	self:quick_notify(string.format("×%d", game_state:get_rescue_chain_multiplier()), nil, nil, nil, 30, true)
 end
 
 function GameWorld:spawn_wave()
@@ -318,6 +340,7 @@ function GameWorld:spawn_wave()
 			highlight:queue_destroy()
 		end
 		if self.highlight_last_enemies_sequence then self.timescaled.sequencer:stop(self.highlight_last_enemies_sequence) end
+		
 		self.room.highlighting_enemies = false
 
 		self:spawn_rescues(rescue_spawns)
@@ -339,7 +362,6 @@ function GameWorld:spawn_wave()
 		if self.room.wave < self.room.last_wave then
 			self:start_wave_timer(max(600 - game_state.difficulty * 60, 120))
 		else
-			-- print("starting last wave quick clear timer")
 			self.timescaled:start_tick_timer("last_wave_quick_clear", max(600 - game_state.difficulty * 60, 120))
 		end
 	end)
@@ -367,7 +389,12 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 			-- 	goto continue
 			-- end
 
-			local spawn = self:spawn_object(EnemySpawn(spawn_x, spawn_y, spawn_type))
+			local class = EnemySpawns.EnemySpawn
+			if spawn_data.enemy_spawn_effect then
+				class = EnemySpawns[spawn_data.enemy_spawn_effect]
+			end
+
+			local spawn = self:spawn_object(class(spawn_x, spawn_y, spawn_type))
 			self:add_tag(spawn, "enemy_spawner")
 			-- self:add_tag(spawn, tag_name)
 			signal.connect(spawn, "finished", self, "on_spawn_finished", function()
@@ -592,6 +619,16 @@ function GameWorld:on_player_died()
 end
 
 function GameWorld:create_next_rooms()
+    local next_level = game_state.level + 1
+
+	print(next_level - EGG_ROOM_START)
+	
+	if (next_level - EGG_ROOM_START) >= 0 and (next_level - EGG_ROOM_START) % EGG_ROOM_PERIOD == 0 then
+        return {
+			self:create_egg_room()
+		}
+	end
+
 	local rooms = {}
 
 	local needs_upgrade = game_state.num_queued_upgrades > 0 and not game_state:is_fully_upgraded()
@@ -606,8 +643,8 @@ function GameWorld:create_next_rooms()
 	game_state.recently_selected_upgrades = {}
 
 	for i = 1, 3 do
-		local room = self:create_random_room({
-			bonus_room = game_state.level > 1 and ((game_state.level + 1) % 3 == 0),
+		local room = self:create_room({
+			bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
 			needs_upgrade = needs_upgrade and i == upgrade_room,
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
@@ -629,12 +666,22 @@ function GameWorld:create_next_rooms()
 	return rooms
 end
 
+function GameWorld:create_egg_room()
+    local room = self:create_room({
+		egg_room = true,
+	})
+
+	return room
+end
+
 function GameWorld:spawn_room_objects()
 
 	local rooms = self.next_rooms
 
 	self.current_room_selection = {}
 	local directions = { Vec2(1, 0), Vec2(0, 1), Vec2(-1, 0), Vec2(0, -1) }
+
+	table.shuffle(directions)
 
 	for i = 1, 4 do
 		local direction = directions[i]
@@ -652,20 +699,31 @@ function GameWorld:spawn_room_objects()
 
 	local room_objects = {}
 
-	for i = 1, 3 do
-		local direction = directions[i]
-		local spawn_pos_x, spawn_pos_y = direction.x * self.room.room_width / 2, direction.y * self.room.room_height / 2
+	for i = 1, #rooms do
 		local room = rooms[i]
+		local direction = directions[i]
+        if room.is_egg_room then
+            direction = Vec2(0, -1)
+            for _, dir in ipairs(directions) do
+                if dir.y == 1 then
+                    direction = Vec2(0, 1)
+                    break
+                end
+            end
+        end
 
+		
+		
 		consumed_upgrade = consumed_upgrade or room.consumed_upgrade
 		-- consumed_powerup = consumed_powerup or room.consumed_powerup
 		consumed_heart = consumed_heart or room.consumed_heart
 		consumed_artefact = consumed_artefact or room.consumed_artefact
-
+		
 		if room.consumed_upgrade then
 			print(room.consumed_upgrade.upgrade_type)
 		end
-
+		
+		local spawn_pos_x, spawn_pos_y = direction.x * self.room.room_width / 2, direction.y * self.room.room_height / 2
 		local room_object = O.RoomObject(spawn_pos_x, spawn_pos_y, room)
 		room_object.direction = direction
 		room_object.points_rating = room.points_rating
@@ -693,9 +751,6 @@ function GameWorld:spawn_room_objects()
     if consumed_upgrade then
 		game_state:consume_upgrade()
 	end
-	-- if consumed_powerup then
-	-- 	game_state:consume_powerup()
-	-- end
 
 	if consumed_heart then
 		game_state:consume_heart()
@@ -710,7 +765,7 @@ function GameWorld:spawn_room_objects()
 			s2:wait(1)
 		end
 		s:start(function()
-			for i = 1, 3 do
+			for i = 1, #room_objects do
 				self:spawn_object(room_objects[i])
 				s:wait(2)
 			end
@@ -773,16 +828,24 @@ function GameWorld:on_room_clear()
 			local enemies = self:get_objects_with_tag("enemy")
 
 			local waited = false
-			for i, enemy in enemies:ipairs() do
+            for i, enemy in enemies:ipairs() do
+
+                if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
+					self:remove_tag(enemy, "enemy")
+					goto continue
+				end
+				
 				if enemy.die then
 					enemy:die(self:get_random_object_with_tag("player"))
 				elseif not enemy.is_queued_for_destruction then
 					enemy:queue_destroy()
 				end
-				if i % 5 == 0 then
-					s:wait(2)
-					waited = true
-				end
+                if i % 5 == 0 then
+                    s:wait(2)
+                    waited = true
+                end
+				
+				::continue::
 			end
 			if not waited then
 				s:wait(2)
@@ -950,30 +1013,33 @@ function GameWorld:update(dt)
 	end
 
 	if not table.is_empty(self.notification_queue) and not self.timescaled:is_timer_running("player_notify_cooldown") then
-		local notification = table.remove(self.notification_queue, 1)
-
-		if notification.sound then
-			self:play_sfx(notification.sound, notification.sound_volume)
-		end
-		if notification.custom_position == nil then
-			for _, player in pairs(self.players) do
-				local bx, by = player:get_body_center()
-				local effect = self:notification_popup(bx, by - 12, notification)
-				effect:ref("player", player)
-				effect:add_update_function(function(self, dt)
-					if self.player then
-						local bx, by = self.player:get_body_center()
-						self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.elapsed * 0.15 - 12, 300, dt))
-					end
-				end)
-				effect.custom_movement = true
-			end
-			self.timescaled:start_timer("player_notify_cooldown", 52)
-		end
+        local notification = table.remove(self.notification_queue, 1)
+		self:play_notification(notification)
+		self.timescaled:start_timer("player_notify_cooldown", 52)
 	end
 
 	if game_state.bullet_powerup and self.draining_bullet_powerup then
 		game_state:drain_bullet_powerup_time(dt)
+	end
+end
+
+function GameWorld:play_notification(notification)
+	if notification.sound then
+		self:play_sfx(notification.sound, notification.sound_volume)
+	end
+	if notification.custom_position == nil then
+		for _, player in pairs(self.players) do
+			local bx, by = player:get_body_center()
+			local effect = self:notification_popup(bx, by - 12, notification)
+			effect:ref("player", player)
+			effect:add_update_function(function(self, dt)
+				if self.player then
+					local bx, by = self.player:get_body_center()
+					self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.elapsed * 0.15 - 12, 300, dt))
+				end
+			end)
+			effect.custom_movement = true
+		end
 	end
 end
 
