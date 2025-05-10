@@ -2,7 +2,7 @@ local OptionsMenuWorld = World:extend("OptionsMenuWorld")
 local O = (require "obj")
 
 local MENU_ITEM_H_PADDING = 12
-local MENU_ITEM_V_PADDING = 12
+local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
 local DISTANCE_BETWEEN_ITEMS = 10
 local HEADER_SPACE = 5
@@ -28,7 +28,8 @@ function OptionsMenuWorld:enter()
 		item_type = "button",
         select_func = function()
 			local s = self.sequencer
-			s:start(function()
+            s:start(function()
+				self.handling_input = false
 				s:wait(1)
 				self:emit_signal("exit_menu_requested")
 			end)
@@ -57,8 +58,10 @@ function OptionsMenuWorld:enter()
                 item.focus_on_hover = false
 				local s = self.sequencer
 				s:start(function()
-					s:wait(1)
-					item.focus_on_hover = true
+                    s:wait(3)
+					if not item.is_destroyed then
+						item.focus_on_hover = true
+					end
 				end)
 			end
 		end },
@@ -70,6 +73,10 @@ function OptionsMenuWorld:enter()
 		{ "header", text = tr.options_header_audio },
 		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
+		
+		{ "header", text = tr.options_header_other },
+		{ "skip_tutorial", item_type = "toggle" },
+		
 		{ "header", text = "" },
     } do
 

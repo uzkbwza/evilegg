@@ -43,9 +43,9 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     local vel_dir_x, vel_dir_y = vec2_normalized(vel_x, vel_y)
 	self.vel_dir_x, self.vel_dir_y = vel_dir_x, vel_dir_y
     local speed = vec2_magnitude(vel_x, vel_y)
-	local center_x, center_y = width / 2, height / 2
-	hit_point_x = hit_point_x or x + center_x
-	hit_point_y = hit_point_y or y + center_y
+	-- local center_x, center_y = width / 2, height / 2
+	hit_point_x = hit_point_x or x
+	hit_point_y = hit_point_y or y
     local dx, dy = vec2_sub(hit_point_x, hit_point_y, x, y)
 	self.hit_point_local_x, self.hit_point_local_y = dx, dy
 	dx = dx + width / 2
@@ -70,18 +70,19 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 			if x_ > true_end_x then true_end_x = x_ end
 			if y_ > true_end_y then true_end_y = y_ end
 			local x2 = stepify(x_, 4)
-			local y2 = stepify(y_, 4)
+            local y2 = stepify(y_, 4)
+
 			
 			local diff_x, diff_y = vec2_sub(x2, y2, dx, dy)
 			local diff_mag = vec2_magnitude(diff_x, diff_y) / diagonal_size
 			local diff_dir_x, diff_dir_y = vec2_normalized(diff_x, diff_y)
 
             local a_ = (1 + vec2_dot(vel_dir_x, vel_dir_y, diff_dir_x, diff_dir_y))
-			local b_ = a_ * 0.5 * (1 - diff_mag)
+			local b_ = a_ * 0.5 * (1 - diff_mag) 
 			local speed_scale = pow(abs(b_), 2.5)
 			local pixel_vel_x, pixel_vel_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, min(speed_scale * speed, MAX_SPEED))
 
-			local center_dir_x, center_dir_y = vec2_direction_to(hit_point_x - x, hit_point_y - y, x2, y2)
+			local center_dir_x, center_dir_y = vec2_direction_to(self.hit_point_local_x, self.hit_point_local_y, x2 - width / 2, y2 - height / 2)
             local center_vel_x, center_vel_y = vec2_mul_scalar(center_dir_x, center_dir_y, (CENTER_SPEED * (center_speed_modifier or 1)))
 			
 			pixel_vel_x = (pixel_vel_x + center_vel_x)

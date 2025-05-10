@@ -123,7 +123,7 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
 	if debug.enabled then 
     	if func == nil then
 			if listener[connection_id] == nil then
-				error("connection_id `" .. tostring(connection_id) .. "` does not exist for object " .. tostring(listener))
+				error("function `" .. tostring(connection_id) .. "` does not exist for object " .. tostring(listener))
 			end
             func = function(...)
                 listener[connection_id](listener, ...)
@@ -230,6 +230,16 @@ local sig = signal.get(emitter, signal_id)
     end
 end
 
+---@param emitter table
+---@param emitter_signal_id string | number
+---@param listener table
+---@param listener_signal_id string | number
+function signal.pass_up(emitter, emitter_signal_id, listener, listener_signal_id)
+    signal.connect(emitter, emitter_signal_id, listener, "pass_up_" .. tostring(listener_signal_id), function(...)
+        signal.emit(listener, listener_signal_id, ...)
+    end)
+end
+
 ---@param signal_id string | number
 ---@param ... any
 function signal.chain_connect(signal_id, ...)
@@ -245,18 +255,17 @@ function signal.chain_connect(signal_id, ...)
 
     assert(#objects >= 2, "chain_connect requires at least 2 objects")
 
-    local chain_id = "chain_" .. tostring(signal_id)
+    -- local chain_id = "chain_connect_" .. tostring(signal_id)
 
     -- Connect each object to the next in chain
     for i = 1, #objects - 1 do
         local current = objects[i]
         local next_obj = objects[i + 1]
         -- Forward signal to next object in chain
-        signal.connect(current, signal_id, next_obj, chain_id, function(...)
-            signal.emit(next_obj, signal_id, ...)
-        end)
+        signal.pass_up(current, signal_id, next_obj, signal_id)
     end
 end
+
 
 ---@type Signal
 return signal

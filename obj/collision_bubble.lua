@@ -43,7 +43,7 @@ function CollisionBubble:capsule_collides_with_circle(x, y, radius)
     return circle_capsule_collision(x, y, radius, my_x, my_y, my_x2, my_y2, self.radius)
 end
 
-function CollisionBubble:capsule_collides_with_capsule(x, y, radius, x2, y2)
+function CollisionBubble:capsule_collides_with_capsule(x, y, x2, y2, radius)
     local my_x, my_y = self:get_position()
 	local my_x2, my_y2 = self:get_end_position()
     return capsule_capsule_collision(my_x, my_y, my_x2, my_y2, self.radius, x, y, x2, y2, radius)
@@ -87,9 +87,9 @@ function CollisionBubble:collides_with_circle(x, y, radius)
     return circle_collision(my_x, my_y, self.radius, x, y, radius)
 end
 
-function CollisionBubble:collides_with_capsule(x, y, radius, x2, y2)
+function CollisionBubble:collides_with_capsule(x, y, x2, y2, radius)
 	local my_x, my_y = self:get_position()
-	return circle_capsule_collision(x, y, radius, my_x, my_y, x2, y2, self.radius)
+	return circle_capsule_collision(my_x, my_y, self.radius, x, y, x2, y2, radius)
 end
 
 function CollisionBubble:set_radius(radius)

@@ -7,7 +7,7 @@ function TestObject:new(x, y)
 	TestObject.super.new(self, x, y)
     self:add_elapsed_ticks()
     self.palette_selected = 1
-	self.texture = textures.psylocke
+	self.texture = textures.palette_cycle_test_image
     self.palettes = {
         Palette[self.texture],
 		PaletteStack( Palette[self.texture], Palette.cmyk),

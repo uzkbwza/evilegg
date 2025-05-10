@@ -9,13 +9,30 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
 	CanvasLayer.super.new(self, x, y)
 
 	self.is_instance = true
-    self.blocks_render = false
-    self.blocks_input = false
-    self.blocks_logic = false
 
-	self.handling_input = true
-    self.handling_logic = true
-	self.handling_render = true
+	if self.blocks_render == nil then
+		self.blocks_render = false
+	end
+	
+	if self.blocks_input == nil then
+		self.blocks_input = false
+	end
+
+	if self.blocks_logic == nil then
+		self.blocks_logic = false
+	end
+
+    if self.handling_input == nil then
+        self.handling_input = true
+    end
+	
+	if self.handling_logic == nil then
+		self.handling_logic = true
+	end
+	
+	if self.handling_render == nil then
+		self.handling_render = true
+	end
 
 	self.root = nil
 
@@ -43,9 +60,11 @@ function CanvasLayer:new(x, y, viewport_size_x, viewport_size_y)
 	
     self.offset = Vec2(0, 0)
     self.zoom = 1
-    self.clear_color = Color.from_hex("000000")
-	self.clear_color.a = 0
-    self.interp_fraction = 1
+	if self.clear_color == nil then
+		self.clear_color = Color.from_hex("000000")
+		self.clear_color.a = 0
+	end
+    self.interp_fraction = self.interp_fraction or 1
 
     self.parent = nil
     self.above = nil
@@ -569,7 +588,7 @@ function CanvasLayer:draw_shared()
         end
     end
 	
-	if self.handling_render then
+	if self.handling_render and self.visible then
 
 		self:pre_world_draw()
 

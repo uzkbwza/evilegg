@@ -97,7 +97,7 @@ function graphics.load_textures(texture_atlas)
 		texture_count = texture_count + 1
 	end
 
-	-- dbg("Loaded textures", texture_count)
+	dbg("num textures loaded", texture_count)
 
 
 	if packer then
@@ -257,28 +257,55 @@ function graphics.load()
     graphics.initialize_screen_shader_presets()
 	graphics.set_screen_shader_from_preset(usersettings.screen_shader_preset)
 
-    graphics.load_fonts()
-
+	graphics.load_font_paths()
+	
+	graphics.load_fonts{
+		["PixelOperator"] = 16,
+		["PixelOperator-Bold"] = 16,
+		["PixelOperatorHB"] = 16,
+		["PixelOperatorHBSC"] = 16,
+		["PixelOperatorMono"] = 16,
+		["PixelOperatorMono-Bold"] = 16,
+		["PixelOperatorMonoHB"] = 16,
+		["PixelOperatorSC"] = 16,
+		["PixelOperatorSC-Bold"] = 16,
+		["PixelOperatorHB8"] = 8,
+		["PixelOperatorMonoHB8"] = 8,
+		["PressStart2P-8"] = 8,
+		["PixelOperator8"] = 8,
+		["PixelOperator8-Bold"] = 8,
+		["PixelOperatorMono8"] = 8,
+		["PixelOperatorMono8-Bold"] = 8,
+		-- ["videotype"] = 34,
+	}
     textures = graphics.textures
 	fonts = graphics.font
 end
 
-function graphics.load_fonts()
-    local font_paths = filesystem.get_files_of_type("assets/font", "ttf", true)
-    graphics.font = {
-    }
+function graphics.load_font_paths()
+	local font_paths = filesystem.get_files_of_type("assets/font", "ttf", true)
+	graphics.font_path = {
+	}
+	graphics.font = {
+	}
 
+	for _, v in ipairs(font_paths) do
+		graphics.font_path[filesystem.filename_to_asset_name(v, "ttf", "font_")] = v
+	end
+end
 
-    for _, v in ipairs(font_paths) do
-        graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_")] = graphics.new_font(v,
-            v:find("8") and 8 or 16)
-		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-double"] = graphics.new_font(v,
-            v:find("8") and 16 or 32)
-		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-triple"] = graphics.new_font(v,
-            v:find("8") and 24 or 48)
-		graphics.font[filesystem.filename_to_asset_name(v, "ttf", "font_") .. "-quadruple"] = graphics.new_font(v,
-            v:find("8") and 32 or 64)
-    end
+function graphics.load_font(path, size)
+	local font = graphics.new_font(graphics.font_path[path], size)
+	local double = graphics.new_font(graphics.font_path[path], size * 2)
+	graphics.font[path] = font
+	graphics.font[path .. "_double"] = double
+	return font
+end
+
+function graphics.load_fonts(tab)
+	for path, size in pairs(tab) do
+		graphics.load_font(path, size)
+	end
 end
 
 function graphics.load_image_font(name, sprite, glyphs)
@@ -940,6 +967,16 @@ function graphics.print_outline_centered(outline_color, text, font, x, y, r, sx,
 	x = x + offset_x
     y = y + offset_y
 	graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)
+end
+
+function graphics.print_multicolor(font, x, y, ...)
+	local width = 0
+    for i = 1, select("#", ...), 2 do
+        local text, color = select(i, ...)
+		graphics.set_color(color)
+		graphics.print(text, x + width, y)
+		width = width + font:getWidth(text)
+	end
 end
 
 function graphics.print_outline(outline_color, text, x, y, r, sx, sy, ox, oy, kx, ky)

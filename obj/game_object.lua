@@ -215,13 +215,29 @@ function GameObject:add_update_function(func)
 		self._update_functions = {}
 	end
 	table.insert(self._update_functions, func)
+	return func
+end
+
+function GameObject:remove_update_function(func)
+	if self._update_functions == nil then
+		return
+	end
+	table.erase(self._update_functions, func)
 end
 
 function GameObject:add_enter_function(func)
+    if self._enter_functions == nil then
+        self._enter_functions = {}
+    end
+    table.insert(self._enter_functions, func)
+    return func
+end
+
+function GameObject:remove_enter_function(func)
 	if self._enter_functions == nil then
-		self._enter_functions = {}
+		return
 	end
-	table.insert(self._enter_functions, func)
+	table.erase(self._enter_functions, func)
 end
 
 function GameObject:add_exit_function(func)
@@ -229,18 +245,29 @@ function GameObject:add_exit_function(func)
 		self._exit_functions = {}
 	end
 	table.insert(self._exit_functions, func)
+	return func
 end
 
+function GameObject:remove_exit_function(func)
+	if self._exit_functions == nil then
+		return
+	end
+	table.erase(self._exit_functions, func)
+end
 
 function GameObject:add_draw_function(func)
 	if self._draw_functions == nil then
 		self._draw_functions = {}
 	end
 	table.insert(self._draw_functions, func)
+	return func
 end
 
-function GameObject:get_draw_offset()
-	return 0, 0
+function GameObject:remove_draw_function(func)
+	if self._draw_functions == nil then
+		return
+	end
+	table.erase(self._draw_functions, func)
 end
 
 function GameObject:add_move_function(func)
@@ -248,6 +275,18 @@ function GameObject:add_move_function(func)
         self._move_functions = {}
     end
     table.insert(self._move_functions, func)
+	return func
+end
+
+function GameObject:remove_move_function(func)
+    if self._move_functions == nil then
+        return
+    end
+    table.erase(self._move_functions, func)
+end
+
+function GameObject:get_draw_offset()
+    return 0, 0
 end
 
 function GameObject:defer(func, ...)
@@ -304,9 +343,40 @@ function GameObject:get_mouse_position()
 	return self.world:get_mouse_position()
 end
 
+function GameObject:start_stopwatch(name)
+	self.stopwatches = self.stopwatches or {}
+	if self.stopwatches[name] then
+		self.stopwatches[name].elapsed = 0
+		self.stopwatches[name].tick = 0
+		return
+	end
+    self.stopwatches[name] = {
+        elapsed = 0,
+        tick = 0,
+		func = function(self, dt)
+			self:_update_stopwatch(name, dt)
+		end
+    }
+	self:add_update_function(self.stopwatches[name].func)
+end
+
+function GameObject:_update_stopwatch(name, dt)
+	self.stopwatches[name].elapsed = self.stopwatches[name].elapsed + dt
+    self.stopwatches[name].tick = floor(self.stopwatches[name].elapsed)
+end
+
+function GameObject:stop_stopwatch(name)
+	self:remove_update_function(self.stopwatches[name].func)
+    self.stopwatches[name] = nil
+end
+
+function GameObject:get_stopwatch(name)
+	return self.stopwatches and self.stopwatches[name] or nil
+end
 
 function GameObject:start_tick_timer(name, duration, callback)
-	name = name or (self.tick_timers and #self.tick_timers + 1 or 1)
+    name = name or (self.tick_timers and #self.tick_timers + 1 or 1)
+	duration = max(floor(duration), 1)
 
     if self.tick_timers == nil then
         self.tick_timers = {}
@@ -316,10 +386,9 @@ function GameObject:start_tick_timer(name, duration, callback)
 			local to_remove = nil
 			local num_to_remove = 0
             for k, v in pairs(self.tick_timers) do
-				if self.is_new_tick then
-					v.elapsed = v.elapsed + 1
-				end
-				if v.elapsed >= v.duration then
+                v.elapsed = v.elapsed + dt
+				local tick = floor(v.elapsed)
+				if tick >= v.duration then
                     
 					local changed = false
                     if v.callback then
@@ -461,7 +530,9 @@ function GameObject:end_tick_timer(name)
 end
 
 function GameObject:stop_tick_timer(name)
-	self.tick_timers[name] = nil
+	if self.tick_timers then
+		self.tick_timers[name] = nil
+	end
 end
 
 
@@ -502,6 +573,10 @@ function GameObject:get_input_table()
     if self.canvas_layer then
         return self.canvas_layer:get_input_table()
     end
+end
+
+function GameObject:add_tag_on_enter(tag)
+	self:add_enter_function(function() self:add_tag(tag) end)
 end
 
 function GameObject:add_tag(tag)
@@ -808,6 +883,7 @@ end
 function GameObject:get_first_object_with_tag(tag)
     return self.world:get_first_object_with_tag(tag)
 end
+
 function GameObject:has_tag(tag)
     return self.world:has_tag(self, tag)
 end

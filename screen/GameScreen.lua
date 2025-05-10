@@ -139,11 +139,13 @@ end
 function UILayer:state_Paused_enter()
 	self.blocks_input = true
     self.blocks_logic = true
+	self.game_layer.world.paused = true
 	
 	self:ref("pause_screen", self:push(Screens.PauseScreen))
 
 	signal.chain_connect("resume_requested", self.pause_screen.world, self.pause_screen)
-	signal.chain_connect("options_menu_requested", self.pause_screen.world, self.pause_screen)
+    signal.chain_connect("options_menu_requested", self.pause_screen.world, self.pause_screen)
+	signal.chain_connect("codex_menu_requested", self.pause_screen.world, self.pause_screen)
 	signal.chain_connect("quit_requested", self.pause_screen.world, self.pause_screen, self)
 
 	
@@ -152,7 +154,10 @@ function UILayer:state_Paused_enter()
     end)
 	
     signal.connect(self.pause_screen, "options_menu_requested", self, "on_options_menu_requested",
-    function() self:show_options_menu() end)
+        function() self:show_options_menu() end)
+
+	signal.connect(self.pause_screen, "codex_menu_requested", self, "on_codex_menu_requested",
+        function() self:show_codex_menu() end)
 	
 
 end
@@ -161,14 +166,33 @@ function UILayer:show_options_menu()
     self:ref("options_menu", Screens.OptionsMenuScreen()).in_game = true
     self.handling_input = false
     self:add_sibling_below(self.options_menu)
-	self.pause_screen.handling_render = false
-		
+    self.pause_screen.handling_render = false
+
     signal.connect(self.options_menu, "exit_menu_requested", self, "on_exit_menu_requested", function()
         self.options_menu:queue_destroy()
+        local s = self.sequencer
+        s:start(function()
+            s:wait(1)
+            self.handling_input = true
+            if self.pause_screen then
+                self.pause_screen.handling_render = true
+            end
+        end)
+    end)
+end
+
+function UILayer:show_codex_menu()
+    self:ref("codex_menu", Screens.CodexScreen()).in_game = true
+    self.handling_input = false
+    self:add_sibling_below(self.codex_menu)
+    self.pause_screen.handling_render = false
+
+    signal.connect(self.codex_menu, "exit_menu_requested", self, "on_exit_menu_requested", function()
+        self.codex_menu:queue_destroy()
 		local s = self.sequencer
 		s:start(function()
 			s:wait(1)
-            self.handling_input = true
+			self.handling_input = true
 			if self.pause_screen then
 				self.pause_screen.handling_render = true
 			end
@@ -177,6 +201,7 @@ function UILayer:show_options_menu()
 end
 
 function UILayer:state_Paused_exit()
+	self.game_layer.world.paused = false
     self.blocks_input = false
     self.blocks_logic = false
     -- self.blocks_render = false

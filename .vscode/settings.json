@@ -62,7 +62,9 @@
 		"translator",
 		"circular_buffer",
 		"default_usersettings",
-		"bench"
+		"bench",
+		"format_hhmmss",
+		"savedata"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

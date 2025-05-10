@@ -10,6 +10,9 @@ debug = require "debuggy"
 table = require "lib.tabley"
 Object = require "lib.object"
 
+savedata = require "savedata"
+savedata:initial_load()
+
 nativefs = require "lib.nativefs"
 filesystem = require "filesystem"
 
@@ -31,8 +34,6 @@ require "lib.collision"
 
 require "datastructure.bst"
 require "datastructure.bst2"
-
-require "lib.datetime"
 
 require "lib.func"
 
@@ -153,6 +154,8 @@ function love.run()
 
 	-- We don't want the first frame's dt to include time taken by love.load.
 	if love.timer then love.timer.step() end
+
+	love.keyboard.set_text_input(true)
 
     local dt = 0
 
@@ -339,15 +342,15 @@ function love.update(dt)
                 averaged_frame_length = splerp(averaged_frame_length, flen, 1000.0, dt)
             end
 			
-            local fps = round(1000 / (1000 * frame_length))
+            -- local fps = round(1000 / (1000 * frame_length))
 			
-			if fps < average_fps then
-				average_fps = fps
-			else
-				average_fps = splerp(average_fps, fps, 1000.0, dt)
-			end
+			-- if fps < average_fps then
+			-- 	average_fps = fps
+			-- else
+			-- 	average_fps = splerp(average_fps, fps, 1000.0, dt)
+			-- end
 
-            dbg("fps", floor(average_fps), Color.pink)
+            dbg("fps", love.timer.getFPS(), Color.pink)
 			debug.memory_used = (collectgarbage("count")) / 1024
 			dbg("memory use (mB)", stepify_safe(debug.memory_used, 0.001), Color.green)
             dbg("step length (ms)", string.format("%0.3f", flen), Color.pink)

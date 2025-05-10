@@ -110,6 +110,8 @@ function TwinStickEntity:add_bubble(bubble_type, x, y, radius, name, x2, y2, ...
         local bx, by, w, h = b:get_rect()
         grid:add(b, bx, by, w, h)
     end
+
+	return b
 end
 
 -- function TwinStickEntity:change_team(team)
@@ -333,6 +335,11 @@ function TwinStickEntity:constrain_to_room()
 end
 
 function TwinStickEntity:on_terrain_collision(normal_x, normal_y)
+	self:normal_terrain_collision(normal_x, normal_y)
+end
+
+
+function TwinStickEntity:normal_terrain_collision(normal_x, normal_y)
 	if self.vel then
 		if normal_x ~= 0 then
 			self.vel.x = 0
@@ -362,7 +369,7 @@ end
 
 function TwinStickEntity:on_terrain_collision_bounce()
 	if abs(self.vel.x) > 0.3 or abs(self.vel.y) > 0.3 then
-		self:play_sfx_if_stopped(self.bounce_sfx or "entity_bounce", self.bounce_sfx_volume or 1, 1.0)
+		self:play_sfx(self.bounce_sfx or "entity_bounce", self.bounce_sfx_volume or 1, 1.0)
 	end
 end
 
@@ -441,8 +448,11 @@ function TwinStickEntity:collision_bubble_draw(bubble)
 		local lx2, ly2 = self:to_local(bubble:get_end_position())
         graphics.circle("line", lx2, ly2, bubble.radius)
 		local angle = vec2_angle_to(lx, ly, lx2, ly2)
-		local length = vec2_distance(lx, ly, lx2, ly2)
-        graphics.line(lx, ly, lx + cos(angle) * length, ly + sin(angle) * length)
+        local length = vec2_distance(lx, ly, lx2, ly2)
+        local offsx, offsy = vec2_rotated(bubble.radius, 0, angle + tau / 4)
+		local endx, endy = lx + cos(angle) * length, ly + sin(angle) * length
+        graphics.line(lx + offsx, ly + offsy, endx + offsx, endy + offsy)
+        graphics.line(lx - offsx, ly - offsy, endx - offsx, endy - offsy)
 
 		if gametime.tick % 2 == 0 then
 			local rx, ry, rw, rh = bubble:get_rect()
@@ -537,13 +547,8 @@ function TwinStickEntity.try_melee_attack(other, self, bubble)
             other.parent:hit_by(bubble)
 			self:hit_other(other.parent, bubble)
             self.twinstick_entity_landed_melee_attack = true
-            self.twinstick_entity_hit_objects[other.parent.id] = true
-            local s = self.sequencer
-			local func = function()
-                s:wait(self.hit_cooldown)
-                self.twinstick_entity_hit_objects[other.parent.id] = nil
-            end
-			s:start(func)
+            self.twinstick_entity_hit_objects[other.parent.id] = self.hit_cooldown
+
 
 			return true
 		end
@@ -591,7 +596,26 @@ end
 function TwinStickEntity:on_landed_melee_attack()
 end
 
-function TwinStickEntity:check_melee_attack()
+function TwinStickEntity:check_melee_attack(dt)
+    local next = next
+    self.twinstick_entity_hit_objects = self.twinstick_entity_hit_objects or {}
+	
+	local id, cooldown = next(self.twinstick_entity_hit_objects)
+    self.twinstick_entity_hit_objects_to_remove = self.twinstick_entity_hit_objects_to_remove or {}
+	while id do
+		self.twinstick_entity_hit_objects[id] = self.twinstick_entity_hit_objects[id] - dt
+		if self.twinstick_entity_hit_objects[id] <= 0 then
+			table.insert(self.twinstick_entity_hit_objects_to_remove, id)
+		end
+		id, cooldown = next(self.twinstick_entity_hit_objects, id)
+	end
+	
+	for i=1, #self.twinstick_entity_hit_objects_to_remove do
+		self.twinstick_entity_hit_objects[self.twinstick_entity_hit_objects_to_remove[i]] = nil
+	end
+    table.clear(self.twinstick_entity_hit_objects_to_remove)
+	
+	
     if not self.melee_attacking then
         return
 	end

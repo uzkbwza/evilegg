@@ -5,10 +5,11 @@ function Camera:new(x, y)
 	self:add_sequencer()
 	self:add_elapsed_time()
     self:add_elapsed_ticks()
-    self:lazy_mixin(Mixins.Fx.Rumble)
+    -- self:lazy_mixin(Mixins.Fx.Rumble)
+    self:lazy_mixin(Mixins.Fx.RetroRumble)
 	local rumble_func = self.start_rumble
-	self.start_rumble = function(self, intensity, duration, easing)
-		rumble_func(self, intensity * usersettings.screen_shake_amount, duration, easing)
+	self.start_rumble = function(self, intensity, duration, easing, ...)
+		rumble_func(self, intensity * usersettings.screen_shake_amount, duration, easing, ...)
 	end
 	self.following = nil
 	self.viewport_size = Vec2()

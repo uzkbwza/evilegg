@@ -46,7 +46,7 @@ function Cuboid:new(x, y)
     self.hurt_bubble_radius = 9
     self.hit_bubble_radius = 7
     Cuboid.super.new(self, x, y)
-    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    -- self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
 	self:set_physics_limits(cuboid_limits)
@@ -77,8 +77,8 @@ function Cuboid:enter()
 	local s = self.sequencer
 	s:start(function()
 		self:set_body_height(300)
-		s:wait(rng.randi_range(1, 50))
-        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng.randf_range(90, 110), "outQuad")
+		s:wait(rng.randi_range(20))
+        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng.randf_range(20, 40), "outQuad")
         self.melee_attacking = true
 		self.intangible = false
 		self.beaming = false
@@ -134,13 +134,21 @@ function Cuboid:debug_draw()
     end
 end
 
+
+function Cuboid:physics_move(dt)
+	local horiz = abs(self.vel.x) > abs(self.vel.y)
+	local vel_x, vel_y = horiz and self.vel.x or 0, horiz and 0 or self.vel.y
+	self:move_to(self.pos.x + vel_x * dt, self.pos.y + vel_y * dt)
+end
+
 function Cuboid:death_sequence()
     local s = self.sequencer
     self.approaching = false
     self.exploding = true
 	self.z_index = 1
     -- self.melee_attacking = false
-    self.bullet_push_modifier = self.bullet_push_modifier * 0.75
+    -- self.bullet_push_modifier = self.bullet_push_modifier * 0.75
+    self.bullet_push_modifier = 0
 	self.drag = 0.1
 	self:play_sfx("enemy_cube_die", 0.6)
 	-- self.invulnerable = true

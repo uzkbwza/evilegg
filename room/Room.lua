@@ -6,8 +6,11 @@ local debug_force_enabled = false
 local debug_force = "bonus_police"
 
 local debug_enemy_enabled = false
-local debug_enemy = "HoopSnake"
+local debug_enemy = "EvilGreenoidBoss"
 local num_debug_enemies = 1
+local num_debug_waves = 1
+
+Room.can_highlight_enemies = true
 
 Room.narrative_types = {
     debug_enemy = {
@@ -24,18 +27,18 @@ Room.narrative_types = {
                 enemy = debug_enemy,
 				count = num_debug_enemies,
             },
-			[2] = {
-				disable_hazards = true,
-                type = "specific_enemy",
-                enemy = debug_enemy,
-				count = num_debug_enemies,
-            },
-			[3] = {
-				disable_hazards = true,
-                type = "specific_enemy",
-                enemy = debug_enemy,
-				count = num_debug_enemies,
-            },
+			-- [2] = {
+			-- 	disable_hazards = true,
+            --     type = "specific_enemy",
+            --     enemy = debug_enemy,
+			-- 	count = num_debug_enemies,
+            -- },
+			-- [3] = {
+			-- 	disable_hazards = true,
+            --     type = "specific_enemy",
+            --     enemy = debug_enemy,
+			-- 	count = num_debug_enemies,
+            -- },
 		}
 	},
 
@@ -355,7 +358,8 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
     end
 
     self.level_history = level_history
-	table.insert(self.level_history, self)
+    table.insert(self.level_history, self)
+
 end
 
 function Room:build(params)
@@ -376,14 +380,18 @@ function Room:build(params)
 	if params.wants_heart then
 		self.wants_heart = true
 	end
-	
+	if params.start_room then
+		self.start_room = true
+	end
 
     self.is_hard = self.level > 6 and rng.percent(6)
     if self.is_hard then
-		self.level = self.level + clamp(floor(self.level * 0.5), 3, 20)
+		self.level = self.level + clamp(floor(self.level), 3, 20)
 	end
 
 	self.level = max(floor(self.level * (1 + game_state:get_difficulty_modifier())), self.level)
+
+	self.level = max(self.level, 1)
 
     self.waves, self.rescue_waves = self:generate_waves()
     self.last_wave = #self.waves
@@ -400,12 +408,11 @@ function Room:build(params)
 	end
 
     self.total_score = self.total_enemy_score + self.total_rescue_score
-	
-	-- print("level generated at difficulty " .. self.level)
+
 end
 
 function Room:should_spawn_waves()
-	return true
+	return not self.start_room
 end
 
 function Room:add_spawn_type(spawn_type)
@@ -505,92 +512,114 @@ function Room:is_valid_spawn(spawn, narrative, wave)
 	return true
 end
 
-function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narrative) 
+function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narrative)
     wave = wave or 1
-	
-	-- local min_level = narrative and narrative.min_level or 1
-	-- local max_level = narrative and narrative.max_level or SpawnDataTable.max_level_by_type[spawn_type]
 
-	-- if rng.percent(25) then
-	-- 	level = rng.randi(min_level, max_level)
-	-- end
+    -- local min_level = narrative and narrative.min_level or 1
+    -- local max_level = narrative and narrative.max_level or SpawnDataTable.max_level_by_type[spawn_type]
 
-	local spawns = {}
+    -- if rng.percent(25) then
+    -- 	level = rng.randi(min_level, max_level)
+    -- end
+
+    local spawns = {}
     local weights = {}
     local narrative_spawn_group = { "basic" }
-	
-	
+
+
     if narrative then
         narrative_spawn_group = narrative[spawn_type .. "_spawn_group"] or { "basic" }
     end
-	
-	if type(narrative_spawn_group) == "string" then
-		narrative_spawn_group = { narrative_spawn_group }
-	end
-	
-	local is_basic = false
+
+    if type(narrative_spawn_group) == "string" then
+        narrative_spawn_group = { narrative_spawn_group }
+    end
+
+    local is_basic = false
     for i = 1, #narrative_spawn_group do
         if narrative_spawn_group[i] == "basic" then
             is_basic = true
             break
         end
     end
-	
+
     local spawn_dict = {}
-	
+
     for _, spawn_group in pairs(narrative_spawn_group) do
-		local possible_spawns = SpawnDataTable.data_by_type_then_spawn_group_then_level[spawn_type][spawn_group]
-		if possible_spawns and possible_spawns[level] then
-			table.merge(spawn_dict, possible_spawns[level])
-		end
-	end
-	
+        local possible_spawns = SpawnDataTable.data_by_type_then_spawn_group_then_level[spawn_type][spawn_group]
+        if possible_spawns and possible_spawns[level] then
+            table.merge(spawn_dict, possible_spawns[level])
+        end
+    end
+
     for _, spawn in pairs(spawn_dict) do
-		local valid = self:is_valid_spawn(spawn, narrative, wave)
-		if not valid then
-			goto continue
-		end
+        local valid = self:is_valid_spawn(spawn, narrative, wave)
+        if not valid then
+            goto continue
+        end
 
-		local weight = spawn.room_select_weight
+        local weight = spawn.room_select_weight
 
-		if is_basic and spawn.basic_select_weight_modifier then
-			weight = weight * (spawn.basic_select_weight_modifier)
-		end
+        if is_basic and spawn.basic_select_weight_modifier then
+            weight = weight * (spawn.basic_select_weight_modifier)
+        end
 
         local redundant = false
-		if self.redundant_spawns[spawn] then
-			redundant = true
-		end
-		
-		if not redundant then
-			for _, room in pairs(self.level_history) do
-				if room.all_spawn_types[spawn] then
-					redundant = true
-					break
-				end
-			end
-		end
+        if self.redundant_spawns[spawn] then
+            redundant = true
+        end
+
+        if not redundant then
+            for _, room in pairs(self.level_history) do
+                if room.all_spawn_types[spawn] then
+                    redundant = true
+                    break
+                end
+            end
+        end
         if redundant then
-			-- print("redundant spawn: " .. spawn.name)
-			weight = 1
-		end
+            -- print("redundant spawn: " .. spawn.name)
+            weight = 1
+        end
 
-		table.insert(spawns, spawn)
-		table.insert(weights, weight)
-		::continue::
-	end
+        table.insert(spawns, spawn)
+        table.insert(weights, weight)
+        ::continue::
+    end
 
-	if #spawns == 0 then
-		return nil
-	end
+    if #spawns == 0 then
+        return nil
+    end
 
-	local spawn = rng.weighted_choice(spawns, weights)
-	return spawn
+    local spawn = rng.weighted_choice(spawns, weights)
+    return spawn
 end
 
+local STEP      		= 0.2    -- what we are adding each turn
+local BASE      		= 1.0    -- first arg to lerp()
+local SCALING_AMOUNT    = 0.8    -- interpolation factor t
+local OFFSET    		= 10.0
+local SCALE     		= 10.0
+
+-- quick harmonic-number approximation (Euler–Maclaurin)
+local GAMMA = 0.5772156649015329
+local function H(n)                -- n ≥ 0 (treat H₀ = 0)
+    if n < 1 then return 0 end
+    if n < 128 then                -- exact is cheap for small n
+        local s = 0.0
+        for k = 1, n do s = s + 1/k end
+        return s
+    end
+    return math.log(n) + GAMMA + 1/(2*n) - 1/(12*n*n)
+end
+
+local NUM_FACTOR = STEP * SCALE / SCALING_AMOUNT
+local DEN_SHIFT  = (BASE * SCALE * (1 - SCALING_AMOUNT) + SCALING_AMOUNT * OFFSET) / SCALING_AMOUNT
+
 function Room:pool_point_modifier()
-	-- return 1 + ((self.level - 1)) * 0.125 + floor((self.level - 1) / 10) * 0.01
-	return 1 + ((self.level - 1)) * 0.12 + floor((self.level - 1) / 10) * 0.5
+	
+	if self.level <= 1 then return 1 end
+    return 1 + NUM_FACTOR * ( H(self.level - 1 + DEN_SHIFT) - H(DEN_SHIFT) )
 end
 
 function Room:generate_waves()
@@ -993,6 +1022,13 @@ function Room:generate_waves()
 	
 
 	return waves, rescue_waves
+end
+
+if debug.enabled then
+    -- for i = 1, 100 do
+	-- 	local room = Room(nil, i, 1, {}, 100, 100)
+	-- 	print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+	-- end
 end
 
 return Room

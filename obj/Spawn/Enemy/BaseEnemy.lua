@@ -57,6 +57,15 @@ function BaseEnemy:get_xp()
 	return 0
 end
 
+function BaseEnemy:make_required_kill_on_enter()
+	self:add_enter_function(self.make_required_kill)
+end
+
+function BaseEnemy:make_required_kill()
+	self:add_tag("wave_enemy")
+	self.world:register_non_wave_enemy_required_kill(self)
+end
+
 function BaseEnemy:enter_shared()
     self:add_tag("enemy")
     BaseEnemy.super.enter_shared(self)
@@ -81,8 +90,6 @@ function BaseEnemy:enter_shared()
 			self:play_sfx(self.spawn_cry, self.spawn_cry_volume or 1.0, self.spawn_cry_pitch or 1.0)
 		end)
 	end
-	local bx, by = self:get_body_center()
-
 end
 
 function BaseEnemy:highlight_self()
@@ -96,14 +103,14 @@ function BaseEnemy:highlight_self()
 end
 
 function BaseEnemy:hit_by(object)
-    local damage = (object.get_damage and object:get_damage()) or object.damage
-
-	-- local old = self.difficulty_shield
-	-- self.difficulty_shield = self.difficulty_shield - damage
-    -- damage = damage - old
+    local damage = 0
 
     if object.is_bubble then
+		local bubble = object
         object = object.parent
+		damage = (object.get_damage and object:get_damage(self)) or bubble.damage
+    else
+		damage = (object.get_damage and object:get_damage(self)) or object.damage
     end
 
 	local invuln = self:is_invulnerable()
@@ -193,7 +200,7 @@ function BaseEnemy:normal_death_effect(hit_by)
 	if not self.no_death_splatter then
 		local class = DeathSplatter
 		-- if game_state.artefacts.death_cap and self:has_tag("wave_enemy") then
-		if game_state.artefacts.death_cap and not self:has_tag("fungus") then
+		if game_state.artefacts.death_cap and not self.is_enemy_bullet and not self:has_tag("fungus") then
 			class = FungalDeathSplatter
 		end
 		self:spawn_object(class(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y, center_out_velocity_multiplier))
@@ -218,7 +225,7 @@ function BaseEnemy:death_effect(hit_by)
     else
         if self:has_tag("wave_enemy") then
             self:play_sfx("enemy_death", 0.5, 1.0)
-			self:play_sfx("old_enemy_die", 0.35, 1.0)
+			self:play_sfx("enemy_death3", 0.35, 1.0)
             self:play_sfx("enemy_death2", 1.0, 1.0)
 		elseif self:has_tag("hazard") then
             self:play_sfx("hazard_death", 1.0, 1.0)

@@ -31,7 +31,7 @@ function Charger:new(x, y)
 end
 
 function Charger:enter()
-	self:charge(30)
+	self:charge(rng.randi_range(30, 60))
 end
 
 function Charger:hit_by(object)
@@ -42,12 +42,19 @@ function Charger:hit_by(object)
 	end
 end
 
+function Charger:damage(damage)
+	if self.state == "Charging" then
+		damage = damage * 1.25
+	end
+	Mixins.Behavior.Health.damage(self, damage)
+end
+
 -- function Charger:is_invulnerable()
 	-- return self.state == "Waiting"/
 -- end
 
 function Charger:state_Waiting_enter()
-    self.no_damage_flash = true
+    -- self.no_damage_flash = true
 
     -- self.pdx, self.pdy = rng.random_4_way_direction()
 
@@ -69,7 +76,7 @@ function Charger:charge(time)
     self:stop_tick_timer("waiting")
 	self:stop_tick_timer("effect")
 
-	local wait_time = time or rng.randi_range(10, 40)
+	local wait_time = time or rng.randi_range(10, 120)
 	self:start_tick_timer("effect", wait_time - 5, function()
         self.pdx, self.pdy = self:get_body_direction_to_player()
 

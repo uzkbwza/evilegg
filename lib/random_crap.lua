@@ -247,6 +247,8 @@ function identity_function(...)
     return ...
 end
 
+function dummy_function()
+end
 
 function bresenham_los(x0, y0, x1, y1, points)
 	x0 = floor(x0)
@@ -458,7 +460,23 @@ end
 	-- end
 
 function asset_collision_error(name, path, existing_path)
-	error("asset with name " .. name .. " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" .. path .. "\n" .. existing_path .. "\n", 2)
+    error(
+    "asset with name " ..
+    name ..
+    " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" ..
+    path .. "\n" .. existing_path .. "\n", 2)
+end
+
+function comma_sep(number)
+
+	local i, j, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
+  
+	-- reverse the int-string and append a comma to all blocks of 3 digits
+	int = int:reverse():gsub("(%d%d%d)", "%1,")
+  
+	-- reverse the int-string back remove an optional comma and put the 
+	-- optional minus and fractional part back
+	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
 function try_function(f, ...)

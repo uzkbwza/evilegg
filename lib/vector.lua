@@ -70,6 +70,10 @@ function Vec2:magnitude()
 	return math.sqrt(self.x * self.x + self.y * self.y)
 end
 
+function Vec2:magnitude_squared()
+	return self.x * self.x + self.y * self.y
+end
+
 function Vec2:angle_to(b)
 	return math.atan2(b.y - self.y, b.x - self.x)
 end
@@ -765,6 +769,16 @@ function vec2_limit_length(x, y, max)
 	end
 	return x, y
 end
+
+function vec2_to_cardinal(x, y)
+	if abs(x) > abs(y) then
+		return sign(x), 0
+	else
+		return 0, sign(y)
+	end
+end
+
+
 
 -- Vec3 Functions
 

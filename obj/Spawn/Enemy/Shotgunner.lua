@@ -9,18 +9,18 @@ Shotgunner.spawn_cry = "enemy_shotgunner_spawn"
 Shotgunner.spawn_cry_volume = 0.9
 
 local BULLET_SPEED = 4.
-local NUM_BULLETS = 12
+local NUM_BULLETS = 10
 local SPREAD = 50
 
 function ShotgunnerBullet:new(x, y)
-	self.max_hp = 2
+	self.max_hp = 3
 
     ShotgunnerBullet.super.new(self, x, y)
     self.drag = 0.04
     self.hit_bubble_radius = 2
 	self.hurt_bubble_radius = 4
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
-	self.bullet_push_modifier = 1
+	self.bullet_push_modifier = 2.5
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self.z_index = 10
 	self:add_time_stuff()
@@ -156,7 +156,7 @@ function Shotgunner:update(dt)
         self.aim_direction.x, self.aim_direction.y = dx, dy
 
 		if rng.percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 then 
-			self:start_tick_timer("shoot_timer", 125)
+			self:start_tick_timer("shoot_timer", 155)
 			self:shoot()
 		end
 	end

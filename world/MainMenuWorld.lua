@@ -10,6 +10,7 @@ function MainMenuWorld:new()
 	self:add_signal("menu_item_selected")
     self:add_signal("start_game_requested")
     self:add_signal("options_menu_requested")
+	self:add_signal("codex_menu_requested")
 
 	self.draw_sort = self.y_sort
 	-- menu_item:focus()
@@ -22,9 +23,16 @@ function MainMenuWorld:enter()
 
     local menu_items = {
 		{name = tr.main_menu_start_button, func = function() self:emit_signal("start_game_requested") end},
-        -- {name = tr.main_menu_codex_button, func = function() end},
+        -- {name = tr.menu_codex_button, func = function() end},
         -- {name = tr.main_menu_tutorial_buttom, func = function() end},
         -- {name = tr.main_menu_leaderboard_button, func = function() end},
+        {
+            name = tr.menu_codex_button,
+            func = function()
+                self:emit_signal("codex_menu_requested")
+				
+			end },
+		
         {name = tr.menu_options_button, func = function() self:emit_signal("options_menu_requested") end},
         -- {name = tr.main_menu_credits_button, func = function() end},
 

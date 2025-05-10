@@ -29,7 +29,9 @@ function DeathFlash:new(x, y, width, height, pixel_amount_ratio)
 
 	local pixels = {}
 
-    for i = 1, PIXEL_COUNT * self.size_mod * (pixel_amount_ratio or 1) do
+	self.pixel_count = PIXEL_COUNT * self.size_mod * (pixel_amount_ratio or 1)
+
+    for i = 1, self.pixel_count do
         local vel_x, vel_y = rng.random_vec2()
 		vel_x = vel_x * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
 		vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
@@ -59,7 +61,7 @@ function DeathFlash:new(x, y, width, height, pixel_amount_ratio)
 end
 
 function DeathFlash:update(dt)
-	for i = 1, PIXEL_COUNT * self.size_mod do
+	for i = 1, self.pixel_count do
         local pixel = self.pixels[i]
 		pixel.x = pixel.x + pixel.vel_x * dt
 		pixel.vel_x, pixel.vel_y = vec2_drag(pixel.vel_x, pixel.vel_y, DRAG, dt)
@@ -104,7 +106,7 @@ function DeathFlash:draw(elapsed, tick, t)
 
 
     graphics.set_color(Color.darkergrey)
-    for i = 1, PIXEL_COUNT * self.size_mod do
+    for i = 1, self.pixel_count do
         local pixel = self.pixels[i]
         graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
     end
@@ -153,7 +155,7 @@ function DeathFlash:floor_draw()
 	end
 
 	
-	for i = 1, PIXEL_COUNT * self.size_mod do
+	for i = 1, self.pixel_count do
 		local pixel = self.pixels[i]
 		graphics.set_color(pixel.color)
 		graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)

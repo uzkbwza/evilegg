@@ -66,7 +66,14 @@ function input.load()
 	signal.register(input, "text_input")
 
     input.dummy.mapping = conf.input_actions
-    input.dummy.vectors = conf.input_vectors
+	input.dummy.vectors = conf.input_vectors
+	input.dummy.keyboard_held = {}
+	input.dummy.keyboard_pressed = {}
+	input.dummy.keyboard_released = {}
+	input.dummy.joystick_held = {}
+	input.dummy.joystick_pressed = {}
+	input.dummy.joystick_released = {}
+	
 
     for action, _ in pairs(input.mapping) do
         g[action] = {
@@ -107,9 +114,18 @@ function input.load()
         input.dummy[vector .. "_clamped"] = Vec2(0, 0)
         input[vector .. "_digital"] = Vec2(0, 0)
         input.dummy[vector .. "_digital"] = Vec2(0, 0)
+		input[vector .. "_pressed"] = false
+		input.dummy[vector .. "_pressed"] = false
     end
 	
 	input.dummy.mouse = table.deepcopy(input.mouse)
+
+
+	for k, v in pairs(input) do
+		if type(v) == "function" then
+			input.dummy[k] = dummy_function
+		end
+	end
 end
 
 function input.get_mouse_position()
@@ -193,6 +209,7 @@ function input.process(t)
     local g = input.generated_action_names
 
     for action, mapping in pairs(t.mapping) do
+		
         local pressed = false
 
         if mapping.debug and not debug.enabled then
@@ -204,14 +221,15 @@ function input.process(t)
         end
 
         if mapping.mouse and input.check_input_combo(mapping.mouse, "mouse", nil, t) then
-			pressed = true
-		end
+            pressed = true
+        end
 
-		if mapping.joystick_axis then
-			t[g[action].amount] = 0
-		end
 
-		-- todo: local multiplayer with joysticks
+        if mapping.joystick_axis then
+            t[g[action].amount] = 0
+        end
+
+        -- todo: local multiplayer with joysticks
 
         for joystick, _ in pairs(input.joysticks) do
             if mapping.joystick and input.check_input_combo(mapping.joystick, "joystick", joystick, t) then
@@ -245,7 +263,7 @@ function input.process(t)
         end
 
         if pressed then
-			t[g[action].held] = true
+            t[g[action].held] = true
             if not t[action] then
                 t[g[action].pressed] = true
             end
@@ -262,8 +280,13 @@ function input.process(t)
         t[action] = pressed
         ::skip::
     end
+	
+
 
     for k, dirs in pairs(t.vectors) do
+
+		
+		
         local v = t[k]
         v.x = 0
         v.y = 0
@@ -312,6 +335,48 @@ function input.process(t)
     end
 
 end
+
+---@param name string 
+---@param check_type "pressed" | "held" | "released"
+function input:vector_boolean(name, check_type)
+	local g = input.generated_action_names
+    local direction_names = { "left", "right", "up", "down" }
+    for _, dir in ipairs(direction_names) do
+        if self[g[self.vectors[name][dir]][check_type]] then
+            return true
+        end
+    end
+end
+
+function input:any_joystick_pressed(button)
+	for joystick, _ in pairs(input.joysticks) do
+		if input.joystick_pressed[joystick][button] then
+			return true
+		end
+	end
+	return false
+end
+
+function input:any_joystick_held(button)
+	for joystick, _ in pairs(input.joysticks) do
+		if input.joystick_held[joystick][button] then
+			return true
+		end
+	end
+	return false
+end
+
+function input:any_joystick_released(button)
+	for joystick, _ in pairs(input.joysticks) do
+		if input.joystick_released[joystick][button] then
+			return true
+		end
+	end
+	return false
+end
+
+
+
 
 
 function input.post_process(t)
@@ -428,6 +493,7 @@ function input.on_joystick_pressed(joystick, button)
 	-- if not input.joystick_held[joystick][button] then
         input.joystick_held[joystick][button] = true
         input.joystick_pressed[joystick][button] = true
+
 		signal.emit(input, "joystick_pressed", joystick, button)
     -- end
 end
@@ -504,6 +570,5 @@ function input.on_mouse_wheel_moved(dx, dy)
     input.mouse.wheel.y = dy
     signal.emit(input, "mouse_wheel_moved", dx, dy)
 end
-
 
 return input

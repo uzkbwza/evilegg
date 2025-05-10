@@ -2,17 +2,22 @@ local HUDLayer = CanvasLayer:extend("HUDLayer")
 local LevelBonus = require("levelbonus.LevelBonus")
 
 function HUDLayer:new()
-	HUDLayer.super.new(self)
+    HUDLayer.super.new(self)
     self.score_display = game_state.score
     self.after_level_bonus_screen = nil
     self:ref("world", self:add_world(Worlds.HUDWorld(0, 0)))
-	signal.connect(game_state, "player_artefact_gained", self, "on_artefact_gained")
-	signal.connect(game_state, "player_artefact_removed", self, "on_artefact_removed")
-	signal.connect(game_state, "player_heart_gained", self, "on_heart_gained")
+    signal.connect(game_state, "player_artefact_gained", self, "on_artefact_gained")
+    signal.connect(game_state, "player_artefact_removed", self, "on_artefact_removed")
+    signal.connect(game_state, "player_heart_gained", self, "on_heart_gained")
     signal.connect(game_state, "player_heart_lost", self, "on_heart_lost")
-	signal.connect(game_state, "player_upgraded", self, "on_upgrade_gained")
-	signal.connect(game_state, "player_downgraded", self, "on_upgrade_lost")
-	self:create_persistent_ui()
+    signal.connect(game_state, "player_upgraded", self, "on_upgrade_gained")
+    signal.connect(game_state, "player_downgraded", self, "on_upgrade_lost")
+    signal.connect(game_state, "hatched", self, "show")
+    self:create_persistent_ui()
+end
+
+function HUDLayer:enter()
+	self:hide()
 end
 
 function HUDLayer:on_artefact_gained(artefact, slot)
@@ -67,6 +72,16 @@ function HUDLayer:start_after_level_bonus_screen()
     end
 	
 	table.sort(temp_bonuses, function(a, b)
+		if a.bonus.negative and not b.bonus.negative then
+			return false
+		end
+		if not a.bonus.negative and b.bonus.negative then
+			return true
+		end
+
+		if try_function(a.bonus.xp) * a.count == try_function(b.bonus.xp) * b.count then
+			return try_function(a.bonus.score) * a.count > try_function(b.bonus.score) * b.count
+		end
 		return try_function(a.bonus.xp) * a.count > try_function(b.bonus.xp) * b.count
 	end)
 
@@ -74,8 +89,12 @@ function HUDLayer:start_after_level_bonus_screen()
 	
     local function update_bonus_info(bonus, b, count)
 		b.score = game_state:determine_score(try_function(bonus.score))
+		if bonus.negative then
+			b.score = -b.score
+		end
 		b.xp = try_function(bonus.xp)
 		b.score_multiplier = try_function(bonus.score_multiplier)
+		b.negative = bonus.negative
 	end
 
     local function wait_for_bonus(bonus)
@@ -138,6 +157,10 @@ function HUDLayer:start_after_level_bonus_screen()
                 total.xp = total.xp + b.xp
                 total.score_multiplier = total.score_multiplier + b.score_multiplier
 
+				total.score = max(total.score, 0)
+				total.xp = max(total.xp, 0)
+				total.score_multiplier = max(total.score_multiplier, 0)
+
 				local xp = one_b.xp
                 while xp > 0 do
 					local amount = min(rng.randf_range(1, 60), xp)
@@ -166,7 +189,9 @@ function HUDLayer:start_after_level_bonus_screen()
 		
 		wait(5)
 		self.after_level_bonus_screen.start_prompt = true
-		wait(595)
+		while not self.skipping_bonus_screen do
+			s:wait(1)
+		end
 		
 		for i = #self.after_level_bonus_screen.bonuses, 1, -1 do
 			local bonus = self.after_level_bonus_screen.bonuses[i]
@@ -181,8 +206,6 @@ function HUDLayer:start_after_level_bonus_screen()
 
         s:wait(2)
 		
-
-	
         if self.game_layer.world then
             self.game_layer.world.waiting_on_bonus_screen = false
         end
@@ -227,8 +250,6 @@ function HUDLayer:update(dt)
 		table.remove(self.xp_bars, 1)
 		table.insert(self.xp_bars, first)
 	end
-
-
 end
 
 local bonus_palette = PaletteStack:new(Color.black, Color.white)
@@ -238,6 +259,37 @@ function HUDLayer:can_pause()
 		return false
 	end
 	return true
+end
+
+-- format_score(n, lead_zeros, show_zeros[, font])
+--   n          : integer
+--   lead_zeros : total minimum digit‐count (including the number itself)
+--   show_zeros : (unused here—both strings are returned; you can ignore it)
+--   font       : optional LÖVE Font for pixel‐accurate offset
+-- returns: padded_str, unpadded_str, x_offset
+local function format_score(n, lead_zeros, font)
+    lead_zeros = math.max(lead_zeros or 0, 0)
+
+    local abs_str = tostring(math.abs(n))
+    local sign    = n < 0 and "-" or ""
+
+    -- how many zeros to pad so total digits ≥ lead_zeros
+    local zero_count = math.max(lead_zeros - #abs_str, 0)
+    local pad_str    = string.rep("0", zero_count) .. abs_str
+
+    local padded_str   = sign .. comma_sep(pad_str)
+    local unpadded_str = sign .. comma_sep(abs_str)
+
+    -- figure out how much of padded_str we’d have to chop off
+    local diff_len  = #padded_str - #unpadded_str
+    local hidden_str = padded_str:sub(1, diff_len)
+
+    -- positive offset: move right by this many chars or pixels
+    local x_offset = font
+        and font:getWidth(hidden_str)
+        or diff_len
+
+    return padded_str, unpadded_str, x_offset
 end
 
 function HUDLayer:pre_world_draw()
@@ -251,21 +303,70 @@ function HUDLayer:pre_world_draw()
     local top = y_start + v_padding - 1
     local bottom = y_start + v_padding + game_area_height + 11
     local font = fonts.hud_font
+
+
+    local quick_clear_ratio = clamp01(self.game_layer.world:get_quick_clear_time_left_ratio())
+	if quick_clear_ratio > 0 then
+		quick_clear_ratio = 1 - quick_clear_ratio
+	end
+    local border_color = self.game_layer.world:get_border_rainbow()
+	local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
+    graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
+	local x_scale = game_area_width * quick_clear_ratio
+	-- local y_scale = 2 + 4 * (1 - quick_clear_ratio)
+	local y_scale = 2
+    graphics.rectangle("fill", (left + 1), top + 8 - y_scale, x_scale, y_scale)
+
     graphics.set_font(font)
     graphics.set_color(Color.white)
 
     local charwidth = fonts.hud_font:getWidth("0")
 
     graphics.push()
-    graphics.translate(left, top)
-    graphics.set_color(Color.darkgrey)
-    graphics.print(string.format("LVL%02d ", game_state.level % 100), 0, 0)
-    -- graphics.set_color(Palette.rainbow:tick_color(gametime.tick, 0, 10))
+    graphics.translate(floor(left), top)
+    -- graphics.set_color(Color.darkergrey)
+    graphics.set_color(Color.grey)
+    -- graphics.print("LVL", 0, 0)
+    local level_with_zeroes, level_without_zeroes, level_x = format_score(game_state.level % 100, 2, font)
+	level_x = level_x
+	local zero_start = font:getWidth("LVL")
+
+    graphics.print("LVL", 0, 0)
+    graphics.set_color(Color.darkergrey)
+	
+    graphics.print(level_with_zeroes, zero_start, 0)
+
     graphics.set_color(Color.white)
-    graphics.print(string.format("LVL%2d ", game_state.level % 100), 0, 0)
-    graphics.print(string.format("WAVE%01d ", game_state.wave), charwidth * 7, 0)
-    graphics.print(string.format("%d [×%-.2f ×%dGNOIDS]", self.score_display, game_state:get_score_multiplier(false), game_state:get_rescue_chain_multiplier()), charwidth * 13, 0)
-    graphics.pop()
+    -- graphics.set_color(Palette.rainbow:tick_color(gametime.tick, 0, 10))
+	
+    graphics.print(level_without_zeroes, level_x + zero_start, 0)
+    graphics.set_color(Color.grey)
+    graphics.print("WAVE", charwidth * 10, 0)
+	graphics.set_color(Color.white)
+    graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + charwidth * 10, 0)
+	
+    graphics.set_color(Color.darkergrey)
+	
+	
+	local score_with_zeroes, score_without_zeroes, score_x = format_score(self.score_display % 1000000000, 9, font)
+
+	graphics.translate(charwidth * 20 + 6, 0)
+    graphics.print(score_with_zeroes, 9, 0)
+	graphics.set_color(border_color)
+    graphics.print(score_without_zeroes, score_x + 9, 0)
+	graphics.set_color(Color.grey)
+    graphics.translate(charwidth * 11 + 3, 0)
+	
+    local scoremult1 = "×["
+    local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
+    local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
+	local scoremult4 = "   "
+	local scoremult5 = "]"
+    graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, Color.green,
+        scoremult4, Color.white, scoremult5, Color.grey)
+	graphics.set_color(Color.white)
+	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
+	graphics.pop()
     graphics.push()
     graphics.translate(left, bottom)
     graphics.push()
@@ -376,14 +477,6 @@ function HUDLayer:pre_world_draw()
     graphics.push()
 
 
-
-
-
-
-
-
-
-
     if self.after_level_bonus_screen then
         local font2 = fonts.depalettized.image_font2
         graphics.set_font(font2)
@@ -394,31 +487,36 @@ function HUDLayer:pre_world_draw()
         local total_highlight_amount = 0
         for i, bonus in ipairs(self.after_level_bonus_screen.bonuses) do
 			
-			local font_color = idivmod_eq_zero((-self.tick / 2) + i, 2, 4) and Color.blue or Color.skyblue
+			local font_color = idivmod_eq_zero((-self.tick / 2) + i, 2, 4) and (bonus.negative and Color.darkred or Color.orange) or (bonus.negative and Color.red or Color.yellow)
 			graphics.set_color(font_color)
             graphics.push("all")
             if bonus.score_apply_highlight_amount and bonus.score_apply_highlight_amount > 0.55 then
-                graphics.set_color(Color.yellow)
+                graphics.set_color(Color.darkred)
                 total_highlight_amount = max(total_highlight_amount, bonus.score_apply_highlight_amount)
             end
 
             local y = (i - (bonus_count + 1) / 2) * 10
             -- local text = string.format("%-20s %8d [+%3dXP] [X%2d]", tr[bonus.name], bonus.score, bonus.xp, bonus.count)
-            graphics.printp(tr[bonus.name], font2, nil, 0, -12, y)
-            graphics.printp(string.format("%8d×%-.2f", bonus.score * bonus.count, bonus.score_multiplier), font2, nil, 0,
-                60, y)
+			graphics.printp(tr[bonus.name], font2, nil, 0, -12, y)
+			
+			local score_without_zeroes = comma_sep(bonus.score * bonus.count)
+			local width = font2:getWidth(score_without_zeroes)
+
+            graphics.printp(score_without_zeroes, font2, nil, 0, 60, y)
+            graphics.printp(string.format("×%-3.2f", bonus.score_multiplier * bonus.count), font2, nil, 0,
+                60 + width, y)
             graphics.printp(string.format("+%-2dXP", floor(bonus.xp * bonus.count)), font2, nil, 0, 150, y)
             graphics.printp(string.format("×%d", bonus.count), font2, nil, 0, 210, y)
             graphics.pop()
         end
         local y = (bonus_count + 1) / 2 * 10
+		local font_color = idivmod_eq_zero((-self.tick / 2), 3, 3) and Color.purple or Color.magenta
+		graphics.push("all")
+		graphics.set_color(font_color)
         if bonus_count > 0 then
             graphics.line(0, y + 2, 210, y + 2)
         end
         y = y + 5
-        graphics.push("all")
-        local font_color = idivmod_eq_zero((-self.tick / 2), 2, 4) and Color.darkgreen or Color.green
-        graphics.set_color(font_color)
         if total_highlight_amount > 0.55 then
             graphics.set_color(Color.cyan)
         end
@@ -429,13 +527,18 @@ function HUDLayer:pre_world_draw()
 		if self.after_level_bonus_screen.start_prompt then
         	graphics.printp("PRESS " .. (input.last_input_device == "gamepad" and "START" or "TAB") .. " TO CONTINUE", font2, nil, 0, -0, y + 10)
 		end
-        graphics.printp(
-        string.format("%8d×%-.2f", self.after_level_bonus_screen.total.score,
-            self.after_level_bonus_screen.total.score_multiplier), font2, nil, 0, 60, y)
+        
+		local score_without_zeroes = comma_sep(self.after_level_bonus_screen.total.score)
+		local width = font2:getWidth(score_without_zeroes)
+		graphics.printp(score_without_zeroes, font2, nil, 0, 60, y)
+		graphics.printp(string.format("×%-3.2f", self.after_level_bonus_screen.total.score_multiplier), font2, nil, 0,
+            60 + width, y)
         graphics.printp(string.format("+%-2dXP", floor(self.after_level_bonus_screen.total.xp)), font2, nil, 0, 150, y)
         graphics.pop()
     end
-    graphics.pop()
+	graphics.pop()
+	
+
 end
 
 function HUDLayer:create_persistent_ui()
@@ -498,63 +601,63 @@ end
 
 function HUDLayer:draw()
     HUDLayer.super.draw(self)
-	graphics.push("all")
-	local parent = self.parent
-    if parent.ui_layer.state == "Paused" and not parent.ui_layer.options_menu then
-        -- if parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y < -20 then
-		-- 	self.draw_guide_on_bottom = true
-		-- elseif parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y > 20 then
-		-- 	self.draw_guide_on_bottom = false
-		-- end
-		if self.draw_guide_on_bottom then
-            graphics.push()
-            graphics.translate(0, conf.viewport_size.y / 2 + 50)
-            self:draw_guide_placeholder()
-            graphics.pop()
-        else
-            self:draw_guide_placeholder()
-        end
-    end
-	graphics.pop()
+	-- graphics.push("all")
+	-- local parent = self.parent
+    -- if parent.ui_layer.state == "Paused" and not parent.ui_layer.options_menu then
+    --     -- if parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y < -20 then
+	-- 	-- 	self.draw_guide_on_bottom = true
+	-- 	-- elseif parent.game_layer.world.players[1] and parent.game_layer.world.players[1].pos.y > 20 then
+	-- 	-- 	self.draw_guide_on_bottom = false
+	-- 	-- end
+	-- 	if self.draw_guide_on_bottom then
+    --         graphics.push()
+    --         graphics.translate(0, conf.viewport_size.y / 2 + 50)
+    --         self:draw_guide_placeholder()
+    --         graphics.pop()
+    --     else
+    --         self:draw_guide_placeholder()
+    --     end
+    -- end
+	-- graphics.pop()
 end
 
-function HUDLayer:draw_guide_placeholder()
-    local x_start = (graphics.main_viewport_size.x - conf.viewport_size.x) / 2
+-- function HUDLayer:draw_guide_placeholder()
+--     local x_start = (graphics.main_viewport_size.x - conf.viewport_size.x) / 2
 
-	graphics.translate(x_start, 0)
+-- 	graphics.translate(x_start, 0)
 	
-	local font = fonts.depalettized.image_font1
-	graphics.set_font(font)
-    graphics.set_color(Color.white)
+-- 	local font = fonts.depalettized.image_font1
+-- 	graphics.set_font(font)
+--     graphics.set_color(Color.white)
 
-	-- todo: localize
-	local gamepad = input.last_input_device == "gamepad"
+-- 	-- todo: localize
+-- 	local gamepad = input.last_input_device == "gamepad"
 
-    local controls = {
-        { label = gamepad and "LEFT STICK" or "WASD", action = "MOVE"},
-        { label = gamepad and "RIGHT STICK" or "MOUSE", action = "SHOOT"},
-        { label = gamepad and "LEFT TRIGGER" or "SPACE", action = "BOOST" },
-        -- { label = "RMB/RIGHT TRIGGER: ", action = "SECONDARY WEAPON" },
-		{ label = "", action = "SAVE THE GREENOIDS" },
-    }
+--     local controls = {
+--         { label = gamepad and "LEFT STICK" or "WASD", action = "MOVE"},
+--         { label = gamepad and "RIGHT STICK" or "MOUSE", action = "SHOOT"},
+--         { label = gamepad and "LEFT TRIGGER" or "SPACE", action = "BOOST" },
+--         -- { label = "RMB/RIGHT TRIGGER: ", action = "SECONDARY WEAPON" },
+-- 		{ label = "", action = "SAVE THE GREENOIDS" },
+--     }
 	
-    local vert = 11
+--     local vert = 11
 
-	-- graphics.translate(-conf.viewport_size.x / 2, -conf.viewport_size.y / 2)
+-- 	-- graphics.translate(-conf.viewport_size.x / 2, -conf.viewport_size.y / 2)
 
-	graphics.translate(11, 0)
-	for i, control in ipairs(controls) do
-		local label = control.label
-		if #label > 0 then
-			label = control.label .. " - "
-		end
-		graphics.translate(0, vert)
-		graphics.set_color(Color.white)
-		graphics.print_outline(Color.black, label, 0, 0)
-		graphics.set_color(Color.green)
-		graphics.print_outline(Color.black, control.action, font:getWidth(label), 0)
-	end
-end
+-- 	graphics.translate(11, 0)
+-- 	for i, control in ipairs(controls) do
+-- 		local label = control.label
+-- 		if #label > 0 then
+-- 			label = control.label .. " - "
+-- 		end
+-- 		graphics.translate(0, vert)
+-- 		graphics.set_color(Color.white)
+-- 		graphics.print_outline(Color.black, label, 0, 0)
+-- 		graphics.set_color(Color.green)
+-- 		graphics.print_outline(Color.black, control.action, font:getWidth(label), 0)
+-- 	end
+-- end
 
 
 return HUDLayer

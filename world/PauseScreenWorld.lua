@@ -8,6 +8,7 @@ function PauseScreenWorld:new()
 	self:add_signal("resume_requested")
     self:add_signal("quit_requested")
 	self:add_signal("options_menu_requested")
+	self:add_signal("codex_menu_requested")
 	self.draw_sort = self.y_sort
 	-- menu_item:focus()
 end
@@ -19,9 +20,10 @@ function PauseScreenWorld:enter()
 
     local menu_items = {
         { name = tr.pause_menu_resume_button, func = function() self:emit_signal("resume_requested") end },
-        -- {name = tr.main_menu_codex_button, func = function() end},
+        -- {name = tr.menu_codex_button, func = function() end},
         -- {name = tr.main_menu_tutorial_buttom, func = function() end},
         -- {name = tr.main_menu_leaderboard_button, func = function() end},
+        { name = tr.menu_codex_button,        func = function() self:emit_signal("codex_menu_requested") end },
         { name = tr.menu_options_button,      func = function() self:emit_signal("options_menu_requested") end },
         -- {name = tr.main_menu_credits_button, func = function() end},
 
@@ -62,7 +64,8 @@ function PauseScreenWorld:draw()
 	-- local font = fonts.depalettized.image_font2
     -- graphics.set_font(font)
     -- graphics.print_centered("PAUSEHOLDER PLACEMENU", font, 0, -40)
-	PauseScreenWorld.super.draw(self)
+    PauseScreenWorld.super.draw(self)
+
 end
 
 function PauseScreenWorld:on_menu_item_selected(menu_item, func)

@@ -16,7 +16,7 @@ local MAX_HAZARDS = 50
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
-local EGG_ROOM_START = 30
+local EGG_ROOM_START = 20
 local EGG_ROOM_PERIOD = 10
 
 function GameWorld:new(x, y)
@@ -74,6 +74,9 @@ function GameWorld:new(x, y)
 	self.player_entered_direction = Vec2(rng.random_4_way_direction())
 	self.room_clear_fx_t = -1
 	self.player_hurt_fx_t = -1
+    self.room_border_fade_in_time = 0
+	
+	self.border_rainbow_offset = 0
 
 	self.notification_queue = {}
 
@@ -89,16 +92,18 @@ function GameWorld:enter()
 	self:ref("timescaled", self:add_object(GameObject()))
 	self.timescaled.persist = true
 	self.timescaled:add_elapsed_ticks()
-	self.timescaled:add_sequencer()
-
-
-	audio.play_music("drone")
-	self:play_sfx("level_start", 0.95, 1.0)
+    self.timescaled:add_sequencer()
+	
+	-- self:play_sfx("level_start", 0.95, 1.0)
 
 	self.camera.persist = true
 
-	game_state.level = game_state.level - 1
-	local start_room = self:create_room()
+    game_state.level = game_state.level - 1
+	if not (debug.enabled and debug.skip_tutorial_sequence) then
+		game_state.level = game_state.level - 1
+	end
+	
+	local start_room = self:create_room((debug.enabled and debug.skip_tutorial_sequence and {}) or {start_room = true})
 
 	self:initialize_room(start_room)
 
@@ -163,6 +168,18 @@ function GameWorld:enter()
 		local notif = threshold_notifs[threshold_type]
 		threshold_notify(notif, "notif_upgrade_available")
 	end)
+
+	if not game_state.skip_tutorial and not (debug.enabled and debug.skip_tutorial_sequence) then
+		local s = self.timescaled.sequencer
+		s:start(function()
+            local player = self.players[1]
+			s:wait_for_signal(player, "egg_ready")
+            s:wait(35)
+			if not game_state.hatched then
+				self.tutorial_state = 1
+			end
+		end)
+	end
 end
 
 function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duration, ignore_queue)
@@ -217,8 +234,10 @@ function GameWorld:create_room(room_params)
 	-- 	for obj, _ in pairs(room.all_spawn_types) do
 	-- 		room.redundant_spawns[obj] = true
 	-- 	end
-	-- end
+    -- end
+	-- if not room_params.start_room then
 	room:build(room_params)
+	-- end
 	
 
 	return room
@@ -235,10 +254,15 @@ function GameWorld:initialize_room(room)
 
 	local s = self.timescaled.sequencer
 
+	audio.play_music_if_stopped("drone")
+
 	s:start(function()
 		if table.is_empty(self.players) then
-			self:create_player()
+            self:create_player()
 		end
+		-- for _, player in pairs(self.players) do
+		-- 	player:change_state("GameStart")
+		-- end
 
         if self.room.initialize then
 			self.room:initialize(self)
@@ -259,6 +283,7 @@ end
 
 function GameWorld:start_wave_timer(duration)
 	self.timescaled:start_tick_timer("wave_timer", duration, function()
+		if game_state.game_over then return end
 		self.room.wave = self.room.wave + 1
 		self:spawn_wave()
 	end)
@@ -270,7 +295,7 @@ function GameWorld:spawn_rescues(spawns)
 	s:start(function()
 		for _, rescue in pairs(spawns) do
 			-- s:start(function()
-			for _ = 1, rng.randi_range(2, 120) do
+			for _ = 1, rng.randi_range(30, 120) do
 				if self.state ~= "RoomClear" then
 					-- while self:get_number_of_objects_with_tag("rescue_object") >= max_rescues do
 					-- 	s:wait(rng.randi_range(60, 120))
@@ -334,37 +359,51 @@ function GameWorld:spawn_wave()
 
 	local s = self.timescaled.sequencer
 
-	s:start(function()
-		local highlights = self:get_objects_with_tag("last_enemy_target")
-		for _, highlight in highlights:ipairs() do
-			highlight:queue_destroy()
-		end
-		if self.highlight_last_enemies_sequence then self.timescaled.sequencer:stop(self.highlight_last_enemies_sequence) end
-		
-		self.room.highlighting_enemies = false
+	if spawns then
+		s:start(function()
+			local highlights = self:get_objects_with_tag("last_enemy_target")
+			for _, highlight in highlights:ipairs() do
+				highlight:queue_destroy()
+			end
+			if self.highlight_last_enemies_sequence then self.timescaled.sequencer:stop(self.highlight_last_enemies_sequence) end
+			
+			self.room.highlighting_enemies = false
 
-		self:spawn_rescues(rescue_spawns)
-		-- Spawn hazards and enemies in parallel
-		self:spawn_wave_group(s, spawns.hazard, "hazard", "wave_hazard", MAX_HAZARDS)
-		self:spawn_wave_group(s, spawns.enemy, "enemy", "wave_enemy", MAX_ENEMIES)
+			self:spawn_rescues(rescue_spawns)
+			-- Spawn hazards and enemies in parallel
+			self:spawn_wave_group(s, spawns.hazard, "hazard", "wave_hazard", MAX_HAZARDS)
+			self:spawn_wave_group(s, spawns.enemy, "enemy", "wave_enemy", MAX_ENEMIES)
 
-		s:wait(5)
+			s:wait(5)
 
-		-- Wait for enemies to finish spawning
-		while self:get_number_of_objects_with_tag("enemy_spawner") > 0 do
-			s:wait(1)
-		end
+			-- Wait for enemies to finish spawning
+			while self:get_number_of_objects_with_tag("enemy_spawner") > 0 do
+				s:wait(1)
+			end
 
-		if self.state == "Spawning" then
-			self:change_state("Normal")
-		end
+			if self.state == "Spawning" then
+				self:change_state("Normal")
+			end
 
-		if self.room.wave < self.room.last_wave then
-			self:start_wave_timer(max(600 - game_state.difficulty * 60, 120))
-		else
-			self.timescaled:start_tick_timer("last_wave_quick_clear", max(600 - game_state.difficulty * 60, 120))
-		end
-	end)
+			if self.room.wave < self.room.last_wave then
+				self:start_wave_timer(max(600 - game_state.difficulty * 60, 120))
+			else
+				self.timescaled:start_tick_timer("last_wave_quick_clear", max(600 - game_state.difficulty * 60, 120))
+			end
+		end)
+	end
+end
+
+function GameWorld:get_quick_clear_time_left_ratio()
+	if self.state == "RoomClear" then
+		return 0
+	elseif self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
+		return self.timescaled:tick_timer_time_left_ratio("last_wave_quick_clear")
+	elseif self.timescaled:is_tick_timer_running("wave_timer") then
+		return self.timescaled:tick_timer_time_left_ratio("wave_timer")
+	else
+		return 0
+	end
 end
 
 function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
@@ -374,7 +413,7 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 				break
 			end
 
-			if self.player_died then
+			if game_state.game_over then
 				break
 			end
 
@@ -435,10 +474,21 @@ function GameWorld:spawn_wave_hazard(hazard)
 end
 
 function GameWorld:spawn_wave_enemy(enemy)
-	local enemy_object = self:spawn_object(enemy)
-	self:register_spawn_wave_enemy(enemy_object)
-	-- enemy_object:move(0, enemy_object.body_height / 2)
-	enemy_object:add_enter_function(enemy_object.life_flash)
+    local enemy_object = self:spawn_object(enemy)
+    self:register_spawn_wave_enemy(enemy_object)
+    -- enemy_object:move(0, enemy_object.body_height / 2)
+    enemy_object:add_enter_function(enemy_object.life_flash)
+end
+
+function GameWorld:register_non_wave_enemy_required_kill(enemy_object)
+    self.enemies_to_kill[enemy_object] = true
+    signal.connect(enemy_object, "died", self, "enemies_to_kill_table_on_enemy_died", function()
+        self.enemies_to_kill[enemy_object] = nil
+    end)
+
+    signal.connect(enemy_object, "destroyed", self, "enemies_to_kill_table_on_enemy_destroyed", function()
+        self.enemies_to_kill[enemy_object] = nil
+    end)
 end
 
 function GameWorld:register_spawn_wave_enemy(enemy_object)
@@ -449,7 +499,27 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
     signal.connect(enemy_object, "died", self, "enemies_to_kill_table_on_enemy_died", function()
         local bx, by = enemy_object:get_body_center()
 
-        self:add_score_object(bx, by, enemy_object:get_score(), "kills")
+		self:add_score_object(bx, by, enemy_object:get_score(), "kills")
+
+		local closest_player
+		local closest_distance = math.huge
+		for _, player in pairs(self.players) do
+			local distance = enemy_object.pos:distance_to(player.pos)
+			if distance < closest_distance then
+				closest_distance = distance
+				closest_player = player
+			end
+		end
+
+		if closest_player then
+			local distance = max(closest_distance, 1)
+			local max_distance = 100
+			if distance < max_distance then
+				local bonus = pow((max_distance - distance) / max_distance, 1.4) * (enemy_object:get_score())
+				game_state.aggression_bonus = game_state.aggression_bonus + bonus
+			end
+		end
+
         self:spawn_object(XpPickup(bx, by, enemy_object:get_xp()))
         -- game_state:level_bonus("kill")
 
@@ -461,7 +531,6 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
         self.enemies_to_kill[enemy_object] = nil
     end)
 end
-
 
 function GameWorld:spawn_xp(x, y, amount)
 	local xp_object = self:spawn_object(XpPickup(x, y, amount))
@@ -478,8 +547,10 @@ end
 
 function GameWorld:add_score_object(x, y, score, score_category)
 	score = game_state:determine_score(score)
-	game_state:add_score(score, score_category)
-	local score_object = self:spawn_object(ScoreNumberEffect(x, y, score))
+    game_state:add_score(score, score_category)
+	if score > 0 then
+		local score_object = self:spawn_object(ScoreNumberEffect(x, y, score))
+	end
 end
 
 function GameWorld:on_wave_cleared()
@@ -487,6 +558,8 @@ function GameWorld:on_wave_cleared()
 
 	local s = self.timescaled.sequencer
 	s:start(function()
+		if game_state.game_over then return end
+
 		if self.room.wave == self.room.last_wave then
 			-- s:wait(10)
 			if self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
@@ -564,7 +637,53 @@ function GameWorld:create_player(player_id)
 		-- self.last_player_body_positions[player_id] = nil
 	end)
 
+	signal.connect(player, "hatched", self, "on_player_hatched", function()
+        game_state:on_hatched()
+
+		if debug.enabled and debug.skip_tutorial_sequence then
+			self:room_border_fade("in")
+			return
+		end
+		
+        if game_state.skip_tutorial then
+			self:room_border_fade("in")
+			self:soft_room_clear()
+			return
+		end
+
+        -- if game_state.level ~= 0 then
+        --     return
+        -- end
+		
+		self.tutorial_state = nil
+		local s = self.timescaled.sequencer
+		self.tutorial_sequence = s:start(function()
+			s:wait(5)
+			self:room_border_fade("in", 3)
+			s:wait(45)
+            self.tutorial_state = 2
+			s:wait(70)
+			-- self.tutorial_state = nil
+            self:soft_room_clear()
+			self.tutorial_sequence = nil
+		end)
+		
+	end)
+
 	return player
+end
+
+function GameWorld:soft_room_clear()
+	local s = self.timescaled.sequencer
+    s:start(function()
+		while self:get_number_of_objects_with_tag("xp_pickup") > 0 do
+			s:wait(1)
+		end
+		self:change_state("RoomClear")
+		self.next_rooms = self:create_next_rooms()
+		self.waiting_on_rooms = true
+        self.draining_bullet_powerup = false
+	end)
 end
 
 function GameWorld:clear_objects()
@@ -586,7 +705,7 @@ function GameWorld:on_player_got_hurt()
 		self:play_sfx("hazard_death", 0.5, 1.0)
 		self.object_time_scale = 0.025
 		-- self.player_death_fx = true
-		-- self.player_died = true
+		-- self.` = true
 		s:wait(20)
 		-- self.player_death_fx = false
 		self.object_time_scale = 1
@@ -603,7 +722,7 @@ function GameWorld:on_player_died()
 			s:tween_property(self, "player_hurt_fx_t", 0, 1, 75, "linear")
 			self.player_hurt_fx_t = -1
 		end)
-		self:play_sfx("old_player_death", 0.85, 1.0)
+		self:play_sfx("player_death", 0.85, 1.0)
 		self:play_sfx("hazard_death", 0.5, 1.0)
 		self.object_time_scale = 0.025
 		self.player_death_fx = true
@@ -612,6 +731,51 @@ function GameWorld:on_player_died()
 		s:wait(60)
 		self.object_time_scale = 1
 		self.player_death_fx = false
+		
+		while self:get_number_of_objects_with_tag("enemy") > 0 do
+			local enemies = self:get_objects_with_tag("enemy")
+
+			local waited = false
+            for i, enemy in enemies:ipairs() do
+
+                if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
+					self:remove_tag(enemy, "enemy")
+					goto continue
+				end
+				
+				if enemy.die then
+					enemy:die(self:get_random_object_with_tag("player"))
+				elseif not enemy.is_queued_for_destruction then
+					enemy:queue_destroy()
+				end
+                if i % 5 == 0 then
+                    s:wait(2)
+                    waited = true
+                end
+				
+				::continue::
+			end
+			if not waited then
+				s:wait(2)
+			end
+		end
+
+
+		while self:get_number_of_objects_with_tag("rescue_object") > 0 do
+			local rescues = self:get_objects_with_tag("rescue_object")
+			local waited = false
+			for _, rescue in rescues:ipairs() do
+				-- local player = self:get_random_object_with_tag("player")
+				rescue:die()
+				s:wait(2)
+				waited = true
+			end
+			if not waited then
+				s:wait(2)
+			end
+		end
+
+
 		self:emit_signal("player_death_sequence_finished")
 		-- s:wait(120)
 
@@ -704,12 +868,6 @@ function GameWorld:spawn_room_objects()
 		local direction = directions[i]
         if room.is_egg_room then
             direction = Vec2(0, -1)
-            for _, dir in ipairs(directions) do
-                if dir.y == 1 then
-                    direction = Vec2(0, 1)
-                    break
-                end
-            end
         end
 
 		
@@ -800,6 +958,10 @@ function GameWorld:on_room_clear()
 	self:change_state("RoomClear")
 
 	self:emit_signal("room_cleared")
+
+
+	self:stop_tick_timer("wave_timer")
+	self:stop_tick_timer("last_wave_quick_clear")
 
 	if self.room.is_hard then
 		game_state:level_bonus("hard_room")
@@ -896,18 +1058,24 @@ function GameWorld:on_room_clear()
         end
 
         -- spawn artefacts
-		if self.room.artefacts then
+        if self.room.artefacts then
             for _, artefact in ipairs(self.room.artefacts) do
-				game_state.last_spawned_artefacts[artefact.key] = true
-				self:spawn_artefact(artefact)
-				s:wait(10)
-			end
-			s:wait(70)
-		end
-
+                game_state.last_spawned_artefacts[artefact.key] = true
+                self:spawn_artefact(artefact)
+                s:wait(10)
+            end
+            s:wait(70)
+        end
+		
 		s:wait(5)
 
-		self.next_rooms = self:create_next_rooms()
+		while self:get_number_of_objects_with_tag("artefact") > 0 do
+			s:wait(1)
+		end
+
+        while self:get_number_of_objects_with_tag("xp_pickup") > 0 do
+            s:wait(1)
+        end
 
 		-- i want to be able to debug room generation so we're not running it in this coroutine
 		self.waiting_on_rooms = true
@@ -992,6 +1160,8 @@ function GameWorld:update(dt)
 	-- end
 	-- end
 
+	self.border_rainbow_offset = self.border_rainbow_offset + dt / max(20 / self.room.wave, 1)
+
 	if input.debug_skip_wave_held and not self.room.cleared then
 		local objects = self:get_objects_with_tag("wave_enemy")
 		for _, obj in objects:ipairs() do
@@ -1009,7 +1179,7 @@ function GameWorld:update(dt)
 		dbg("enemies_to_kill", table.length(self.enemies_to_kill))
 		dbg("world_state", self.state, Color.green)
 		dbg("number of objects", self.objects:length())
-		dbg("waiting_on_rooms", self.waiting_on_rooms)
+		-- dbg("waiting_on_rooms", self.waiting_on_rooms)
 	end
 
 	if not table.is_empty(self.notification_queue) and not self.timescaled:is_timer_running("player_notify_cooldown") then
@@ -1296,6 +1466,7 @@ function GameWorld:draw()
 	-- 	graphics.pop()
 	-- end
 
+	
 	local level_transition_alpha = 1.0
 	if self.state == "LevelTransition" then
 		level_transition_alpha = max(1 - self.state_elapsed / 5, 0)
@@ -1307,7 +1478,7 @@ function GameWorld:draw()
 	shader:send("input_texture", self.previous_persistent_floor_canvas)
 	shader:send("replace_texture", self.current_frame_floor_canvas)
 	-- shader:send("mask_color", Color.alpha_mask:to_shader_table())
-	-- if self.is_new_tick and self.tick % 5 == 0 then shader:send("replace_texture", textures.psylocke) else shader:send("replace_texture", self.empty_canvas) end
+	-- if self.is_new_tick and self.tick % 5 == 0 then shader:send("replace_texture", textures.palette_cycle_test_image) else shader:send("replace_texture", self.empty_canvas) end
 
 	-- shader:send("old_alpha", 1.0)
 	shader:send("old_alpha", (self.timescaled.is_new_tick and self.timescaled.tick % 10 == 0) and 0.93 or 1.0)
@@ -1373,6 +1544,19 @@ function GameWorld:draw()
 		self:draw_room_bounds()
 	end
 
+	
+	if self.tutorial_state and not self.paused then
+		graphics.set_color(Color.green)
+		local font = fonts.depalettized.image_font2
+        graphics.set_font(font)
+
+		if self.tutorial_state == 1 then
+			graphics.print_centered("PRESS " .. (input.last_input_device == "gamepad" and "LEFT TRIGGER" or "SPACE") .. " TO BOOST", font, 0, 16)
+		elseif self.tutorial_state == 2 then
+			graphics.print_centered("MOVE WITH " .. (input.last_input_device == "gamepad" and "LEFT STICK" or "WASD"), font, 0, -16)
+			graphics.print_centered("SHOOT WITH " .. (input.last_input_device == "gamepad" and "RIGHT STICK" or "LMB"), font, 0, 16)
+		end
+	end
 
 
 	-- for _, obj in self:get_objects_with_tag("twinstick_entity"):ipairs() do
@@ -1383,7 +1567,9 @@ function GameWorld:draw()
 	--     graphics.rectangle("fill", -obj.terrain_collision_radius - 2, -obj.terrain_collision_radius / 2, obj.terrain_collision_radius * 2 + 4, obj.terrain_collision_radius + 2)
 	-- end
 	-- graphics.pop()
-	-- end
+    -- end
+
+
 
 	GameWorld.super.draw(self)
 
@@ -1399,11 +1585,14 @@ function GameWorld:draw()
 		graphics.translate(0, 0)
 		local font = fonts.depalettized.image_font2
 		graphics.set_font(font)
-		local text = string.format("YOU DIED ON LEVEL %d\nSCORE: %d\nKILLS: %d\nRESCUES: %d", game_state.level, game_state.score, game_state.enemies_killed, game_state.rescues_saved)
+		local text = string.format("YOU DIED ON LEVEL %d\nSCORE: %s\nKILLS: %d\nRESCUES: %d", game_state.level, comma_sep(game_state.score), game_state.enemies_killed, game_state.rescues_saved)
 		graphics.translate(-font:getWidth(text) / 2, string.number_of_lines(text) * -font:getHeight(text) / 2)
 		graphics.print(text, 0, 0)
 		graphics.pop()
 	end
+
+	
+
 end
 
 function GameWorld:floor_canvas_push()
@@ -1419,35 +1608,46 @@ function GameWorld:floor_canvas_pop()
 end
 
 function GameWorld:get_border_color()
-	if self.player_death_fx then
-		return Palette.player_death_border:get_color(floor(self.tick / 2))
-	end
+    if self.room.is_egg_room then
+        local egg_room_color = self.room:get_border_color()
+        if egg_room_color then
+            return egg_room_color
+        end
+    end
+
+    if self.player_death_fx then
+        return Palette.player_death_border:get_color(floor(self.tick / 2))
+    end
 
     if self.player_died then
         return Color.red
     end
-	
-	if self.player_hurt_fx_t > 0 then
-		return idivmod_eq_zero(self.tick, 2, 2) and Color.black or Color.red
-	end
 
-	if self.state == "RoomClear" then
-		return Palette.room_clear_border:get_color(floor(gametime.tick / 4))
-	end
+    if self.player_hurt_fx_t > 0 then
+        return idivmod_eq_zero(self.tick, 2, 2) and Color.black or Color.red
+    end
 
-	if self.timescaled:is_tick_timer_running("clock_slow") then
-		return Color.transparent
-	end
+    if self.state == "RoomClear" then
+        return Palette.room_clear_border:get_color(floor(gametime.tick / 4))
+    end
 
-	if self.state == "Spawning" then
-		return Palette.spawning_border:get_color(floor(gametime.tick / 4))
-	end
+    if self.timescaled:is_tick_timer_running("clock_slow") then
+        return Color.transparent
+    end
 
-	if self.state == "LevelTransition" then
-		return Color.black
-	end
+    if self.state == "Spawning" then
+        return Palette.spawning_border:get_color(floor(gametime.tick / 4))
+    end
 
-	return Palette.rainbow:get_color((self.room and self.room.level or 0) + floor(self.state_tick / max(20 / self.room.wave, 1)))
+    if self.state == "LevelTransition" then
+        return Color.black
+    end
+
+    return self:get_border_rainbow()
+end
+
+function GameWorld:get_border_rainbow()
+	return Palette.rainbow:get_color(floor(self.border_rainbow_offset))
 end
 
 function GameWorld:is_border_dash_swapped()
@@ -1492,14 +1692,14 @@ function GameWorld:draw_room_bounds()
 		graphics.set_line_width(1)
 		local scale = 0
 		if self.room then
-			local t = clamp(self.room.elapsed / 30, 0, 1.0)
+			local t = clamp(self.room_border_fade_in_time / 30, 0, 1.0)
 			scale = 1.05 - ease("outCubic")(t) * 0.05
 			if t > 0.7 then 
 				scale = 1.0
 			end
 		end
 		local red, green, blue = color.r, color.g, color.b
-		local alpha = ease("outCubic")(clamp(self.room.elapsed / 20, 0, 1.0))
+		local alpha = ease("outCubic")(clamp(self.room_border_fade_in_time / 20, 0, 1.0))
 		if self.room_clear_fx_t > min_t then
 			alpha = alpha * (remap_clamp(self.room_clear_fx_t, min_t, 1, 0, 1))
 		end
@@ -1579,7 +1779,7 @@ function GameWorld:state_Normal_update(dt)
 	-- if self.room.wave == self.room.last_wave then
 	local s = self.timescaled.sequencer
 	local enemies_left = self:get_number_of_objects_with_tag("wave_enemy")
-    if enemies_left <= 5 and enemies_left > 0 and not self.room.highlighting_enemies then
+    if self.room.can_highlight_enemies and enemies_left <= 5 and enemies_left > 0 and not self.room.highlighting_enemies then
 		self.highlight_last_enemies_sequence = s:start(function()
 			for _, obj in self:get_objects_with_tag("wave_enemy"):ipairs() do
 				if obj and obj.highlight_self then
@@ -1592,7 +1792,6 @@ function GameWorld:state_Normal_update(dt)
                 self:play_sfx("highlight_last_enemies", 1, 1.0)
                 self.room.highlighting_enemies = true
             end
-			
 		end)
 	end
 	-- end
@@ -1607,6 +1806,7 @@ end
 
 function GameWorld:state_RoomClear_update(dt)
 	if self.waiting_on_rooms then
+		self.next_rooms = self:create_next_rooms()
 		self:spawn_room_objects()
 		self.waiting_on_rooms = false
 	end
@@ -1623,6 +1823,9 @@ function GameWorld:state_Spawning_exit()
 end
 
 function GameWorld:state_LevelTransition_enter(room)
+    self.tutorial_state = nil
+    self.sequencer:stop(self.tutorial_sequence)
+	
 	local room_objects = self:get_objects_with_tag("room_object")
 	for _, obj in room_objects:ipairs() do
 		obj:die()
@@ -1711,7 +1914,17 @@ end
 function GameWorld:state_LevelTransition_exit()
 	self:initialize_room(self.transitioning_to_room)
 	self.transitioning_to_room = nil
-	self.frozen = false
+    self.frozen = false
+	self:room_border_fade("in", 2)
+end
+
+function GameWorld:room_border_fade(in_or_out, time_scale)
+    local s = self.sequencer
+
+    self.fade_sequence = s:start(function()
+        s:tween_property(self, "room_border_fade_in_time", in_or_out == "in" and 0 or 600, in_or_out == "in" and 600 or 0, 600 * (time_scale or 1), "linear")
+		self.fade_sequence = nil
+    end)
 end
 
 function GameWorld:state_LevelTransition_draw()

@@ -1,6 +1,6 @@
 local RetroRumble = Object:extend("RetroRumble")
 
-function RetroRumble:_init()
+function RetroRumble:__mix_init()
     self:add_sequencer()
 	self:add_elapsed_ticks()
 
@@ -18,22 +18,23 @@ function RetroRumble:_init()
 end
 
 function RetroRumble:get_rumble_vec()
-	local dx, dy = self.rumble_amount_x * (floor(self.tick / 2) % 2 == 0 and 1 or -1) * 0.5, self.rumble_amount_y * (floor(self.tick / 2) % 2 == 0 and 1 or -1) * 0.5
+	local dx, dy = self.rumble_amount_x * (floor(self.tick / 2) % 2 == 0 and 1 or -1) * 0.5, self.rumble_amount_y * (floor(self.tick / 2 + 1) % 2 == 0 and 1 or -1) * 0.5
 	return dx, dy
 end
 
 function RetroRumble:start_rumble(amount, duration, easing_function, x_axis, y_axis)
 	if x_axis == nil then x_axis = true end
+	if y_axis == nil then y_axis = false end
 	local s = self.world.sequencer
 	s:stop(self.rumble_coroutine)
     easing_function = easing_function or ease("outQuad")
 	local func = function()
-		if x_axis then	
-			s:tween_property(self, "rumble_amount_x", amount, 0, duration, easing_function)
-		end
-		if y_axis then
-			s:tween_property(self, "rumble_amount_y", amount, 0, duration, easing_function)
-		end
+
+		s:tween(function(amount)
+			self.rumble_amount_x = x_axis and amount or 0
+			self.rumble_amount_y = y_axis and amount or 0
+		end, amount, 0, duration, easing_function)
+
         self.rumble_coroutine = nil
 		self.rumble_amount_x = 0
 		self.rumble_amount_y = 0

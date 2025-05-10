@@ -25,7 +25,7 @@ RAW_EXCLUDED_PATTERNS = [
     '*.aseprite',
     '*.gitignore',
     'node_modules*',
-	'psylocke.png',
+	'palette_cycle_test_image.png',
     '*.exe',
     'tools/is_debug.lua'
 ]
@@ -71,41 +71,28 @@ def clear_build_folder():
 
 
 def create_love_file(script_dir: str) -> str:
-    """
-    Creates a .love file by zipping the game directory,
-    excluding paths that match EXCLUDED_PATTERNS.
-    """
     love_filename = os.path.basename(script_dir) + ".love"
 
     with zipfile.ZipFile(love_filename, 'w', zipfile.ZIP_DEFLATED) as myzip:
-        # Walk the entire directory
         for root, dirs, files in os.walk(script_dir):
-            # Compute the relative path of `root` from `script_dir`, unify slashes
+            # Compute the relative path and normalize to forward slashes
             root_rel = os.path.relpath(root, script_dir).replace('\\', '/')
 
-            # Filter out directories if they match the exclusion list
-            new_dirs = []
-            for d in dirs:
-                d_rel_path = d
-                if root_rel != '.' and root_rel != '':
-                    d_rel_path = root_rel + '/' + d
+            # Absolute skip: if this directory itself is excluded, skip its children
+            if should_exclude(root_rel) and root_rel != ".":
+                dirs[:] = []
+                continue
 
-                if not should_exclude(d_rel_path):
-                    new_dirs.append(d)
-            dirs[:] = new_dirs
+            # Filter subdirectories so os.walk won't descend into excluded ones
+            dirs[:] = [
+                d for d in dirs
+                if not should_exclude(f"{root_rel}/{d}" if root_rel != "." else d)
+            ]
 
-            # Filter out files
             for f in files:
-                # Build the relative path for the file
-                if root_rel in ('.', ''):
-                    rel_path = f
-                else:
-                    rel_path = root_rel + '/' + f
-
+                rel_path = f if root_rel in ('.', '') else f"{root_rel}/{f}"
                 if should_exclude(rel_path):
                     continue
-
-                # Add to the ZIP
                 full_path = os.path.join(root, f)
                 myzip.write(full_path, arcname=rel_path)
 
@@ -153,31 +140,59 @@ def package_for_windows(love_file: str):
     print(f"Packaging complete! The final game is in the '{OUTPUT_DIR}' folder.")
 
 
+# def create_zip():
+#     """
+#     Creates a ZIP archive of the build folder, placing it in build/,
+#     and renaming the internal folder to GAME_NAME.
+#     """
+#     zip_path = os.path.join(OUTPUT_DIR, ZIP_NAME)
+
+#     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+#         for root, _, files in os.walk(OUTPUT_DIR):
+#             root_rel = os.path.relpath(root, OUTPUT_DIR).replace('\\', '/')
+#             for file in files:
+#                 # Don't include the ZIP itself in the ZIP
+#                 if file == ZIP_NAME:
+#                     continue
+
+#                 if root_rel in ('.', ''):
+#                     archive_path = f"{GAME_NAME}/{file}"
+#                 else:
+#                     archive_path = f"{GAME_NAME}/{root_rel}/{file}"
+
+#                 full_path = os.path.join(root, file)
+#                 zipf.write(full_path, arcname=archive_path)
+
+#     print(f"Created final ZIP archive: {zip_path}")
+
 def create_zip():
     """
-    Creates a ZIP archive of the build folder, placing it in build/,
-    and renaming the internal folder to GAME_NAME.
+    Creates build/Evil Egg.zip with no extra top-level folder.
+    Whatever sits in build/ ends up at the root of the archive,
+    while any sub-directories inside build/ are preserved.
     """
     zip_path = os.path.join(OUTPUT_DIR, ZIP_NAME)
 
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(OUTPUT_DIR):
             root_rel = os.path.relpath(root, OUTPUT_DIR).replace('\\', '/')
+
             for file in files:
-                # Don't include the ZIP itself in the ZIP
+                # Skip the ZIP we’re currently writing
                 if file == ZIP_NAME:
                     continue
 
-                if root_rel in ('.', ''):
-                    archive_path = f"{GAME_NAME}/{file}"
-                else:
-                    archive_path = f"{GAME_NAME}/{root_rel}/{file}"
-
                 full_path = os.path.join(root, file)
+
+                # Put everything at the archive’s root, preserving any sub-dirs
+                archive_path = (
+                    file if root_rel in ('.', '')
+                    else f"{root_rel}/{file}"
+                )
+
                 zipf.write(full_path, arcname=archive_path)
 
     print(f"Created final ZIP archive: {zip_path}")
-
 
 def main():
     script_path = os.path.realpath(__file__)

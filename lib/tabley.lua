@@ -49,6 +49,7 @@ function tabley.filtered(t, fn)
             table.insert(filtered, v)
         end
     end
+	return filtered
 end
 
 function tabley.shuffle(t)
@@ -57,6 +58,16 @@ function tabley.shuffle(t)
         local j = rng(1, i)
         t[i], t[j] = t[j], t[i]
     end
+end
+
+function tabley.equal(t1, t2)
+	if type(t1) ~= type(t2) then return false end
+	if type(t1) == "table" then
+		for k, v in pairs(t1) do
+			if not tabley.equal(v, t2[k]) then return false end
+		end
+	end
+	return t1 == t2
 end
 
 function tabley.push_back(t, value)
@@ -238,22 +249,37 @@ function tabley.sorted(t, sort)
 end
 
 function tabley.deepcopy(orig, copies)
-	copies = copies or {}
-	local orig_type = type(orig)
-	local copy
-	if orig_type == 'table' then
-		if copies[orig] then
-			copy = copies[orig]
-		else
-			copy = {}
-			copies[orig] = copy
-			for orig_key, orig_value in next, orig, nil do
-				copy[tabley.deepcopy(orig_key, copies)] = tabley.deepcopy(orig_value, copies)
-			end
-			setmetatable(copy, tabley.deepcopy(getmetatable(orig), copies))
-		end
-	else -- number, string, boolean, etc
-		copy = orig
+	if type(orig) ~= "table" then
+		return orig
+	end
+
+    copies = copies or {}
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        if copies[orig] then
+            copy = copies[orig]
+        else
+            copy = {}
+            copies[orig] = copy
+            for orig_key, orig_value in next, orig, nil do
+                copy[tabley.deepcopy(orig_key, copies)] = tabley.deepcopy(orig_value, copies)
+            end
+            setmetatable(copy, tabley.deepcopy(getmetatable(orig), copies))
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
+function tabley.copy(t)
+    local next = next
+    local copy = {}
+	local key, value = next(t)
+	while key do
+		copy[key] = value
+		key, value = next(t, key)
 	end
 	return copy
 end

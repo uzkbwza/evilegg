@@ -19,4 +19,12 @@ ONE_WEEK = ONE_DAY * 7
 ONE_MONTH = ONE_DAY * 30
 ONE_YEAR = 3.156e7
 
+function format_hhmmss(seconds)
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    seconds = seconds % 60
+    return string.format("%02d:%02d:%02d", hours, minutes, seconds)
+end
+
+
 return time

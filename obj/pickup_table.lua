@@ -12,7 +12,10 @@ local Upgrades = {
         },
         upgrade_type = "fire_rate",
         notification_text = "notif_fire_rate",
-		notification_palette = "notif_fire_rate_up",
+        notification_palette = "notif_fire_rate_up",
+        name = "upgrade_name_fire_rate",
+		description = "upgrade_desc_fire_rate",
+		
     },
 
 	RangeUpgrade = {
@@ -25,6 +28,8 @@ local Upgrades = {
 		upgrade_type = "range",
 		notification_text = "notif_range",
 		notification_palette = "notif_range_up",
+		name = "upgrade_name_range",
+		description = "upgrade_desc_range",
     },
 	
 	NumBulletsUpgrade = {
@@ -37,6 +42,8 @@ local Upgrades = {
 		upgrade_type = "bullets",
 		notification_text = "notif_bullets",
 		notification_palette = "notif_bullets_up",
+		name = "upgrade_name_bullets",
+		description = "upgrade_desc_bullets",
 	},
 
 	BulletSpeedUpgrade = {
@@ -49,6 +56,8 @@ local Upgrades = {
 		upgrade_type = "bullet_speed",
 		notification_text = "notif_bullet_speed",
 		notification_palette = "notif_bullet_speed_up",
+		name = "upgrade_name_bullet_speed",
+		description = "upgrade_desc_bullet_speed",
 	},
 
 	DamageUpgrade = {
@@ -61,6 +70,8 @@ local Upgrades = {
 		upgrade_type = "damage",
 		notification_text = "notif_damage",
 		notification_palette = "notif_damage_up",
+		name = "upgrade_name_damage",
+		description = "upgrade_desc_damage",
 	},
 
 	-- BoostUpgrade = {
@@ -87,6 +98,8 @@ local Powerups = {
         spawn_weight = 1000,
 		bullet_powerup = false,
 		bullet_powerup_time = 10,
+		name = "powerup_base_name",
+		description = "powerup_base_desc",
 	},
 
 	RocketPowerup = {
@@ -98,7 +111,9 @@ local Powerups = {
 			-- textures.pickup_powerup_rocket3,
         },
         bullet_powerup = true,
-		bullet_powerup_time = 10,
+		bullet_powerup_time = 6,
+		name = "powerup_rocket_name",
+		description = "powerup_rocket_desc",
 	},
 
 	
@@ -115,6 +130,23 @@ local Hearts = {
 		heart_type = "normal",
 		notification_text = "notif_heart",
 		notification_palette = "notif_heart_up",
+		name = "heart_base_name",
+		description = "heart_base_desc",
+    },
+	
+	NormalHeart = {
+		inherit = { "BaseHeart" },
+        icon = textures.pickup_heart_icon,
+		textures = {
+			textures.pickup_heart_placeholder,
+		},
+        sound = "pickup_heart",
+        sound_volume = 0.75,
+		heart_type = "normal",
+		notification_text = "notif_heart",
+		notification_palette = "notif_heart_up",
+		name = "heart_base_name",
+		description = "heart_base_desc",
 	},
 }
 
@@ -124,8 +156,7 @@ local Artefacts = {
 		key = "base",
 		name = "artefact_base_name",
 		description = "artefact_base_desc",
-		spawn_weight = 1000,
-
+        spawn_weight = 1000,
 	},
 
 	RicochetArtefact = {
@@ -259,18 +290,29 @@ local Artefacts = {
 	
 	-- Secondary Weapons
 
-	-- SwordSecondaryWeapon = {
-	-- icon = textures.pickup_secondary_sword_icon,
-	-- hud_icon = textures.pickup_secondary_sword_hud,
-	-- key = "sword",
-	-- name = "secondary_sword_name",
-	-- description = "secondary_sword_desc",
+	SwordSecondaryWeapon = {
+		sprite = textures.pickup_weapon_sword,
+		icon = textures.pickup_weapon_sword_icon,
+		hud_icon = textures.pickup_weapon_sword_hud,
+		key = "sword",
+		name = "weapon_sword_name",
+		description = "weapon_sword_desc",
+        spawn_weight = 1000,
+        -- debug_spawn_weight = 1000000000,
 
-	-- is_secondary_weapon = true,
-	-- ammo = 10,
-	-- ammo_gain_per_level = 2,
-	-- spawn_weight = 1000,
-	-- },
+		is_secondary_weapon = true,
+		ammo = 16,
+        ammo_gain_per_level = 3,
+		ammo_needed_per_use = 1,
+		low_ammo_threshold = 3,
+        starting_ammo = 4,
+		ammo_color = Color.white,
+
+        cooldown = 8,
+  
+		holdable = false,
+		rapid_fire = false,
+	},
 }
 
 

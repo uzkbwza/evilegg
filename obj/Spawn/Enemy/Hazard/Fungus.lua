@@ -79,6 +79,13 @@ function Fungus:start_draw_dots_timer()
 	end)
 end
 
+function Fungus:filter_melee_attack(bubble)
+	if bubble.parent and bubble.parent.is_artefact then
+		return false
+	end
+	return true
+end
+
 function Fungus:start_propagate_timer()
 	self:start_tick_timer("propagate", max(rng.randfn(self.propogate_frequency, PROPOGATE_VARIANCE_DEVIATION), 10), function()
 		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and self.big then

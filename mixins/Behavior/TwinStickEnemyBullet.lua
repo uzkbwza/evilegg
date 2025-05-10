@@ -11,7 +11,7 @@ function TwinStickEnemyBullet:__mix_init()
 		end
 	end
 
-    self.enemy_bullet = true
+    self.is_enemy_bullet = true
 
     self.lifetime = self.lifetime or 600
 	self:add_update_function(function(self, dt)
@@ -26,6 +26,7 @@ function TwinStickEnemyBullet:__mix_init()
 	self:add_enter_function(function(self)
 		self:add_tag("enemy_bullet")
 	end)
+
 end
 
 return TwinStickEnemyBullet

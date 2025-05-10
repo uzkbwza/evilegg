@@ -5,13 +5,20 @@ function MainMenuScreen:enter()
 	self.clear_color = Color.black
 	self:add_signal("start_game_requested")
     self:add_signal("options_menu_requested")
+	self:add_signal("codex_menu_requested")
 	self:add_signal("start_title_screen_requested")
     self:ref("main_menu_world", self:add_world(Worlds.MainMenuWorld()))
     
 	signal.chain_connect("start_game_requested", self.main_menu_world, self)
 	signal.chain_connect("options_menu_requested", self.main_menu_world, self)
+	signal.chain_connect("codex_menu_requested", self.main_menu_world, self)
 	
-	signal.connect(self.main_menu_world, "menu_item_selected", self, "on_menu_item_selected")
+    signal.connect(self.main_menu_world, "menu_item_selected", self, "on_menu_item_selected")
+	
+    if string.strip_whitespace(savedata.name) == "" then
+		self:add_sibling_below(Screens.NameEntryScreen())
+	end
+
 end
 
 function MainMenuScreen:on_menu_item_selected()
@@ -34,7 +41,7 @@ function MainMenuScreen:draw()
     MainMenuScreen.super.draw(self)
 	graphics.push("all")
 
-	self:draw_guide_placeholder()
+	-- self:draw_guide_placeholder()
 
 	graphics.pop()
 end

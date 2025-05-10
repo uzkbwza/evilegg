@@ -9,8 +9,9 @@ function OptionsMenuScreen:new()
 end
 
 function OptionsMenuScreen:enter()
-	self.clear_color = self.in_game and Color.transparent or Color.black
-    self:ref("options_menu_world", self:add_world(Worlds.OptionsMenuWorld()))
+	self.clear_color = Color.black
+	-- self.clear_color = self.in_game and Color.transparent or Color.black
+    self:add_world(Worlds.OptionsMenuWorld(), "options_menu_world")
 	signal.chain_connect("exit_menu_requested", self.options_menu_world,  self)
 end
 

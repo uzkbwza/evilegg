@@ -1,18 +1,19 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 
-
-local debug_start = "game"
+-- local debug_start = "game"
+-- local debug_start = "codex_menu"
+local debug_start = "main_menu"
 
 function MainScreen:new()
     MainScreen.super.new(self)
 end
 
 function MainScreen:enter()
-	if debug.enabled then
-		self["start_" .. debug_start](self)
-	else
-		self:start_title_screen()
-	end
+    if debug.enabled then
+        self["start_" .. debug_start](self)
+    else
+        self:start_title_screen()
+    end
 end
 
 function MainScreen:connect_restart(screen)
@@ -42,6 +43,12 @@ end
 function MainScreen:connect_start_title_screen(screen)
     signal.connect(screen, "start_title_screen_requested", self, "start_title_screen")
 end
+
+function MainScreen:connect_codex_menu(screen)
+    signal.connect(screen, "codex_menu_requested", self, "start_codex_menu")
+end
+
+
 
 function MainScreen:start_game()
 	self:defer(function()
@@ -74,14 +81,22 @@ function MainScreen:start_main_menu()
 		self:connect_start_game(self.current_screen)
         self:connect_options_menu(self.current_screen)
 		self:connect_start_title_screen(self.current_screen)
+        self:connect_codex_menu(self.current_screen)
 	end)
 end
 
 function MainScreen:start_options_menu()
-	self:defer(function()
-		self:set_current_screen(Screens.OptionsMenuScreen)
-		self:connect_exit_menu(self.current_screen, self.start_main_menu)
-	end)
+    self:defer(function()
+        self:set_current_screen(Screens.OptionsMenuScreen)
+        self:connect_exit_menu(self.current_screen, self.start_main_menu)
+    end)
+end
+
+function MainScreen:start_codex_menu()
+    self:defer(function()
+        self:set_current_screen(Screens.CodexScreen)
+        self:connect_exit_menu(self.current_screen, self.start_main_menu)
+    end)
 end
 
 function MainScreen:set_current_screen(screen)
@@ -102,7 +117,8 @@ function MainScreen:update(dt)
 		visible, relative = self.current_screen:get_mouse_mode()
 	end
 	love.mouse.set_visible(visible)
-	love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
+    love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
+	love.mouse.set_grabbed(not visible)
 end
 
 function MainScreen:draw()

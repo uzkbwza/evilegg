@@ -19,9 +19,9 @@ Foot.search_speed = 0.125
 Foot.spawn_cry = "enemy_foot_raise"
 Foot.spawn_cry_volume = 0.9
 
-Nose.sniff_radius = 190
+Nose.sniff_radius = 200
 
-EyeballLaser.accel_speed = 0.0005
+EyeballLaser.accel_speed = 0.00065
 EyeballLaser.no_death_splatter = true
 EyeballLaser.death_flash_size_mod = 3.0
 
@@ -186,7 +186,6 @@ function Eyeball:get_sprite_flip()
 	return h_flip, 1
 end
 
-
 function Eyeball:update(dt)
 	
     if self.is_new_tick and not self:is_tick_timer_running("aim_update") then
@@ -219,21 +218,17 @@ end
 function Hand:new(x, y)
     self.body_height = 8
     self.max_hp = 10
-	
 	self.hurt_bubble_radius = 12
-	
     Hand.super.new(self, x, y)
 	self.hit_bubble_radius = nil
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.WalkTowardPlayer)
-    self.walk_speed = 0.28
-	self.bullet_push_modifier = 0.6
-
+    self.walk_speed = 0.31
+	self.bullet_push_modifier = 0.5
     self.declump_radius = 16
     self.declump_mass = 2
-
 end
 
 function Hand:get_sprite()
@@ -255,7 +250,6 @@ function Hand:state_Searching_update(dt)
 	end
     Hand.super.update(self, dt)
 end
-
 
 function Hand:state_Searching_enter()
 	self.bullet_push_modifier = 3.0
@@ -405,7 +399,7 @@ end
 
 function Foot:state_Idle_update(dt)
 	self:set_body_height(splerp(self.body_height, 24 + sin(self.tick * 0.045 + self.random_offset_ratio * 255) * 2, 200, dt))
-    if self.is_new_tick and rng.percent(2) or self.state_tick > 70 then
+    if self.is_new_tick and rng.percent(2) or self.state_tick > 50 then
         self:change_state("Stomp")
     end
 end
@@ -655,7 +649,7 @@ function Nose:state_Sniff_update(dt)
     end
 end
 
-local SNIFF_FORCE = 0.9
+local SNIFF_FORCE = 1.3
 
 function Nose.do_sniff(object, self, dt)
 	local bx, by = self:get_body_center()
@@ -676,7 +670,7 @@ end
 
 function Mouth:new(x, y)
     self.body_height = 4
-    self.max_hp = 5
+    self.max_hp = 8
 	self.follow_allies = rng.coin_flip()
 
     self.hurt_bubble_radius = 8
@@ -689,7 +683,7 @@ function Mouth:new(x, y)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.WalkTowardPlayer)
-    self.walk_speed = 1.7
+    self.walk_speed = 1.85
 
     self.declump_radius = 8
     self.declump_mass = 4
@@ -702,7 +696,7 @@ function Mouth:update(dt)
 		self:play_sfx("enemy_mouth_skitter", 0.9)
 		self:start_tick_timer("pause_walking_toward_player", 30, function()
             self.pause_walking_toward_player = true
-			self:start_tick_timer("walk_cooldown", 20)
+			self:start_tick_timer("walk_cooldown", 15)
 		end)
 	end
 end

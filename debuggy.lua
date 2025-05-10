@@ -12,6 +12,8 @@ debuggy.profiling = false
 debuggy.disable_music = false
 debuggy.lines = {}
 debuggy.memory_used = 0
+debuggy.skip_tutorial_sequence = false
+debuggy.no_hatch_sound = false
 
 if IS_EXPORT then
 	debuggy.enabled = false
@@ -41,20 +43,66 @@ function debuggy.load()
 	end
 end
 
-function debuggy.printlines(line, x, y)
+function debuggy.printlines(x, y)
 	graphics.push("all")
-	local font = fonts["PixelOperator-double"]
+	local font = fonts["PixelOperator_double"]
 	graphics.set_font(font)
 	if not debuggy.can_draw() then
 		graphics.pop()
 		return
 	end
 	local line_height = font:getHeight() * 0.7
+
+	local sorted_lines = {}
+	for k, tab in pairs(debuggy.lines) do
+		table.insert(sorted_lines, {k, tab})
+	end
+	table.sort(sorted_lines, function(a, b)
+		local a_color = a[2][2] or Color.white
+		local b_color = b[2][2] or Color.white
+
+		if a_color == Color.white and b_color ~= Color.white then
+			return false
+		elseif a_color ~= Color.white and b_color == Color.white then
+			return true
+		end
+
+		local a_h, a_s, a_l = a_color:to_hsl()
+		local b_h, b_s, b_l = b_color:to_hsl()
+
+		if a_h < b_h then
+			return true
+		elseif a_h > b_h then
+			return false
+		end
+
+		if a_s < b_s then
+			return true
+		elseif a_s > b_s then
+			return false
+		end
+
+		if a_l < b_l then
+			return true
+		elseif a_l > b_l then
+			return false
+		end
+
+		if a_color == "num textures loaded" then
+			return true
+		elseif b_color == "num textures loaded" then
+			return false
+		end
+
+		return a[1] < b[1]
+	end)
 	
 	
     local counter = 0
-    for k, tab in pairs(debuggy.lines) do
-		local string = string.format("%s: %s", k, tab[1])
+	for i, line in pairs(sorted_lines) do
+		local k, tab = line[1], line[2]
+		local v, color = table.fast_unpack(tab)
+		local string = string.format("%s: %s", k, v)
 		local width = font:getWidth(string)
 		graphics.set_color(0, 0, 0, 0.5)
 		graphics.rectangle("fill", x, counter * line_height, width, line_height)
@@ -62,8 +110,9 @@ function debuggy.printlines(line, x, y)
 	end
 	
 	counter = 0
-	for k, tab in pairs(debuggy.lines) do
-        local v, color = unpack(tab)
+	for i, line in pairs(sorted_lines) do
+		local k, tab = line[1], line[2]
+		local v, color = table.fast_unpack(tab)
 
 		graphics.set_color(color or Color.white)
 		if v == "" then
@@ -336,6 +385,7 @@ function debuggy.type_count()
 end
 
 function dbg(k, v, color)
+	color = color or Color.white
 	if not debuggy.enabled then return end
 	if type(k) == "table" then
 		for k2, v2 in pairs(k) do

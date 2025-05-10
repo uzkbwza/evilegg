@@ -107,6 +107,7 @@ local conf = {
 			}
 		},
 
+
 		debug_editor_toggle = {
 			debug = true,
 			keyboard = { 
@@ -216,7 +217,9 @@ local conf = {
 				{ "lctrl", "[" },
 				{ "lctrl", "[" }
 			}
-		}
+		},
+		
+
 
 		
 	},

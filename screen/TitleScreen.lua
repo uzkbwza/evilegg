@@ -505,6 +505,7 @@ function TitleScreen:draw()
 
 	-- bench.end_bench("draw_stars")
 
+
 	graphics.set_font(fonts.depalettized.image_font1)
 
 	graphics.drawp_centered(textures.title_egg2, nil, 0, self.real_egg_pos.x * 0.9, self.real_egg_pos.y + self.start_offset_amount * -3)
@@ -570,6 +571,7 @@ function TitleScreen:draw()
 		graphics.pop()
 	end
 
+	-- if SCREENSHOT_MODE then return end
 
 	
     if self.showing_title_text then
@@ -603,7 +605,9 @@ function TitleScreen:draw()
 		graphics.printp_centered("PRESS " .. (input.last_input_device == "gamepad" and "START" or "LMB"), font, nil, 0, 0, TITLE_TEXT_Y_OFFSET + 28)
 	end
 
-	-- graphics.draw_centered(textures.capsule_shot2, 0, 0)
+	if SCREENSHOT_MODE then
+		graphics.draw_centered(textures.capsule_shot2, 0, 0)
+	end
 end
 
 return TitleScreen

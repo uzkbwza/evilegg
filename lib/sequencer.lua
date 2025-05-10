@@ -206,16 +206,32 @@ function Sequencer:wait_for(func)
 	end
 end
 
+function Sequencer:wait_for_property_to_equal(obj, property, value)
+    while obj[property] ~= value do
+        coroutine.yield()
+    end
+end
+
+function Sequencer:wait_until_truthy(obj, property)
+    while not obj[property] do
+        coroutine.yield()
+    end
+end
+
+function Sequencer:wait_until_falsy(obj, property)
+    while obj[property] do
+        coroutine.yield()
+    end
+end
+
 function Sequencer:wait_for_signal(obj, signal_id)
 	local chain = self.current_chain
 	self:suspend(chain)
     signal.connect(obj, signal_id, self, "resume_after_obj_signal_" .. tostring(signal_id),
-        function(...)
-			self.signal_output = {...}
+        function()
             self:resume(chain)
-			self.signal_output = nil
         end,
-			true)
+		true)
     if signal.get(obj, "destroyed") then
 		if not signal.is_connected(obj, "destroyed", self, "cancel_chain") then
 			signal.connect(obj, "destroyed", self, "cancel_chain", function() self:stop(chain) end, true)
@@ -242,9 +258,8 @@ function Sequencer:destroy()
     self.running = nil
     self.running_indices = nil
     self.current_chain = nil
-    self.signal_output = nil
 	self.suspended = nil
-	self.dt = nil
-    self.elapsed = nil
+	-- self.dt = nil
+    -- self.elapsed = nil
 	signal.cleanup(self)
 end

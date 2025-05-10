@@ -29,6 +29,7 @@ function RoomObject:new(x, y, room)
     self.icon_stencil_function = function()
         graphics.circle("fill", 0, 0, PLAYER_DISTANCE)
     end
+	
 	self.font = fonts.depalettized.image_font1
     self.all_shown = false
 end
@@ -90,10 +91,11 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 			local icon = graphics.depalettized[spawn.icon]
 			-- print(spawn.name)
 			local width, height = graphics.texture_data[icon]:getDimensions()
-			local middle_x, middle_y = floor(width / 2), floor(height / 2)
-			local icon_quad = graphics.new_quad(middle_x - ICON_SIZE / 2, middle_y - ICON_SIZE / 2, ICON_SIZE, ICON_SIZE, width, height)
-			-- local icon_quad = graphics.new_quad(0, 0, width, height, icon)
-			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, ICON_SIZE, ICON_SIZE))
+            local middle_x, middle_y = floor(width / 2), floor(height / 2)
+			local icon_width = min(ICON_SIZE, width)
+			local icon_height = min(ICON_SIZE, height)
+			local icon_quad = graphics.new_quad(middle_x - icon_width / 2, middle_y - icon_height / 2, icon_width, icon_height, width, height)
+			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, icon_width, icon_height))
 			current_icon = current_icon + 1
 			counter = counter + 1
 
@@ -418,7 +420,7 @@ function RoomObject:draw_line(line, y)
         -- graphics.draw(textures.enemy_base, 0, y, 0, 1, 1, 0, 0)
         for i, icon in pairs(line.data.icons) do
             if i < floor(line.t / 1) then
-                graphics.draw(icon, (i - 1) * (ICON_SIZE + 2), y, 0, 1, 1, 0, 0)
+                graphics.draw_centered(icon, (i - 1) * (ICON_SIZE + 2) + ICON_SIZE / 2, y + ICON_SIZE / 2, 0, 1, 1, 0, 0)
             end
         end
     elseif line.type == "separator" then

@@ -63,6 +63,9 @@ function MenuItem:new(x, y, width, height)
 end
 
 function MenuItem:add_neighbor(neighbor, direction)
+	if self.neighbors[direction] then
+		self:remove_neighbor(direction)
+	end
     self.neighbors[direction] = neighbor
 	signal.connect(neighbor, "destroyed", self, "on_neighbor_destroyed_" .. direction, function()
 		self.neighbors[direction] = nil
@@ -222,29 +225,59 @@ function MenuItem:unfocused_poll(dt)
 end
 
 function MenuItem:focused_poll(dt)
-    local input = self:get_input_table()
+	local input = self:get_input_table()
+	
+	if self.world.gamepad_nav_only then
+		if input.last_input_device ~= "gamepad" then
+			return
+		end
+	end
 
     if input.ui_nav_up_pressed and self.neighbors.up then
         self:defer(function()
-            self.neighbors.up:focus()
+			if input.ui_nav_left_pressed and self.neighbors.up.neighbors.left then
+				self.neighbors.up.neighbors.left:focus()
+			elseif input.ui_nav_right_pressed and self.neighbors.up.neighbors.right then
+				self.neighbors.up.neighbors.right:focus()
+			else
+				self.neighbors.up:focus()
+			end
         end)
     end
 
     if input.ui_nav_down_pressed and self.neighbors.down then
         self:defer(function()
-            self.neighbors.down:focus()
+			if input.ui_nav_left_pressed and self.neighbors.down.neighbors.left then
+				self.neighbors.down.neighbors.left:focus()
+			elseif input.ui_nav_right_pressed and self.neighbors.down.neighbors.right then
+				self.neighbors.down.neighbors.right:focus()
+			else
+				self.neighbors.down:focus()
+			end
         end)
     end
 
     if input.ui_nav_left_pressed and self.neighbors.left then
         self:defer(function()
-            self.neighbors.left:focus()
+			if input.ui_nav_up_pressed and self.neighbors.left.neighbors.up then
+				self.neighbors.left.neighbors.up:focus()
+			elseif input.ui_nav_down_pressed and self.neighbors.left.neighbors.down then
+				self.neighbors.left.neighbors.down:focus()
+			else
+				self.neighbors.left:focus()
+			end
         end)
     end
 
     if input.ui_nav_right_pressed and self.neighbors.right then
         self:defer(function()
-            self.neighbors.right:focus()
+			if input.ui_nav_up_pressed and self.neighbors.right.neighbors.up then
+				self.neighbors.right.neighbors.up:focus()
+			elseif input.ui_nav_down_pressed and self.neighbors.right.neighbors.down then
+				self.neighbors.right.neighbors.down:focus()
+			else
+				self.neighbors.right:focus()
+			end
         end)
     end
 end
@@ -312,6 +345,7 @@ function MenuItem:add_child(child)
     end
 
     child.z_index = child.z_index + self.z_index + 1
+	return child
 end
 
 function MenuItem:remove_child(child)

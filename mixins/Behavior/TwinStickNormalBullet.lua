@@ -134,7 +134,7 @@ function TwinStickNormalBullet.try_hit(bubble, self)
 
 	if parent.intangible then return end
 
-	local bubble_x, bubble_y = bubble:get_position()
+	-- local bubble_x, bubble_y = bubble:get_position()
 	if bubble:collides_with_capsule(self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius) then
 		parent:hit_by(self)
 		self:on_hit_something(parent, bubble)

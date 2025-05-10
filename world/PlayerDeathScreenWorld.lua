@@ -1,10 +1,13 @@
 local PlayerDeathScreenWorld = World:extend("PlayerDeathScreenWorld")
 local O = require("obj")
+
 function PlayerDeathScreenWorld:new()
 	PlayerDeathScreenWorld.super.new(self)
     self:add_signal("restart_requested")
 	self:add_signal("quit_requested")
 	self:add_signal("menu_item_selected")
+	self.blocks_render = true
+	self.blocks_logic = true
 end
 
 function PlayerDeathScreenWorld:enter()

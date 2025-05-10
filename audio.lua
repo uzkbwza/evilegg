@@ -24,14 +24,16 @@ function audio.load()
     local wav_paths = filesystem.get_files_of_type("assets/audio", "wav", true)
     local ogg_paths = filesystem.get_files_of_type("assets/audio", "ogg", true)
 
-    for _, v in ipairs(wav_paths) do
-        local sound = audio.newSource(v, "static")
-        local name = filesystem.filename_to_asset_name(v, "wav", "audio_")
-        if sfx[name] then
-            asset_collision_error(name, v, wav_paths[name])
-        end
-        sfx[name] = sound
-    end
+	for _, v in ipairs(wav_paths) do
+		local sound = audio.newSource(v, "static")
+		local name = filesystem.filename_to_asset_name(v, "wav", "audio_")
+		if sfx[name] then
+			asset_collision_error(name, v, wav_paths[name])
+		end
+		sfx[name] = sound
+	end
+	
+	dbg("num sfx loaded", table.length(sfx))
 
 
     for _, v in ipairs(ogg_paths) do
@@ -177,8 +179,20 @@ function audio.get_sfx(name)
 	return audio.sfx[name]:clone()
 end
 
-function audio.play_music(src, volume)
+function audio.play_music_if_stopped(src, volume)
+
+	if type(src) == "string" then
+		src = audio.get_music(src)
+	end
+
+    if audio.playing_music == src then
+        return
+    end
 	
+	audio.play_music(src, volume)
+end
+
+function audio.play_music(src, volume)
     if debug.enabled and debug.disable_music then
 		return
 	end

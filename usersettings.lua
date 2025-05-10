@@ -8,6 +8,7 @@ local default_usersettings = {
 	fps_cap = 300,
     cap_framerate = true,
 	zoom_level = 1,
+	skip_tutorial = false,
 	
     -- fx
     screen_shake_amount = 1,

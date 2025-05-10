@@ -39,7 +39,7 @@ function Heart:empty_animation()
 	-- self:spawn_object(Heart(self.pos.x + 10, self.pos.y))
     -- self:spawn_object(Heart(self.pos.x - 10, self.pos.y))
 	self:spawn_object(DeathFlash(self.pos.x, self.pos.y, textures.pickup_heart_icon2, 0.5, nil, nil, false))
-	self:spawn_object(DeathSplatter(self.pos.x + 1, self.pos.y + 2, 1, textures.pickup_heart_icon2, Palette[textures.pickup_heart_icon2], 2, 0, 0, self.pos.x + 6, self.pos.y + 10, 3))
+	self:spawn_object(DeathSplatter(self.pos.x + 1, self.pos.y + 2, 1, textures.pickup_heart_icon2, Palette[textures.pickup_heart_icon2], 2, 0, 0, nil, nil, 3))
 end
 
 function Heart:fill()

@@ -115,6 +115,12 @@ function BigWalker:new(x, y)
 	self.shoot_offset = round(rng.randfn(0, 15))
 end
 
+
+function BigWalker:enter()
+	self.start_tick = self.world.timescaled.tick
+end
+
+
 function BigWalker:get_sprite()
     return textures.enemy_bigwalker
 end
@@ -124,12 +130,12 @@ BigWalker.bullet_speed = 2.5
 function BigWalker:update(dt)
 	
 	BigWalker.super.update(self, dt)
-	if self.is_new_tick and self.tick > 60 and (self.world.timescaled.tick + self.shoot_offset) % 130 == 0 and not self:is_tick_timer_running("shoot_cooldown") then
+	if self.is_new_tick and self.tick > 60 and (self.tick + self.start_tick + self.shoot_offset) % 130 == 0 and not self:is_tick_timer_running("shoot_cooldown") then
 		local bx, by = self:get_body_center()
 		local pbx, pby = self:closest_last_player_body_pos()
         local dx, dy = vec2_direction_to(bx, by, pbx, pby)
 		dx, dy = vec2_mul_scalar(dx, dy, BigWalker.bullet_speed)
-        self:spawn_object(BigWalkerBullet(bx, by)):apply_impulse(vec2_rotated(dx, dy, rng.randfn(0, tau / 20)))
+        self:spawn_object(BigWalkerBullet(bx, by)):apply_impulse(vec2_rotated(dx, dy, rng.randfn(0, tau / 32)))
         self:play_sfx("enemy_bigwalker_shoot")
         self.shoot_offset = round(rng.randfn(0, 15))
 		self:start_tick_timer("shoot_cooldown", 45)
@@ -146,21 +152,21 @@ function BigWalkerBullet:new(x, y)
 	self.hurt_bubble_radius = 5
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
-	self.bullet_push_modifier = 0.5
+	self.bullet_push_modifier = 0.85
     self.z_index = 10
 end
 
 function BigWalkerBullet:get_sprite()
-    return textures.enemy_bigwalker_bullet
+    return self:tick_pulse(3) and textures.enemy_bigwalker_bullet1 or textures.enemy_bigwalker_bullet2
 end
 
-function BigWalkerBullet:get_palette()
-	local palette, offset = BigWalkerBullet.super.get_palette(self)
+-- function BigWalkerBullet:get_palette()
+-- 	local palette, offset = BigWalkerBullet.super.get_palette(self)
 
-	offset = idiv(self.tick, 3)
+-- 	offset = idiv(self.tick, 3)
 
-	return palette, offset
-end
+-- 	return palette, offset
+-- end
 
 function BigWalkerBullet:update(dt)	
 end

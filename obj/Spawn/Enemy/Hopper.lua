@@ -137,7 +137,18 @@ end
 
 function BigHopper:state_Hopping_exit()
 	BigHopper.super.state_Hopping_exit(self)
-	self.drag = 0.05
+    self.drag = 0.05
+
+	local num_hoppers = rng.randi(5, 7)
+
+	if not game_state.game_over then
+		for i = 1, num_hoppers do
+			local angle = (tau / num_hoppers) * i + self.elapsed + self.random_offset
+			local hopper = self:spawn_object(Hopper(self.pos.x, self.pos.y))
+			hopper:apply_impulse(vec2_from_polar(6, angle))
+			hopper:make_required_kill_on_enter()
+		end
+	end
 end
 
 function BigHopper:update(dt)

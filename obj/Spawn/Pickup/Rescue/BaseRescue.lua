@@ -188,6 +188,9 @@ end
 
 function BaseRescue:register_pickup(pickup)
     self.holding_pickup = pickup
+	-- if not savedata:check_codex_item(self.holding_pickup.name) then
+	savedata:add_item_to_codex(self.holding_pickup.name)
+	-- end
 end
 
 function BaseRescue:get_sprite()
@@ -200,6 +203,12 @@ end
 
 function BaseRescue:on_pickup()
 	local bx, by = self:get_body_center()
+
+
+	for i=1, self.max_hp - self.hp do
+		game_state:on_greenoid_harmed()
+	end
+
     if self.holding_pickup then
 		local pickup_volume = 0.87
         if self.holding_pickup.sound then
@@ -231,6 +240,7 @@ function BaseRescue:on_pickup()
 			bullet.direction = angle_to_vec2(tau / num_bullets * i)
 		end
 	end
+
 
 	-- for i = 1, 5 do
 	-- 	audio.stop_sfx_monophonic("pickup_rescue_save" .. i)
@@ -265,6 +275,9 @@ function BaseRescue:on_health_reached_zero()
 end
 
 function BaseRescue:die()
+	for i=1, self.max_hp do
+		game_state:on_greenoid_harmed()
+	end
 	local bx, by = self:get_body_center()
 	local sprite = self:get_sprite()
 	local flash = self:spawn_object(HurtFlashFx(self, bx, by+1, 64, true))
@@ -323,7 +336,7 @@ function BaseRescue:update(dt)
     end
 
     if self.is_new_tick and game_state.artefacts.warbell then
-        if (self.tick + self.random_offset) % 13 == 0 then
+        if (self.tick + self.random_offset) % (game_state.upgrades.fire_rate and 10 or 13) == 0 then
             local bx, by = self:get_body_center()
             local x, y = bx - WARBELL_RADIUS, by - WARBELL_RADIUS
             local w, h = WARBELL_RADIUS * 2, WARBELL_RADIUS * 2
@@ -357,8 +370,6 @@ function BaseRescue:draw()
 		BaseRescue.super.draw(self)
 		graphics.pop()
     end
-	
-
 end
 
 function BaseRescueArrowParticle:new(x, y, target)

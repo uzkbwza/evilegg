@@ -9,49 +9,51 @@ local callback_names = {
 }
 
 
-function AutoStateMachine:get_state_methods(methods)
+function AutoStateMachine.get_state_methods(class, methods)
     local m = methods or {}
     
-    for k, v in pairs(self) do
+	local super = class.super
+
+    if super then
+        m = table.merged(m, AutoStateMachine.get_state_methods(super, m), true)
+    end
+
+    for k, v in pairs(class) do
         if type(v) == "function" then
-            m[k] = v
+			if string.startswith(k, "state_") then
+            	m[k] = v
+			end
         end
     end
 
-	local super = self.super
-
-    -- Check if metatable exists and has an __index table
-    if super then
-        return AutoStateMachine.get_state_methods(super, m)
-    end
 	
 	return m
 end
 
-function AutoStateMachine:set_up_class(start_state)
-    self.state_methods = {}
-    -- if self == require("obj.Spawn.Enemy.BigHopper") then
+function AutoStateMachine.set_up_class(class, start_state)
+    class.state_methods = {}
+    -- if class == require("obj.Spawn.Enemy.BigHopper") then
     --     print("BigHopper")
     -- end
-    for k, v in pairs(AutoStateMachine.get_state_methods(self)) do
+	local state_methods = AutoStateMachine.get_state_methods(class)
+
+    for k, v in pairs(state_methods) do
         if type(v) == "function" then
-            if string.startswith(k, "state_") then
-                local name = string.split(string.sub(k, 6), "_")[1]
-                local callback = nil
-                for _, callback_name in ipairs(callback_names) do
-                    if string.endswith(k, callback_name) then
-                        callback = callback_name
-                    end
-                end
-                self.state_methods[name] = self.state_methods[name] or {}
-                table.insert(self.state_methods[name], { func = v, callback_name = callback })
-            end
+			local name = string.split(string.sub(k, 6), "_")[1]
+			local callback = nil
+			for _, callback_name in ipairs(callback_names) do
+				if string.endswith(k, callback_name) then
+					callback = callback_name
+				end
+			end
+			class.state_methods[name] = class.state_methods[name] or {}
+			table.insert(class.state_methods[name], { func = v, callback_name = callback })
         end
     end
-    self.start_state = start_state
-	self.auto_state_machine = true
-    self.change_state = AutoStateMachine.change_state
-	self.init_state_machine = AutoStateMachine.init_state_machine
+    class.start_state = start_state
+	class.auto_state_machine = true
+    class.change_state = AutoStateMachine.change_state
+	class.init_state_machine = AutoStateMachine.init_state_machine
 end
 
 function AutoStateMachine:init_state_machine()

@@ -2,7 +2,7 @@ local HoopSnake = BaseEnemy:extend("HoopSnake")
 local HoopSnakeSegmentProjectile = BaseEnemy:extend("HoopSnakeSegmentProjectile")
 
 HoopSnake.base_radius = 7
-HoopSnake.base_segments = 7
+HoopSnake.base_segments = 9
 HoopSnake.segment_hp = 2
 HoopSnake.spawn_cry = "enemy_hoop_snake_spawn"
 HoopSnake.spawn_cry_volume = 1.0
@@ -56,7 +56,7 @@ function HoopSnake:new(x, y)
 end
 
 function HoopSnake:get_bullet_push_modifier()
-	return lerp(2.2, 1.35, self.segment_ratio)
+	return lerp(1.5, 0.85, self.segment_ratio)
 end
 
 function HoopSnake:enter()
@@ -231,7 +231,7 @@ function HoopSnake:update(dt)
     self.angular_accel = 0
     self.angular_vel = drag(self.angular_vel, 0.95, dt)
 	-- self.bullet_angle = self.bullet_angle - dt * lerp(self.bullet_angle_min_speed, self.bullet_angle_max_speed, 1 - self.segment_ratio) * self.bullet_angle_dir
-	self.bullet_angle = self.bullet_angle_offset + self.angle_offset * 0.1
+	self.bullet_angle = self.bullet_angle_offset + self.angle_offset * 0.11
 
 	if self.is_new_tick and rng.percent(3 + 30 * (1 - self.segment_ratio)) then
 		self:play_sfx("enemy_hoop_snake_hiss", 0.5)

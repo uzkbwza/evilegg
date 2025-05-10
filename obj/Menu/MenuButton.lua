@@ -35,7 +35,11 @@ function MenuButton:update_shared(dt)
 end
 
 function MenuButton:try_press(input)
-	if self.focused and (input.ui_confirm_pressed or self.mouse_held.lmb) then
+	
+	local gamepad_nav_only = self.world.gamepad_nav_only and input.last_input_device ~= "gamepad"
+		
+	
+	if self.focused and ((input.ui_confirm_pressed and not gamepad_nav_only) or self.mouse_held.lmb) then
         self.pressed = true
         
 		self.pressed_by_mouse = self.mouse_held.lmb and not input.ui_confirm_pressed

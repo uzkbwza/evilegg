@@ -12,12 +12,35 @@ local SpawnDataTable = {
 	data_by_type_then_spawn_group_then_level = {},
 }
 
+local function prime_class_for_codex_unlock(class, spawn_data)
+
+	if savedata:check_codex_item(spawn_data.name) then
+		return
+	end
+
+    if class then
+		class.codex_old_enter = class.enter
+
+        class.codex_new_enter = function(table, ...)
+            savedata:add_item_to_codex(spawn_data.name)
+			class.codex_old_enter(table, ...)
+			class.codex_new_enter = class.codex_old_enter
+		end
+
+		class.codex_enter_container = function(table, ...)
+			class.codex_new_enter(table, ...)
+		end
+
+		class.enter = class.codex_enter_container
+	end
+end
+
 local function process_enemy_table(t)
     for _, value in pairs(t) do
         if Object.is(value, Object) then
             local name = value.__class_type_name
             if SpawnDataTable[name] then
-                error("duplicate enemy name: " .. name .. " and " .. value.__class_type_name)
+                error("duplicate spawn name: " .. name .. " and " .. value.__class_type_name)
             end
             if SpawnDataTable.data[name] then
 				-- if not SpawnDataTable[name] then
@@ -27,7 +50,9 @@ local function process_enemy_table(t)
 				SpawnDataTable[name] = value
                 -- SpawnDataTable[value] = SpawnDataTable[name]
                 SpawnDataTable.data[name].class = SpawnDataTable[name]
-				SpawnDataTable[name].spawn_data = SpawnDataTable.data[name]
+                SpawnDataTable[name].spawn_data = SpawnDataTable.data[name]
+				
+				prime_class_for_codex_unlock(SpawnDataTable.data[name].class, SpawnDataTable[name].spawn_data)
             else
 				print("no spawn data found for " .. name)
             end

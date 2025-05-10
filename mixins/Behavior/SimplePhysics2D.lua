@@ -127,6 +127,10 @@ function SimplePhysics2D:apply_impulsev_relative(force)
     self:apply_impulse(force.x * self.flip, force.y)
 end
 
+function SimplePhysics2D:physics_move(dt)
+	self:move_to(self.pos.x + self.vel.x * dt, self.pos.y + self.vel.y * dt)
+end
+
 function SimplePhysics2D:apply_simple_physics(dt)
 	if not self.applying_physics then return end
 	self:apply_force(0, self.gravity)
@@ -134,11 +138,12 @@ function SimplePhysics2D:apply_simple_physics(dt)
 	local ix, iy = self.impulses.x, self.impulses.y
 	self.vel:add_in_place(ix, iy)
     self.vel:add_in_place(ax, ay)
-	for i, func in ipairs(self.manipulate_velocity_functions) do
-		func(self, dt)
-	end
+    for i, func in ipairs(self.manipulate_velocity_functions) do
+        func(self, dt)
+    end
 	
-	self:move_to(self.pos.x + self.vel.x * dt, self.pos.y + self.vel.y * dt)
+	self:physics_move(dt)
+	
 	self.accel:mul_in_place(0)
 	self.impulses:mul_in_place(0)
 

@@ -5,10 +5,15 @@ local ArtefactSpawner = GameObject2D:extend("ArtefactSpawner")
 
 local Splatter = require("fx.just_the_splatter")
 
+local XpPickup = require("obj.XpPickup")
+
+local ARTEFACT_XP = 1500
+
 function ArtefactSpawn:new(x, y, artefact)
     ArtefactSpawn.super.new(self, x, y)
 	
-	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
+	-- self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
+    self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
     -- self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     
@@ -17,11 +22,16 @@ function ArtefactSpawn:new(x, y, artefact)
 	
 	-- self.declump_radius = 32
 	-- self.declump_modifier = 0.5
-	self.artefact = artefact
+    self.artefact = artefact
+	self.is_artefact = true
     self:add_time_stuff()
 	self:init_state_machine()
     self.text_amount = 0
-	self.z_index = 5
+    self.text_amount2 = 0
+    self.text_amount3 = 0
+    self.text_amount4 = 0
+    self.z_index = 1.9
+	self.hp = 10
 	
     self.title_palette_stack = PaletteStack(Color.black)
 	self.title_palette_stack:push(Palette.artefact_title_border, 1)
@@ -30,6 +40,12 @@ function ArtefactSpawn:new(x, y, artefact)
 	self.desc_palette_stack = PaletteStack(Color.black)
 	self.desc_palette_stack:push(Palette.artefact_desc_border, 1)
     self.desc_palette_stack:push(Palette.artefact_desc, 1)
+
+	savedata:add_item_to_codex(self.artefact.name)
+end
+
+function ArtefactSpawn:enter()
+	self:add_tag("artefact")
 end
 
 function ArtefactSpawn:state_Dormant_enter()
@@ -63,25 +79,59 @@ function ArtefactSpawn:state_Dormant_update(dt)
 end
 
 function ArtefactSpawn:state_Idle_enter()
+    self:add_hurt_bubble(0, 0, 12, "main")
     self:show()
-	local s = self.sequencer
+    local s = self.sequencer
     s:start(function()
         s:start(function()
             self.text_amount = 0
-			s:tween_property(self, "text_amount", 0, 1, 15, "linear")
-		end)
-		s:wait(20)
-		self.pickupable = true
+			self.text_amount2 = 0
+			self.text_amount3 = 0
+            s:tween_property(self, "text_amount", 0, 1, 15, "linear")
+            s:tween_property(self, "text_amount2", 0, 1, 15, "linear")
+            s:tween_property(self, "text_amount3", 0, 1, 15, "linear")
+            s:tween_property(self, "text_amount4", 0, 1, 15, "linear")
+        end)
+        s:wait(20)
+        self.pickupable = true
     end)
     local players = self:get_players()
-	for _, player in players:ipairs() do
-		local bx, by = player:get_body_center()
-		local diffx, diffy = bx - self.pos.x, by -self.pos.y
-		local dist = vec2_magnitude(diffx, diffy)
-		local dx, dy = vec2_normalized(diffx, diffy)
-		local speed = 6 * max(0, (1 - dist / 100))
-		player:apply_impulse(dx * speed, dy * speed)
+    for _, player in players:ipairs() do
+        local bx, by = player:get_body_center()
+        local diffx, diffy = bx - self.pos.x, by - self.pos.y
+        local dist = vec2_magnitude(diffx, diffy)
+        local dx, dy = vec2_normalized(diffx, diffy)
+        local speed = 6 * max(0, (1 - dist / 100))
+        player:apply_impulse(dx * speed, dy * speed)
+    end
+end
+
+function ArtefactSpawn:hit_by(other)
+	if self:is_tick_timer_running("hit_cooldown") then return end
+	self:start_tick_timer("hit_cooldown", 2)
+    self.hp = self.hp - 1
+    local s = self.sequencer
+	
+	self:start_timer("damage_flash", 10)
+	
+	if self.hp <= 0 then
+        self:queue_destroy()
+        self:spawn_object(XpPickup(self.pos.x, self.pos.y, ARTEFACT_XP))
+        self:play_sfx("pickup_artefact_explode", 0.8)
+		game_state:on_artefact_destroyed(self.artefact)
+    else
+		self:play_sfx("pickup_artefact_hurt", 0.6)
 	end
+end
+
+function ArtefactSpawn:get_palette()
+	local palette = nil
+	local offset = 0
+	if self:is_timer_running("damage_flash") then
+		palette = Palette.cmy
+		offset = idiv(self.tick, 3)
+	end
+	return palette, offset
 end
 
 function ArtefactSpawn:state_Idle_draw()
@@ -101,8 +151,9 @@ function ArtefactSpawn:state_Idle_draw()
 		graphics.rectangle_centered("line", x, y, 5, 5)
 	end
 	
-	graphics.set_color(Color.white)
-	graphics.drawp_centered(self.artefact.icon, nil, 0, 0, sin(elapsed / 20) * 1)
+    graphics.set_color(Color.white)
+	local palette, offset = self:get_palette()
+	graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, 0, sin(elapsed / 20) * 1)
 	
 	graphics.set_color(Color.black)
 	
@@ -121,7 +172,26 @@ function ArtefactSpawn:state_Idle_draw()
 	graphics.printp_centered(name, self.font, self.title_palette_stack, 0, 0, -16)
 	self.desc_palette_stack:set_palette_offset(2, tick / 5)
 	self.desc_palette_stack:set_palette_offset(3, tick / 3)
-	graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, 0, 16)
+    graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, 0, 16)
+	
+	
+	if self.artefact.is_secondary_weapon then
+		local tip1 = "USE WITH " .. (input.last_input_device == "gamepad" and "RIGHT TRIGGER" or "RMB")
+		local tip3 = "REQUIRES " .. self.artefact.ammo_needed_per_use .. " AMMO PER USE"
+		local tip2 = "GAINS " .. self.artefact.ammo_gain_per_level .. " AMMO PER LEVEL"
+		
+		tip1 = tip1:sub(1, tip1:len() * self.text_amount2)
+		tip2 = tip2:sub(1, tip2:len() * self.text_amount3)
+		tip3 = tip3:sub(1, tip3:len() * self.text_amount4)
+		graphics.set_font(fonts.depalettized.image_font2)
+		
+		graphics.set_color(Color.white)
+		graphics.print_centered(tip1, fonts.depalettized.image_font2, 0, 25)
+		graphics.set_color(Color.green)
+		graphics.print_centered(tip2, fonts.depalettized.image_font2, 0, 34)
+		graphics.set_color(Color.red)
+		graphics.print_centered(tip3, fonts.depalettized.image_font2, 0, 43)
+	end
 
 
 end
@@ -230,6 +300,10 @@ function ArtefactSpawner:draw()
 
 	-- print(self.sky_laser_top, self.sky_laser_bottom)
     graphics.rectangle("fill", laser_rect_x, laser_y_start, laser_width, laser_vert_amount)
+end
+
+function ArtefactSpawner:enter()
+	-- self:add_tag("artefact")
 end
 
 AutoStateMachine(ArtefactSpawn, "Dormant")
