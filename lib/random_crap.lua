@@ -6,7 +6,7 @@ function UUID()
 		r = (x == "x") and (r + 1) or (r % 4) + 9
 		return ("0123456789abcdef"):sub(r, r)
 	end
-	return (("xxxxxxxx-xxxx-xxxx-yxxx-xxxxxxxxxxxx"):gsub("[xy]", fn))
+	return (("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"):gsub("[xy]", fn))
 end
 
 -- Removes all references to a module.

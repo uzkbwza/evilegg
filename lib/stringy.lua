@@ -1,4 +1,5 @@
 local stringy = setmetatable({}, {__index = string})
+utf8 = require "utf8"
 
 function stringy.startswith(s, e)
 	return string.match(s, "^" .. e) ~= nil
@@ -93,6 +94,12 @@ function stringy.join(t, separator)
 			stringy = stringy..separator
 		end
 	end
+end
+
+function utf8.sub(s,i,j)
+    i=utf8.offset(s,i)
+    j=utf8.offset(s,j+1)-1
+    return string.sub(s,i,j)
 end
 
 return stringy

@@ -126,9 +126,16 @@ function HUDLayer:start_after_level_bonus_screen()
             }
             table.insert(self.after_level_bonus_screen.bonuses, b)
             while b.count < bonus_table.count do
+
+				-- if b.count == 0 then
+					-- self:play_sfx("ui_bonus_screen_beep3", 0.5)
+				-- else
+				self:play_sfx("ui_bonus_screen_beep", 0.5)
+				-- end
+
                 b.count = b.count + 1
                 update_bonus_info(bonus, b, b.count)
-                self:play_sfx("bonus_screen_beep", 0.5)
+
                 if wait_for_bonus(b) then
 					wait(2)
 				end
@@ -179,8 +186,9 @@ function HUDLayer:start_after_level_bonus_screen()
 					b.score_apply_highlight_amount = 1
 					s:tween_property(b, "score_apply_highlight_amount", 1, 0, 12, "outCubic")
 				end)
-				
-                self:play_sfx("bonus_screen_beep2", 0.75)
+
+
+                self:play_sfx("ui_bonus_screen_beep2", 0.75)
                 if wait_for_bonus(b) then
                     wait(4)
                 end
@@ -197,15 +205,15 @@ function HUDLayer:start_after_level_bonus_screen()
 			local bonus = self.after_level_bonus_screen.bonuses[i]
 			table.remove(self.after_level_bonus_screen.bonuses, i)
             s:wait(2)
-			self:play_sfx("bonus_screen_beep", 0.5)
+			self:play_sfx("ui_bonus_screen_beep", 0.5)
 			
 		end
 		
 		self.after_level_bonus_screen = nil
-		self:play_sfx("bonus_screen_beep", 0.5)
-
-        s:wait(2)
+		self:play_sfx("ui_bonus_screen_beep", 0.5)
 		
+		s:wait(2)
+				
         if self.game_layer.world then
             self.game_layer.world.waiting_on_bonus_screen = false
         end
@@ -304,18 +312,8 @@ function HUDLayer:pre_world_draw()
     local bottom = y_start + v_padding + game_area_height + 11
     local font = fonts.hud_font
 
-
-    local quick_clear_ratio = clamp01(self.game_layer.world:get_quick_clear_time_left_ratio())
-	if quick_clear_ratio > 0 then
-		quick_clear_ratio = 1 - quick_clear_ratio
-	end
     local border_color = self.game_layer.world:get_border_rainbow()
-	local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
-    graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
-	local x_scale = game_area_width * quick_clear_ratio
-	-- local y_scale = 2 + 4 * (1 - quick_clear_ratio)
-	local y_scale = 2
-    graphics.rectangle("fill", (left + 1), top + 8 - y_scale, x_scale, y_scale)
+
 
     graphics.set_font(font)
     graphics.set_color(Color.white)
@@ -341,21 +339,44 @@ function HUDLayer:pre_world_draw()
 	
     graphics.print(level_without_zeroes, level_x + zero_start, 0)
     graphics.set_color(Color.grey)
-    graphics.print("WAVE", charwidth * 10, 0)
+    graphics.print("WAVE", 32, 0)
 	graphics.set_color(Color.white)
-    graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + charwidth * 10, 0)
-	
+    graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + 32, 0)
     graphics.set_color(Color.darkergrey)
 	
 	
-	local score_with_zeroes, score_without_zeroes, score_x = format_score(self.score_display % 1000000000, 9, font)
-
 	graphics.translate(charwidth * 20 + 6, 0)
-    graphics.print(score_with_zeroes, 9, 0)
+	graphics.translate(charwidth * 11 + 3, 0)
+
+	local high_score = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].score or 0
+
+	if self.score_display < high_score then
+		graphics.set_color(Color.darkgrey)
+		local i = 1
+		local finished = false
+		local tens = 1
+		while not finished do
+			if idiv(self.score_display, tens) > 0 then
+				tens = tens * 10
+			else
+				finished = true
+			end
+		end
+		high_score = high_score - (high_score % tens) + self.score_display
+		local best_score = comma_sep(high_score)
+		graphics.set_color(Color.darkergrey)
+		graphics.print_right_aligned(best_score, font, 0, 0)
+	end
+
+
+	local score_without_zeroes = comma_sep(self.score_display)
+
+    -- graphics.print(score_without_zeroes, score_width, 0)
+	-- graphics.print(score_without_zeroes, score_width + 9, 0)
+
 	graphics.set_color(border_color)
-    graphics.print(score_without_zeroes, score_x + 9, 0)
+	graphics.print_right_aligned(score_without_zeroes, font, 0, 0)
 	graphics.set_color(Color.grey)
-    graphics.translate(charwidth * 11 + 3, 0)
 	
     local scoremult1 = "×["
     local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
@@ -491,7 +512,7 @@ function HUDLayer:pre_world_draw()
 			graphics.set_color(font_color)
             graphics.push("all")
             if bonus.score_apply_highlight_amount and bonus.score_apply_highlight_amount > 0.55 then
-                graphics.set_color(Color.darkred)
+                graphics.set_color(Color.cyan)
                 total_highlight_amount = max(total_highlight_amount, bonus.score_apply_highlight_amount)
             end
 

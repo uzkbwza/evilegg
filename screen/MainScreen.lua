@@ -1,8 +1,9 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 
--- local debug_start = "game"
+local debug_start = "game"
 -- local debug_start = "codex_menu"
-local debug_start = "main_menu"
+-- local debug_start = "main_menu"
+-- local debug_start = "leaderboard_menu"
 
 function MainScreen:new()
     MainScreen.super.new(self)
@@ -48,7 +49,9 @@ function MainScreen:connect_codex_menu(screen)
     signal.connect(screen, "codex_menu_requested", self, "start_codex_menu")
 end
 
-
+function MainScreen:connect_leaderboard_menu(screen)
+    signal.connect(screen, "leaderboard_menu_requested", self, "start_leaderboard_menu")
+end
 
 function MainScreen:start_game()
 	self:defer(function()
@@ -56,6 +59,7 @@ function MainScreen:start_game()
 		self:set_current_screen(Screens.GameScreen)
 		self:connect_restart(self.current_screen)
 		self:connect_quit_to_main_menu(self.current_screen)
+		self:connect_leaderboard_menu(self.current_screen)
 	end)
 end
 
@@ -82,6 +86,7 @@ function MainScreen:start_main_menu()
         self:connect_options_menu(self.current_screen)
 		self:connect_start_title_screen(self.current_screen)
         self:connect_codex_menu(self.current_screen)
+        self:connect_leaderboard_menu(self.current_screen)
 	end)
 end
 
@@ -99,6 +104,12 @@ function MainScreen:start_codex_menu()
     end)
 end
 
+function MainScreen:start_leaderboard_menu()
+    self:defer(function()
+        self:set_current_screen(Screens.LeaderboardScreen)
+        self:connect_exit_menu(self.current_screen, self.start_main_menu)
+    end)
+end
 function MainScreen:set_current_screen(screen)
 	if self.current_screen then
 		self.current_screen:destroy()

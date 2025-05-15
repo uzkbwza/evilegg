@@ -323,7 +323,16 @@ end
 
 function graphics.initialize_screen_shader_presets()
 	graphics.screen_shader_presets = {
+		
+        {
+            "shader_preset_none",
+			{ shader = graphics.shader.nothing, args = {} },
+			-- graphics.shader.basic
+			-- { shader = graphics.shader.none, args = {} },
+		},
+
 		{
+			
 			"shader_preset_soft",
 			-- graphics.shader.basic
 			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.065, pre_blur_samples = 7 } },
@@ -393,9 +402,31 @@ function graphics.initialize_screen_shader_presets()
 			-- { shader = graphics.shader.lcd,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 2.0 } },
 		},
 	}
+
+    graphics.adjustment_shader_options = graphics.adjustment_shader_options or {
+		brightness = usersettings.brightness,
+		saturation = usersettings.saturation,
+		hue = usersettings.hue,
+		invert_colors = usersettings.invert_colors,
+	}
+
+	for i, shader_table in ipairs(graphics.screen_shader_presets) do
+		-- if shader_table[1] == "shader_preset_none" then
+			-- graphics.set_screen_shaders(shader_table)
+        -- end
+        table.insert(shader_table, 2, {
+			shader = graphics.shader.adjustment,
+			args = graphics.adjustment_shader_options,
+		})
+	end
 end
 
 function graphics.set_screen_shader_from_preset(preset)
+	-- if preset == "shader_preset_none" then
+		-- graphics.set_screen_shaders(nil)
+		-- return
+	-- end
+
 	if graphics.current_screen_shader_preset == preset then
 		return
 	end
@@ -548,7 +579,12 @@ function graphics.draw_loop()
     canvas_pos.x = window_size.x / 2 - (canvas_size.x) / 2
     canvas_pos.y = window_size.y / 2 - (canvas_size.y) / 2
 
-	dbg("viewport_size", viewport_size)
+	if debug.enabled then
+        dbg("viewport_size", viewport_size)
+        dbg("hue", graphics.adjustment_shader_options.hue)
+		dbg("brightness", graphics.adjustment_shader_options.brightness)
+		dbg("saturation", graphics.adjustment_shader_options.saturation)
+	end
 	
     if (abs(graphics.canvas:getWidth() - viewport_size.x) >= 1 or abs(graphics.canvas:getHeight() - viewport_size.y) >= 1) then
         graphics.canvas:release()
@@ -586,7 +622,7 @@ function graphics.draw_loop()
 
 	local canvas_to_draw = graphics.canvas
 
-	if usersettings.use_screen_shader and viewport_pixel_scale > 1 then
+	if viewport_pixel_scale > 1 then
 		if gametime.tick % 10 == 0 then
 			-- pcall(graphics.shader.update)
 		end
@@ -923,8 +959,20 @@ function graphics.rectangle_centered(mode, x, y, width, height)
 	love.graphics.rectangle(mode, x - width / 2, y - height / 2, width, height)
 end
 
-function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
-	love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+-- function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+	-- love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+-- end
+
+function graphics.print_right_aligned(text, font, end_x, y, r, sx, sy, ox, oy, kx, ky)
+	local width = font:getWidth(text)
+	local start = end_x - width
+	graphics.print(text, start, y, r, sx, sy, ox, oy, kx, ky)
+end
+
+function graphics.printp_right_aligned(text, font, palette, offset, end_x, y, r, sx, sy, ox, oy, kx, ky)
+	local width = font:getWidth(text)
+	local start = end_x - width
+	graphics.printp(text, font, palette, offset, start, y, r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)

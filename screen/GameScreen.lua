@@ -10,7 +10,7 @@ function GameScreen:new(x, y, width, height)
 	GameScreen.super.new(self, x, y, width, height)
     self:add_signal("restart_requested")
 	self:add_signal("quit_requested")
-
+	self:add_signal("leaderboard_menu_requested")
 end
 
 function GameScreen:enter()
@@ -25,14 +25,24 @@ function GameScreen:enter()
 
 	signal.chain_connect("quit_requested", self.ui_layer, self)
     signal.chain_connect("restart_requested", self.game_layer, self)
-    signal.chain_connect("restart_requested", self.ui_layer, self)
-    signal.connect(self.game_layer, "restart_requested", self, "on_player_died")
+	signal.chain_connect("restart_requested", self.ui_layer, self)
+	signal.connect(self.game_layer, "player_died", self, "on_player_died")
+    signal.connect(self.game_layer, "restart_requested", self, "on_game_layer_restart_requested")
     signal.connect(self.game_layer.world, "all_spawns_cleared", self.hud_layer, "start_after_level_bonus_screen")
 	signal.connect(self.game_layer, "player_death_sequence_finished", self.ui_layer, "on_player_death_sequence_finished")
+	signal.connect(self.ui_layer, "leaderboard_requested", self, "on_leaderboard_requested")
 
 end
 
 function GameScreen:on_player_died()
+	-- self.hud_layer:hide()
+end
+
+function GameScreen:on_leaderboard_requested()
+	self:emit_signal("leaderboard_menu_requested")
+end
+
+function GameScreen:on_game_layer_restart_requested()
 	self:emit_signal("restart_requested")
 end
 
@@ -64,10 +74,12 @@ function GameLayer:new()
 	GameLayer.super.new(self)
     self:add_signal("restart_requested")
 	self:add_signal("player_death_sequence_finished")
+	self:add_signal("player_died")
 end
 
 function GameLayer:enter()
-    self:add_world(Worlds.GameWorld(0, 0), "world")
+	self:add_world(Worlds.GameWorld(0, 0), "world")
+	signal.chain_connect("player_died", self.world, self)
 	signal.chain_connect("player_death_sequence_finished", self.world, self)
 
 end
@@ -101,6 +113,7 @@ function UILayer:new()
 	self:init_state_machine()
     self:add_signal("quit_requested")
 	self:add_signal("restart_requested")
+	self:add_signal("leaderboard_requested")
 end
 
 function UILayer:state_Playing_update(dt)
@@ -115,9 +128,17 @@ function UILayer:on_player_death_sequence_finished()
 end
 
 function UILayer:state_PlayerDeath_enter()
-    self:add_world(Worlds.PlayerDeathScreenWorld(0, 0), "player_death_screen_world")
+	self:add_world(Worlds.PlayerDeathScreenWorld(0, 0), "player_death_screen_world")
+	signal.connect(self.player_death_screen_world, "covering_screen", self, "on_death_world_covering_screen", function()
+		-- self.blocks_render = true
+		-- self.blocks_logic = true
+		-- self.blocks_input = true
+		self.game_layer:hide()
+		self.game_layer.handling_logic = false
+	end)
     signal.chain_connect("restart_requested", self.player_death_screen_world, self)
     signal.chain_connect("quit_requested", self.player_death_screen_world, self)
+	signal.chain_connect("leaderboard_requested", self.player_death_screen_world, self)
 
 end
 

@@ -384,9 +384,12 @@ function Room:build(params)
 		self.start_room = true
 	end
 
-    self.is_hard = self.level > 6 and rng.percent(6)
+	if params.hard_room then
+		self.is_hard = true
+	end
+
     if self.is_hard then
-		self.level = self.level + clamp(floor(self.level), 3, 20)
+		self.level = self.level + clamp(floor(self.level), 3, 50)
 	end
 
 	self.level = max(floor(self.level * (1 + game_state:get_difficulty_modifier())), self.level)
@@ -597,9 +600,9 @@ end
 
 local STEP      		= 0.2    -- what we are adding each turn
 local BASE      		= 1.0    -- first arg to lerp()
-local SCALING_AMOUNT    = 0.8    -- interpolation factor t
+local SCALING_AMOUNT    = 1.0    -- interpolation factor t
 local OFFSET    		= 10.0
-local SCALE     		= 10.0
+local SCALE     		= 7.0
 
 -- quick harmonic-number approximation (Euler–Maclaurin)
 local GAMMA = 0.5772156649015329
@@ -1025,10 +1028,10 @@ function Room:generate_waves()
 end
 
 if debug.enabled then
-    -- for i = 1, 100 do
-	-- 	local room = Room(nil, i, 1, {}, 100, 100)
-	-- 	print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
-	-- end
+    for i = 1, 100 do
+		local room = Room(nil, i, 1, {}, 100, 100)
+		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+	end
 end
 
 return Room

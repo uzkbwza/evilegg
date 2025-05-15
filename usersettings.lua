@@ -1,6 +1,6 @@
 local default_usersettings = {
 	-- display
-    use_screen_shader = true,
+    -- use_screen_shader = true,
 	screen_shader_preset = "shader_preset_soft",
     pixel_perfect = false,
     vsync = false,
@@ -8,7 +8,11 @@ local default_usersettings = {
 	fps_cap = 300,
     cap_framerate = true,
 	zoom_level = 1,
-	skip_tutorial = false,
+    skip_tutorial = false,
+    brightness = 1.0,
+    saturation = 1.0,
+	hue = 0.0,
+    invert_colors = false,
 	
     -- fx
     screen_shake_amount = 1,
@@ -85,11 +89,18 @@ function usersettings:apply_settings()
 	
     love.window.setVSync(self.vsync and -1 or 0)
     if graphics then
+		if graphics.adjustment_shader_options then
+			graphics.adjustment_shader_options.brightness = self.brightness
+			graphics.adjustment_shader_options.saturation = self.saturation
+            graphics.adjustment_shader_options.hue = self.hue
+			graphics.adjustment_shader_options.invert_colors = self.invert_colors
+		end
 		graphics.set_screen_shader_from_preset(self.screen_shader_preset)
 	end
 	if audio then
 		audio.usersettings_update()
 	end
+
 end
 
 function usersettings:reset_to_default()
@@ -104,6 +115,19 @@ end
 function usersettings:set_setting(key, value)
 	if self[key] == value then return end
     self[key] = value
+    self:save()
+    self:apply_settings()
+end
+
+function usersettings:set_screen_shader_preset(value)
+    -- if value == "shader_preset_none" then
+        -- self.use_screen_shader = false
+    -- else
+        -- self.use_screen_shader = true
+        -- self.screen_shader_preset = value
+    -- end
+	self.use_screen_shader = true
+	self.screen_shader_preset = value
     self:save()
     self:apply_settings()
 end

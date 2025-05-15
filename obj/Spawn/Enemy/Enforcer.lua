@@ -59,7 +59,7 @@ function Enforcer:state_Spawning_update(dt)
 			self:apply_force(-pdx * SPAWN_SPEED, -pdy * SPAWN_SPEED)
 		end
     end
-	self.sprite = self:tick_pulse(5, 0) and textures.enemy_enforcer1 or textures.enemy_enforcer2
+	self.sprite = self:tick_pulse(5) and textures.enemy_enforcer1 or textures.enemy_enforcer2
 end
 
 function Enforcer:state_Spawning_exit()

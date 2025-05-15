@@ -483,6 +483,10 @@ end
 ---@param dt number
 function CanvasLayer:update_shared(dt)
 
+	if not self.handling_logic then
+		return
+	end
+
     if self.is_destroyed then
         return
     end
@@ -531,9 +535,7 @@ function CanvasLayer:update_shared(dt)
         layer:update_shared(dt)
     end
     
-	if self.handling_logic then
-		CanvasLayer.super.update_shared(self, dt)
-	end
+	CanvasLayer.super.update_shared(self, dt)
 	
     if self.deferred_functions then
         for _, t in ipairs(self.deferred_functions) do

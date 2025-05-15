@@ -1,7 +1,7 @@
 return {
     elevator_killed = {
 		text_key = "bonus_boss_defeated",
-		score = 20000,
+		score = 10000,
 		score_multiplier = 1,
 		xp = 1500,
 		difficulty_modifier = 0.0,
@@ -19,7 +19,7 @@ return {
 
     hard_room = {
         text_key = "bonus_hard_room",
-        score = 5000,
+        score = 3000,
         score_multiplier = 0.1,
 		xp = 200,
 		difficulty_modifier = 0.1,

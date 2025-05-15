@@ -1,7 +1,7 @@
 return {
+	["layers"] = {
+	},
 	["compressed"] = true,
 	["tilesets"] = {
-	},
-	["layers"] = {
 	},
 }

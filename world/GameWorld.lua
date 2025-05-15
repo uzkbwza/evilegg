@@ -16,8 +16,8 @@ local MAX_HAZARDS = 50
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
-local EGG_ROOM_START = 20
-local EGG_ROOM_PERIOD = 10
+local EGG_ROOM_START = 30
+local EGG_ROOM_PERIOD = 20
 
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
@@ -42,6 +42,7 @@ function GameWorld:new(x, y)
 	self:add_signal("enemy_added")
 	self:add_signal("enemy_died")
     self:add_signal("level_transition_started")
+	self:add_signal("player_died")
 	self:add_signal("player_death_sequence_finished")
 
 	self:add_spatial_grid("game_object_grid", 32)
@@ -93,6 +94,11 @@ function GameWorld:enter()
 	self.timescaled.persist = true
 	self.timescaled:add_elapsed_ticks()
     self.timescaled:add_sequencer()
+	self.timescaled.update = function(self, dt)
+		if game_state.bullet_powerup and self.draining_bullet_powerup then
+			game_state:drain_bullet_powerup_time(dt)
+		end
+	end
 	
 	-- self:play_sfx("level_start", 0.95, 1.0)
 
@@ -254,7 +260,7 @@ function GameWorld:initialize_room(room)
 
 	local s = self.timescaled.sequencer
 
-	audio.play_music_if_stopped("drone")
+	audio.play_music_if_stopped("music_drone")
 
 	s:start(function()
 		if table.is_empty(self.players) then
@@ -295,7 +301,8 @@ function GameWorld:spawn_rescues(spawns)
 	s:start(function()
 		for _, rescue in pairs(spawns) do
 			-- s:start(function()
-			for _ = 1, rng.randi_range(30, 120) do
+			for _ = 1, rng.randi_range(60, 120) do
+				
 				if self.state ~= "RoomClear" then
 					-- while self:get_number_of_objects_with_tag("rescue_object") >= max_rescues do
 					-- 	s:wait(rng.randi_range(60, 120))
@@ -311,6 +318,8 @@ function GameWorld:spawn_rescues(spawns)
 			-- if self.state ~= "RoomClear" then
 			-- 	self.timescaled:start_tick_timer("rescue_spawn_cooldown", rng.randi_range(40, 120))
 			-- end
+
+			if game_state.game_over then return end
 
 
 
@@ -395,7 +404,10 @@ function GameWorld:spawn_wave()
 end
 
 function GameWorld:get_quick_clear_time_left_ratio()
+	if game_state.game_over then return 0 end
 	if self.state == "RoomClear" then
+		return 0
+	elseif self.state == "LevelTransition" then
 		return 0
 	elseif self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
 		return self.timescaled:tick_timer_time_left_ratio("last_wave_quick_clear")
@@ -414,8 +426,9 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 			end
 
 			if game_state.game_over then
-				break
+				return
 			end
+			
 
 			local spawn_x, spawn_y = self:get_valid_spawn_position()
 
@@ -546,6 +559,7 @@ end
 
 
 function GameWorld:add_score_object(x, y, score, score_category)
+	if game_state.game_over then return end
 	score = game_state:determine_score(score)
     game_state:add_score(score, score_category)
 	if score > 0 then
@@ -717,31 +731,42 @@ end
 
 function GameWorld:on_player_died()
 	local s = self.sequencer
+
     s:start(function()
 		s:start(function()
 			s:tween_property(self, "player_hurt_fx_t", 0, 1, 75, "linear")
 			self.player_hurt_fx_t = -1
 		end)
 		self:play_sfx("player_death", 0.85, 1.0)
+		self:emit_signal("player_died")
 		self:play_sfx("hazard_death", 0.5, 1.0)
 		self.object_time_scale = 0.025
 		self.player_death_fx = true
         self.player_died = true
+		self:end_tick_timer("wave_timer")
+		self:end_tick_timer("last_wave_quick_clear")
+		audio.stop_music()
 		game_state:on_game_over()
 		s:wait(60)
 		self.object_time_scale = 1
 		self.player_death_fx = false
+
+		s:wait(5)
 		
 		while self:get_number_of_objects_with_tag("enemy") > 0 do
+			local waited = false
 			local enemies = self:get_objects_with_tag("enemy")
 
-			local waited = false
-            for i, enemy in enemies:ipairs() do
-
-                if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
+			for i, enemy in enemies:ipairs() do
+				
+				if enemy:has_tag("hazard") then
 					self:remove_tag(enemy, "enemy")
 					goto continue
 				end
+
+                -- if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
+				-- 	goto continue
+				-- end
 				
 				if enemy.die then
 					enemy:die(self:get_random_object_with_tag("player"))
@@ -749,29 +774,29 @@ function GameWorld:on_player_died()
 					enemy:queue_destroy()
 				end
                 if i % 5 == 0 then
-                    s:wait(2)
+                    s:wait(5)
                     waited = true
                 end
 				
 				::continue::
 			end
 			if not waited then
-				s:wait(2)
+				s:wait(1)
 			end
 		end
 
 
 		while self:get_number_of_objects_with_tag("rescue_object") > 0 do
-			local rescues = self:get_objects_with_tag("rescue_object")
 			local waited = false
+			local rescues = self:get_objects_with_tag("rescue_object")
 			for _, rescue in rescues:ipairs() do
 				-- local player = self:get_random_object_with_tag("player")
 				rescue:die()
-				s:wait(2)
+				s:wait(5)
 				waited = true
 			end
 			if not waited then
-				s:wait(2)
+				s:wait(1)
 			end
 		end
 
@@ -801,7 +826,8 @@ function GameWorld:create_next_rooms()
 
 	local upgrade_room = rng.randi(1, 3)
 	local artefact_room = rng.randi(1, 3)
-    local heart_room = rng.randi(1, 3)
+	local heart_room = rng.randi(1, 3)
+	local hard_room = rng.randi(1, 3)
     
 	game_state.recently_selected_artefacts = {}
 	game_state.recently_selected_upgrades = {}
@@ -813,6 +839,7 @@ function GameWorld:create_next_rooms()
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
+			hard_room = game_state.level % 2 == 0 and i == hard_room and game_state.level >= 10
 		})
 		table.insert(rooms, room)
 	end
@@ -1091,6 +1118,7 @@ end
 function GameWorld:update(dt)
 	self.camera_aim_offset = self.camera_aim_offset or Vec2(0, 0)
 
+	self.timescaled.draining_bullet_powerup = self.draining_bullet_powerup
 	self.room.elapsed = self.room.elapsed + dt
 	self.room.tick = floor(self.room.elapsed)
 
@@ -1188,9 +1216,7 @@ function GameWorld:update(dt)
 		self.timescaled:start_timer("player_notify_cooldown", 52)
 	end
 
-	if game_state.bullet_powerup and self.draining_bullet_powerup then
-		game_state:drain_bullet_powerup_time(dt)
-	end
+
 end
 
 function GameWorld:play_notification(notification)
@@ -1569,6 +1595,25 @@ function GameWorld:draw()
 	-- graphics.pop()
     -- end
 
+	local game_area_width = conf.viewport_size.x - conf.room_padding.x * 2
+	local left = self.room.left + 61
+	local top = self.room.top
+
+    local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
+	if quick_clear_ratio > 0 then
+		quick_clear_ratio = 1 - quick_clear_ratio
+	end
+    local border_color = self:get_border_rainbow()
+	local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
+	if quick_clear_ratio < (3 / 10) and idivmod_eq_zero(self.tick, 5, 2) and self.state == "Normal" then
+		colormod = 0.0
+	end
+    graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
+	local x_scale = 130 * quick_clear_ratio
+	-- local y_scale = 2 + 4 * (1 - quick_clear_ratio)
+	local y_scale = 3
+    graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
+
 
 
 	GameWorld.super.draw(self)
@@ -1577,21 +1622,6 @@ function GameWorld:draw()
 	if draw_bounds_over then
 		self:draw_room_bounds()
 	end
-
-	if self.player_died and not self.player_death_fx then
-		graphics.push("all")
-
-		graphics.set_color(1, 1, 1, 1)
-		graphics.translate(0, 0)
-		local font = fonts.depalettized.image_font2
-		graphics.set_font(font)
-		local text = string.format("YOU DIED ON LEVEL %d\nSCORE: %s\nKILLS: %d\nRESCUES: %d", game_state.level, comma_sep(game_state.score), game_state.enemies_killed, game_state.rescues_saved)
-		graphics.translate(-font:getWidth(text) / 2, string.number_of_lines(text) * -font:getHeight(text) / 2)
-		graphics.print(text, 0, 0)
-		graphics.pop()
-	end
-
-	
 
 end
 

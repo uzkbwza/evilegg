@@ -16,7 +16,7 @@ function EnforcerBullet:new(x, y)
 end
 
 function EnforcerBullet:get_sprite()
-    return self:tick_pulse(3, 0) and textures.enemy_enforcer_bullet1 or textures.enemy_enforcer_bullet2
+    return self:tick_pulse(3) and textures.enemy_enforcer_bullet1 or textures.enemy_enforcer_bullet2
 end
 
 -- function EnforcerBullet:collide_with_terrain()

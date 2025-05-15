@@ -281,9 +281,9 @@ function debuggy.update(dt)
 		debuggy.draw = true
 	end
 
-	if input.debug_shader_toggle_pressed then
-		usersettings.use_screen_shader = not usersettings.use_screen_shader
-	end
+	-- if input.debug_shader_toggle_pressed then
+		-- usersettings.use_screen_shader = not usersettings.use_screen_shader
+	-- end
 
 	if input.debug_shader_preset_pressed then
 		for i, shader_table in ipairs(graphics.screen_shader_presets) do

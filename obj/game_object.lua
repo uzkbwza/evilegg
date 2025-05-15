@@ -173,7 +173,7 @@ function GameObject:_update_elapsed_ticks(dt)
 end
 
 function GameObject:tick_pulse(pulse_length, offset)
-	offset = offset or 0
+    offset = offset or 0
 	return floor(((self.tick + offset) / pulse_length) % 2) == 0
 end
 
@@ -420,7 +420,6 @@ function GameObject:start_tick_timer(name, duration, callback)
 		callback = callback
 	}
 end
-
 
 function GameObject:start_timer(name, duration, callback)
 	name = name or (self.timers and #self.timers + 1 or 1)

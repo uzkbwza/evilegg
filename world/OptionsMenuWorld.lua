@@ -5,12 +5,13 @@ local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
 local DISTANCE_BETWEEN_ITEMS = 10
-local HEADER_SPACE = 5
+local HEADER_SPACE = 2
 
 
 function OptionsMenuWorld:new()
     OptionsMenuWorld.super.new(self)
-    self:add_signal("exit_menu_requested")
+	self:add_signal("exit_menu_requested")
+	self:add_signal("enter_name_requested")
 	
 	self.draw_sort = self.y_sort
 	-- menu_item:focus()
@@ -24,8 +25,9 @@ function OptionsMenuWorld:enter()
     self:ref_array("menu_items")
 
 	local back_table = {
-		name = tr.menu_back_button,
+		name = "⮌",
 		item_type = "button",
+		is_back = true,
         select_func = function()
 			local s = self.sequencer
             s:start(function()
@@ -36,7 +38,7 @@ function OptionsMenuWorld:enter()
 		end,
 	}
 
-    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING
+    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 2
 
 	self:ref("back_button",self:add_menu_item(back_table))
 
@@ -51,8 +53,9 @@ function OptionsMenuWorld:enter()
 		
 		{ "header", text = tr.options_header_display },
 		{ "fullscreen", item_type = "toggle"},
-        { "use_screen_shader", item_type = "toggle" },
-		{ "screen_shader_preset", item_type = "cycle", options = { "shader_preset_soft", "shader_preset_scanline", "shader_preset_lcd", "shader_preset_ledboard" }, translate_options = true },
+        -- { "use_screen_shader", item_type = "toggle" },
+		
+		{ "pixel_perfect", item_type = "toggle"},
         { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value)
             for _, item in ipairs(self.menu_items) do
                 item.focus_on_hover = false
@@ -65,17 +68,62 @@ function OptionsMenuWorld:enter()
 				end)
 			end
 		end },
-		{ "pixel_perfect", item_type = "toggle"},
 		{ "vsync", item_type = "toggle"},
-        { "cap_framerate",        item_type = "toggle" },
-		{ "fps_cap", item_type = "slider", slider_start = 60, slider_stop = 600, slider_granularity = 60, slider_mouse_granularity = 60 },
+        -- { "cap_framerate",        item_type = "toggle" },
+		{ "fps_cap", item_type = "slider", slider_start = 60, slider_stop = 660, slider_granularity = 60, slider_mouse_granularity = 60,
+		set_func = function(value)
+			if value >= 660 then
+				usersettings:set_setting("cap_framerate", false)
+			else
+				usersettings:set_setting("cap_framerate", true)
+				-- usersettings:set_setting("fps_cap", value)
+			end
+			usersettings:set_setting("fps_cap", value)
+		end,
+		-- get_func = function()
+		-- 	if usersettings.cap_framerate then
+		-- 		return usersettings.fps_cap
+		-- 	else
+		-- 		return 660
+		-- 	end
+		-- end,
+		
+		print_func = function(value)
+			if value < 660 then
+				return value
+			else
+				return tr.options_fps_cap_unlimited
+			end
+		end
+	},
+	{ "screen_shader_preset", item_type = "cycle", options = { "shader_preset_soft", "shader_preset_scanline", "shader_preset_lcd", "shader_preset_ledboard", "shader_preset_none" },
 
+		get_func = function()
+			-- if usersettings.use_screen_shader then
+			return usersettings.screen_shader_preset
+			-- end
+		end,
+		set_func = function(value)
+			usersettings:set_screen_shader_preset(value)
+		end,
+
+		translate_options = true },
+	
+		{ "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
+	-- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+        { "hue",           item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+	
+		-- { "invert_colors", item_type = "toggle" },
+	
 		{ "header", text = tr.options_header_audio },
 		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		
 		{ "header", text = tr.options_header_other },
 		{ "skip_tutorial", item_type = "toggle" },
+		{ "enter_name", item_type = "button", select_func = function()
+			self:emit_signal("enter_name_requested")
+		end },
 		
 		{ "header", text = "" },
     } do
@@ -138,7 +186,15 @@ function OptionsMenuWorld:add_menu_item(menu_table)
 
 	local class = classes[menu_table.item_type]
 
-	local menu_item = self:spawn_object(class(self.next_item_x, self.next_item_y, menu_table.name:upper()))
+	local menu_item
+
+	if menu_table.is_back then
+		class = O.PauseScreen.PauseScreenButton
+		menu_item = self:spawn_object(class(self.next_item_x, self.next_item_y, menu_table.name:upper(), 10, 10, false))
+	else
+		menu_item = self:spawn_object(class(self.next_item_x, self.next_item_y, menu_table.name:upper()))
+	end
+	
 
 
     if menu_table.select_func then
@@ -146,27 +202,29 @@ function OptionsMenuWorld:add_menu_item(menu_table)
     end
 	
     if menu_item:is(O.OptionsMenu.OptionsMenuToggle) then
-        local get_func = function() return usersettings[menu_table.usersettings_toggle] end
-        local set_func = function() usersettings:set_setting(menu_table.usersettings_toggle, not get_func()) end
+        local get_func = menu_table.get_func or function() return usersettings[menu_table.usersettings_toggle] end
+        local set_func = menu_table.set_func or function() usersettings:set_setting(menu_table.usersettings_toggle, not get_func()) end
         menu_item.get_value_func = get_func
         menu_item.set_value_func = set_func
 	elseif menu_item:is(O.OptionsMenu.OptionsMenuSlider) then
-		local get_func = function() return usersettings[menu_table.usersettings_slider] end
-		local set_func = function(value) usersettings:set_setting(menu_table.usersettings_slider, value) end
+		local get_func = menu_table.get_func or function() return usersettings[menu_table.usersettings_slider] end
+		local set_func = menu_table.set_func or function(value) usersettings:set_setting(menu_table.usersettings_slider, value) end
 		menu_item.get_value_func = get_func
-        menu_item.set_value_func = set_func
+		menu_item.set_value_func = set_func
+		menu_item.print_func = menu_table.print_func
 		menu_item.start = menu_table.slider_start
 		menu_item.stop = menu_table.slider_stop
         menu_item.granularity = menu_table.slider_granularity or menu_item.granularity
 		
 		menu_item.mouse_granularity = menu_table.slider_mouse_granularity or menu_item.granularity
     elseif menu_item:is(O.OptionsMenu.OptionsMenuCycle) then
-		local get_func = function() return usersettings[menu_table.usersettings_cycle] end
-		local set_func = function(value) usersettings:set_setting(menu_table.usersettings_cycle, value) end
+		local get_func = menu_table.get_func or function() return usersettings[menu_table.usersettings_cycle] end
+		local set_func = menu_table.set_func or function(value) usersettings:set_setting(menu_table.usersettings_cycle, value) end
 		menu_item.get_value_func = get_func
         menu_item.set_value_func = set_func
 		menu_item.translate_options = menu_table.translate_options
 		menu_item:set_options(menu_table.options)
+		menu_item.print_func = menu_table.print_func
 	end
 
 	if menu_table.on_set_function then
@@ -201,6 +259,13 @@ function OptionsMenuWorld:update(dt)
 	if input.ui_cancel_pressed then
 		self.back_button:select()
 	end
+end
+
+function OptionsMenuWorld:draw()
+	local font = fonts.depalettized.image_bigfont1
+	graphics.set_font(font)
+	graphics.print(tr.menu_options_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
+	OptionsMenuWorld.super.draw(self)
 end
 
 return OptionsMenuWorld

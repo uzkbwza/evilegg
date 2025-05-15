@@ -114,9 +114,10 @@ function BigHopper:new(x, y)
     self.default_body_height = 8
     self.number_hop_bullets = 30
     self.hop_speed = 1.0
-    self.max_hp = 10
+    self.max_hp = 9
     self.min_wait_time = 120
-    self.max_wait_time = 360
+	self.max_wait_time = 460
+	self.max_start_time = 500
     self.drag = 0.05
     BigHopper.super.new(self, x, y)
 
@@ -139,7 +140,7 @@ function BigHopper:state_Hopping_exit()
 	BigHopper.super.state_Hopping_exit(self)
     self.drag = 0.05
 
-	local num_hoppers = rng.randi(5, 7)
+	local num_hoppers = rng.randi(2, 7)
 
 	if not game_state.game_over then
 		for i = 1, num_hoppers do

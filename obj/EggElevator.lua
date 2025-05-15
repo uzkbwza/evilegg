@@ -6,7 +6,7 @@ local PILLAR_HEIGHT = 400
 
 function EggElevator:new(x, y)
 	-- self.max_hp = debug.enabled and 3 or 20
-	self.max_hp = 20
+	self.max_hp = 30
 	self.body_height = 3
     EggElevator.super.new(self, x, y)
 	self.team = "enemy"
@@ -86,7 +86,7 @@ function EggElevator:update(dt)
             self:play_sfx("object_egg_elevator_pulse", 0.7)
         end
 
-        if self.tick > 5 and self.tick % 6 == 0 and not self.stop_rings then
+        if self.tick > 5 and self.tick % 6 == 0 and not self.stop_rings and self.accepting_player then
             local ring = {
                 t = 0.0,
                 -- id = self.ring_id,
@@ -129,9 +129,9 @@ function EggElevator:update(dt)
         end
     end
 
-    if not self.dead and not self.elevator_started and not self.back and self.tick > 20 and false then
+    if not self.dead and not self.elevator_started and not self.back and self.tick > 20 and self.accepting_player then
         local closest_player = self:get_closest_player()
-        if closest_player and self.pos:distance_to(closest_player.pos) < 32 then
+        if closest_player and self.pos:distance_to(closest_player.pos) < 16 then
 			self:ref("elevator_player", closest_player)
             self.intangible = true
 			self:start_stopwatch("elevator_started")
@@ -160,12 +160,16 @@ function EggElevator:update(dt)
 					self.stop_rings = true
                     self.back_object.stop_pillars = true
 					self:start_stopwatch("elevator_dissipate_started")
-					self.back_object:start_stopwatch("elevator_dissipate_started")
+                    self.back_object:start_stopwatch("elevator_dissipate_started")
+					s:wait(240)
+					self:stop_sfx("object_egg_elevator_ascend")
+                    self:queue_destroy()
+					self.back_object:queue_destroy()
+					self:emit_signal("player_choice_made", "kill_egg")
                 end)
                 s:tween(tween_function2, 0, 1, 100, "inCubic")
 					
                 self.elevator_player:hide()
-				self:emit_signal("player_choice_made", "kill_egg")
                 -- closest_player:change_state("Idle")
             end)
         end
@@ -368,7 +372,7 @@ function EggElevator:draw()
             ::continue::
         end
 
-        if self.back then
+        if self.back and self.accepting_player then
             if idivmod_eq_zero(self.tick, 1, 2) and self.tick > 5 then
                 graphics.set_color(Color.black)
 
@@ -401,10 +405,24 @@ end
 function EggElevator:on_damaged(amount)
     self:start_timer("hurt_flash", 10)
 	self:play_sfx("object_egg_elevator_hurt", 0.7)
+	if self.hp <= 20 then
+		if not self.accepting_player then
+			self:on_door_opened()
+		end
+	end
 	if self.back_object then 
 		self.back_object:on_damaged(amount)
 	end
 end
+
+function EggElevator:on_door_opened()
+	self.accepting_player = true
+	if self.back_object then
+		self.back_object.accepting_player = true
+	end
+	self:play_sfx("object_egg_elevator_door_open", 1)
+end
+
 
 function EggElevator:on_health_reached_zero()
 	self:die()

@@ -555,7 +555,7 @@ function CultistBullet:on_terrain_collision(normal_x, normal_y)
 end
 
 function CultistBullet:get_sprite()
-    -- return self:tick_pulse(3, 0) and textures.enemy_enforcer_bullet1 or textures.enemy_enforcer_bullet2
+    -- return self:tick_pulse(3) and textures.enemy_enforcer_bullet1 or textures.enemy_enforcer_bullet2
 	return textures.enemy_cultist_bullet
 end
 

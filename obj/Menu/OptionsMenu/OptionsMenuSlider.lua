@@ -20,7 +20,8 @@ end
 function OptionsMenuSlider:draw()
 	OptionsMenuSlider.super.draw(self)
     local x, y, w, h = self:get_rect_local()
-    local value = self.buffered_value or self.get_value_func()
+	local value = self.buffered_value or self.get_value_func()
+	
 	local interp = inverse_lerp(self.start, self.stop, value)
     local slider_x = x + self.slider_start + (self.slider_end - self.slider_start) * interp
     local slider_rect_x = x + self.slider_start - GRABBER_WIDTH / 2
@@ -41,7 +42,9 @@ function OptionsMenuSlider:draw()
 	graphics.set_color(Color.white)
     graphics.rectangle("fill", grabber_x, grabber_y, grabber_w, grabber_h)
 	graphics.set_font(self.font)
-	graphics.print(value, x + w + 5, y)
+
+	local print_value = self.print_func and self.print_func(value) or value
+	graphics.print(tostring(print_value):upper(), x + w + 5, y)
 end
 
 function OptionsMenuSlider:update(dt)

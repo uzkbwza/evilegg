@@ -354,7 +354,7 @@ local tab = {
 	upgrades = process_pickup_table(Upgrades, "upgrade", "BaseUpgrade"),
 	powerups = process_pickup_table(Powerups, "powerup", "BasePowerup"),
 	hearts = process_pickup_table(Hearts, "heart", "BaseHeart"),
-	artefacts = process_pickup_table(Artefacts, "artefact", "BaseArtefact"),
+    artefacts = process_pickup_table(Artefacts, "artefact", "BaseArtefact"),
 }
 
 return tab

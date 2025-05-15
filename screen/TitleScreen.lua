@@ -225,8 +225,8 @@ function TitleScreen:enter()
 	
 		s:start(function()
 			s:wait(start_time - 52)
-			if audio.playing_music ~= audio.get_music("title") then
-				audio.play_music("title", 1.0)
+			if audio.playing_music ~= audio.get_music("music_title") then
+				audio.play_music("music_title", 1.0)
 			end
 		end)
 
@@ -405,7 +405,7 @@ end
 
 
 function TitleScreen:exit()
-	audio.stop_music("title")
+	audio.stop_music("music_title")
 end
 
 local steps = {

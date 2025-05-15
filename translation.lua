@@ -90,7 +90,7 @@ local translations = {
         weapon_sword_name = "THE DIVIDING LINE",
 		weapon_sword_desc = "An executioner's sword.",
 
-        menu_back_button = "BACK",
+        -- menu_back_button = "BACK",
 		menu_options_button = "OPTIONS",
 		
 		main_menu_start_button = "START",
@@ -104,14 +104,16 @@ local translations = {
 
 		death_screen_retry_button = "RETRY",
 		death_screen_quit_button = "QUIT",
+		death_screen_leaderboard_button = "RANKINGS",
 
-        options_use_screen_shader = "Use Screen Shader",
+        -- options_use_screen_shader = "Use Screen Shader",
         options_screen_shader_preset = "Screen Shader",
 		options_pixel_perfect = "Pixel Perfect Scaling",
 		options_vsync = "VSync",
 		options_fullscreen = "Fullscreen",
-		options_cap_framerate = "FPS Cap Enabled",
+		-- options_cap_framerate = "FPS Cap Enabled",
 		options_fps_cap = "FPS Cap",
+		options_fps_cap_unlimited = "No Cap",
         options_zoom_level = "Zoom Level",
 		options_screen_shake_amount = "Screen Shake Amount",
 		options_music_volume = "Music Volume",
@@ -123,12 +125,21 @@ local translations = {
         options_mouse_sensitivity      = "Relative Mouse Sensitivity",
 		options_relative_mouse_aim_snap_to_max_range = "Rel. Mouse Snap Distance",
 		options_skip_tutorial = "Skip Tutorial",
+		options_enter_name = "Enter Name",
+
+
+		options_brightness = "Brightness",
+		options_saturation = "Saturation",
+		options_hue = "Hue Shift",
+		options_invert_colors = "Invert Colors",
 
 		options_header_controls = "CONTROLS",
 		options_header_display = "DISPLAY",
 		options_header_audio = "AUDIO",
 		options_header_other = "OTHER",
-        options_header_cheats = "CHEATS",
+		
+		-- options_header_cheats = "CHEATS",
+		-- options_header_leaderboard = "LEADERBOARD",
 		
 		name_entry_prompt = "ENTER YOUR NAME",
 
@@ -136,6 +147,7 @@ local translations = {
 		shader_preset_scanline = "Scanline",
 		shader_preset_lcd = "LCD",
 		shader_preset_ledboard = "LED Board",
+		shader_preset_none = "None",
 
         codex_name_walker              = "Ghost",
 		codex_desc_walker              = "A stupid and weak pursuer.",
@@ -249,7 +261,21 @@ local translations = {
 		codex_key_pickups           = "PICKUPS",
 		codex_key_artefact          = "ARTEFACTS",
 		codex_key_secondary_weapon  = "WEAPONS",
+		
 
+		game_over_score_display = "Final Score",
+		game_over_rescue_display = "Greenoids Saved",
+		game_over_kill_display = "Enemies Killed",
+		game_over_level_display = "Level Reached",
+		game_over_time_display = "Game Time",
+		stat_display_prev_high = "Best",
+
+		leaderboard_loading = "Connecting...",
+		leaderboard_error = "Error connecting to leaderboard",
+		leaderboard_deaths = "Hatchlings Vanquished",
+
+		leaderboard_top_button = "TOP",
+		leaderboard_me_button = "ME",
     },
 }
 

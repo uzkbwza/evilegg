@@ -1,6 +1,6 @@
 local MainGame = BaseGame:extend("MainGame")
 local GlobalState = Object:extend("GlobalState")
-local GlobalGameState = Object:extend("GlobalGameState")
+GlobalGameState = Object:extend("GlobalGameState")
 local PickupTable = require("obj.pickup_table")
 local LevelBonus = require("levelbonus.LevelBonus")
 
@@ -31,11 +31,9 @@ end
 
 function MainGame:update(dt)
 	MainGame.super.update(self, dt)
-    if game_state then
-        game_state:update(dt)
-    end
-
-
+	if game_state then
+		game_state:update(dt)
+	end
 end
 
 function MainGame:get_clear_color()
@@ -90,6 +88,7 @@ function GlobalGameState:new()
     self.difficulty = 1
     self.enemies_killed = 0
 	self.rescues_saved = 0
+	self.good_ending = false
 	self.rescues_saved_this_level = 0
     self.score = 0
     self.score_multiplier = 1
@@ -99,7 +98,8 @@ function GlobalGameState:new()
     self.rescue_chain = 0
 
     self.level_bonuses = {}
-    self.all_bonuses = {}
+	self.all_bonuses = {}
+	self.level_scores = {}
 
     self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
     self.xp_until_heart = 14
@@ -124,13 +124,19 @@ function GlobalGameState:new()
 	self.bullet_powerup = nil
 	self.bullet_powerup_time = 0
 
-	self.game_over = false
+    self.game_over = false
+
+	self.leaderboard_category = debug.enabled and leaderboard.default_category
 
 	self.used_sacrificial_twin = false
 
-    self.hearts = 1
+	self.hearts = 1
+	
+	self.total_damage_taken = 1
 
-    self.rescue_chain_difficulty = 0
+	self.rescue_chain_difficulty = 0
+	self.highest_rescue_chain = 0
+
 	self.bonus_difficulty_modifier = 0
 
 	self.aggression_bonus = 0
@@ -194,6 +200,7 @@ function GlobalGameState:new()
         -- self.level = 20
 		-- -- -- self.score = 999999000
 		-- self.hearts = self.max_hearts
+		-- self.hearts = 0
 		-- self.upgrades.fire_rate = self.max_upgrades.fire_rate
 		-- self.upgrades.range = self.max_upgrades.range
 		-- self.upgrades.bullets = self.max_upgrades.bullets
@@ -207,19 +214,23 @@ function GlobalGameState:new()
 end
 
 function GlobalGameState:update(dt)
-    if debug.enabled then
-        -- dbg("xp", self.xp)
-        -- dbg("xp_until_upgrade", self.xp_until_upgrade)
-        -- dbg("xp_until_heart", self.xp_until_heart)
-        -- dbg("xp_until_artefact", self.xp_until_artefact)
-        -- dbg("num_queued_upgrades", self.num_queued_upgrades)
-        -- dbg("num_queued_hearts", self.num_queued_hearts)
-        -- dbg("num_queued_artefacts", self.num_queued_artefacts)
-        dbg("difficulty_modifier", self:get_difficulty_modifier())
+
+	if debug.enabled then
+		-- dbg("xp", self.xp)
+		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
+		-- dbg("xp_until_heart", self.xp_until_heart)
+		-- dbg("xp_until_artefact", self.xp_until_artefact)
+		-- dbg("num_queued_upgrades", self.num_queued_upgrades)
+		-- dbg("num_queued_hearts", self.num_queued_hearts)
+		-- dbg("num_queued_artefacts", self.num_queued_artefacts)
+		dbg("difficulty_modifier", self:get_difficulty_modifier())
 		dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
 		dbg("aggression_bonus", self.aggression_bonus)
-    end
-	self.game_time = self.game_time + dt
+	end
+	
+	if not self.game_over then
+		self.game_time = self.game_time + dt
+	end
 end
 
 function GlobalGameState:on_hatched()
@@ -375,7 +386,10 @@ function GlobalGameState:remove_artefact(slot)
 end
 
 function GlobalGameState:on_game_over()
-    self.game_over = true
+	self.game_over = true
+    savedata:add_category_death(self.leaderboard_category)
+    savedata:set_save_data("death_count", savedata.death_count + 1)
+	leaderboard.add_death()
 end
 
 function GlobalGameState:on_egg_room_cleared()
@@ -416,6 +430,7 @@ end
 
 function GlobalGameState:on_damage_taken()
 	self.any_damage_taken = true
+	self.total_damage_taken = self.total_damage_taken + 1
 end
 
 function GlobalGameState:apply_level_bonus_difficulty(bonus)
@@ -423,10 +438,13 @@ function GlobalGameState:apply_level_bonus_difficulty(bonus)
 end
 
 function GlobalGameState:on_level_start()
+	table.insert(self.level_scores, self.score)
 	self.level = self.level + 1
+	self.boss_level = false
     self.any_room_failures = false
 	self.any_damage_taken = false
-	self.aggression_bonus = 0
+    self.aggression_bonus = 0
+	
 	self.harmed_noid = false
     self.level_bonuses = {}
 	self.rescues_saved_this_level = 0
@@ -451,7 +469,7 @@ function GlobalGameState:on_level_start()
 end
 
 function GlobalGameState:on_room_clear()
-	if self.aggression_bonus > 0 then
+	if self.aggression_bonus > 0 and not self.boss_level then
 		self:level_bonus("aggression_bonus")
 	end
 
@@ -492,6 +510,7 @@ function GlobalGameState:on_rescue(rescue_object)
 	-- self:gain_xp(0.5)
     self.rescue_chain = self.rescue_chain + 1
 	self.rescue_chain_difficulty = min(self.rescue_chain_difficulty + 1, 30)
+	self.highest_rescue_chain = max(self.highest_rescue_chain, self.rescue_chain)
 
 	self:level_bonus("rescue")
 end
@@ -538,6 +557,33 @@ function GlobalGameState:add_score_multiplier(multiplier)
 	self.score_multiplier = self.score_multiplier + multiplier
 end
 
+function GlobalGameState:get_run_data_table()
+
+	local artefacts = {}
+
+	for i, artefact in ipairs(self.artefact_slots) do
+		table.insert(artefacts, artefact.key)
+	end
+
+	return {
+		name = savedata.name,
+        uid = savedata.uid,
+		score = self.score,
+		--- extra stuff
+		timestamp = os.time(),
+		kills = self.enemies_killed,
+		level = self.level,
+		category = self.leaderboard_category,
+		rescues = self.rescues_saved,
+		artefacts = artefacts,
+		game_time = self.game_time,
+		secondary_weapon = self.secondary_weapon and self.secondary_weapon.key,
+		good_ending = self.good_ending,
+		damage_taken = self.total_damage_taken,
+		highest_rescue_chain = self.highest_rescue_chain
+	}
+end
+
 function GlobalGameState:gain_heart(heart)
     self.hearts = self.hearts + 1
 	if self.hearts > GlobalGameState.max_hearts then
@@ -570,10 +616,14 @@ function GlobalGameState:get_bullet_powerup()
 	return self.bullet_powerup
 end
 
+function GlobalGameState:get_score_breakdown()
+
+end
+
 function GlobalGameState:lose_heart()
     if self.hearts > 0 then
         self.hearts = self.hearts - 1
-        signal.emit(self, "player_heart_lost")
+		signal.emit(self, "player_heart_lost")
     end
 end
 

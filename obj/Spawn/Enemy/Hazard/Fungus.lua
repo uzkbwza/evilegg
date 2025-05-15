@@ -22,6 +22,9 @@ local MIN_PLAYER_DISTANCE_FOR_GROWTH = 64
 local PROPOGATE_RADIUS = 16
 local MAX_FUNGI = 60
 
+Fungus.spawn_sfx = "hazard_fungus_spawn"
+Fungus.spawn_sfx_volume = 0.2
+
 function Fungus:new(x, y, propogate_frequency)
     self.team = game_state.artefacts.death_cap and "player" or "neutral"
 	self.hitbox_team = game_state.artefacts.death_cap and "player" or "enemy"
@@ -67,8 +70,15 @@ function Fungus:enter()
 	self:add_tag("fungus")
 	self:start_hp_gain_timer()
 	self:start_propagate_timer()
-    -- self:update_bubble_radii()
-    self:start_draw_dots_timer()
+	-- self:update_bubble_radii()
+	self:start_draw_dots_timer()
+end
+
+function Fungus:enter_shared()
+	Fungus.super.enter_shared(self)
+	if game_state.artefacts.death_cap then
+		self:remove_tag("enemy")
+	end
 end
 
 function Fungus:start_draw_dots_timer()

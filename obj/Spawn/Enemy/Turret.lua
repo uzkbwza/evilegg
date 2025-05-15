@@ -68,7 +68,7 @@ function Turret:shoot()
 end
 
 function Turret:enter()
-	self:start_shoot_timer(max(1, rng.randi(30, Turret.shoot_delay)))
+	self:start_shoot_timer(max(1, rng.randi(60, Turret.shoot_delay)))
 	self:add_hurt_bubble(0, self.body_height, self.hurt_bubble_radius, "main")
 	self:add_hit_bubble(0, self.body_height, self.hit_bubble_radius, "main", 1)
 	self:add_hurt_bubble(-3, self.body_height, 5, "main2")

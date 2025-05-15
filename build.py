@@ -27,7 +27,9 @@ RAW_EXCLUDED_PATTERNS = [
     'node_modules*',
 	'palette_cycle_test_image.png',
     '*.exe',
-    'tools/is_debug.lua'
+    'tools/is_debug.lua',
+	'assets/audio/music/*.wav',
+	'assets/steam/*',
 ]
 
 # Convert patterns to always use forward slashes
@@ -44,15 +46,20 @@ LICENSE_FILE = os.path.join(LOVE_DLL_DIR, "license.txt")
 
 
 def should_exclude(rel_path: str) -> bool:
-    """
-    Checks if the given relative path (always using forward slashes)
-    matches any exclusion pattern.
-    """
-    # For each pattern in EXCLUDED_PATTERNS, check if there's a match.
     for pattern in EXCLUDED_PATTERNS:
+        # Match file directly
         if fnmatch.fnmatch(rel_path, pattern):
-            print(f"excluding {rel_path} because of {pattern}")
+            print(f"Excluding {rel_path} because of {pattern}")
             return True
+
+        # If it's a directory rule like 'assets/steam/*', check each parent segment
+        parts = rel_path.split('/')
+        for i in range(1, len(parts)):
+            partial_path = '/'.join(parts[:i]) + '/*'
+            if fnmatch.fnmatch(rel_path, partial_path) and partial_path in EXCLUDED_PATTERNS:
+                print(f"Excluding {rel_path} because of {partial_path}")
+                return True
+
     return False
 
 

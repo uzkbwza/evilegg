@@ -32,6 +32,7 @@ function EggRoom:should_spawn_waves()
 end
 
 function EggRoom:initialize(world)
+	game_state.boss_level = true
     self.director = world:spawn_object(EggRoomDirector())
     signal.connect(self.director, "destroyed", self, "on_director_destroyed", function()
 		self.director = nil

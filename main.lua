@@ -10,6 +10,8 @@ debug = require "debuggy"
 table = require "lib.tabley"
 Object = require "lib.object"
 
+leaderboard = require"leaderboard"
+
 savedata = require "savedata"
 savedata:initial_load()
 
@@ -326,6 +328,9 @@ local averaged_frame_length = 0
 local average_fps = 0
 
 function love.update(dt)
+
+	leaderboard.poll() -- drive the callback pump
+	
 	if gametime.tick % 1 == 0 then 
 		-- dbg("ticks", gametime.tick)
         -- if conf.use_fixed_delta and fps > conf.fixed_tickrate then
@@ -376,6 +381,7 @@ function love.update(dt)
 	
 	input.post_update()
 
+
 end
 
 function love.draw()
@@ -406,6 +412,7 @@ end
 
 function love.quit()
     usersettings:save()
+	savedata:save()
 	return false
 end
 

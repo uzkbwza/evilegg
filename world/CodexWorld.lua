@@ -48,8 +48,8 @@ function CodexWorld:enter()
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0, 1, 1)))
 
     self:ref("back_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING, tr.menu_back_button,
-            50, 10, false))):focus()
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING, "⮌",
+            10, 10, false))):focus()
 
     signal.connect(self.back_button, "selected", self, "exit_menu_requested", function()
 		local s = self.sequencer
@@ -114,6 +114,8 @@ end
 
 function CodexWorld:open_spawn_description(spawn)
 
+    self:play_sfx("ui_ranking_tick", 0.35)
+	
 	savedata:clear_new_codex_item(spawn.codex_save_name)
 
 	local x = conf.viewport_size.x / 2 + conf.viewport_size.x / 4
@@ -522,5 +524,11 @@ function CodexWorld:get_spawns(page_category)
 	return spawns
 end
 
+function CodexWorld:draw()
+    local font = fonts.depalettized.image_bigfont1
+	graphics.set_font(font)
+	graphics.print(tr.menu_codex_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
+	CodexWorld.super.draw(self)
+end
 
 return CodexWorld

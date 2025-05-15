@@ -64,7 +64,9 @@
 		"default_usersettings",
 		"bench",
 		"format_hhmmss",
-		"savedata"
+		"savedata",
+		"leaderboard",
+		"utf8"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"
