@@ -8,7 +8,8 @@ function MainMenuScreen:enter()
 	self:add_signal("codex_menu_requested")
 	self:add_signal("start_title_screen_requested")
 	self:add_signal("leaderboard_menu_requested")
-    self:ref("main_menu_world", self:add_world(Worlds.MainMenuWorld()))
+    self:ref("main_menu_world", self:add_world(Worlds.MainMenuWorld(self.started_from_title_screen)))
+
 
 	signal.chain_connect("start_game_requested", self.main_menu_world, self)
 	signal.chain_connect("options_menu_requested", self.main_menu_world, self)
@@ -22,6 +23,21 @@ function MainMenuScreen:enter()
 	end
 	
 	audio.stop_music()
+
+    local s = self.sequencer
+	self.clear_color = Color.purple:clone()
+	s:start(function() 
+		for _, prop in ipairs({ "r", "g", "b" }) do
+			s:start(function()
+				s:tween_property(self.clear_color, prop, self.clear_color[prop], 0, 2, "linear", 0.125)
+				self.clear_color = Color.black:clone()
+			end)
+		end
+    end)
+
+    if not self.started_from_title_screen then
+        self.sequencer:end_all()
+	end
 
 end
 

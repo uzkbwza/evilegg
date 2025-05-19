@@ -77,61 +77,64 @@ function EggElevator:update(dt)
 		self.floor_particles[floor_particle] = nil
 	end
 
-    if not self.dead and self.is_new_tick then
-        if self.tick % 120 == 0 and self.tick > 1 and self.back then
-            self:play_sfx("object_egg_elevator_moan", 0.5)
-        end
+	if not self.dead and self.is_new_tick then
+		if self.tick % 120 == 0 and self.tick > 1 and self.back then
+			self:play_sfx("object_egg_elevator_moan", 0.5)
+		end
 
-        if self.tick % 32 == 0 and self.tick > 1 and self.back then
-            self:play_sfx("object_egg_elevator_pulse", 0.7)
-        end
+		if self.tick % 32 == 0 and self.tick > 1 and self.back then
+			self:play_sfx("object_egg_elevator_pulse", 0.7)
+		end
 
-        if self.tick > 5 and self.tick % 6 == 0 and not self.stop_rings and self.accepting_player then
-            local ring = {
-                t = 0.0,
-                -- id = self.ring_id,
-            }
-            -- self.ring_id = self.ring_id + 1
+		if self.tick > 5 and self.tick % 6 == 0 and not self.stop_rings and self.accepting_player then
+			local ring = {
+				t = 0.0,
+				-- id = self.ring_id,
+			}
+			-- self.ring_id = self.ring_id + 1
 
-            local s = self.sequencer
-            table.insert(self.rings, ring)
-            s:start(function()
-                s:tween_property(ring, "t", 0, 1, RING_TIME, "linear")
-                table.erase(self.rings, ring)
-            end)
-        end
+			local s = self.sequencer
+			table.insert(self.rings, ring)
+			s:start(function()
+				s:tween_property(ring, "t", 0, 1, RING_TIME, "linear")
+				table.erase(self.rings, ring)
+			end)
+		end
 
-        if self.back and ((not self:is_tick_timer_running("pillar_cooldown")) or #self.pillars == 0) and not self.stop_pillars then
-            if rng.percent(90) then
-                self:play_sfx(rng.choose(pillar_spawn_sfx), 0.23)
-            end
-            self:start_tick_timer("pillar_cooldown", rng.randi_range(5, 40))
-            local start_offset_x, start_offset_y = rng.random_vec2_times(rng.randfn(rng.randf_range(-3, 3), 7))
-            start_offset_y = start_offset_y * 0.65
-            local pillar = {
-                start_offset_x = start_offset_x,
-                start_offset_y = start_offset_y,
-                width = abs(rng.randfn(10, 6)),
-                shine_x_offset = rng.randfn(0, 5),
-                -- shine_angle_offset = rng.randfn(0, 0.1),
-                t = 0.0,
-                elapsed = 0.0,
-                lifetime = rng.randi_range(90, 450),
-                random_offset = rng.randi(),
-                random_offset2 = rng.randi(),
-            }
-            table.insert(self.pillars, pillar)
-            local s = self.sequencer
-            s:start(function()
-                s:tween_property(pillar, "t", 0, 1, pillar.lifetime, "linear")
-                table.erase(self.pillars, pillar)
-            end)
-        end
-    end
+		if self.back and ((not self:is_tick_timer_running("pillar_cooldown")) or #self.pillars == 0) and not self.stop_pillars then
+			if rng.percent(90) then
+				self:play_sfx(rng.choose(pillar_spawn_sfx), 0.23)
+			end
+			self:start_tick_timer("pillar_cooldown", rng.randi_range(5, 40))
+			local start_offset_x, start_offset_y = rng.random_vec2_times(rng.randfn(rng.randf_range(-3, 3), 7))
+			start_offset_y = start_offset_y * 0.65
+			local pillar = {
+				start_offset_x = start_offset_x,
+				start_offset_y = start_offset_y,
+				width = abs(rng.randfn(10, 6)),
+				shine_x_offset = rng.randfn(0, 5),
+				-- shine_angle_offset = rng.randfn(0, 0.1),
+				t = 0.0,
+				elapsed = 0.0,
+				lifetime = rng.randi_range(90, 450),
+				random_offset = rng.randi(),
+				random_offset2 = rng.randi(),
+			}
+			table.insert(self.pillars, pillar)
+			local s = self.sequencer
+			s:start(function()
+				s:tween_property(pillar, "t", 0, 1, pillar.lifetime, "linear")
+				table.erase(self.pillars, pillar)
+			end)
+		end
+	end
+	
+	local force_elevator = debug.enabled and debug.fast_forward
+	-- local force_elevator = debug.enabled
 
-    if not self.dead and not self.elevator_started and not self.back and self.tick > 20 and self.accepting_player then
+    if (not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator) then
         local closest_player = self:get_closest_player()
-        if closest_player and self.pos:distance_to(closest_player.pos) < 16 then
+        if closest_player and self.pos:distance_to(closest_player.pos) < 16 or force_elevator then
 			self:ref("elevator_player", closest_player)
             self.intangible = true
 			self:start_stopwatch("elevator_started")
@@ -148,7 +151,7 @@ function EggElevator:update(dt)
                 s:tween(tween_function, 0, 1, 60, "linear")
                 s:wait(10)
 
-				self:play_sfx("object_egg_elevator_ascend", 0.75, 1, true)
+				self:play_sfx("object_egg_elevator_ascend", 0.45, 1, true)
 				local tween_function2 = function(t)
 					self.elevator_player:set_body_height(lerp(self.elevator_player.base_body_height, PILLAR_HEIGHT, t))
 				end
@@ -156,20 +159,24 @@ function EggElevator:update(dt)
 				self.back_object.showing_shadow = false
                 s:start(function()
                     s:wait(50)
-					self.back_object.stop_rings = true
+					self.back_object.stop_rings =  true
 					self.stop_rings = true
                     self.back_object.stop_pillars = true
 					self:start_stopwatch("elevator_dissipate_started")
                     self.back_object:start_stopwatch("elevator_dissipate_started")
-					s:wait(240)
+					s:wait(200)
 					self:stop_sfx("object_egg_elevator_ascend")
                     self:queue_destroy()
 					self.back_object:queue_destroy()
-					self:emit_signal("player_choice_made", "kill_egg")
+                    self:emit_signal("player_choice_made", "kill_egg", self.elevator_player)
+					-- self.elevator_player:hide()
+					self.elevator_player:set_body_height(self.elevator_player.base_body_height)
+                    self.elevator_player:change_state("EggRoomStart")
+					-- self.elevator_player:show()
+					
                 end)
                 s:tween(tween_function2, 0, 1, 100, "inCubic")
 					
-                self.elevator_player:hide()
                 -- closest_player:change_state("Idle")
             end)
         end
@@ -447,9 +454,13 @@ function EggElevator:die(killed)
 	self:start_stopwatch("elevator_dead_time")
 	
     s:start(function()
-		
         if killed and not self.back then
-			self:emit_signal("player_choice_made", "kill_elevator")
+			local closest_player = self:get_closest_player()
+			while not closest_player do
+				s:wait(1)
+				closest_player = self:get_closest_player()
+			end
+			self:emit_signal("player_choice_made", "kill_elevator", closest_player)
             -- self:spawn_object(XpPickup(self.pos.x, self.pos.y, XP_AMOUNT))
         end
 

@@ -539,26 +539,25 @@ function PlayerCharacter:hit_by(by)
 
 	if debug.enabled then
         if by.parent then
-			local process_float = function(x)
-				return stepify_safe(x, 0.01)
-			end
-            local hurt_bubble = self:get_bubble("hurt", "main")
-            local hx, hy = hurt_bubble:get_position()
-			local byx, byy = by:get_position()
-            local r = hurt_bubble.radius
-			local byr = by.radius
-            print("hit by " ..
-            tostring(by.parent) ..
-            " who was at " .. process_float(byx) .. ", " .. process_float(byy) .. " with radius " .. process_float(byr))
-            print("i was at " .. process_float(hx) .. ", " .. process_float(hy) .. " with radius " .. process_float(r))
-            print("which is a difference of " ..
-            process_float(hx - byx) ..
-            ", " .. process_float(hy - byy) .. " with a total distance of " .. process_float(vec2_distance(hx, hy, byx, byy)))
-            if vec2_distance(hx, hy, byx, byy) > r + byr then
-				print("this should have missed as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is greater than the sum of the radii " .. process_float(r + byr))
-            else
-				print("this should have hit as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is less than the sum of the radii " .. process_float(r + byr))
-			end
+			-- local process_float = function(x)
+			-- 	return stepify_safe(x, 0.01)
+			-- end
+            -- local hurt_bubble = self:get_bubble("hurt", "main")
+            -- local hx, hy = hurt_bubble:get_position()
+			-- local byx, byy = by:get_position()
+            -- local r = hurt_bubble.radius
+			-- local byr = by.radius
+            print("hit by " .. tostring(by.parent))
+            -- " who was at " .. process_float(byx) .. ", " .. process_float(byy) .. " with radius " .. process_float(byr))
+            -- print("i was at " .. process_float(hx) .. ", " .. process_float(hy) .. " with radius " .. process_float(r))
+            -- print("which is a difference of " ..
+            -- process_float(hx - byx) ..
+            -- ", " .. process_float(hy - byy) .. " with a total distance of " .. process_float(vec2_distance(hx, hy, byx, byy)))
+            -- if vec2_distance(hx, hy, byx, byy) > r + byr then
+			-- 	print("this should have missed as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is greater than the sum of the radii " .. process_float(r + byr))
+            -- else
+			-- 	print("this should have hit as the distance is " .. process_float(vec2_distance(hx, hy, byx, byy)) .. " which is less than the sum of the radii " .. process_float(r + byr))
+			-- end
 			
         else
             print("hit by " .. tostring(by))
@@ -886,6 +885,43 @@ function PlayerCharacter:state_Elevator_exit()
     if self.shadow then
         self.shadow:show()
     end
+end
+
+function PlayerCharacter:state_EggRoomStart_enter()
+    self.intangible = true
+	self:hide()
+	if self.shadow then
+		self.shadow:hide()
+	end
+    if self.aim_draw then
+        self.aim_draw:hide()
+    end
+	
+    self:start_timer("egg_room_start", 60, function()
+        self:show()
+		if self.shadow then
+			self.shadow:show()
+		end
+		-- if self.aim_draw then
+		-- 	self.aim_draw:show()
+        -- end
+		
+		self:change_state("Walk")
+	end)
+end
+
+function PlayerCharacter:state_EggRoomStart_exit()
+	if self.shadow then
+		self.shadow:show()
+	end
+	if self.aim_draw then
+		self.aim_draw:show()
+	end
+	self.intangible = false
+end
+
+function PlayerCharacter:state_EggRoomStart_draw()
+
 end
 
 ------------------------------------------ secondary weapon methods ------------------------------------------

@@ -58,10 +58,10 @@ function SwordSlash:get_death_particle_hit_velocity(target)
 end
 
 function SwordSlash:hit_other(target, bubble)
-    if target.apply_impulse then
-        local impulse = PUSH_IMPULSE
+    if target.apply_impulse and target.bullet_pushable then
+		local impulse = PUSH_IMPULSE
         if target.bullet_push_modifier then
-            impulse = impulse * lerp(1, target.bullet_push_modifier, 0.5)
+            impulse = impulse * target.bullet_push_modifier
         end
 		if target.is_enemy_bullet then
 			impulse = impulse * 2

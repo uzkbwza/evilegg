@@ -17,5 +17,7 @@ graphics.load_image_font("image_font2", "font_font2", font_chars)
 
 graphics.load_image_font("image_bigfont1", "font_bigfont1", " APRHOSITNCXDEFQUVGLKBMWJZY")
 
+graphics.load_image_font("egglanguage", "font_egglanguage", "abcdefghijklmnopqrstuvwxyz")
+
 BaseEnemy = require("obj.Spawn.Enemy.BaseEnemy")
 Worlds = filesystem.get_modules("world")

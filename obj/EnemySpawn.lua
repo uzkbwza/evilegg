@@ -43,7 +43,7 @@ function EnemySpawn:update(dt)
 end
 
 function EnemySpawn:draw()
-	graphics.set_color(self.type == "enemy" and Color.red or (self.type == "hazard" and Color.orange) or Color.green, 1)
+	graphics.set_color(self.type == "enemy" and Color.red or (self.type == "hazard" and Color.orange) or Color.red, 1)
 	if self.tick > TIME - 10 and idivmod(self.tick, 2, 2) == 0 then return end
     if self.tick < 4 or self.tick > TIME - 4 then
         graphics.set_color(1, 1, 1, 1)

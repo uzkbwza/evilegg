@@ -4,6 +4,7 @@ local debug_start = "game"
 -- local debug_start = "codex_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
+-- local debug_start = "title_screen"
 
 function MainScreen:new()
     MainScreen.super.new(self)
@@ -75,13 +76,17 @@ end
 function MainScreen:start_title_screen()
 	self:defer(function()
         self:set_current_screen(Screens.TitleScreen)
-		self:connect_start_main_menu(self.current_screen)
+		signal.connect(self.current_screen, "start_main_menu_requested", self, "start_main_menu", function()
+			self:start_main_menu(true)
+		end)
 	end)
 end
 
-function MainScreen:start_main_menu()
-	self:defer(function()
-		self:set_current_screen(Screens.MainMenuScreen)
+function MainScreen:start_main_menu(from_title_screen)
+    self:defer(function()
+		local screen = Screens.MainMenuScreen()
+		screen.started_from_title_screen = from_title_screen
+		self:set_current_screen(screen)
 		self:connect_start_game(self.current_screen)
         self:connect_options_menu(self.current_screen)
 		self:connect_start_title_screen(self.current_screen)

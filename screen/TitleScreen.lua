@@ -28,7 +28,7 @@ local STAR_V_SPEED = 0.5
 
 local LENS_FLARE_BURST_DIRECTION = Vec2(-1, 1):normalized()
 
-local SCREENSHOT_MODE = false
+local SCREENSHOT_MODE = true
 
 if not debug.enabled then
 	SCREENSHOT_MODE = false
@@ -108,6 +108,15 @@ function TitleScreen:generate_title_lines()
 			-- speed = rng.randf(3, 7),
             speed = (rng.randf(2, 4)),
 		}
+
+        -- if SCREENSHOT_MODE then
+        --     line.speed = line.speed * 1.4
+        -- end
+		
+		-- if line.speed < 3 then
+		-- 	line.speed = 3
+		-- end
+
 		table.insert(self.title_lines, line)
 	end
 
@@ -279,6 +288,12 @@ function TitleScreen:enter()
 		end)
 		
         s:start(function()
+
+			if SCREENSHOT_MODE then
+            --     return	
+				s:wait(50)
+			end
+
             self.showing_lens_flare1 = true
 			local flash_color = flash_color:clone()
             self.clear_color = flash_color
@@ -606,7 +621,7 @@ function TitleScreen:draw()
 	end
 
 	if SCREENSHOT_MODE then
-		graphics.draw_centered(textures.capsule_shot2, 0, 0)
+		-- graphics.draw_centered(textures.capsule_shot2, 0, 0)
 	end
 end
 

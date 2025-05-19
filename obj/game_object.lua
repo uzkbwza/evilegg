@@ -493,11 +493,17 @@ function GameObject:tick_timer_time_left(name)
 end
 
 function GameObject:timer_time_left_ratio(name)
-	return 1 - ((self:timer_time_left(name) or 1) / (self:timer_duration(name) or 1))
+	if not self:timer_duration(name) then
+		return 0
+	end
+	return ((self:timer_time_left(name) or 1) / (self:timer_duration(name)))
 end
 
 function GameObject:tick_timer_time_left_ratio(name)
-	return 1 - ((self:tick_timer_time_left(name) or 1) / (self:tick_timer_duration(name) or 1))
+	if not self:tick_timer_duration(name) then
+		return 0
+	end
+	return ((self:tick_timer_time_left(name) or 1) / (self:tick_timer_duration(name)))
 end
 
 function GameObject:timer_duration(name)

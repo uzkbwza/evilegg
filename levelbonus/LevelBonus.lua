@@ -7,6 +7,15 @@ return {
 		difficulty_modifier = 0.0,
 	},
 
+	final_room_clear = {
+		text_key = "bonus_final_room_clear",
+		score = function() return max(game_state.score, 100000) end,
+		ignore_score_multiplier = true,
+		score_multiplier = 0,
+		xp = 0,
+		difficulty_modifier = 0.0,
+	},
+
 	aggression_bonus = {
 		text_key = "bonus_aggression",
 		score = function() return 
@@ -19,7 +28,7 @@ return {
 
     hard_room = {
         text_key = "bonus_hard_room",
-        score = 3000,
+        score = 1000,
         score_multiplier = 0.1,
 		xp = 200,
 		difficulty_modifier = 0.1,
@@ -45,7 +54,7 @@ return {
 		text_key = "bonus_overheal",
 		score = 1000,
 		score_multiplier = 0.01,
-		xp = 10,
+		xp = 50,
         difficulty_modifier = 0.025,
     },
 	
@@ -92,7 +101,7 @@ return {
 	harmed_noid = {
 		text_key = "bonus_harmed_noid",
 		score = 100,
-		score_multiplier = 0.00,
+		score_multiplier = 0.03,
 		negative = true,
 		xp = 0,
 		difficulty_modifier = 0.015,

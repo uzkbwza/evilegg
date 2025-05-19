@@ -13,6 +13,7 @@ function HUDLayer:new()
     signal.connect(game_state, "player_upgraded", self, "on_upgrade_gained")
     signal.connect(game_state, "player_downgraded", self, "on_upgrade_lost")
     signal.connect(game_state, "hatched", self, "show")
+	signal.connect(game_state, "greenoid_harmed", self, "on_greenoid_harmed")
     self:create_persistent_ui()
 end
 
@@ -44,6 +45,10 @@ end
 function HUDLayer:on_upgrade_lost(upgrade)
 	-- self.world:on_upgrade_lost(upgrade)
 	self:start_timer("upgrade_flash_" .. upgrade.upgrade_type, 30)
+end
+
+function HUDLayer:on_greenoid_harmed()
+	self:start_timer("greenoid_harmed_flash", 30)
 end
 
 function HUDLayer:start_after_level_bonus_screen()
@@ -88,12 +93,18 @@ function HUDLayer:start_after_level_bonus_screen()
     self.game_layer.world.waiting_on_bonus_screen = true
 	
     local function update_bonus_info(bonus, b, count)
-		b.score = game_state:determine_score(try_function(bonus.score))
+		b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or game_state:determine_score(try_function(bonus.score))
 		if bonus.negative then
 			b.score = -b.score
 		end
 		b.xp = try_function(bonus.xp)
-		b.score_multiplier = try_function(bonus.score_multiplier)
+		if game_state.final_room_cleared then
+			b.xp = 0
+		end
+        b.score_multiplier = try_function(bonus.score_multiplier)
+		if bonus.negative then 
+			b.score_multiplier = -b.score_multiplier
+		end
 		b.negative = bonus.negative
 	end
 
@@ -160,20 +171,24 @@ function HUDLayer:start_after_level_bonus_screen()
                 -- update_bonus_info(b.bonus, b, b.count)
 				
 				local total = self.after_level_bonus_screen.total
-                total.score = total.score + b.score
-                total.xp = total.xp + b.xp
-                total.score_multiplier = total.score_multiplier + b.score_multiplier
+				total.score = total.score + b.score
+				if not game_state.final_room_cleared then
+					total.xp = total.xp + b.xp
+				end
+				total.score_multiplier = total.score_multiplier + b.score_multiplier
 
 				total.score = max(total.score, 0)
 				total.xp = max(total.xp, 0)
-				total.score_multiplier = max(total.score_multiplier, 0)
+				-- total.score_multiplier = max(total.score_multiplier, 0)
 
-				local xp = one_b.xp
-                while xp > 0 do
-					local amount = min(rng.randf_range(1, 60), xp)
-					local x, y = self.game_layer.world:closest_last_player_pos(0, 0)
-					self.game_layer.world:spawn_xp(x, y, amount)
-					xp = xp - amount
+				if not game_state.final_room_cleared then
+					local xp = one_b.xp
+					while xp > 0 do
+						local amount = xp
+						local x, y = self.game_layer.world:closest_last_player_pos(0, 0)
+						self.game_layer.world:spawn_xp(x, y, amount)
+						xp = xp - amount
+					end
 				end
 				game_state:add_score(one_b.score, one_b.name)
                 game_state:add_score_multiplier(one_b.score_multiplier)
@@ -383,7 +398,12 @@ function HUDLayer:pre_world_draw()
     local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
 	local scoremult4 = "   "
 	local scoremult5 = "]"
-    graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, Color.green,
+
+    local greenoid_color = Color.green
+	if self:is_timer_running("greenoid_harmed_flash") then
+		greenoid_color = idivmod_eq_zero(self.tick, 3, 2) and Color.red or Color.green
+	end
+    graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, greenoid_color,
         scoremult4, Color.white, scoremult5, Color.grey)
 	graphics.set_color(Color.white)
 	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)

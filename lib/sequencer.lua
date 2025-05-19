@@ -21,7 +21,7 @@ function Sequencer:new()
     self.running = {}
 	self.running_indices = {}
 	self.suspended = {}
-	self.dt = 0
+	-- self.dt = 0
 	self.elapsed = 0
 end
 
@@ -73,6 +73,15 @@ function Sequencer:loop(func, times)
 	end
 end
 
+function Sequencer:end_all()
+    local elapsed = self.elapsed
+	while not table.is_empty(self.running) do
+		self:update(1)
+	end
+	self.elapsed = elapsed
+end
+
+
 function Sequencer:clear_all()
 	self.running = {}
 	self.running_indices = {}
@@ -86,11 +95,13 @@ end
 
 function Sequencer:update(dt)
 
+	self.elapsed = self.elapsed + dt
+
 	if (not self.running) or table.is_empty(self.running) then
 		return
 	end
 
-	self.dt = dt
+	-- self.dt = dt
 
 	for _, co in ipairs(self.running) do
 		self.current_chain = co
@@ -116,7 +127,6 @@ function Sequencer:update(dt)
 	-- 	return self.suspended[co] ~= nil or coroutine.status(co) ~= "dead"
 	-- end)
 
-	self.elapsed = self.elapsed + dt
 	-- print(#self.running)
 
 end
@@ -172,7 +182,6 @@ function Sequencer:tween_method(obj, method, value_start, value_end, duration, e
 		coroutine.yield()
 	end
 end
-
 
 function Sequencer:tween_property(obj, property, value_start, value_end, duration, easing, step)
 	return self:tween(function(value) obj[property] = value end, value_start, value_end, duration, easing, step)

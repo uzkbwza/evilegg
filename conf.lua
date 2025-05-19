@@ -218,7 +218,39 @@ local conf = {
 				{ "lctrl", "[" }
 			}
 		},
+
+		debug_turn_on_frame_advance = {
+			debug = true,
+			keyboard = {
+				{ "f" },
+				{ "p" }
+			}
+        },
 		
+		debug_turn_off_frame_advance = {
+			debug = true,
+			keyboard = {
+				{ "lctrl", "f" },
+                { "rctrl", "f" },
+				{ "p" },
+			}
+		},
+
+        debug_frame_advance = {
+			debug = true,
+			keyboard = {
+				{ "f" },
+				{ "f" }
+			}
+		},
+
+		debug_toggle_slow_motion = {
+			debug = true,
+			keyboard = {
+				{ "`" },
+				{ "`" }
+			}
+		},
 
 
 		
@@ -272,12 +304,12 @@ function love.conf(t)
 	t.audio.mixwithsystem   = true
 
 	t.window.title          = conf.window_title or conf.name
-	t.window.icon           = nil
+	t.window.icon           = ("assets/icon.png")
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
     if not IS_EXPORT then
-		-- t.window.width          = 1920
-		-- t.window.height         = 1080
+		t.window.width          = 1920
+		t.window.height         = 1080
 	end
 
 

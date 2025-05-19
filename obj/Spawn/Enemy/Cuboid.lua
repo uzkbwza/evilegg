@@ -218,7 +218,7 @@ function Cuboid:draw()
 			graphics.set_color(Color.black)
 			graphics.rectangle_centered("fill", 0, 0, 34, 34)
 			graphics.set_line_width(6)
-			local dist = 100 * (self:timer_time_left_ratio("explode"))
+			local dist = self:is_timer_running("explode") and (100 * (1 - self:timer_time_left_ratio("explode"))) or 0
 			graphics.set_color(Color.black)
 			for i = 1, #ALL_DIRECTIONS do
 				local direction = ALL_DIRECTIONS[i]

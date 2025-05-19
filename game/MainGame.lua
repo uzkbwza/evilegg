@@ -93,7 +93,8 @@ function GlobalGameState:new()
     self.score = 0
     self.score_multiplier = 1
     self.xp = 0
-	self.game_time = 0
+    self.game_time = 0
+	self.rescue_chain_bonus = 0
 
     self.rescue_chain = 0
 
@@ -188,6 +189,7 @@ function GlobalGameState:new()
 	signal.register(self, "secondary_weapon_ammo_gained")
 	signal.register(self, "used_sacrificial_twin")
 	signal.register(self, "hatched")
+	signal.register(self, "greenoid_harmed")
 
 	self.score_categories = {}
 
@@ -195,21 +197,18 @@ function GlobalGameState:new()
 	
 	
     if debug.enabled then
-        -- self.num_queued_artefacts = 1
-		-- self:gain_artefact(PickupTable.artefacts.SwordSecondaryWeapon)
-        -- self.level = 20
-		-- -- -- self.score = 999999000
-		-- self.hearts = self.max_hearts
+		-- self.score = 999999000
 		-- self.hearts = 0
-		-- self.upgrades.fire_rate = self.max_upgrades.fire_rate
-		-- self.upgrades.range = self.max_upgrades.range
-		-- self.upgrades.bullets = self.max_upgrades.bullets
-		-- self.upgrades.damage = self.max_upgrades.damage
-        -- self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
+        self.level = 30
+		self.hearts = self.max_hearts
+        -- self.num_queued_artefacts = 1
+		self:gain_artefact(PickupTable.artefacts.SwordSecondaryWeapon)
+		self.upgrades.fire_rate = self.max_upgrades.fire_rate
+		self.upgrades.range = self.max_upgrades.range
+		self.upgrades.bullets = self.max_upgrades.bullets
+		self.upgrades.damage = self.max_upgrades.damage
+        self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
 
-		-- for i = 1, 100 do
-            -- table.pretty_print(self:get_random_available_upgrade())
-        -- end
     end
 end
 
@@ -473,7 +472,11 @@ function GlobalGameState:on_room_clear()
 		self:level_bonus("aggression_bonus")
 	end
 
-    self:level_bonus("room_clear")
+	if not self.final_room_cleared then
+		self:level_bonus("room_clear")
+	else
+		self:level_bonus("final_room_clear")
+	end
 
 	local perfect = true
 	if not self.any_room_failures and self.rescues_saved_this_level > 0 then
@@ -500,8 +503,15 @@ function GlobalGameState:on_room_clear()
 end
 
 function GlobalGameState:on_final_room_entered()
-	self.final_room_entered = true
+    self.final_room_entered = true
 end
+
+function GlobalGameState:on_final_room_cleared()
+	self.final_room_cleared = true
+	self.good_ending = true
+end
+
+local RESCUE_CHAIN_MULTIPLIER_CAP = 20
 
 function GlobalGameState:on_rescue(rescue_object)
     -- self.score_multiplier = self.score_multiplier + 0.1
@@ -509,6 +519,8 @@ function GlobalGameState:on_rescue(rescue_object)
 	self.rescues_saved_this_level = self.rescues_saved_this_level + 1
 	-- self:gain_xp(0.5)
     self.rescue_chain = self.rescue_chain + 1
+    self.rescue_chain_bonus = self.rescue_chain_bonus + 1
+	self.rescue_chain_bonus = min(self.rescue_chain_bonus, RESCUE_CHAIN_MULTIPLIER_CAP)
 	self.rescue_chain_difficulty = min(self.rescue_chain_difficulty + 1, 30)
 	self.highest_rescue_chain = max(self.highest_rescue_chain, self.rescue_chain)
 
@@ -522,9 +534,17 @@ function GlobalGameState:on_rescue_failed()
     self.any_room_failures = true
 end
 
-function GlobalGameState:on_greenoid_harmed()
+function GlobalGameState:greenoid_harm_penalty()
 	self:level_bonus("harmed_noid")
+end
+
+function GlobalGameState:on_greenoid_harmed()
 	self.harmed_noid = true
+    self.rescue_chain_bonus = self.rescue_chain_bonus - 3
+    if self.rescue_chain_bonus < 0 then
+        self.rescue_chain_bonus = 0
+    end
+	signal.emit(self, "greenoid_harmed")
 end
 
 function GlobalGameState:get_max_upgrade(upgrade_type)
@@ -554,15 +574,18 @@ end
 
 function GlobalGameState:add_score_multiplier(multiplier)
 	if self.game_over then return end
-	self.score_multiplier = self.score_multiplier + multiplier
+    self.score_multiplier = self.score_multiplier + multiplier
+	if self.score_multiplier < 1 then
+		self.score_multiplier = 1
+	end
 end
 
 function GlobalGameState:get_run_data_table()
 
 	local artefacts = {}
 
-	for i, artefact in ipairs(self.artefact_slots) do
-		table.insert(artefacts, artefact.key)
+	for i=1, GlobalGameState.max_artefacts do
+		artefacts[i] = self.artefact_slots[i] and self.artefact_slots[i].key or "none"
 	end
 
 	return {
@@ -702,7 +725,6 @@ local MIN_SCORE_MULTIPLIER = 0.01
 local MAX_CHAIN = 20
 local EXTRA_CHAIN_MULTIPLIER = 0.685
 local EXTRA_CHAIN_BASE = 1.4
-local RESCUE_CHAIN_MULTIPLIER_CAP = 20
 local MAX_SCORE_MULTIPLIER = 30
 
 function GlobalGameState:get_score_multiplier(include_rescue_chain)
@@ -742,7 +764,7 @@ function GlobalGameState:get_rescue_chain_multiplier()
 
     -- return clamp(rescue_chain_multiplier, 0, RESCUE_CHAIN_MULTIPLIER_CAP)
 
-	return min(self.rescue_chain, RESCUE_CHAIN_MULTIPLIER_CAP)
+	return self.rescue_chain_bonus
 end
 
 
@@ -778,11 +800,11 @@ function GlobalGameState:get_difficulty_modifier(include_rescue_chain)
 end
 
 function GlobalGameState:on_artefact_destroyed(artefact)
-    self.artefacts_destroyed[artefact] = true
+    self.artefacts_destroyed[artefact.key] = true
 end
 
 function GlobalGameState:determine_score(score)
-    return stepify_floor(score * self:get_score_multiplier() * 0.1, 10)
+    return stepify_floor(score * self:get_score_multiplier(), 10)
 end
 
 function GlobalGameState:get_random_available_upgrade(allow_nil)

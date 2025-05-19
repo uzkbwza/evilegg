@@ -2,6 +2,12 @@ conf = require "conf"
 usersettings = require "usersettings"
 usersettings:initial_load()
 
+-- local old_print = print
+-- print = function(...)
+--     old_print(...)
+
+-- end
+
 require "lib.keyprocess"
 
 function_style_key_process(love)
@@ -367,10 +373,24 @@ function love.update(dt)
 
 	dt = dt * gametime.scale
 
-	input.update(dt)
-	game:update(dt)
-    graphics.update(dt)
-	audio.update(dt)
+    input.update(dt)
+	
+	
+	if debug.enabled and debug.frame_advance then
+		if input.debug_frame_advance_pressed then
+            game:update(dt)
+			audio.update(dt)
+		end
+    else
+		local scaled_dt = dt
+		if debug.slow_motion then
+			scaled_dt = dt * 0.1
+		end
+		game:update(scaled_dt)
+		audio.update(scaled_dt)
+	end
+
+	graphics.update(dt)
 
 	-- global input shortcuts
 	if input.fullscreen_toggle_pressed then

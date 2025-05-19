@@ -29,7 +29,7 @@ function LeaderboardWorld:new()
 	-- self.current_page = nil
 	self.current_page_number = 1
 	self.target_death_count = 0
-
+ 
 	self.current_category = debug.enabled and leaderboard.default_category
 
 	self.run_t_values = {}
@@ -61,6 +61,7 @@ function LeaderboardWorld:new()
 end
 
 function LeaderboardWorld:enter()
+
 	self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
 	self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(1, 1, 1, 1)))
@@ -121,10 +122,13 @@ function LeaderboardWorld:enter()
                 if not self.is_destroyed then
                     self:fetch_user(savedata.uid)
                 end
-            end)
+			end)
+		else
+			self:fetch_user(savedata.uid)
         end
 		self:death_count_update_loop()
 	end)
+
 end
 
 function LeaderboardWorld:death_count_update_loop()
@@ -352,8 +356,6 @@ function LeaderboardWorld:draw_leaderboard()
             graphics.pop()
 			
 
-
-
 			
             graphics.set_color(Color.darkergrey)
 			graphics.push("all")
@@ -370,7 +372,7 @@ function LeaderboardWorld:draw_leaderboard()
 				
 				graphics.draw(textures.hud_artefact_slot1, 0, 0, 0, 1, 1)
 				local artefact = self.artefact_map[run.artefacts[j]]
-                if artefact and j <= t * GlobalGameState.max_artefacts then
+                if artefact and artefact ~= "none" and j <= t * GlobalGameState.max_artefacts then
                     graphics.drawp(artefact.icon, nil, 0, 0, 0, 0, 1, 1)
 				end
 				graphics.pop()

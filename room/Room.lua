@@ -1030,7 +1030,7 @@ end
 if debug.enabled then
     for i = 1, 100 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
 	end
 end
 

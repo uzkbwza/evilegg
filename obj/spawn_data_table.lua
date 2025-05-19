@@ -74,7 +74,7 @@ local Enemies = {
 
 	FastHopper = {
 		level = 2,
-		min_level = 15,
+		min_level = 14,
 		spawn_points = 35,
         room_select_weight = 1000,
 		extra_score = 50,
@@ -97,7 +97,7 @@ local Enemies = {
 
 	Shotgunner = {
 		level = 4,
-		min_level = 18,
+		min_level = 17,
 		spawn_points = 150,
 		extra_score = 150,
 		icon = textures.enemy_shotgunner1,
@@ -127,7 +127,7 @@ local Enemies = {
 		
         -- room_select_weight = 1000000,
 		extra_score = 100,
-		min_level = 8,
+		min_level = 7,
         spawn_points = 100,
 		-- room_select_weight = 1000,
 		icon = textures.enemy_turret_icon,
@@ -136,7 +136,7 @@ local Enemies = {
 	Shielder = {
         level = 3,
         spawn_points = 80,
-        min_level = 7,
+        min_level = 6,
 		extra_score = -50,
 		spawn_weight_modifier = 0.35,
 		icon = textures.enemy_shielder1,
@@ -144,7 +144,7 @@ local Enemies = {
 
     Cultist = {
         level = 4,
-		min_level = 10,
+		min_level = 8,
 		-- room_select_weight = 250,
 		spawn_points = 50,
         spawn_weight_modifier = 0.45,
@@ -154,7 +154,7 @@ local Enemies = {
 
     Gnome = {
         level = 4,
-		min_level = 16,
+		min_level = 13,
 		-- room_select_weight = 250,
 		spawn_points = 150,
         spawn_weight_modifier = 1.25,
@@ -276,6 +276,13 @@ local Enemies = {
         boss = true,
 		min_level = 101,
 	},
+
+	EggBoss = {
+		spawnable = false,
+        icon = textures.enemy_egg_boss1,
+        boss = true,
+		min_level = 1000,
+	},
 }
 
 local Hazards = {
@@ -285,6 +292,16 @@ local Hazards = {
 		spawn_points = 50,
 		max_spawns = 6,
 		icon = textures.enemy_bouncer1,
+    },
+
+	FastBouncer = {
+        initial_wave_only = true,
+        level = 2,
+		min_level = 30,
+		spawn_points = 50,
+		max_spawns = 6,
+		room_select_weight = 500,
+		icon = textures.enemy_fast_bouncer1,
     },
 
 	Quark = {

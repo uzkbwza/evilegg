@@ -1,11 +1,12 @@
 local MainMenuWorld = World:extend("MainMenuWorld")
+local TitleTextObject = GameObject2D:extend("TitleTextObject")
 local O = (require "obj")
 
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 12
 local MENU_ITEM_SKEW = 0
 
-function MainMenuWorld:new()
+function MainMenuWorld:new(started_from_title_screen)
     MainMenuWorld.super.new(self)
 	self:add_signal("menu_item_selected")
     self:add_signal("start_game_requested")
@@ -14,13 +15,33 @@ function MainMenuWorld:new()
 	self:add_signal("leaderboard_menu_requested")
 
 	self.draw_sort = self.y_sort
-	-- menu_item:focus()
+	self.started_from_title_screen = started_from_title_screen
 end
 
 function MainMenuWorld:enter()
-	self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
+	
+	-- self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
-    local menu_root = self:spawn_object(O.MainMenu.MainMenuRoot(1, 1, 1, 1))
+    self:start_timer("create_buttons", 10, function() self:create_buttons() end)
+    self:ref("title_text", self:spawn_object(TitleTextObject(2, 50)))
+	local title_y = self.title_text.pos.y
+	local s = self.sequencer
+    s:start(function()
+		s:tween(function(t) self.title_text:move_to(self.title_text.pos.x, lerp(title_y, -conf.viewport_size.y / 2 + 62, t)) end, 0, 1, 15, "linear")
+    end)
+	
+
+	if not self.started_from_title_screen then
+        self.sequencer:end_all()
+		self:end_timer("create_buttons")
+	end
+
+
+
+end
+
+function MainMenuWorld:create_buttons()
+	local menu_root = self:spawn_object(O.MainMenu.MainMenuRoot(1, 1, 1, 1))
 
     local menu_items = {
 		{name = tr.main_menu_start_button, func = function() self:emit_signal("start_game_requested") end},
@@ -50,11 +71,11 @@ function MainMenuWorld:enter()
 	local distance_between_items = 19
 	-- local base = MENU_ITEM_V_PADDING
 	-- local base = conf.viewport_size.y - (#menu_items * distance_between_items) - MENU_ITEM_V_PADDING
-	local base = conf.viewport_size.y / 2 - (#menu_items * distance_between_items) / 2
+	local base = -18
     for i, menu_table in ipairs(menu_items) do
         local v_offset = (i - 1) * distance_between_items
 		local h_offset = (i - 1) * MENU_ITEM_SKEW
-		local menu_item = self:spawn_object(O.MainMenu.MainMenuButton(MENU_ITEM_H_PADDING + h_offset, base + v_offset, menu_table.name:upper()))
+		local menu_item = self:spawn_object(O.MainMenu.MainMenuButton(0, base + v_offset, menu_table.name:upper()))
         signal.connect(menu_item, "selected", self, "on_menu_item_selected", function()
 			self:on_menu_item_selected(menu_item, menu_table.func)
 		end)
@@ -90,5 +111,18 @@ function MainMenuWorld:on_menu_item_selected(menu_item, func)
 		func()
 	end)
 end
+
+function TitleTextObject:new(x, y)
+    TitleTextObject.super.new(self, x, y)
+	self.z_index = 1
+end
+
+function TitleTextObject:draw()
+    -- TitleTextObject.super.draw(self)
+	graphics.draw_centered(textures.title_title_text, 0, 0)
+end
+
+
+
 
 return MainMenuWorld

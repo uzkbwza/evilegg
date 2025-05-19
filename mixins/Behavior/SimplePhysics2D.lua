@@ -133,7 +133,7 @@ end
 
 function SimplePhysics2D:apply_simple_physics(dt)
 	if not self.applying_physics then return end
-	self:apply_force(0, self.gravity)
+    -- self:apply_force(0, self.gravity)
     local ax, ay = vec2_mul_scalar(self.accel.x, self.accel.y, dt)
 	local ix, iy = self.impulses.x, self.impulses.y
 	self.vel:add_in_place(ix, iy)

@@ -39,20 +39,50 @@ local worker_code = [[
         local resp = {id = job.id}
         local ok, data
 
-        local c = socket.tcp(); c:settimeout(5)
-        local okc, err = c:connect(job.host, job.port)
-        if not okc then
-            ok, data = false, "connect: "..tostring(err)
+        local ok_tcp, c = pcall(socket.tcp)
+        if not ok_tcp then
+            print("Worker error: TCP creation failed -", tostring(c))
+            ok, data = false, "tcp creation failed: " .. tostring(c)
         else
-            c:send(json.encode(job.payload).."\n")
-            local line, rerr = c:receive("*l")
-            if not line then ok, data = false, "recv: "..tostring(rerr)
+            local ok_timeout, timeout_err = pcall(function() c:settimeout(5) end)
+            if not ok_timeout then
+                print("Worker error: Timeout setting failed -", tostring(timeout_err))
+                ok, data = false, "timeout setting failed: " .. tostring(timeout_err)
             else
-                local succ, obj = pcall(json.decode, line)
-                ok, data = succ and true or false, succ and obj or "bad json"
+                local okc, err = pcall(function() return c:connect(job.host, job.port) end)
+                if not okc or err == false then
+                    print("Worker error: Connection failed -", tostring(err))
+                    ok, data = false, "connect: " .. tostring(err)
+                else
+                    local ok_send, send_err = pcall(function()
+                        return c:send(json.encode(job.payload).."\n")
+                    end)
+                    if not ok_send then
+                        print("Worker error: Send failed -", tostring(send_err))
+                        ok, data = false, "send failed: " .. tostring(send_err)
+                    else
+                        local ok_recv, line, rerr = pcall(function()
+                            return c:receive("*l")
+                        end)
+                        if not ok_recv then
+                            print("Worker error: Receive operation failed -", tostring(line))
+                            ok, data = false, "recv failed: " .. tostring(line)
+                        elseif not line then
+                            print("Worker error: No data received -", tostring(rerr))
+                            ok, data = false, "recv: " .. tostring(rerr)
+                        else
+                            local succ, obj = pcall(json.decode, line)
+                            if not succ then
+                                print("Worker error: JSON decode failed -", tostring(obj))
+                            end
+                            ok, data = succ and true or false, succ and obj or "bad json"
+                        end
+                    end
+                end
             end
+            pcall(function() c:close() end)
         end
-        c:close(); resp.ok, resp.data = ok, data
+        resp.ok, resp.data = ok, data
         OUT:push(resp)
     end
 ]]

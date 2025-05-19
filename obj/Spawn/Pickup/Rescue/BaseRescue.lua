@@ -127,6 +127,9 @@ function BaseRescue:hit_by(other)
 end
 
 function BaseRescue:on_damaged(damage)
+    if damage > 0 then
+		game_state:on_greenoid_harmed()
+	end
 	local bx, by = self:get_body_center()
 	if self.hp > 0 and not self.grabbed_by_cultist then
 		self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume)
@@ -206,7 +209,7 @@ function BaseRescue:on_pickup()
 
 
 	for i=1, self.max_hp - self.hp do
-		game_state:on_greenoid_harmed()
+		game_state:greenoid_harm_penalty()
 	end
 
     if self.holding_pickup then

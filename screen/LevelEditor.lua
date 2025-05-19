@@ -1882,10 +1882,13 @@ function LevelEditor:enter()
     self.tile_data_input_box = self:add_object(TextInputBox(self.viewport_size.x - DATA_EDITOR_WIDTH, 8, DATA_EDITOR_WIDTH, self.viewport_size.y - 16))
     love.keyboard.setKeyRepeat(true)
 	audio.stop_music()
+	debug.can_frame_advance = false
+
 end
 
 function LevelEditor:exit()
 	love.keyboard.setKeyRepeat(self.old_key_repeat)
+	debug.can_frame_advance = true
 end
 
 function LevelEditor:tile_is_object(tile)

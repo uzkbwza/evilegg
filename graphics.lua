@@ -804,13 +804,17 @@ end
 
 
 function graphics.draw(texture, x, y, r, sx, sy, ox, oy, kx, ky)
-    -- remove this if you arent using sprite sheets
+    -- -- remove this if you arent using sprite sheets
 	if texture == nil then return end
 	if texture.__isquad then
 		love.graphics.draw(texture.texture, texture.quad, x, y, r, sx, sy, ox, oy, kx, ky)
 	else
 		love.graphics.draw(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 	end
+end
+
+function graphics.draw_quad_table(tab, x, y, r, sx, sy, ox, oy, kx, ky)
+    love.graphics.draw(tab.texture, tab.quad, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
 function graphics._auto_palette(texture, palette, offset)
@@ -845,13 +849,14 @@ function graphics.drawp(texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, k
 	graphics.set_shader()
 end
 
+
 function graphics.drawp_centered(texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
 	if texture == nil then return end
     palette = graphics._auto_palette(texture, palette, offset)
 	if palette == nil then
 		return graphics.draw_centered(graphics.depalettized[texture], x, y, r, sx, sy, ox, oy, kx, ky)
 	end
-
+	
 	graphics.set_shader(palette:get_shader(offset))
 	graphics.draw_centered(graphics.palettized[texture], x, y, r, sx, sy, ox, oy, kx, ky)
 	graphics.set_shader()
@@ -882,13 +887,13 @@ end
 
 
 function graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
-
+	
 	if texture == nil then return end
-
+	
 	if texture.__isquad then
 		return graphics.draw_quad_centered(texture.texture, texture.quad, texture.width, texture.height, x, y, r, sx, sy, ox, oy, kx, ky)
 	end
-
+	
 	ox = ox or 0
 	oy = oy or 0
 	local offset_x = round(texture:getWidth() / 2)
@@ -960,8 +965,46 @@ function graphics.rectangle_centered(mode, x, y, width, height)
 end
 
 -- function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
-	-- love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
+-- love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 -- end
+
+function graphics.poly_rect(fill, x, y, width, height, rotation, scale_x, scale_y)
+	local left_x, top_y = -width / 2, -height / 2
+    local right_x, bottom_y = width / 2, height / 2
+	
+	local x1, y1 = left_x, top_y
+	local x2, y2 = right_x, top_y
+	local x3, y3 = right_x, bottom_y
+	local x4, y4 = left_x, bottom_y
+
+
+
+	x1, y1 = vec2_rotated(x1, y1, rotation)
+	x2, y2 = vec2_rotated(x2, y2, rotation)
+	x3, y3 = vec2_rotated(x3, y3, rotation)
+	x4, y4 = vec2_rotated(x4, y4, rotation)
+
+	x1 = x1 * scale_x
+	x2 = x2 * scale_x
+	x3 = x3 * scale_x
+	x4 = x4 * scale_x
+
+	y1 = y1 * scale_y
+	y2 = y2 * scale_y
+	y3 = y3 * scale_y
+	y4 = y4 * scale_y
+
+	x1 = x1 + x
+	x2 = x2 + x
+	x3 = x3 + x
+	x4 = x4 + x
+	y1 = y1 + y
+	y2 = y2 + y
+	y3 = y3 + y
+	y4 = y4 + y
+
+	graphics.polygon(fill, x1, y1, x2, y2, x3, y3, x4, y4)
+end
 
 function graphics.print_right_aligned(text, font, end_x, y, r, sx, sy, ox, oy, kx, ky)
 	local width = font:getWidth(text)

@@ -4,6 +4,7 @@ debuggy.enabled = usersettings.debug_enabled
 debuggy.draw = false
 debuggy.draw_bounds = false
 debuggy.fast_forward = false
+debuggy.frame_advance = false
 debuggy.drawing_dt_history = true
 debuggy.build_assets = true
 debuggy.dt_history = {}
@@ -14,6 +15,8 @@ debuggy.lines = {}
 debuggy.memory_used = 0
 debuggy.skip_tutorial_sequence = false
 debuggy.no_hatch_sound = false
+debuggy.can_frame_advance = true
+debuggy.slow_motion = false
 
 if IS_EXPORT then
 	debuggy.enabled = false
@@ -276,9 +279,19 @@ function debuggy.update(dt)
 		conf.use_fixed_delta = not conf.use_fixed_delta
 	end
 
-	if input.debug_draw_bounds_toggle_pressed then
-		debuggy.draw_bounds = not debuggy.draw_bounds
-		debuggy.draw = true
+    if input.debug_draw_bounds_toggle_pressed then
+        debuggy.draw_bounds = not debuggy.draw_bounds
+        debuggy.draw = true
+    end
+	
+	if input.debug_turn_on_frame_advance_pressed and not debuggy.frame_advance and debuggy.can_frame_advance then
+		debuggy.frame_advance = true
+	elseif input.debug_turn_off_frame_advance_pressed and debuggy.frame_advance and debuggy.can_frame_advance then
+		debuggy.frame_advance = false
+	end
+
+	if input.debug_toggle_slow_motion_pressed then
+		debuggy.slow_motion = not debuggy.slow_motion
 	end
 
 	-- if input.debug_shader_toggle_pressed then

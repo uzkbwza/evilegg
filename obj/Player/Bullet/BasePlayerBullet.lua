@@ -22,6 +22,7 @@ function BasePlayerBullet:new(x, y, extra_bullet)
 	self.start_palette_offset = self.start_palette_offset or gametime.tick * 4
     self.hit_vel_multip = self.hit_vel_multip or 30
     self.push_modifier = self.push_modifier or 0.75
+	self.z_index = 1
 
 	if self.use_artefacts == nil then
 		self.use_artefacts = true

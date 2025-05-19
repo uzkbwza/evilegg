@@ -17,7 +17,7 @@ local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
 local EGG_ROOM_START = 30
-local EGG_ROOM_PERIOD = 20
+local EGG_ROOM_PERIOD = 10
 
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
@@ -380,6 +380,7 @@ function GameWorld:spawn_wave()
 
 			self:spawn_rescues(rescue_spawns)
 			-- Spawn hazards and enemies in parallel
+			
 			self:spawn_wave_group(s, spawns.hazard, "hazard", "wave_hazard", MAX_HAZARDS)
 			self:spawn_wave_group(s, spawns.enemy, "enemy", "wave_enemy", MAX_ENEMIES)
 
@@ -410,9 +411,9 @@ function GameWorld:get_quick_clear_time_left_ratio()
 	elseif self.state == "LevelTransition" then
 		return 0
 	elseif self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
-		return self.timescaled:tick_timer_time_left_ratio("last_wave_quick_clear")
+		return 1 - self.timescaled:tick_timer_time_left_ratio("last_wave_quick_clear")
 	elseif self.timescaled:is_tick_timer_running("wave_timer") then
-		return self.timescaled:tick_timer_time_left_ratio("wave_timer")
+		return 1 - self.timescaled:tick_timer_time_left_ratio("wave_timer")
 	else
 		return 0
 	end
@@ -446,17 +447,17 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 				class = EnemySpawns[spawn_data.enemy_spawn_effect]
 			end
 
-			local spawn = self:spawn_object(class(spawn_x, spawn_y, spawn_type))
-			self:add_tag(spawn, "enemy_spawner")
-			-- self:add_tag(spawn, tag_name)
-			signal.connect(spawn, "finished", self, "on_spawn_finished", function()
+			local spawn = self:spawn_something(spawn_data.class, spawn_x, spawn_y, class, spawn_type, function(object)
 				if spawn_type == "hazard" then
-					self:spawn_wave_hazard(spawn_data.class(spawn_x, spawn_y))
+					self:spawn_wave_hazard(object)
 				else
-					self:spawn_wave_enemy(spawn_data.class(spawn_x, spawn_y))
+					self:spawn_wave_enemy(object)
 				end
 				self.draining_bullet_powerup = true
 			end)
+			-- self:add_tag(spawn, "enemy_spawner")
+			-- self:add_tag(spawn, tag_name)
+
 			if i % 3 == 0 then
 				s:wait(5)
 			end
@@ -471,26 +472,40 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 	end)
 end
 
-function GameWorld:spawn_wave_pickup(pickup)
-	local pickup_object = self:spawn_object(pickup)
-	-- pickup_object:move(0, pickup_object.body_height / 2)
-	-- self:register_spawn_wave_pickup(pickup_object)
+function GameWorld:spawn_something(class, x, y, enemy_spawner_class, enemy_spawn_type, enter_function)
+    enemy_spawner_class = enemy_spawner_class or EnemySpawns.EnemySpawn
+	if x == nil or y == nil then
+		x, y = self:get_valid_spawn_position()
+	end
+    local spawn = self:spawn_object(enemy_spawner_class(x, y, enemy_spawn_type or "enemy"))
+    self:add_tag(spawn, "enemy_spawner")
+    signal.connect(spawn, "finished", self, "on_spawn_finished", function()
+		local object = self:spawned_object_enter(class(x, y))
+		if enter_function then
+			enter_function(object)
+		end
+    end)
+    return spawn
+end
+
+function GameWorld:spawned_object_enter(spawn)
+	local object = self:spawn_object(spawn)
+	object:add_enter_function(object.life_flash)
+	return object
 end
 
 function GameWorld:spawn_wave_hazard(hazard)
-	local hazard_object = self:spawn_object(hazard)
-	self:add_tag(hazard_object, "wave_spawn")
-	self:add_tag(hazard_object, "wave_hazard")
+	-- local hazard_object = self:spawned_object_enter(hazard)
+	self:add_tag(hazard, "wave_spawn")
+	self:add_tag(hazard, "wave_hazard")
 	-- hazard_object:move(0, hazard_object.body_height / 2)
 	-- self:register_spawn_wave_hazard(hazard_object)
-	hazard_object:add_enter_function(hazard_object.life_flash)
 end
 
 function GameWorld:spawn_wave_enemy(enemy)
-    local enemy_object = self:spawn_object(enemy)
-    self:register_spawn_wave_enemy(enemy_object)
+    -- local enemy_object = self:spawned_object_enter(enemy)
+    self:register_spawn_wave_enemy(enemy)
     -- enemy_object:move(0, enemy_object.body_height / 2)
-    enemy_object:add_enter_function(enemy_object.life_flash)
 end
 
 function GameWorld:register_non_wave_enemy_required_kill(enemy_object)
@@ -834,12 +849,13 @@ function GameWorld:create_next_rooms()
 
 	for i = 1, 3 do
 		local room = self:create_room({
-			bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
+			-- bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
+			bonus_room = game_state.level > 3 and ((next_level) % 5 == 0),
 			needs_upgrade = needs_upgrade and i == upgrade_room,
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
-			hard_room = game_state.level % 2 == 0 and i == hard_room and game_state.level >= 10
+			hard_room = i == hard_room and game_state.level >= EGG_ROOM_START
 		})
 		table.insert(rooms, room)
 	end
@@ -975,6 +991,12 @@ function GameWorld:spawn_artefact(artefact)
 	self:add_tag(artefact_object, "artefact")
 end
 
+function GameWorld:on_final_boss_killed()
+    self.final_boss_killed = true
+	game_state:on_final_room_cleared()
+	self:on_room_clear()
+end
+
 function GameWorld:on_room_clear()
 	if self.room.cleared then
 		return
@@ -1104,8 +1126,10 @@ function GameWorld:on_room_clear()
             s:wait(1)
         end
 
-		-- i want to be able to debug room generation so we're not running it in this coroutine
-		self.waiting_on_rooms = true
+        -- i want to be able to debug room generation so we're not running it in this coroutine
+		if not self.final_boss_killed then
+			self.waiting_on_rooms = true
+		end
 	end)
 end
 
