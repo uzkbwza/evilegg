@@ -298,8 +298,8 @@ function TwinStickEntity:constrain_to_room()
 	local collided = false
 
     if not room then return collided end
-
 	local normal_x, normal_y = 0, 0
+
 
     if self.pos.x - self.terrain_collision_radius <= room.left then
         self:move_to(room.left + self.terrain_collision_radius, self.pos.y)

@@ -97,13 +97,14 @@ end
 function AllyFinder:random_last_ally_body_pos()
 	local random_ally = self:get_random_ally()
     if random_ally then
-        return Vec2(random_ally:get_body_center())
+        return random_ally:get_body_center()
     end
-    return Vec2(self:random_last_player_body_pos())
+    return self:random_last_player_body_pos()
 end
 
 function AllyFinder:random_last_player_body_pos()
-	return rng.choose(table.values(self.world.last_player_body_positions))
+	local pos = rng.choose(table.values(self.world.last_player_body_positions))
+	return pos.x, pos.y
 end
 
 function AllyFinder:closest_last_player_pos()

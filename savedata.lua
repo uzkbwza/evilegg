@@ -15,7 +15,8 @@ local default_savedata = {
     category_death_count = {},
 	death_count = 0,
     codex_items = {},
-	new_codex_items = {},
+    new_codex_items = {},
+	first_time_playing = true,
 }
 
 local SCORE_COUNT = 100
@@ -27,7 +28,7 @@ function savedata:load()
     local _, u = pcall(require, "_savedata")
 
     if type(u) ~= "table" then
-        u = default_savedata
+        u = table.deepcopy(default_savedata)
     end
 
 	for k, v in pairs(default_savedata) do
@@ -167,7 +168,7 @@ function savedata:add_score(run)
 end
 
 function savedata:get_high_score_run(category)
-	category = category or (debug.enabled and leaderboard.default_category)
+	category = category or (leaderboard.default_category)
     self:sort_scores()
 	if not self.scores[category] then
 		return nil

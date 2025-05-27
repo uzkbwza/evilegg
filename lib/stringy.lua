@@ -10,6 +10,11 @@ function stringy.endswith(s, e)
   return result ~= nil
 end
 
+function stringy.interpolate(s, ratio)
+	local result = s:sub(1, math.floor(ratio * #s))
+	return result
+end
+
 function stringy.strip_whitespace(s, left, right)
 	if left == nil then
 		left = true
@@ -86,14 +91,33 @@ function stringy.split(string, substr)
 end
 
 function stringy.join(t, separator)
-	local stringy = ""
-	local len = #t
-	for i, v in ipairs(t) do
-		stringy = stringy..v
-		if i < len then
-			stringy = stringy..separator
+    local stringy = ""
+    local len = #t
+    for i, v in ipairs(t) do
+        stringy = stringy .. v
+        if i < len then
+            stringy = stringy .. separator
+        end
+    end
+end
+
+function stringy.filter(str, filter)
+    local result = ""
+	
+    if type(filter) == "string" then
+        local chars = filter
+        filter = function(c)
+
+            return string.find(chars, c, nil, true)
+        end
+    end
+	
+	for i = 1, #str do
+		if filter(str:sub(i, i)) then
+			result = result .. str:sub(i, i)
 		end
 	end
+	return result
 end
 
 function utf8.sub(s,i,j)

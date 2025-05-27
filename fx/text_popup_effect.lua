@@ -44,6 +44,7 @@ function TextPopupEffect:update(dt)
 end
 
 function TextPopupEffect:draw(elapsed, tick, t)
+	-- if not self.world.showing_hud then return end
 	graphics.set_color(Color.white)
 	if tick > self.duration - 20 and gametime.tick % 2 == 0 then
 		return

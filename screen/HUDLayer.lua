@@ -95,16 +95,22 @@ function HUDLayer:start_after_level_bonus_screen()
     local function update_bonus_info(bonus, b, count)
 		b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or game_state:determine_score(try_function(bonus.score))
 		if bonus.negative then
-			b.score = -b.score
+			b.score = -abs(b.score)
 		end
 		b.xp = try_function(bonus.xp)
-		if game_state.final_room_cleared then
-			b.xp = 0
-		end
+        if game_state.final_room_cleared then
+            b.xp = 0
+        end
         b.score_multiplier = try_function(bonus.score_multiplier)
-		if bonus.negative then 
-			b.score_multiplier = -b.score_multiplier
+
+        if bonus.negative then
+            b.score_multiplier = -abs(b.score_multiplier)
+        end
+
+		if game_state.final_room_cleared then
+			b.score_multiplier = 0
 		end
+		
 		b.negative = bonus.negative
 	end
 
@@ -112,8 +118,11 @@ function HUDLayer:start_after_level_bonus_screen()
         local fast = {
 			["bonus_kill"] = 10,
 		}
-		if fast[bonus.name] then
-			return bonus.count % fast[bonus.name] == 0
+        if fast[bonus.name] then
+            return bonus.count % fast[bonus.name] == 0
+        end
+        if bonus.count > 10 then
+			return bonus.count % 5
 		end
 		return true
 	end
@@ -122,7 +131,10 @@ function HUDLayer:start_after_level_bonus_screen()
         local wait = function(time)
             for i = 1, time do
 				if not self.skipping_bonus_screen then
-					s:wait(1)
+                    s:wait(1)
+					if not self:should_show() then
+						self.skipping_bonus_screen = true
+					end
 				end
 			end
 		end
@@ -155,6 +167,10 @@ function HUDLayer:start_after_level_bonus_screen()
 		 
         wait(30)
 		
+
+        local total_score = 0
+		local total_possible_negative_score = 0
+		
 		for i = 1, #self.after_level_bonus_screen.bonuses do
             local b = self.after_level_bonus_screen.bonuses[i]
             for j = 1, b.count do
@@ -178,7 +194,7 @@ function HUDLayer:start_after_level_bonus_screen()
 				total.score_multiplier = total.score_multiplier + b.score_multiplier
 
 				total.score = max(total.score, 0)
-				total.xp = max(total.xp, 0)
+				-- total.xp = max(total.xp, 0)
 				-- total.score_multiplier = max(total.score_multiplier, 0)
 
 				if not game_state.final_room_cleared then
@@ -190,7 +206,22 @@ function HUDLayer:start_after_level_bonus_screen()
 						xp = xp - amount
 					end
 				end
-				game_state:add_score(one_b.score, one_b.name)
+
+				if one_b.score > 0 then
+					total_score = total_score + one_b.score
+					total_possible_negative_score = total_possible_negative_score + one_b.score
+				end
+
+
+                local score = one_b.score
+				
+                if score < 0 then
+                    score = max(score, -total_possible_negative_score)
+					total_possible_negative_score = total_possible_negative_score - abs(score)
+				end
+
+
+				game_state:add_score(score, one_b.name)
                 game_state:add_score_multiplier(one_b.score_multiplier)
 				game_state:apply_level_bonus_difficulty(one_b.bonus.difficulty_modifier)
 				
@@ -205,7 +236,7 @@ function HUDLayer:start_after_level_bonus_screen()
 
                 self:play_sfx("ui_bonus_screen_beep2", 0.75)
                 if wait_for_bonus(b) then
-                    wait(4)
+                    wait(3)
                 end
 			end
 		end
@@ -268,14 +299,24 @@ function HUDLayer:update(dt)
 			meter.xp = approach(meter.xp, game_state.xp, dt * 30)
 		end
 	end
-	if self.is_new_tick and self.tick % 4 == 0 then
+    if self.is_new_tick and self.tick % 4 == 0 then
         local first = self.xp_bars[1]
-		table.remove(self.xp_bars, 1)
-		table.insert(self.xp_bars, first)
-	end
+        table.remove(self.xp_bars, 1)
+        table.insert(self.xp_bars, first)
+    end
+	
+    self.world.showing = self:should_show()
 end
 
 local bonus_palette = PaletteStack:new(Color.black, Color.white)
+
+function HUDLayer:should_show()
+    if self.parent.ui_layer.state == "Paused" then return true end
+	
+	if game_state.game_over_screen_force_hud then return true end
+
+	return usersettings.show_hud
+end
 
 function HUDLayer:can_pause()
 	if self.after_level_bonus_screen then
@@ -328,36 +369,40 @@ function HUDLayer:pre_world_draw()
     local font = fonts.hud_font
 
     local border_color = self.game_layer.world:get_border_rainbow()
-
-
-    graphics.set_font(font)
-    graphics.set_color(Color.white)
-
     local charwidth = fonts.hud_font:getWidth("0")
 
-    graphics.push()
-    graphics.translate(floor(left), top)
-    -- graphics.set_color(Color.darkergrey)
-    graphics.set_color(Color.grey)
-    -- graphics.print("LVL", 0, 0)
-    local level_with_zeroes, level_without_zeroes, level_x = format_score(game_state.level % 100, 2, font)
+
+	if not self:should_show() then
+		return
+	end
+
+	graphics.set_font(font)
+	graphics.set_color(Color.white)
+
+
+	graphics.push()
+	graphics.translate(floor(left), top)
+	-- graphics.set_color(Color.darkergrey)
+	graphics.set_color(Color.grey)
+	-- graphics.print("LVL", 0, 0)
+	local level_with_zeroes, level_without_zeroes, level_x = format_score(game_state.level % 100, 2, font)
 	level_x = level_x
 	local zero_start = font:getWidth("LVL")
 
-    graphics.print("LVL", 0, 0)
-    graphics.set_color(Color.darkergrey)
+	graphics.print("LVL", 0, 0)
+	graphics.set_color(Color.darkergrey)
 	
-    graphics.print(level_with_zeroes, zero_start, 0)
+	graphics.print(level_with_zeroes, zero_start, 0)
 
-    graphics.set_color(Color.white)
-    -- graphics.set_color(Palette.rainbow:tick_color(gametime.tick, 0, 10))
-	
-    graphics.print(level_without_zeroes, level_x + zero_start, 0)
-    graphics.set_color(Color.grey)
-    graphics.print("WAVE", 32, 0)
 	graphics.set_color(Color.white)
-    graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + 32, 0)
-    graphics.set_color(Color.darkergrey)
+	-- graphics.set_color(Palette.rainbow:tick_color(gametime.tick, 0, 10))
+	
+	graphics.print(level_without_zeroes, level_x + zero_start, 0)
+	graphics.set_color(Color.grey)
+	graphics.print("WAVE", 32, 0)
+	graphics.set_color(Color.white)
+	graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + 32, 0)
+	graphics.set_color(Color.darkergrey)
 	
 	
 	graphics.translate(charwidth * 20 + 6, 0)
@@ -386,107 +431,107 @@ function HUDLayer:pre_world_draw()
 
 	local score_without_zeroes = comma_sep(self.score_display)
 
-    -- graphics.print(score_without_zeroes, score_width, 0)
+	-- graphics.print(score_without_zeroes, score_width, 0)
 	-- graphics.print(score_without_zeroes, score_width + 9, 0)
 
 	graphics.set_color(border_color)
 	graphics.print_right_aligned(score_without_zeroes, font, 0, 0)
 	graphics.set_color(Color.grey)
 	
-    local scoremult1 = "×["
-    local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
-    local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
+	local scoremult1 = "×["
+	local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
+	local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
 	local scoremult4 = "   "
 	local scoremult5 = "]"
 
-    local greenoid_color = Color.green
+	local greenoid_color = Color.green
 	if self:is_timer_running("greenoid_harmed_flash") then
 		greenoid_color = idivmod_eq_zero(self.tick, 3, 2) and Color.red or Color.green
 	end
-    graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, greenoid_color,
-        scoremult4, Color.white, scoremult5, Color.grey)
+	graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, greenoid_color,
+		scoremult4, Color.white, scoremult5, Color.grey)
 	graphics.set_color(Color.white)
 	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
 	graphics.pop()
-    graphics.push()
-    graphics.translate(left, bottom)
-    graphics.push()
-    -- for i = 1, game_state.max_hearts do
-    --     graphics.draw(i <= game_state.hearts and textures.pickup_heart_icon2 or textures.pickup_empty_heart_icon,
-    --         (i - 1) * 14, -1)
-    -- end
-    -- for i = 1, game_state.max_artefacts do
-    --     local texture = game_state.selected_artefact_slot == i and (textures.hud_artefact_slot2) or
-    --     textures.hud_artefact_slot1
-    --     graphics.draw(texture, 127 + (i - 1) * 14, -1)
-    --     -- if game_state.artefact_slots[i] then
-    --         -- graphics.draw(game_state.artefact_slots[i].icon, 127 + (i - 1) * 14, -1)
-    --     -- end
-    -- end
+	graphics.push()
+	graphics.translate(left, bottom)
+	graphics.push()
+	-- for i = 1, game_state.max_hearts do
+	--     graphics.draw(i <= game_state.hearts and textures.pickup_heart_icon2 or textures.pickup_empty_heart_icon,
+	--         (i - 1) * 14, -1)
+	-- end
+	-- for i = 1, game_state.max_artefacts do
+	--     local texture = game_state.selected_artefact_slot == i and (textures.hud_artefact_slot2) or
+	--     textures.hud_artefact_slot1
+	--     graphics.draw(texture, 127 + (i - 1) * 14, -1)
+	--     -- if game_state.artefact_slots[i] then
+	--         -- graphics.draw(game_state.artefact_slots[i].icon, 127 + (i - 1) * 14, -1)
+	--     -- end
+	-- end
 
-    -- local num_xp_bars = #self.xp_bars
-    local xp_bar_width = 4
-    local bar_x = 259
-    local bar_start = 0
-    local bar_end = 11
-    local bar_y = bar_end
-    local bar_height = bar_end - bar_start
+	-- local num_xp_bars = #self.xp_bars
+	local xp_bar_width = 4
+	local bar_x = 259
+	local bar_start = 0
+	local bar_end = 11
+	local bar_y = bar_end
+	local bar_height = bar_end - bar_start
 
-    graphics.set_color(Color.darkergrey)
-    graphics.rectangle("fill", bar_x, bar_start, xp_bar_width, bar_height)
+	graphics.set_color(Color.darkergrey)
+	graphics.rectangle("fill", bar_x, bar_start, xp_bar_width, bar_height)
 
 
-    -- self.bar_sort = self.bar_sort or function(a, b)
-    -- 	local xp_start = game_state[a.start]
-    -- 	local xp_end = game_state[a.name]
-    -- 	local a_ratio = remap_clamp(a.xp, xp_start, xp_end, 0, 1)
-    -- 	local xp_start = game_state[b.start]
-    -- 	local xp_end = game_state[b.name]
-    -- 	local b_ratio = remap_clamp(b.xp, xp_start, xp_end, 0, 1)
-    -- 	return a_ratio > b_ratio
-    -- end
-    -- table.sort(self.xp_bars, self.bar_sort)
+	-- self.bar_sort = self.bar_sort or function(a, b)
+	-- 	local xp_start = game_state[a.start]
+	-- 	local xp_end = game_state[a.name]
+	-- 	local a_ratio = remap_clamp(a.xp, xp_start, xp_end, 0, 1)
+	-- 	local xp_start = game_state[b.start]
+	-- 	local xp_end = game_state[b.name]
+	-- 	local b_ratio = remap_clamp(b.xp, xp_start, xp_end, 0, 1)
+	-- 	return a_ratio > b_ratio
+	-- end
+	-- table.sort(self.xp_bars, self.bar_sort)
 
-    for i, bar in ipairs(self.xp_bars) do
-        local xp_start = game_state[bar.start]
-        local xp_end = game_state[bar.name]
-        local ratio = max(remap_clamp(bar.xp, xp_start, xp_end, 0, 1), 1 / (bar_end - bar_start))
-        -- if i == 2 then
-        -- print(xp_start, xp_end, game_state.xp)
-        -- end
+	for i, bar in ipairs(self.xp_bars) do
+		local xp_start = game_state[bar.start]
+		local xp_end = game_state[bar.name]
+		local ratio = max(remap_clamp(bar.xp, xp_start, xp_end, 0, 1), 1 / (bar_end - bar_start))
+		-- if i == 2 then
+		-- print(xp_start, xp_end, game_state.xp)
+		-- end
 
-        graphics.set_color(bar.color)
-        graphics.rectangle("fill", bar_x + 1, bar_y, xp_bar_width - 2, -bar_height * ratio)
-        -- graphics.set_color(bar.color)
-        -- graphics.rectangle("fill", bar_x, bar_y + 1, xp_bar_width, 1)
-    end
+		graphics.set_color(bar.color)
+		graphics.rectangle("fill", bar_x + 1, bar_y, xp_bar_width - 2, -bar_height * ratio)
+		-- graphics.set_color(bar.color)
+		-- graphics.rectangle("fill", bar_x, bar_y + 1, xp_bar_width, 1)
+	end
 
-    -- local num_xp_meters = #self.xp_bars
-    -- local circle_center_x = 40
-    -- local circle_center_y = 6
-    -- local radius = 6
+	-- local num_xp_meters = #self.xp_bars
+	-- local circle_center_x = 40
+	-- local circle_center_y = 6
+	-- local radius = 6
 
-    -- graphics.set_color(Color.darkergrey)
-    -- graphics.line(circle_center_x, circle_center_y, circle_center_x, circle_center_y - radius)
+	-- graphics.set_color(Color.darkergrey)
+	-- graphics.line(circle_center_x, circle_center_y, circle_center_x, circle_center_y - radius)
 
-    -- graphics.push("all")
-    -- for i, meter in ipairs(self.xp_bars) do
+	-- graphics.push("all")
+	-- for i, meter in ipairs(self.xp_bars) do
 
-    -- 	graphics.set_color(meter.color)
-    -- 	graphics.axis_quantized_line(circle_center_x, circle_center_y, circle_center_x + meter.x, circle_center_y + meter.y, 3, 3, false, 1)
-    -- 	print(meter.x, meter.y)
-    -- 	graphics.rectangle_centered("fill", circle_center_x + meter.x, circle_center_y + meter.y, 3, 3)
-    -- end
-    -- graphics.pop()
+	-- 	graphics.set_color(meter.color)
+	-- 	graphics.axis_quantized_line(circle_center_x, circle_center_y, circle_center_x + meter.x, circle_center_y + meter.y, 3, 3, false, 1)
+	-- 	print(meter.x, meter.y)
+	-- 	graphics.rectangle_centered("fill", circle_center_x + meter.x, circle_center_y + meter.y, 3, 3)
+	-- end
+	-- graphics.pop()
 
-    graphics.push("all")
-    local upgrade_base = 224
-    local upgrade_height = 12
-    local upgrade_width = 6
-    local upgrade_separation = 1
-    for i, upgrade in ipairs(self.upgrades) do
+	graphics.push("all")
+	local upgrade_base = 224
+	local upgrade_height = 12
+	local upgrade_width = 6
+	local upgrade_separation = 1
+	for i, upgrade in ipairs(self.upgrades) do
 		local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and idivmod_eq_zero(self.tick, 3, 2)
-        local max_level = game_state:get_max_upgrade(upgrade.name)
+		local max_level = game_state:get_max_upgrade(upgrade.name)
 		if not flashing then
 			for j = max_level, 1, -1 do
 				local height = upgrade_height / max_level
@@ -507,15 +552,17 @@ function HUDLayer:pre_world_draw()
 				end
 			end
 		end
-    end
-    graphics.pop()
+	end
+	graphics.pop()
 
-    -- graphics.print_outline(Color.black, string.format("%dXP", game_state.xp), charwidth * 6, 0)
-    graphics.pop()
-    -- graphics.print_outline(Color.black, string.format("x%-4.1f", game_state:get_score_multiplier()), charwidth * 16, 0)
-    graphics.pop()
+	-- graphics.print_outline(Color.black, string.format("%dXP", game_state.xp), charwidth * 6, 0)
+	graphics.pop()
+	-- graphics.print_outline(Color.black, string.format("x%-4.1f", game_state:get_score_multiplier()), charwidth * 16, 0)
+	graphics.pop()
+		
 
-    graphics.push()
+    
+	graphics.push()
 
 
     if self.after_level_bonus_screen then

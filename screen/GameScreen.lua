@@ -48,6 +48,11 @@ end
 
 function GameScreen:update(dt)
     if input.menu_pressed then
+    end
+	if self.game_layer.world then
+        self.game_layer.world.showing_hud = self.hud_layer:should_show()
+		self.game_layer.world:always_update(dt)
+
 	end
 end
 
@@ -87,7 +92,7 @@ end
 function GameLayer:update(dt)
     -- self.clear_color = Color.black
     -- if self.world then
-	self.clear_color = self:get_clear_color()
+    self.clear_color = self:get_clear_color()
 	-- end
 end
 
@@ -159,8 +164,9 @@ end
 
 function UILayer:state_Paused_enter()
 	self.blocks_input = true
-    self.blocks_logic = true
+    -- self.blocks_logic = true
 	self.game_layer.world.paused = true
+	self.game_layer.handling_logic = false
 	
 	self:ref("pause_screen", self:push(Screens.PauseScreen))
 
@@ -223,8 +229,9 @@ end
 
 function UILayer:state_Paused_exit()
 	self.game_layer.world.paused = false
+	self.game_layer.handling_logic = true
     self.blocks_input = false
-    self.blocks_logic = false
+    -- self.blocks_logic = false
     -- self.blocks_render = false
 	if self.pause_screen then
 		self.pause_screen:queue_destroy()

@@ -1,5 +1,6 @@
 local Roamer = BaseEnemy:extend("Roamer")
 local Roamsploder = Roamer:extend("Roamsploder")
+local RoyalRoamer = Roamer:extend("RoyalRoamer")
 local Explosion = require("obj.Explosion")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 
@@ -129,4 +130,132 @@ function Roamsploder:die(...)
     Roamsploder.super.die(self, ...)
 end
 
-return { Roamer, Roamsploder }
+RoyalRoamer.palette = Palette[textures.enemy_royalroamer1]:clone()
+
+function RoyalRoamer:new(x, y)
+    self.max_hp = 2
+    RoyalRoamer.super.new(self, x, y)
+    self.walk_speed = 1.1
+	self.roaming = false
+    self.walk_frequency = 5
+	self.bullet_push_modifier = 2.5
+	self.walk_toward_player_chance = 90
+    self.roam_elapsed = 0
+	-- self.roam_diagonals = true
+	self.melee_attacking = false
+
+end
+
+function RoyalRoamer:get_palette()
+	local palette = self.palette
+	if self.world then
+		palette:set_color(2, Palette.roamer:tick_color(self.world.tick / 2))
+	end
+	return palette, 0
+end
+
+function RoyalRoamer:get_sprite()
+
+    if (self.roaming or self.tick % 2 == 0) and idivmod_eq_zero(self.tick, 3, (self.roaming and 2 or 7)) then
+		return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer3 or textures.enemy_royalroamer4)
+    end
+
+
+	if self.outline_flash then
+		return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer1 or textures.enemy_royalroamer2)
+	end
+	
+	return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer5 or textures.enemy_royalroamer6)
+end
+
+
+local MOVE_RADIUS = 90
+local PLAYER_TOO_CLOSE_RADIUS = 24
+
+
+function RoyalRoamer:update(dt)
+    RoyalRoamer.super.update(self, dt)
+
+    if self.is_new_tick then
+		self.outline_flash = rng.percent(25)
+	end
+
+    if self.roaming then
+		if self:get_stopwatch("wait_stopwatch") then
+			self:stop_stopwatch("wait_stopwatch")
+		end
+		self.roam_elapsed = self.roam_elapsed + dt
+    else
+		if not self:get_stopwatch("wait_stopwatch") then
+			self:start_stopwatch("wait_stopwatch")
+		end
+    end
+    if self.is_new_tick and self.tick > 120 and rng.percent(5) and not self.roaming and not self:is_tick_timer_running("roam_cooldown") then
+        local bx, by = self:get_body_center()
+        local rx, ry, rw, rh = bx - MOVE_RADIUS, by - MOVE_RADIUS, MOVE_RADIUS * 2, MOVE_RADIUS * 2
+        self.world.game_object_grid:each_self(rx, ry, rw, rh, self.roam_a_bit, self)
+        if not self.roaming and not self.player_too_close then
+            if rng.percent(min(0.1 + self.elapsed * 0.02, 10)) then
+                self:start_short_roam()
+            end
+        end
+		self.player_too_close = false
+    end
+	self.melee_attacking = self.roaming
+end
+
+
+function RoyalRoamer.roam_a_bit(object, self)
+    if self.roaming then return end
+	if self.player_too_close then return end
+	if not object.is_player then return end
+	local bx, by = self:get_body_center()
+    local px, py = object:get_body_center()
+
+	local dist = vec2_distance_squared(bx, by, px, py)
+
+	if dist < PLAYER_TOO_CLOSE_RADIUS * PLAYER_TOO_CLOSE_RADIUS then
+		self.player_too_close = true
+		return
+	end
+
+    if dist < MOVE_RADIUS * MOVE_RADIUS then
+		self:start_short_roam()
+	end
+end
+
+function RoyalRoamer:start_short_roam()
+	self.roaming = true
+	self:start_tick_timer("roam_timer", rng.randi_range(20, 70 + min(self.elapsed * 0.05, 90)), function()
+		self.roaming = false
+		self:start_tick_timer("roam_cooldown", rng.randi_range(20, 70))
+	end)
+end
+
+
+function RoyalRoamer:floor_draw()
+    if not self.is_new_tick then return end
+	if self.roaming and self.tick % self.walk_frequency == 0 then
+        local dx
+        if idivmod_eq_zero(self.tick, self.walk_frequency, 2) then
+            dx = -3
+        else
+            dx = 3
+        end
+        local length = 1
+
+        local shade = 0.0
+        graphics.set_color(shade, shade, shade)
+        graphics.line(dx - length * 0.5, 0, dx + length * 0.5, 0)
+    elseif not self.roaming then 
+        local stopwatch = self:get_stopwatch("wait_stopwatch")
+		if stopwatch then
+            local size = clamp01(stopwatch.elapsed / 500) * 40
+			graphics.set_color(Color.black)
+			graphics.rectangle_centered("fill", 0, 0, size, size * (6 / 7))
+		end
+	end
+end
+
+
+return { Roamer, Roamsploder, RoyalRoamer }

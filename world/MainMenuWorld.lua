@@ -33,7 +33,9 @@ function MainMenuWorld:enter()
 
 	if not self.started_from_title_screen then
         self.sequencer:end_all()
-		self:end_timer("create_buttons")
+        self:end_timer("create_buttons")
+	else
+		self:play_sfx("ui_menu_button_selected1", 0.6)
 	end
 
 

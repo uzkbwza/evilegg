@@ -43,7 +43,7 @@ end
 
 
 function EvilGreenoidBoss:try_start_targeted_bullet_burst()
-	if self.is_new_tick and not self:is_tick_timer_running("targeted_bullet_burst") and self.greenoid_health < self.greenoid_max_health * 0.4 then
+	if game_state.egg_rooms_cleared > 0 and self.is_new_tick and not self:is_tick_timer_running("targeted_bullet_burst") and self.greenoid_health < self.greenoid_max_health * 0.4 then
 		self:start_tick_timer("targeted_bullet_burst", 90 * rng.randi_range(1, 3))
 		self:targeted_bullet_burst()
 	end

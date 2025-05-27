@@ -92,6 +92,7 @@ function HUDWorld:on_heart_lost()
 end
 
 function HUDWorld:draw()
+	if not self.showing then return end
 	HUDWorld.super.draw(self)
 
 	

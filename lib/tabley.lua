@@ -650,6 +650,27 @@ for i = 1, 248 do
     unpack_functions[i] = func
 end
 
+function tabley.interpolate_index(t, ratio)
+    ratio = clamp(ratio, 0, 1)
+    local n = #t - 1
+    local index = 1 + round(n * ratio)
+    return index
+end
+
+function tabley.interpolate(t, ratio)
+    ratio = clamp(ratio, 0, 1)
+    local n = #t - 1
+    local index = 1 + round(n * ratio)
+    return t[index]
+end
+
+function tabley.get_circular(t, index)
+    return t[((index - 1) % #t) + 1]
+end
+
+function tabley.get_circular_index(t, index)
+    return ((index - 1) % #t) + 1
+end
 
 -- local fast_unpack = tabley.fast_unpack
 -- local unpack = unpack

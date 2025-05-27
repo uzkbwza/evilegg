@@ -17,7 +17,10 @@ local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
 local EGG_ROOM_START = 30
-local EGG_ROOM_PERIOD = 10
+local EGG_ROOM_PERIOD = 20
+
+local FLOOR_CANVAS_WIDTH = 512
+local FLOOR_CANVAS_HEIGHT = 512
 
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
@@ -77,6 +80,9 @@ function GameWorld:new(x, y)
 	self.player_hurt_fx_t = -1
     self.room_border_fade_in_time = 0
 	
+	self.floor_canvas_width = FLOOR_CANVAS_WIDTH
+	self.floor_canvas_height = FLOOR_CANVAS_HEIGHT
+
 	self.border_rainbow_offset = 0
 
 	self.notification_queue = {}
@@ -323,16 +329,23 @@ function GameWorld:spawn_rescues(spawns)
 
 
 
-			local rescue_object = self:spawn_object(rescue.rescue.class(self:get_valid_spawn_position()))
-			if rescue.pickup then
-				rescue_object:register_pickup(rescue.pickup)
-			end
-			self:add_tag(rescue_object, "rescue_object")
-			signal.connect(rescue_object, "picked_up", self, "on_rescue_picked_up", function()
-				self:on_rescue_picked_up(rescue_object)
-			end)
-			-- end)
+			-- local rescue_object = self:spawn_object(rescue.rescue.class(self:get_valid_spawn_position()))
+			local rescue_object = self:spawn_rescue(rescue.rescue.class, rescue.pickup, self:get_valid_spawn_position())
+
+
+
 		end
+	end)
+end
+
+function GameWorld:spawn_rescue(rescue_class, pickup, x, y)
+	local rescue_object = self:spawn_object(rescue_class(x, y))
+	if pickup then
+		rescue_object:register_pickup(pickup)
+	end
+	self:add_tag(rescue_object, "rescue_object")
+	signal.connect(rescue_object, "picked_up", self, "on_rescue_picked_up", function()
+		self:on_rescue_picked_up(rescue_object)
 	end)
 end
 
@@ -669,6 +682,8 @@ function GameWorld:create_player(player_id)
 	signal.connect(player, "hatched", self, "on_player_hatched", function()
         game_state:on_hatched()
 
+		savedata:set_save_data("first_time_playing", false)
+
 		if debug.enabled and debug.skip_tutorial_sequence then
 			self:room_border_fade("in")
 			return
@@ -775,6 +790,11 @@ function GameWorld:on_player_died()
 			for i, enemy in enemies:ipairs() do
 				
 				if enemy:has_tag("hazard") then
+					self:remove_tag(enemy, "enemy")
+					goto continue
+				end
+
+				if enemy.spawn_data and enemy.spawn_data.boss then
 					self:remove_tag(enemy, "enemy")
 					goto continue
 				end
@@ -1096,8 +1116,15 @@ function GameWorld:on_room_clear()
 
 		self:emit_signal("all_spawns_cleared")
 
-		while self.waiting_on_bonus_screen do
-			s:wait(1)
+        while self.waiting_on_bonus_screen do
+            s:wait(1)
+        end
+		
+		if game_state.final_room_entered then
+			for _, player in pairs(self.players) do
+				player:die()
+			end
+			return
 		end
 
         game_state.last_spawned_artefacts = {}
@@ -1137,6 +1164,15 @@ function GameWorld:get_update_objects()
 	if self.frozen then return self.empty_update_objects end
 
 	return World.get_update_objects(self)
+end
+
+function GameWorld:always_update(dt)
+    if not self.moving_camera_target then
+        -- local target_x, target_y = self.showing_hud and CAMERA_TARGET_OFFSET.x or 0,
+        -- self.showing_hud and CAMERA_TARGET_OFFSET.y or 0
+		
+		-- self.camera_target:move_to(vec2_approach(self.camera_target.pos.x, self.camera_target.pos.y, target_x, target_y, dt * 0.5))
+	end
 end
 
 function GameWorld:update(dt)
@@ -1210,7 +1246,7 @@ function GameWorld:update(dt)
 	-- elseif self.camera_target.pos.y > self.room.bottom then
 	-- 	self.camera_target.pos.y = self.room.bottom
 	-- end
-	-- end
+    -- end
 
 	self.border_rainbow_offset = self.border_rainbow_offset + dt / max(20 / self.room.wave, 1)
 
@@ -1436,23 +1472,31 @@ function GameWorld:get_clear_color()
 end
 
 function GameWorld:clear_floor_canvas(deferred)
-	if deferred == nil then deferred = true end
-	local f = function()
-		self.lower_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.current_frame_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height,
+    if deferred == nil then deferred = true end
+
+    local f = self.clear_function or function()
+		local width = max(FLOOR_CANVAS_WIDTH, self.room.room_width)
+        local height = max(FLOOR_CANVAS_HEIGHT, self.room.room_height)
+		self.floor_canvas_width = width
+		self.floor_canvas_height = height
+		self.lower_floor_canvas = graphics.new_canvas(width, height)
+		self.current_frame_floor_canvas = graphics.new_canvas(width, height,
 			{ readable = true })
-		self.empty_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.persistent_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.previous_persistent_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height, { readable = true })
-		self.full_brightness_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
-		self.previous_full_brightness_floor_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height, { readable = true })
+		self.empty_canvas = graphics.new_canvas(width, height)
+		self.persistent_floor_canvas = graphics.new_canvas(width, height)
+		self.previous_persistent_floor_canvas = graphics.new_canvas(width, height, { readable = true })
+		self.full_brightness_floor_canvas = graphics.new_canvas(width, height)
+		self.previous_full_brightness_floor_canvas = graphics.new_canvas(width, height, { readable = true })
 		self.current_frame_floor_canvas_settings = {
 			self.current_frame_floor_canvas,
 			stencil = true,
 
 		}
-		self.output_canvas = graphics.new_canvas(self.room.room_width, self.room.room_height)
+		self.output_canvas = graphics.new_canvas(width, height)
 	end
+
+	self.clear_function = f
+
 	if deferred then
 		self:defer(f)
 	else
@@ -1460,141 +1504,142 @@ function GameWorld:clear_floor_canvas(deferred)
 	end
 end
 
+function GameWorld:floor_canvas_push()
+	graphics.push("all")
+	graphics.set_color(1, 1, 1, 1)
+	graphics.set_canvas(self.current_frame_floor_canvas)
+	graphics.origin()
+	graphics.translate(self.floor_canvas_width / 2, self.floor_canvas_height / 2)
+end
+
+function GameWorld:floor_canvas_pop()
+	graphics.pop()
+end
+
+local shader_black = {0, 0, 0, 0}
+
 function GameWorld:draw()
-	-- if self.tick <= 1 then return end
+	do
+		graphics.push("all")
+		graphics.set_canvas(self.current_frame_floor_canvas_settings)
+		graphics.clear(0, 0, 0, 0)
+		graphics.pop()
+	end
 
-	graphics.push("all")
-	graphics.set_canvas(self.current_frame_floor_canvas_settings)
-	-- if self.is_new_tick and self.tick % 10 == 0 then
-	-- graphics.clear(0, 0, 0, 0.1)
-	-- end
-	graphics.clear(0, 0, 0, 0)
-	graphics.pop()
-
-	if self.tags and self.tags["floor_draw"] then
-		for _, obj in (self.tags["floor_draw"]):ipairs() do
-			self:floor_canvas_push()
-			graphics.translate(self:get_object_draw_position(obj))
-			obj:floor_draw()
-			self:floor_canvas_pop()
+	do
+		self:floor_canvas_push()
+		if self.tags and self.tags["floor_draw"] then
+			for _, obj in (self.tags["floor_draw"]):ipairs() do
+				do
+					graphics.push("all")
+					graphics.translate(self:get_object_draw_position(obj))
+					obj:floor_draw()
+					graphics.pop()
+				end
+			end
 		end
+		self:floor_canvas_pop()
 	end
 
 	graphics.set_color(1, 1, 1, 1)
 
-	graphics.push("all")
-	graphics.set_color(1, 1, 1, 1)
+    do
+        graphics.push("all")
+        graphics.set_color(1, 1, 1, 1)
+        graphics.translate(-self.floor_canvas_width / 2, -self.floor_canvas_height / 2)
 
-	graphics.translate(self.room.left, self.room.top)
+        local level_transition_alpha = 1.0
+        if self.state == "LevelTransition" then
+            level_transition_alpha = max(1 - self.state_elapsed / 5, 0)
+        end
 
-	-- graphics.push("all")
-	-- 	graphics.origin()
-	-- 	graphics.set_canvas(self.floor_canvas)
-	-- 	-- graphics.set_blend_mode("replace", "premultiplied")
+        do
+            graphics.push("all")
+            local shader = graphics.shader.alphareplace
+            graphics.set_canvas(self.persistent_floor_canvas)
+            shader:send("input_texture", self.previous_persistent_floor_canvas)
+            shader:send("replace_texture", self.current_frame_floor_canvas)
 
-	-- 	graphics.draw(self.current_frame_floor_canvas)
-	-- graphics.pop()
+            -- Fade out old floor every few ticks
+            shader:send("old_alpha", (self.timescaled.is_new_tick and self.timescaled.tick % 10 == 0) and 0.93 or 1.0)
+            graphics.set_shader(shader)
 
+            graphics.origin()
+            graphics.clear(0, 0, 0, 0)
+            -- Draw floor objects
+            graphics.draw(self.empty_canvas)
 
-	-- graphics.push("all")
-	-- 	graphics.origin()
-	-- 	graphics.set_canvas(self.lower_floor_canvas)
+            graphics.set_canvas(self.full_brightness_floor_canvas)
+            graphics.set_shader()
+            graphics.draw(self.current_frame_floor_canvas)
+            graphics.pop()
+        end
 
-	-- 	graphics.draw(self.current_frame_floor_canvas)
-	-- graphics.pop()
+        do
+            graphics.push("all")
+            graphics.set_canvas(self.previous_persistent_floor_canvas)
+            graphics.origin()
+            graphics.clear(0, 0, 0, 0)
+            graphics.draw(self.persistent_floor_canvas)
+            graphics.pop()
+        end
 
-	-- if self.is_new_tick and self.tick % 12 == 0 then
-	-- if self.is_new_tick and self.tick % 5 == 0 then
-	-- 	graphics.push("all")
-	-- 		graphics.origin()
-	-- 		graphics.set_canvas(self.floor_canvas)
-	-- 		for i =1,1 do
-	-- 			graphics.set_color(0, 0, 0, 0.065)
-	-- 			-- graphics.set_color(0, 0, 0, 0.065)
-	-- 		end
-	-- 		graphics.rectangle("fill", 0, 0, self.room.room_width, self.room.room_height)
-	-- 	graphics.pop()
-	-- end
+        do
+            graphics.push("all")
+            graphics.set_canvas(self.output_canvas)
+            graphics.origin()
+            graphics.clear(0, 0, 0, 0)
 
+            graphics.set_color(level_transition_alpha, level_transition_alpha, level_transition_alpha, 1)
+            graphics.draw(self.persistent_floor_canvas)
+
+            graphics.set_color(1, 1, 1, 0.225 * level_transition_alpha)
+            graphics.draw(self.full_brightness_floor_canvas)
+            graphics.pop()
+        end
+
+        do
+            graphics.push("all")
+            local shader = graphics.shader.alphamask
+            shader:send("mask_color", shader_black)
+            graphics.set_shader(shader)
+            graphics.draw(self.output_canvas)
+            graphics.pop()
+        end
+
+        graphics.pop()
+    end
+
+	local r = self.room
+	local tlx, tly = r.left, r.top
+	local trx, try = r.right, r.top
+	local blx, bly = r.left, r.bottom
+
+    local floor_darken_row_width = self.floor_canvas_width
+    local floor_darken_row_height = (self.floor_canvas_height - self.room.room_height) / 2
+    local floor_darken_column_height = self.floor_canvas_height - floor_darken_row_height * 2
+    local floor_darken_column_width = (self.floor_canvas_width - self.room.room_width) / 2
+
+    do
+		graphics.push("all")
+		local clear_color = self:get_clear_color()
+        graphics.set_color(clear_color.r, clear_color.g, clear_color.b, 0.6)
+		graphics.rectangle("fill", tlx - floor_darken_column_width, tly - floor_darken_row_height, floor_darken_row_width, floor_darken_row_height)
+		graphics.rectangle("fill", blx - floor_darken_column_width, bly, floor_darken_row_width, floor_darken_row_height)
+		graphics.rectangle("fill", tlx - floor_darken_column_width, tly, floor_darken_column_width, floor_darken_column_height)
+		graphics.rectangle("fill", trx, try, floor_darken_column_width, floor_darken_column_height)
+		graphics.pop()
+    end
 	
-	local level_transition_alpha = 1.0
-	if self.state == "LevelTransition" then
-		level_transition_alpha = max(1 - self.state_elapsed / 5, 0)
-	end
+	
 
-	graphics.push("all")
-	local shader = graphics.shader.alphareplace
-	graphics.set_canvas(self.persistent_floor_canvas)
-	shader:send("input_texture", self.previous_persistent_floor_canvas)
-	shader:send("replace_texture", self.current_frame_floor_canvas)
-	-- shader:send("mask_color", Color.alpha_mask:to_shader_table())
-	-- if self.is_new_tick and self.tick % 5 == 0 then shader:send("replace_texture", textures.palette_cycle_test_image) else shader:send("replace_texture", self.empty_canvas) end
-
-	-- shader:send("old_alpha", 1.0)
-	shader:send("old_alpha", (self.timescaled.is_new_tick and self.timescaled.tick % 10 == 0) and 0.93 or 1.0)
-	graphics.set_shader(shader)
-
-	graphics.origin()
-	graphics.clear(0, 0, 0, 0)
-
-	graphics.draw(self.empty_canvas)
-
-	graphics.set_canvas(self.full_brightness_floor_canvas)
-	-- shader:send("input_texture", self.previous_full_brightness_floor_canvas)
-	-- shader:send("replace_texture", self.current_frame_floor_canvas)
-	-- shader:send("old_alpha", 1.0)
-	-- graphics.set_shader(shader)
-	-- shader = graphics.shader.alphamask
-	-- shader:send("mask_color", Color.alpha_mask:to_shader_table())
-	graphics.set_shader()
-	-- graphics.clear(0, 0, 0, 0)
-	graphics.draw(self.current_frame_floor_canvas)
-
-	graphics.pop()
-
-	graphics.push("all")
-	graphics.set_canvas(self.previous_persistent_floor_canvas)
-	graphics.origin()
-	graphics.clear(0, 0, 0, 0)
-	graphics.draw(self.persistent_floor_canvas)
-
-	graphics.pop()
-
-	graphics.push("all")
-	graphics.set_canvas(self.output_canvas)
-	graphics.origin()
-	graphics.clear(0, 0, 0, 0)
-
-	graphics.set_color(level_transition_alpha, level_transition_alpha, level_transition_alpha, 1)
-
-	graphics.draw(self.persistent_floor_canvas)
-
-	graphics.set_color(1, 1, 1, 0.225 * level_transition_alpha)
-	graphics.draw(self.full_brightness_floor_canvas)
-	graphics.pop()
-
-	graphics.push("all")
-	-- graphics.set_shader(graphics.shader.blackalpha)
-	-- graphics.set_blend_mode("multiply", "premultiplied")
-	-- graphics.origin()
-	-- graphics.translate(self.room.left, -self.room.top)
-	-- graphics.clear(0, 0, 0, 0)
-	local shader = graphics.shader.alphamask
-	shader:send("mask_color", Color.black:to_shader_table())
-	graphics.set_shader(shader)
-
-	graphics.draw(self.output_canvas)
-	graphics.pop()
-	graphics.pop()
-
-
+	-- Handle room bounds drawing based on clear effect
 	local draw_bounds_over = self.room_clear_fx_t < 0.45 and self.room_clear_fx_t > 0
-
 	if not draw_bounds_over then
 		self:draw_room_bounds()
 	end
 
-	
+	-- Draw tutorial text if active
 	if self.tutorial_state and not self.paused then
 		graphics.set_color(Color.green)
 		local font = fonts.depalettized.image_font2
@@ -1608,57 +1653,34 @@ function GameWorld:draw()
 		end
 	end
 
+	if self.showing_hud then
+		-- Draw quick clear progress bar
+		local left = self.room.left + 61
+		local top = self.room.top
 
-	-- for _, obj in self:get_objects_with_tag("twinstick_entity"):ipairs() do
-	-- graphics.push("all")
-	-- graphics.set_color(Color.darkred)
-	-- graphics.translate(obj.pos.x, obj.pos.y)
-	-- if obj.terrain_collision_radius then
-	--     graphics.rectangle("fill", -obj.terrain_collision_radius - 2, -obj.terrain_collision_radius / 2, obj.terrain_collision_radius * 2 + 4, obj.terrain_collision_radius + 2)
-	-- end
-	-- graphics.pop()
-    -- end
-
-	local game_area_width = conf.viewport_size.x - conf.room_padding.x * 2
-	local left = self.room.left + 61
-	local top = self.room.top
-
-    local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
-	if quick_clear_ratio > 0 then
-		quick_clear_ratio = 1 - quick_clear_ratio
+		local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
+		if quick_clear_ratio > 0 then
+			quick_clear_ratio = 1 - quick_clear_ratio
+		end
+		local border_color = self:get_border_rainbow()
+		local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
+		if quick_clear_ratio < (3 / 10) and idivmod_eq_zero(self.tick, 5, 2) and self.state == "Normal" then
+			colormod = 0.0
+		end
+		graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
+		local x_scale = 130 * quick_clear_ratio
+		local y_scale = 3
+		graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
 	end
-    local border_color = self:get_border_rainbow()
-	local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
-	if quick_clear_ratio < (3 / 10) and idivmod_eq_zero(self.tick, 5, 2) and self.state == "Normal" then
-		colormod = 0.0
-	end
-    graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
-	local x_scale = 130 * quick_clear_ratio
-	-- local y_scale = 2 + 4 * (1 - quick_clear_ratio)
-	local y_scale = 3
-    graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
 
-
-
+	-- Draw base game world
 	GameWorld.super.draw(self)
 
-
+	-- Draw room bounds on top if needed
 	if draw_bounds_over then
 		self:draw_room_bounds()
 	end
 
-end
-
-function GameWorld:floor_canvas_push()
-	graphics.push("all")
-	graphics.set_color(1, 1, 1, 1)
-	graphics.set_canvas(self.current_frame_floor_canvas)
-	graphics.origin()
-	graphics.translate(-self.room.left, -self.room.top)
-end
-
-function GameWorld:floor_canvas_pop()
-	graphics.pop()
 end
 
 function GameWorld:get_border_color()
@@ -1728,12 +1750,9 @@ function GameWorld:draw_room_bounds()
 	local r = self.room
 
 	local tlx, tly = r.left, r.top
-	-- local trx, try = r.right, r.top
-	-- local brx, bry = r.right, r.bottom
-	-- local blx, bly = r.left, r.bottom
 
+	
 	local min_t = 1.0
-
 	local color = self:get_border_color()
 	if self.room_clear_fx_t > min_t or self.room_clear_fx_t == -1 then
         local dash_swapped = self:is_border_dash_swapped()
@@ -1941,15 +1960,20 @@ function GameWorld:state_LevelTransition_enter(room)
 		end
 
 		local camera_pos = self.camera_target.pos:clone()
-		local move_camera = function(t)
-			local new_x, new_y = camera_pos.x + (direction.x * self.room.room_width) * t, camera_pos.y + (direction.y * self.room.room_height) * t
-			self.camera_target:move_to(new_x, new_y)
-		end
-
+        local move_camera = function(t)
+            local new_x, new_y = camera_pos.x + (direction.x * self.room.room_width) * t,
+                camera_pos.y + (direction.y * self.room.room_height) * t
+            self.camera_target:move_to(new_x, new_y)
+        end
+		
+		
 		s:start(function()
+			self.moving_camera_target = true
 			s:tween(move_camera, 0, 1, length, move_tween)
 			self.camera_target:move_to(CAMERA_TARGET_OFFSET.x, CAMERA_TARGET_OFFSET.y)
-		end)
+			self.moving_camera_target = false
+        end)
+		
 
 		s:wait(length - 1)
 		self:clear_floor_canvas()

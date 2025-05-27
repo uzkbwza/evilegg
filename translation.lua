@@ -32,6 +32,10 @@ local translations = {
 		bonus_ammo_saver = "AMMO SAVER",
 		bonus_harmed_noid = "NOID INJURY",
 		bonus_final_room_clear = "EGG SLAIN",
+        bonus_twin_saved = "TWIN SAVED",
+		bonus_quick_save = "QUICK SAVE",
+		bonus_twin_protected = "PROTECTOR",
+		bonus_twin_killed = "BETRAYAL",
 
 		upgrade_name_fire_rate = "+FIRE RATE",
 		upgrade_desc_fire_rate = "Increases how rapidly you can fire bullets and secondary weapons.",
@@ -61,7 +65,7 @@ local translations = {
 		artefact_ricochet_name                       = "MAGIC MIRROR",
 		artefact_grappling_hook_name                 = "ROD OF RETRIEVAL",
 		artefact_amulet_of_rage_name                 = "AMULET OF RAGE",
-		artefact_sacrificial_twin_name               = "SACRIFICIAL TWIN",
+		artefact_sacrificial_twin_name               = "TWIN EGG",
 		artefact_drone_name                          = "HOMUNCULUS",
 		artefact_ring_of_loyalty_name                = "RING OF LOYALTY",
 		artefact_boost_damage_name                   = "PYRO TANK",
@@ -71,13 +75,11 @@ local translations = {
 		artefact_clock_name                          = "STOP WATCH",
 		artefact_defabricator_name                   = "DEFABRICATOR",
 		artefact_warbell_name                        = "WAR BELL",
-		-- artefact_more_bullets_desc = "You have a higher bullet upgrade cap.",
-		-- artefact_damage_over_distance_desc = "Your bullet damage increases with distance travelled.",
 
 		artefact_grappling_hook_desc                 = "Shoot greenoids to pull them closer.",
 		artefact_ricochet_desc                       = "Your bullets bounce off walls.",
 		artefact_amulet_of_rage_desc                 = "Your bullets deal more damage up close.",
-		artefact_sacrificial_twin_desc               = "It will die for you. Single-use.",
+		artefact_sacrificial_twin_desc               = "What are you willing to sacrifice?",
 		artefact_drone_desc                          = "A loyal companion.",
 		artefact_ring_of_loyalty_desc                = "Rescuing greenoids triggers a burst attack.",
 		artefact_boost_damage_desc                   = "Faster boost that leaves a trail of fire.",
@@ -126,7 +128,8 @@ local translations = {
 		options_mouse_sensitivity                    = "Relative Mouse Sensitivity",
 		options_relative_mouse_aim_snap_to_max_range = "Rel. Mouse Snap Distance",
 		options_skip_tutorial                        = "Skip Tutorial",
-		options_enter_name                           = "Enter Name",
+        options_enter_name                           = "Enter Name",
+		options_show_hud							 = "Immersive Mode",
 
 
 		options_brightness          = "Brightness",
@@ -258,7 +261,16 @@ local translations = {
 		codex_desc_normalrescue     = "Friendly and endangered.",
 
 		codex_name_dogrescue        = "Gruppy",
-		codex_desc_dogrescue        = "Distrustful of strangers.",
+        codex_desc_dogrescue        = "Distrustful of strangers.",
+		
+        codex_name_royalguard       = "Royal Guard",
+        codex_desc_royalguard       = "On her majesty's secret service.",
+
+		codex_name_royalroamer      = "Stalker",
+        codex_desc_royalroamer      = "Accustomed to the night.",
+		
+		codex_name_rook             = "Rook",
+        codex_desc_rook             = "The fortress and its inhabitant is one.",
 
 		codex_key_all               = "ALL",
 		codex_key_enemy             = "ENEMIES",

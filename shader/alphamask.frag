@@ -14,7 +14,6 @@ vec4 effect( vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords 
 
 	vec4 texel = Texel(texture, uv);
 
-	// return texel * (original_a * old_alpha) + replace_texel * replace_a;
 	if (is_approx_equal(texel, mask_color)) {
 		return vec4(0.0, 0.0, 0.0, 0.0);
 	} else {

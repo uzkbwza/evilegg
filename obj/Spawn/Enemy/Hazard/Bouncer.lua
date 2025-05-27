@@ -26,6 +26,7 @@ function Bouncer:new(x, y)
     self.bullet_push_modifier = 2.7
     self.terrain_collision_radius = 4
     self.hurt_bubble_radius = 6
+	
 	self.hit_bubble_radius = 5
     self.declump_radius = 8
 	self.declump_mass = 10
@@ -54,8 +55,18 @@ end
 
 function FastBouncer:new(x, y)
     FastBouncer.super.new(self, x, y)
-	self.walk_speed = 0.5
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    self.walk_speed = 0.6
+    self.drag = 0.025
+    self.walk_toward_player_chance = 99
+    self.bullet_push_modifier = 2.5
 end
+
+function FastBouncer:enter()
+    FastBouncer.super.enter(self)
+	-- self:add_tag("fast_bouncer")
+end
+
 
 function FastBouncer:get_sprite()
     return self:random_offset_pulse(20, 0) and textures.enemy_fast_bouncer1 or textures.enemy_fast_bouncer2

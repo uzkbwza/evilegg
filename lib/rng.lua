@@ -180,7 +180,7 @@ function rng.random_4_way_direction()
 end
 
 function rng.random_diagonal_direction()
-	return table.fast_unpack(DIAGONAL_DIRECTIONS[random(1, #DIAGONAL_DIRECTIONS)])
+    return table.fast_unpack(DIAGONAL_DIRECTIONS[random(1, #DIAGONAL_DIRECTIONS)])
 end
 
 
@@ -188,7 +188,8 @@ local mt = {
 	__call = _meta_call_random
 	
 }
-setmetatable(rng, mt)
 
+
+setmetatable(rng, mt)
 
 return rng

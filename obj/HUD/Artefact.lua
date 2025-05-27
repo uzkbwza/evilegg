@@ -144,7 +144,6 @@ function Artefact:update_artefact(artefact)
 
 end
 
-
 function TwinDeathEffect:new(x, y)
     TwinDeathEffect.super.new(self, x, y)
 	self.duration = 60

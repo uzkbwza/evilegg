@@ -4,7 +4,8 @@ local ExplosionSmokeTrail = GameObject2D:extend("ExplosionSmokeTrail")
 
 local DEFAULT_PARAMS = {
     damage = 10,
-	size = 30,
+    size = 30,
+	draw_scale = 1.0,
 	team = "enemy",
 	melee_both_teams = false,
 	particle_count_modifier = 1,
@@ -24,6 +25,7 @@ function Explosion:new(x, y, params)
     self.team = params.team or (self.team or "enemy")
 	self.hit_bubble_damage = params.damage or DEFAULT_PARAMS.damage
 	self.melee_both_teams = params.melee_both_teams or DEFAULT_PARAMS.melee_both_teams
+	self.draw_scale = params.draw_scale or DEFAULT_PARAMS.draw_scale
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self.explode_vfx = params.explode_vfx or DEFAULT_PARAMS.explode_vfx
 	self.explode_sfx = params.explode_sfx or DEFAULT_PARAMS.explode_sfx
@@ -78,20 +80,21 @@ function Explosion:enter()
     end
 
 
-	self.size = self.size * 1.25
-	local number_of_puffs = (self.size / 3) + 5
+    self.size = self.size * 1.25
+	local scale = self.size * self.draw_scale
+	local number_of_puffs = (scale / 3) + 5
 	number_of_puffs = rng.randf(number_of_puffs * 0.8, number_of_puffs * 1.2)
-	local number_of_smoke_trails = (self.size / 4) + 4
+	local number_of_smoke_trails = (scale / 4) + 4
     number_of_smoke_trails = rng.randf(number_of_smoke_trails * 0.8, number_of_smoke_trails * 1.2)
-	-- self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, self.size * 1.75, 0, 0, Vec2(0, 0)))
+	-- self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, scale * 1.75, 0, 0, Vec2(0, 0)))
 	s:start(function()
 		for i = 1, number_of_puffs * self.particle_count_modifier do
-			local dist = abs(rng.randfn(0, self.size * 0.75))
-			dist = min(dist, self.size * 1.25)
+			local dist = abs(rng.randfn(0, scale * 0.75))
+			dist = min(dist, scale * 1.25)
 			local dx, dy = rng.random_vec2_times(dist)
-			local size1 = abs((1 - (dist / self.size)) * 1)
-            local size = abs(size1 * self.size * rng.randfn(0.4, 1.25))
-			size = abs(min(size, self.size * 1))
+			local size1 = abs((1 - (dist / scale)) * 1)
+            local size = abs(size1 * scale * rng.randfn(0.4, 1.25))
+			size = abs(min(size, scale * 1))
 
 			local duration = size * rng.randfn(1.0, 1.25) * 10
 			local vel = Vec2(dx, dy):normalize_in_place():mul_in_place(rng.randf(0.5, 1) * dist * 0.15)
@@ -103,9 +106,9 @@ function Explosion:enter()
 	end)
 	s:start(function()
 		for i = 1, number_of_smoke_trails * self.particle_count_modifier do
-			local dist = rng.randf(self.size * 0.25, self.size * 0.8)
+			local dist = rng.randf(scale * 0.25, scale * 0.8)
 			local dx, dy = rng.random_vec2_times(dist)
-            local size = abs((pow(1 - (dist / self.size), 1)) * self.size * rng.randfn(1.0, 0.25) * 0.35) * 1.5
+            local size = abs((pow(1 - (dist / scale), 1)) * scale * rng.randfn(1.0, 0.25) * 0.35) * 1.5
 			size = min(size, rng.randfn(3, 1))
 			local dir_x, dir_y = vec2_normalized(dx, dy)
 			local force = rng.randf(size * 0.05, size * 0.005)
@@ -129,7 +132,7 @@ function Explosion:draw()
 	end
     if self.tick < 5 then
 		graphics.set_color(Palette.explosion:get_color_clamped(idiv(self.tick, 3)))
-		local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 20) * 2
+		local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 20) * 2 * self.draw_scale
 		graphics.rectangle("fill", -size / 2, -size/2, size, size)
 		size = size + self.tick * 3
 		graphics.rectangle("line", -size / 2, -size/2, size, size)

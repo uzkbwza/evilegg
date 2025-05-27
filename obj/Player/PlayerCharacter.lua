@@ -18,6 +18,8 @@ local PlayerShadow = Effect:extend("PlayerShadow")
 
 local AimDraw = GameObject2D:extend("AimDraw")
 
+local TwinDeathEffect = Effect:extend("TwinDeathEffect")
+
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
 
@@ -581,6 +583,14 @@ function PlayerCharacter:hit_by(by)
 			game_state:use_sacrificial_twin()
             self:emit_signal("got_hurt")
             self:start_invulnerability_timer(90)
+			local s = self.world.sequencer
+            s:start(function()
+                s:wait(15)
+				if not self.is_destroyed then
+					self.world:spawn_object(TwinDeathEffect(self.pos.x, self.pos.y))
+				end
+			end)
+
         else
             self:damage(1)
         end
@@ -1002,6 +1012,8 @@ function HoverFx:draw_particle(floor, elapsed, tick, t)
 	graphics.rectangle_centered(t < 0.25 and "fill" or "line", 0, 0, scale, scale)
 end
 
+HoverFireTrail.cannot_hit_egg = true
+
 function HoverFireTrail:new(x, y)
     HoverFireTrail.super.new(self, x, y)
     self.sprite = textures.player_hover_fire_trail
@@ -1169,14 +1181,16 @@ end
 
 function PlayerDrone:update(dt)
     if self.player then
-        self.target.x, self.target.y = self.player.pos.x, self.player.pos.y
+        self.target.x, self.target.y = self.player.pos.x, self.player.pos.y + self.player.body_height
+		self:set_visibility(self.player.visible)
     else
         self:queue_destroy()
     end
     -- local offs_x, offs_y = vec2_from_polar(20, self.elapsed / 18)
 	local offs_x, offs_y = 0, 0
 	local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
-	self:move_to(x, y)
+    self:move_to(x, y)
+
 end
 
 function PlayerDrone:draw()
@@ -1388,6 +1402,20 @@ function AimDraw:draw_crosshair(x, y)
 	graphics.rectangle_centered("fill", 0, 0, 2, 2)
 	graphics.pop()
 end 
+
+
+
+function TwinDeathEffect:new(x, y)
+    TwinDeathEffect.super.new(self, x, y)
+	self.duration = 60
+end
+
+function TwinDeathEffect:draw(elapsed, tick, t)
+	if self.world.showing_hud then return end
+    local size = 30 + elapsed * 16
+	graphics.set_color(Color.red)
+    graphics.rectangle_centered("line", 0, 0, size, size)
+end
 
 
 AutoStateMachine(PlayerCharacter, (debug.enabled and debug.skip_tutorial_sequence and "Walk") or "GameStart")

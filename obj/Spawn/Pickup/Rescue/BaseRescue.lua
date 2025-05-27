@@ -8,7 +8,8 @@ local BaseRescuePickupParticle = Effect:extend("BaseRescuePickupParticle")
 local RingOfLoyaltyBullet = require("obj.Player.Bullet.RingOfLoyaltyBullet")
 local WarbellProjectile = require("obj.Player.Bullet.GreenoidSelfDefenseBullet")
 
-local START_INVULNERABILITY = 120
+local START_INVULNERABILITY = 140
+local QUICK_SAVE_TIME = 200
 local HIT_INVULNERABILITY = 60
 local LAST_HIT_INVULNERABILITY = 70
 
@@ -74,6 +75,7 @@ function BaseRescue:enter()
 			self:play_sfx(self.spawn_cry, self.spawn_cry_volume)
 		end)
 	end
+    self:start_timer("quick_save_time", QUICK_SAVE_TIME)
     self:start_timer("invulnerability", START_INVULNERABILITY)
     if self.holding_pickup then
         self:initialize_hp(self.max_hp + 1)
@@ -208,8 +210,12 @@ function BaseRescue:on_pickup()
 	local bx, by = self:get_body_center()
 
 
-	for i=1, self.max_hp - self.hp do
-		game_state:greenoid_harm_penalty()
+    for i = 1, self.max_hp - self.hp do
+        game_state:greenoid_harm_penalty()
+    end
+	
+	if self:is_timer_running("quick_save_time") then
+		game_state:level_bonus("quick_save")
 	end
 
     if self.holding_pickup then
@@ -269,6 +275,10 @@ function BaseRescue:get_palette_shared()
 		offset = idiv(self.tick, 2)
 	end
 
+	if self:is_timer_running("quick_save_time") and idivmod_eq_zero(self.tick, 3, 3) then
+		offset = idiv(self.tick, 1)
+	end
+
 	return palette, offset
 end
 
@@ -279,7 +289,7 @@ end
 
 function BaseRescue:die()
 	for i=1, self.max_hp do
-		game_state:on_greenoid_harmed()
+		game_state:greenoid_harm_penalty()
 	end
 	local bx, by = self:get_body_center()
 	local sprite = self:get_sprite()
@@ -344,22 +354,28 @@ function BaseRescue:update(dt)
             local x, y = bx - WARBELL_RADIUS, by - WARBELL_RADIUS
             local w, h = WARBELL_RADIUS * 2, WARBELL_RADIUS * 2
             local hurt_bubbles = self.world.hurt_bubbles.enemy:query(x, y, w, h)
-			local valid = {}
+            local valid = {}
             for i = 1, #hurt_bubbles do
                 local bubble = hurt_bubbles[i]
                 if bubble.parent and bubble.parent:has_tag("wave_enemy") then
                     table.insert(valid, bubble)
                 end
             end
-			local aiming_at = rng.choose(valid)
-			if aiming_at then
-				local bubble_x, bubble_y = aiming_at:get_position()
+            local aiming_at = rng.choose(valid)
+            if aiming_at then
+                local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
                 self:spawn_object(WarbellProjectile(bx, by)).direction = Vec2(dx, dy)
-				self:play_sfx("ally_rescue_shoot", 0.35)
-			end
+                self:play_sfx("ally_rescue_shoot", 0.35)
+            end
         end
     end
+	
+	if self:is_timer_running("quick_save_time") then
+		if self.world.state == "RoomClear" then
+			self:start_timer("quick_save_time", QUICK_SAVE_TIME)
+		end
+	end
 end
 
 
@@ -495,8 +511,8 @@ function BaseRescueFloorParticle:on_pickup()
 	self.z_index = 1
     self.size = self.size * 1.5
 	self.laser_amount = 0
-	self.picked_up = true
-	self:start_timer("on_pickup", 10)
+    self.picked_up = true
+
     s:start(function()
         s:tween_property(self, "laser_amount", 0, 1, 20, "linear")
     end)
@@ -598,38 +614,45 @@ function BaseRescuePickupParticle:new(x, y, target, pickup)
     self.pointing_lines = {}
     self.z_index = 0.5
 	self.line_id = 0
+    self.particle_function = function()
+        if not self.target then
+            return
+        end
+		if self.target.is_destroyed then
+			return
+		end
+		local bx, by = self.target:get_body_center()
+		local angle = stepify(rng.random_angle(), tau / 16)
+		local size = rng.randfn(24, 12)
+		-- local to_player = false
+		local is_line = rng.percent(10)
+		local max_resolution = rng.randi(2, 5)
+
+		if rng.percent(20) then
+			local px, py = self:closest_last_player_body_pos()
+			angle = (atan2(py - self.pos.y, px - self.pos.x)) + rng.randfn(0, tau / 128)
+			size = vec2_distance(px, py, bx, by) * 0.7
+			-- to_player = true
+		end
+
+		size = clamp(size, 8, max(rng.randfn(48, 10), 1))
+		-- twinkle sound?
+		local line = { angle = angle, t = 0, size = size, rect_color = Palette.pickup_line:random_color(), id = self.line_id, is_line = is_line, max_resolution = max_resolution }
+		self.line_id = self.line_id + 1
+		self.pointing_lines[line] = true
+		self.sequencer:tween_property(line, "t", 0, 1, 30, "linear")
+		self.pointing_lines[line] = nil
+	end
 end
 
 function BaseRescuePickupParticle:update(dt)
     if self.target then
-		local bx, by = self.target:get_body_center()
         local elapsed = self.elapsed
+		local bx, by = self.target:get_body_center()
         self:move_to(splerp_vec(self.pos.x, self.pos.y, bx + cos(elapsed * 0.045) * 3,
         by - self.target.hurt_bubble_radius + sin(elapsed * 0.045) * 1.5 * (0.667) - 7, 60, dt))
         if self.is_new_tick and rng.percent(80) then
-			local s = self.sequencer
-            s:start(function()
-                local angle = stepify(rng.random_angle(), tau / 16)
-                local size = rng.randfn(24, 12)
-                -- local to_player = false
-                local is_line = rng.percent(10)
-				local max_resolution = rng.randi(2, 5)
-
-				if rng.percent(20) then
-					local px, py = self:closest_last_player_body_pos()
-                    angle = (atan2(py - self.pos.y, px - self.pos.x)) + rng.randfn(0, tau / 128)
-                    size = vec2_distance(px, py, bx, by) * 0.7
-					-- to_player = true
-				end
-
-				size = clamp(size, 8, max(rng.randfn(48, 10), 1))
-				-- twinkle sound?
-                local line = { angle = angle, t = 0, size = size, rect_color = Palette.pickup_line:random_color(), id = self.line_id, is_line = is_line, max_resolution = max_resolution }
-                self.line_id = self.line_id + 1
-                self.pointing_lines[line] = true
-                s:tween_property(line, "t", 0, 1, 30, "linear")
-				self.pointing_lines[line] = nil
-			end)
+			self.sequencer:start(self.particle_function)
 		end
     else
         self:queue_destroy()

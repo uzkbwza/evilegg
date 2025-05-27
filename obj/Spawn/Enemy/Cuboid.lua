@@ -145,6 +145,7 @@ function Cuboid:death_sequence()
     local s = self.sequencer
     self.approaching = false
     self.exploding = true
+	self.melee_attacking = false
 	self.z_index = 1
     -- self.melee_attacking = false
     -- self.bullet_push_modifier = self.bullet_push_modifier * 0.75
@@ -217,7 +218,7 @@ function Cuboid:draw()
 			local col = idivmod_eq_zero(self.tick, 2, 2) and Color.red or Color.yellow
 			graphics.set_color(Color.black)
 			graphics.rectangle_centered("fill", 0, 0, 34, 34)
-			graphics.set_line_width(6)
+			graphics.set_line_width(12)
 			local dist = self:is_timer_running("explode") and (100 * (1 - self:timer_time_left_ratio("explode"))) or 0
 			graphics.set_color(Color.black)
 			for i = 1, #ALL_DIRECTIONS do
@@ -227,7 +228,7 @@ function Cuboid:draw()
 			end
 			graphics.set_color(col)
 			graphics.rectangle_centered("fill", 0, 0, 32, 32)
-			graphics.set_line_width(4)
+			graphics.set_line_width(10)
 			for i = 1, #ALL_DIRECTIONS do
 				local direction = ALL_DIRECTIONS[i]
 				local dx, dy = vec2_normalized_times(direction.x, direction.y, dist)

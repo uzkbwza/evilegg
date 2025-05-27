@@ -11,7 +11,8 @@ local ARTEFACT_XP = 1500
 
 function ArtefactSpawn:new(x, y, artefact)
     ArtefactSpawn.super.new(self, x, y)
-	
+	game_state.num_spawned_artefacts = game_state.num_spawned_artefacts + 1
+
 	-- self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
     -- self:lazy_mixin(Mixins.Behavior.EntityDeclump)
@@ -114,7 +115,8 @@ function ArtefactSpawn:hit_by(other)
 	
 	self:start_timer("damage_flash", 10)
 	
-	if self.hp <= 0 then
+    if self.hp <= 0 then
+		
         self:queue_destroy()
         self:spawn_object(XpPickup(self.pos.x, self.pos.y, ARTEFACT_XP))
         self:play_sfx("pickup_artefact_explode", 0.8)

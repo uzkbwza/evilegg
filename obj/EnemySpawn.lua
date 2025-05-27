@@ -29,7 +29,8 @@ function EnemySpawn:update(dt)
 		return
 	end
 
-	if (debug.enabled and input.debug_skip_wave_held and self.tick > 1)
+    if (debug.enabled and input.debug_skip_wave_held and self.tick > 1)
+	
 	or (not self:is_tick_timer_running("spawn")) then
         self:emit_signal("finished")
         self:queue_destroy()

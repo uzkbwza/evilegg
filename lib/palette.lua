@@ -8,20 +8,58 @@ Palette:override_class_metamethod("__index", function(self, key)
 end)
 
 function Palette:new(colors)
-	self.original_colors = {}
-	self.colors = {}
-	self.shader_vecs = {}
-	self.color_indices = {}
-	for _, color in ipairs(colors) do
-		self.colors[#self.colors + 1] = color:clone()
-		self.original_colors[#self.original_colors + 1] = color:clone()
-		self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b, color.a }
+    self.original_colors = {}
+    self.colors = {}
+    self.shader_vecs = {}
+    -- self.color_indices = {}
+    for _, color in ipairs(colors) do
+        self.colors[#self.colors + 1] = color:clone()
+        self.original_colors[#self.original_colors + 1] = color:clone()
+        self.shader_vecs[#self.shader_vecs + 1] = { color.r, color.g, color.b, color.a }
+    end
+    self.length = #self.shader_vecs
+    self.dirty = true
+    self.cached_shader = nil
+    self.cached_shader_offset = nil
+    self.palette_image = nil
+end
+
+function Palette:add_color(color, index)
+	color = color:clone()
+    index = index or #self.colors + 1
+	
+    index = (index - 1) % self.length + 1
+	
+	local tinsert = table.insert
+    tinsert(self.colors, index, color)
+    tinsert(self.original_colors, index, color)
+    tinsert(self.shader_vecs, index, { color.r, color.g, color.b, color.a })
+    self.length = #self.shader_vecs
+    self.dirty = true
+	if self.readonly then
+		error("Palette is readonly. use clone() to make a writable copy.")
 	end
-	self.length = #self.shader_vecs
+end
+
+function Palette:remove_color(index)
+	index = index or #self.colors + 1
+
+	index = (index - 1) % self.length + 1
+
+	if self.readonly then
+		error("Palette is readonly. use clone() to make a writable copy.")
+	end
+	local tremove = table.remove
+    tremove(self.colors, index)
+    tremove(self.original_colors, index)
+    tremove(self.shader_vecs, index)
+    self.length = #self.shader_vecs
 	self.dirty = true
-	self.cached_shader = nil
-	self.cached_shader_offset = nil
-	self.palette_image = nil
+end
+
+function Palette:add_color_unpacked(r, g, b, a, index)
+    local color = Color(r, g, b, a)
+    self:add_color(color, index)
 end
 
 function Palette:make_readonly()
@@ -101,6 +139,10 @@ function Palette:get_color(index)
     return self.colors[(index - 1) % self.length + 1]
 end
 
+function Palette:get_valid_index(index)
+    return (index - 1) % self.length + 1
+end
+
 function Palette:get_color_index_unpacked(r, g, b)
     for i, c in ipairs(self.colors) do
         if c.r == r and c.g == g and c.b == b then
@@ -135,9 +177,9 @@ function Palette:get_color_unpacked(index)
     return color.r, color.g, color.b, color.a
 end
 
-function Palette:color_to_index(color)
-	return self.color_indices[color]
-end
+-- function Palette:color_to_index(color)
+-- 	return self.color_indices[color]
+-- end
 
 function Palette:get_color_array(offset)
     local colors = {}
@@ -170,7 +212,7 @@ function Palette:set_color_unpacked(index, r, g, b, a)
     c.b = b
 	c.a = a or 1
 	self.dirty = true
-	self.color_indices[index] = c
+	-- self.color_indices[index] = c
 end
 
 function Palette:set_color(index, color)
@@ -278,8 +320,9 @@ function PaletteStack:push(palette, length_in_stack)
 		palette = palette:clone()
 	end
 	length_in_stack = length_in_stack or palette.length
-	table.insert(self.palettes, palette)
-	table.insert(self.offsets, 0)
+	local tinsert = table.insert
+	tinsert(self.palettes, palette)
+	tinsert(self.offsets, 0)
 	local len = #self.global_offset_to_palette
 	for i=len+1, len+length_in_stack do
 		self.global_offset_to_palette[i] = palette
@@ -320,11 +363,12 @@ function PaletteStack:get_shader(offset)
 
     local decode_palette_shader = graphics.shader.decode_palette
 	
-    if (dirty or not (self.cached_shader)) then
+	local tinsert = table.insert
+	if (dirty or not (self.cached_shader)) then
         self.cached_shader = nil
         self.cached_shader_table = {}
         for i = 1, self.length do
-            table.insert(self.cached_shader_table, self:get_color(floor(i + offset - 1)):to_shader_table())
+            tinsert(self.cached_shader_table, self:get_color(floor(i + offset - 1)):to_shader_table())
         end
     end
 	
@@ -346,8 +390,9 @@ function PaletteStack:get_color_array(offset)
     -- 	local new_array = self.palettes[i]:get_color_array(self.offsets[i])
     -- 	table.extend(colors, new_array)
     -- end
+	local tinsert = table.insert
     for i = 1, self.length do
-        table.insert(colors, self:get_color(floor(i + offset - 1)))
+        tinsert(colors, self:get_color(floor(i + offset - 1)))
     end
     return colors
 end

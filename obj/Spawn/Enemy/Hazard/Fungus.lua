@@ -24,6 +24,7 @@ local MAX_FUNGI = 60
 
 Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
+Fungus.cannot_hit_egg = true
 
 function Fungus:new(x, y, propogate_frequency)
     self.team = game_state.artefacts.death_cap and "player" or "neutral"
@@ -214,8 +215,11 @@ function Fungus:draw()
 end
 
 function Fungus:get_sprite()	
-	if not (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick + self.random_offset, 1, 2)) then
-		return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
+    if not (game_state.artefacts.death_cap) then
+        return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
+    end
+	if idivmod_eq_zero(gametime.tick + self.random_offset, 1, 2) then
+		return self.big and textures.hazard_friendly_mushroom_alt2 or textures.hazard_friendly_mushroom_alt1
 	end
 	return self.big and textures.hazard_friendly_mushroom2 or textures.hazard_friendly_mushroom1
 end

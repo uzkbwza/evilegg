@@ -108,6 +108,12 @@ function bonglewunch:remove(obj)
 	indices[obj] = nil
 end
 
+function bonglewunch:clear()
+	self.__length = 0
+	table.clear(self.__array)
+	table.clear(self.__indices)
+end
+
 function bonglewunch:pop()
 	if self.__length == 0 then return nil end
 	local array = self.__array

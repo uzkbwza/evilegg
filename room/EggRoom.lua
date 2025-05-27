@@ -104,7 +104,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
         elseif choice == "kill_egg" then
             game_state:on_final_room_entered()
             world:clear_floor_canvas()
-            self:ref("egg_boss", world:spawn_object(EggBoss(0, 35)))
+            self:ref("egg_boss", world:spawn_object(EggBoss()))
             local closest_player = self:get_any_player(player)
 			while not closest_player do
 				s:wait(1)
@@ -115,11 +115,10 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 			-- audio.stop_music()\
             audio.play_music_if_stopped("music_egg_boss_ambience", 1.0)
 			
-            signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
+            -- signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
 				
-				audio.play_music("music_egg_boss1", 1.0)
 			
-			end, true)
+			-- end, true)
 			
             while self.egg_boss do
                 s:wait(1)

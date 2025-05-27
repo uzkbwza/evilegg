@@ -276,6 +276,7 @@ function BackgroundObject:enter()
 		self:play_sfx("ui_game_over_letter_moveup", 0.7)
 		s:tween_property(self, "width", 0, conf.room_size.x + 1, 10)
 		self:emit_signal("covering_screen")
+		game_state.game_over_screen_force_hud = true
 	end)
 end
 

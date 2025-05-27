@@ -1,5 +1,9 @@
 local Enforcer = BaseEnemy:extend("Enforcer")
-local EnforcerBullet = require("obj.Spawn.Enemy.EnforcerBullet")
+local EnforcerBullet = BaseEnemy:extend("EnforcerBullet")
+local RoyalGuard = Enforcer:extend("RoyalGuard")
+local RoyalGuardBullet = EnforcerBullet:extend("RoyalGuardBullet")
+
+local HOMING_SPEED = 0.035
 
 local SPAWNING_DRAG = 0.01
 local NORMAL_DRAG = 0.02
@@ -12,7 +16,7 @@ local MAX_DIST = 200
 
 function Enforcer:new(x, y)
     self.body_height = 4
-	self.max_hp = 2
+	self.max_hp = self.max_hp or 2
 
     Enforcer.super.new(self, x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
@@ -29,7 +33,11 @@ function Enforcer:new(x, y)
 	self.pdx, self.pdy = 0, 0
     self.player_distance = PLAYER_DISTANCE
 	self.spawn_cry = "enemy_enforcer_emerge"
-	self.spawn_cry_volume = 0.75
+    self.spawn_cry_volume = 0.75
+	self.spawn_sprite1 = textures.enemy_enforcer1
+	self.spawn_sprite2 = textures.enemy_enforcer2
+	self.walk_speed = WALK_SPEED
+	self.normal_sprite = textures.enemy_enforcer3
 end
 
 function Enforcer:state_Spawning_enter()
@@ -59,15 +67,15 @@ function Enforcer:state_Spawning_update(dt)
 			self:apply_force(-pdx * SPAWN_SPEED, -pdy * SPAWN_SPEED)
 		end
     end
-	self.sprite = self:tick_pulse(5) and textures.enemy_enforcer1 or textures.enemy_enforcer2
+	self.sprite = self:tick_pulse(5) and self.spawn_sprite1 or self.spawn_sprite2
 end
 
 function Enforcer:state_Spawning_exit()
-	self:play_sfx("enemy_enforcer_spawn", 0.75, 1.0)
+	self:play_sfx(self.enforcer_spawn_sfx or "enemy_enforcer_spawn", self.enforcer_spawn_sfx_volume or 0.75, 1.0)
 end
 
 function Enforcer:state_Normal_enter()
-	self.sprite = textures.enemy_enforcer3
+	self.sprite = self.normal_sprite
     self.drag = NORMAL_DRAG
 end
 
@@ -94,7 +102,7 @@ function Enforcer:state_Normal_update(dt)
 
         if self.state_tick > 100 and not self:is_tick_timer_running("shoot_delay") then
             if distance < 300 then
-                if rng.chance((300 - distance) / 300) then
+                if rng.chance(((300 - distance) / 300) * self:shoot_chance_modifier()) then
                     local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
                     dx, dy = vec2_snap_angle(dx, dy, 16)
                     self:shoot_bullet(dx, dy)
@@ -114,10 +122,14 @@ function Enforcer:state_Normal_update(dt)
 
 		self.player_distance = self.player_distance - dt * 0.05
 		
-		self:apply_force(pdx * WALK_SPEED, pdy * WALK_SPEED)
+		self:apply_force(pdx * self.walk_speed, pdy * self.walk_speed)
 
 
     end
+end
+
+function Enforcer:shoot_chance_modifier()
+	return 1.0
 end
 
 function Enforcer:shoot_bullet(dx, dy)
@@ -141,12 +153,133 @@ function Enforcer:draw()
 end
 
 function Enforcer:debug_draw()
-	-- Enforcer.super.debug_draw(self)
-	graphics.setColor(1, 0, 0)
-	graphics.line(0, 0, self.pdx * 10, self.pdy * 10)
-	graphics.setColor(1, 1, 1)
+    -- Enforcer.super.debug_draw(self)
+    graphics.setColor(1, 0, 0)
+    graphics.line(0, 0, self.pdx * 10, self.pdy * 10)
+    graphics.setColor(1, 1, 1)
+end
+
+function RoyalGuard:new(x, y)
+    self.max_hp = 5
+	self.walk_speed = WALK_SPEED * 0.5
+    RoyalGuard.super.new(self, x, y)
+	self.spawn_cry = "enemy_royalguard_emerge"
+    self.enforcer_spawn_sfx = "enemy_royalguard_spawn"
+    self.spawn_cry_volume = 1
+	self.enforcer_spawn_sfx_volume = 1
+	self.spawn_sprite1 = textures.enemy_royalguard1
+	self.spawn_sprite2 = textures.enemy_royalguard2
+    self.normal_sprite = textures.enemy_royalguard3
+	-- self.bullet_push_modifier = 0.5
+end
+
+function RoyalGuard:enter()
+	self:add_tag("RoyalGuard")
+end
+
+function RoyalGuard:shoot_bullet(dx, dy)
+	if rng.coin_flip() then
+		for i = -1, 1 do
+			local dx_, dy_ = vec2_rotated(dx, dy, i * tau / 16)		
+			local bullet = self:spawn_object(RoyalGuardBullet(self.pos.x, self.pos.y))
+			bullet:move(dx_ * 3, dy_ * 3)
+			bullet:apply_impulse(dx_ * BULLET_SPEED + self.vel.x, dy_ * BULLET_SPEED + self.vel.y)
+		end
+		self:play_sfx("enemy_royalguard_shoot", 1, 1.0)
+	else
+		local s = self.sequencer
+        s:start(function()
+			for i=1, 5 do 		
+				local bullet = self:spawn_object(RoyalGuardBullet(self.pos.x, self.pos.y))
+				bullet:move(dx * 3, dy * 3)
+				bullet:apply_impulse(dx * BULLET_SPEED + self.vel.x, dy * BULLET_SPEED + self.vel.y)
+				self:play_sfx("enemy_royalguard_shoot", 1, 1.0)
+				s:wait(5)
+			end
+		end)
+	end
+end
+
+function RoyalGuard:shoot_chance_modifier()
+	return 0.75
+end
+
+
+function EnforcerBullet:new(x, y)
+	self.max_hp = 1
+    EnforcerBullet.super.new(self, x, y)
+    self.drag = 0.014
+    self.hit_bubble_radius = 3
+	self.hurt_bubble_radius = 2
+    self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
+    -- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
+	self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    self.z_index = 10
+	self.floor_draw_color = Palette.rainbow:get_random_color()
+end
+
+function EnforcerBullet:get_sprite()
+    return self:tick_pulse(3) and textures.enemy_enforcer_bullet1 or textures.enemy_enforcer_bullet2
+end
+
+-- function EnforcerBullet:collide_with_terrain()
+-- 	return false
+-- end
+
+function EnforcerBullet:get_floor_sprite()
+	-- local i = floor(self.tick / 3) % 4
+    -- if i == 0 then
+	-- 	return textures.enemy_enforcer_bullet1
+	-- elseif i == 1 then
+	-- 	return textures.enemy_enforcer_bullet2
+	-- elseif i == 2 then
+	-- 	return textures.enemy_enforcer_bullet3
+	-- elseif i == 3 then
+	-- 	return textures.enemy_enforcer_bullet4
+	-- end
+	return textures.enemy_enforcer_bullet_trail
+end
+
+function EnforcerBullet:update(dt)
+    if vec2_magnitude(self.vel.x, self.vel.y) < 0.05 then
+        self:die()
+    end
+
+	local player = self:get_closest_player()
+	if player and self.tick < 120 then
+        local pdx, pdy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
+		local homing_speed = HOMING_SPEED * (1.0 - self.tick / 120)
+		self:apply_force(pdx * homing_speed, pdy * homing_speed)
+	end
+end
+
+local COLOR_MOD = 0.9
+
+function EnforcerBullet:floor_draw()
+    local scale = pow(1.0 - self.tick / 600, 1.5)
+    graphics.set_color(scale * COLOR_MOD, 0, 1.0 - scale * COLOR_MOD, 1)
+    if self.is_new_tick and self.tick % 4 == 0 and scale > 0.1 then
+		local palette, offset = self:get_palette()
+        local sprite = self:get_floor_sprite()
+		
+		graphics.scale(scale, scale)
+		graphics.drawp_centered(sprite, palette, offset, 0, 0)
+	end
+end
+
+function RoyalGuardBullet:new(x, y)
+    RoyalGuardBullet.super.new(self, x, y)
+end
+
+function RoyalGuardBullet:get_sprite()
+    return self:tick_pulse(3) and textures.enemy_royalguard_bullet1 or textures.enemy_royalguard_bullet2
+end
+
+function RoyalGuardBullet:get_palette()
+	return nil, idiv(self.tick, 2)
 end
 
 AutoStateMachine(Enforcer, "Spawning")
+AutoStateMachine(RoyalGuard, "Spawning")
 
-return Enforcer
+return {Enforcer, RoyalGuard}

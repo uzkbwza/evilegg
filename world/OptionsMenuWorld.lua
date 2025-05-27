@@ -5,7 +5,7 @@ local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
 local DISTANCE_BETWEEN_ITEMS = 10
-local HEADER_SPACE = 2
+local HEADER_SPACE = 1
 
 
 function OptionsMenuWorld:new()
@@ -55,6 +55,7 @@ function OptionsMenuWorld:enter()
 		{ "fullscreen", item_type = "toggle"},
         -- { "use_screen_shader", item_type = "toggle" },
 		
+		{ "show_hud", item_type = "toggle", inverse = true},
 		{ "pixel_perfect", item_type = "toggle"},
         { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value)
             for _, item in ipairs(self.menu_items) do
@@ -206,6 +207,7 @@ function OptionsMenuWorld:add_menu_item(menu_table)
         local set_func = menu_table.set_func or function() usersettings:set_setting(menu_table.usersettings_toggle, not get_func()) end
         menu_item.get_value_func = get_func
         menu_item.set_value_func = set_func
+		menu_item.inverse = menu_table.inverse
 	elseif menu_item:is(O.OptionsMenu.OptionsMenuSlider) then
 		local get_func = menu_table.get_func or function() return usersettings[menu_table.usersettings_slider] end
 		local set_func = menu_table.set_func or function(value) usersettings:set_setting(menu_table.usersettings_slider, value) end

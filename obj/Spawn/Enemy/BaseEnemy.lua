@@ -304,7 +304,7 @@ end
 
 function BaseEnemy:spawn_wave_enemy(enemy_object)
 	self.world:spawn_wave_enemy(enemy_object)
-end	
+end
 
 function BaseEnemy:get_sprite_flip()
 	return self.flip, 1

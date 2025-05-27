@@ -207,7 +207,18 @@ local Artefacts = {
 		key = "sacrificial_twin",
 		name = "artefact_sacrificial_twin_name",
 		description = "artefact_sacrificial_twin_desc",
-        spawn_weight = 1000,
+        
+		can_spawn = function()
+			if not game_state then return true end
+			return game_state.num_spawned_artefacts >= 1
+		end,
+
+        spawn_weight = function()
+			if not game_state then return 1000 end
+			if game_state.num_spawned_artefacts ~= 1 then return 1000 end
+            return 1000000000000000
+        end,
+
 		remove_function = function(game_state, slot)
             game_state:set_selected_artefact_slot(slot)
 		end,

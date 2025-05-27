@@ -64,6 +64,15 @@ local Enemies = {
 		spawn_group = { "basic", "exploder" },
 	},
 	
+	RoyalRoamer = {
+		-- inherit = { "Roamer" },
+        level = 2,
+		min_level = 30,
+		icon = textures.enemy_royalroamer1,
+		spawn_points = 7,
+		room_select_weight = 50,
+	},
+
 	Hopper = {
         level = 2,
         spawn_points = 20,
@@ -99,18 +108,31 @@ local Enemies = {
 		level = 4,
 		min_level = 17,
 		spawn_points = 150,
-		extra_score = 150,
+		extra_score = 100,
 		icon = textures.enemy_shotgunner1,
 		spawn_group = { "basic", "police" },
 	},
 
     Enforcer = {
         level = 3,
-		extra_score = 10,
+        extra_score = 10,
+		max_level = 70,
 		spawn_points = 45,
 		icon = textures.enemy_enforcer3,
 		spawn_group = { "basic", "police" },
     },
+
+	RoyalGuard = {
+		level = 3,
+		extra_score = 50,
+        spawn_points = 55,
+		min_level = 30,
+        icon = textures.enemy_royalguard3,
+        -- room_select_weight = 500,
+		spawn_group = { "basic", "police" },
+
+		-- spawn_group = { "basic", "police" },
+	},
 
     Sniper = {
         level = 2,
@@ -133,21 +155,13 @@ local Enemies = {
 		icon = textures.enemy_turret_icon,
 	},
 
-	Shielder = {
-        level = 3,
-        spawn_points = 80,
-        min_level = 6,
-		extra_score = -50,
-		spawn_weight_modifier = 0.35,
-		icon = textures.enemy_shielder1,
-    },
 
     Cultist = {
         level = 4,
 		min_level = 8,
 		-- room_select_weight = 250,
 		spawn_points = 50,
-        spawn_weight_modifier = 0.45,
+        spawn_weight_modifier = 0.65,
 		extra_score = 100,
 		icon = textures.enemy_cultist,
 	},
@@ -157,8 +171,8 @@ local Enemies = {
 		min_level = 13,
 		-- room_select_weight = 250,
 		spawn_points = 150,
-        spawn_weight_modifier = 1.25,
-		extra_score = 200,
+        spawn_weight_modifier = 1.5,
+		extra_score = 100,
         icon = textures.enemy_gnome1,
 		-- max_spawns = 6
 	},
@@ -166,7 +180,7 @@ local Enemies = {
     Charger = {
 		extra_score = 50,
         level = 4,
-		spawn_points = 100,
+		spawn_points = 90,
 		icon = textures.enemy_charger1,
     },
 
@@ -190,7 +204,7 @@ local Enemies = {
     Cuboid = {
         level = 2,
 		min_level = 14,
-		extra_score = 100,
+		extra_score = 200,
 		spawn_points = 120,
         icon = textures.enemy_cube4,
 		-- spawn_group = { "basic" },
@@ -261,6 +275,14 @@ local Enemies = {
 		basic_select_weight_modifier = 0.01,
     },
 	
+	Rook = {
+		level = 4,
+		min_level = 35,
+        spawn_points = 130,
+		room_select_weight = 500,
+		icon = textures.enemy_big_monster1,
+	},
+
 
     EvilPlayer = {
         spawnable = false,
@@ -297,7 +319,7 @@ local Hazards = {
 	FastBouncer = {
         initial_wave_only = true,
         level = 2,
-		min_level = 30,
+		min_level = 28,
 		spawn_points = 50,
 		max_spawns = 6,
 		room_select_weight = 500,
@@ -335,18 +357,26 @@ local Hazards = {
 
 	Blinker = {
 		level = 1,
-		min_level = 3,
+		min_level = 11,
         spawn_points = 9,
 		room_select_weight = 300,
 		icon = textures.hazard_blinker,
+    },
+
+	
+	Shielder = {
+        level = 2,
+        spawn_points = 80,
+        min_level = 6,
+		-- extra_score = -50,
+        spawn_weight_modifier = 0.35,
+		room_select_weight = 200,
+		icon = textures.enemy_shielder1,
     },
 	
 }
 
 local Bullets = {
-	-- EnforcerBullet = {
-	-- 	icon = textures.enemy_enforcer_bullet1,
-	-- },
 }
 
 local Rescues = {

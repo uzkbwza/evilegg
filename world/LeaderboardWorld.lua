@@ -30,7 +30,7 @@ function LeaderboardWorld:new()
 	self.current_page_number = 1
 	self.target_death_count = 0
  
-	self.current_category = debug.enabled and leaderboard.default_category
+	self.current_category = leaderboard.default_category
 
 	self.run_t_values = {}
 	for i=1, PAGE_LENGTH do
@@ -116,7 +116,7 @@ function LeaderboardWorld:enter()
 		if ok then
 			self.death_count = res.deaths or 0
 		end
-		local high_score_run = savedata:get_high_score_run()
+		local high_score_run = savedata:get_high_score_run(self.current_category)
         if high_score_run then
             leaderboard.submit(high_score_run, function(ok, res)
                 if not self.is_destroyed then

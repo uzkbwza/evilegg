@@ -8,11 +8,12 @@ local default_usersettings = {
 	fps_cap = 300,
     cap_framerate = true,
 	zoom_level = 1,
-    skip_tutorial = false,
+    skip_tutorial = true,
     brightness = 1.0,
     saturation = 1.0,
 	hue = 0.0,
     invert_colors = false,
+	show_hud = true,
 	
     -- fx
     screen_shake_amount = 1,
@@ -26,9 +27,11 @@ local default_usersettings = {
 	
     -- controls
     use_absolute_aim = true,
-	relative_mouse_aim_snap_to_max_range = true,
+	relative_mouse_aim_snap_to_max_range = false,
 	mouse_sensitivity = 0.08,
 }
+
+local just_started = true
 
 local usersettings = {}
 
@@ -70,7 +73,7 @@ function usersettings:save()
     love.filesystem.write("_usersettings.lua", require("lib.tabley").serialize(tab))
 end
 
-local just_started = true
+
 function usersettings:initial_load()
     self:load()
     self:save()

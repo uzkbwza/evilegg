@@ -177,6 +177,10 @@ function math.tri(t)
     end
 end
 
+function math.saw(t)
+    return t - floor(t)
+end
+
 function stepify_floor_safe(s, step)
 	step = step or 1
 	if step == 0 then return floor(s) end
@@ -392,3 +396,36 @@ function point_along_line_segment_clamped(ax, ay, bx, by, distance)
 end
 
 
+function get_ellipse_point(a, b, angle, phase)
+    local x = a * math.cos(angle + phase)
+    local y = b * math.sin(angle + phase)
+    return x, y
+end
+
+function get_ellipse_arc_length(a, b, angle)
+    local h = ((a - b) / (a + b)) ^ 2
+    local perimeter = math.pi * (a + b) * (1 + (3 * h) / (10 + math.sqrt(4 - 3 * h)))
+    return (angle / (2 * math.pi)) * perimeter
+end
+
+function find_angle_at_distance(target_distance, a, b, start_angle, step)
+    -- Binary search to find angle that gives us desired arc length
+    step = step or 0.001
+    local current_distance = 0
+    local current_angle = start_angle
+    local last_x, last_y = get_ellipse_point(a, b, start_angle, 0)
+    
+    while current_distance < target_distance do
+        current_angle = current_angle + step
+        local x, y = get_ellipse_point(a, b, current_angle, 0)
+        
+        -- Calculate actual 2D distance between points
+        local dx = x - last_x
+        local dy = y - last_y
+        current_distance = current_distance + math.sqrt(dx * dx + dy * dy)
+        
+        last_x, last_y = x, y
+    end
+    
+    return current_angle
+end

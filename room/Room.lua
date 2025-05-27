@@ -5,10 +5,10 @@ local SpawnDataTable = require("obj.spawn_data")
 local debug_force_enabled = false
 local debug_force = "bonus_police"
 
-local debug_enemy_enabled = false
-local debug_enemy = "EvilGreenoidBoss"
-local num_debug_enemies = 1
-local num_debug_waves = 1
+local debug_enemy_enabled = true
+local debug_enemy = "Rook"
+local num_debug_enemies = 6
+local num_debug_waves = 3
 
 Room.can_highlight_enemies = true
 
@@ -27,18 +27,18 @@ Room.narrative_types = {
                 enemy = debug_enemy,
 				count = num_debug_enemies,
             },
-			-- [2] = {
-			-- 	disable_hazards = true,
-            --     type = "specific_enemy",
-            --     enemy = debug_enemy,
-			-- 	count = num_debug_enemies,
-            -- },
-			-- [3] = {
-			-- 	disable_hazards = true,
-            --     type = "specific_enemy",
-            --     enemy = debug_enemy,
-			-- 	count = num_debug_enemies,
-            -- },
+			[2] = {
+				disable_hazards = true,
+                type = "specific_enemy",
+                enemy = debug_enemy,
+				count = num_debug_enemies,
+            },
+			[3] = {
+				disable_hazards = true,
+                type = "specific_enemy",
+                enemy = debug_enemy,
+				count = num_debug_enemies,
+            },
 		}
 	},
 
@@ -598,31 +598,23 @@ function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narr
     return spawn
 end
 
-local STEP      		= 0.2    -- what we are adding each turn
-local BASE      		= 1.0    -- first arg to lerp()
-local SCALING_AMOUNT    = 1.0    -- interpolation factor t
-local OFFSET    		= 10.0
-local SCALE     		= 7.0
+local STEP = 0.2             -- what we are adding each turn
+local OFFSET = 10.0
+local SCALE = 7
 
 -- quick harmonic-number approximation (Euler–Maclaurin)
 local GAMMA = 0.5772156649015329
-local function H(n)                -- n ≥ 0 (treat H₀ = 0)
-    if n < 1 then return 0 end
-    if n < 128 then                -- exact is cheap for small n
-        local s = 0.0
-        for k = 1, n do s = s + 1/k end
-        return s
-    end
+local function H(n)          -- n ≥ 0 (treat H₀ = 1)
+    if n < 1 then return 1 end
+
     return math.log(n) + GAMMA + 1/(2*n) - 1/(12*n*n)
 end
 
-local NUM_FACTOR = STEP * SCALE / SCALING_AMOUNT
-local DEN_SHIFT  = (BASE * SCALE * (1 - SCALING_AMOUNT) + SCALING_AMOUNT * OFFSET) / SCALING_AMOUNT
+local NUM_FACTOR = STEP * SCALE
 
 function Room:pool_point_modifier()
-	
-	if self.level <= 1 then return 1 end
-    return 1 + NUM_FACTOR * ( H(self.level - 1 + DEN_SHIFT) - H(DEN_SHIFT) )
+
+    return 1 + NUM_FACTOR * (H(self.level - 1 + OFFSET) - H(OFFSET))
 end
 
 function Room:generate_waves()
@@ -753,8 +745,8 @@ function Room:generate_waves()
         local sub_narratives = narrative.sub_narratives
         local wave_number = 1
 
-        for i = 1, #sub_narratives do
-            local sub_narrative = sub_narratives[i]
+        for i = 1, min(#sub_narratives, self.level) do
+            local sub_narrative = sub_narratives[max(max(i, self.level >= 30 and 2 or 1), (self.level >= 50 or self.is_hard) and 3 or 1)]
             if wave_types[sub_narrative.type] ~= nil then
                 local pool_modification_chance_per_enemy = sub_narrative.pool_modification_chance_per_enemy or 0.1
                 local max_enemy_difficulty = min(sub_narrative.max_difficulty or math.huge,
@@ -911,7 +903,7 @@ function Room:generate_waves()
 	
 	local hard_chance = 0
 	if self.is_hard then
-		hard_chance = 15
+		-- hard_chance = 15
 	end
 	
     local upgrade_pickup_chance = abs(rng.randfn(30 + max(game_state.num_queued_upgrades, 0) * 10, 1)) + hard_chance
@@ -1028,9 +1020,9 @@ function Room:generate_waves()
 end
 
 if debug.enabled then
-    for i = 1, 100 do
+    for i = 1, 200 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
 	end
 end
 

@@ -14,6 +14,9 @@ function OptionsMenuToggle:draw()
     local x, y, w, h = self:get_rect_local()
     local size = h - 2
     local fill = self.get_value_func()
+	if self.inverse then
+		fill = not fill
+	end
 	local size_offset = 0
     local xoffs = 0
 	local yoffs = 0

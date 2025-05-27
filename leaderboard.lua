@@ -1,6 +1,11 @@
 -- leaderboard.lua  ── async client for multi-category leaderboard
 -- LÖVE 11/12, uses love.thread + luasocket + lib/json.lua
 
+-- this code is mostly LLM generated. it probably sucks! 
+-- please do not use it to make my life harder.
+
+LEADERBOARD_VERSION = "0.0.0"
+
 local socket = require "socket"
 local json   = require "lib.json"
 local thread = require "love.thread"
