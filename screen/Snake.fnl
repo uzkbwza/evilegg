@@ -33,11 +33,11 @@
 (fn game.update-state! [self]
 	(self:try-move-snake self.snake-dir.x self.snake-dir.y))
 (fn game.place-random-fruit! [self]
-	(var x (rng.randi 1 grid-size))
-	(var y (rng.randi 1 grid-size))
+	(var x (rng:randi 1 grid-size))
+	(var y (rng:randi 1 grid-size))
 	(while (not= empty-cell (self:get-cell-type x y))
-		(set x (rng.randi 1 grid-size))
-		(set y (rng.randi 1 grid-size)))
+		(set x (rng:randi 1 grid-size))
+		(set y (rng:randi 1 grid-size)))
 	(self:add-food-cell x y))
 (fn game.try-move-snake [self dx dy]
 	(let [pos self.snake-position

@@ -1,5 +1,19 @@
 local translations = {
     en = {
+		
+		control_right_trigger = "RIGHT TRIGGER",
+        control_right_mouse = "RMB",
+		control_left_trigger = "LEFT TRIGGER",
+        control_left_mouse = "LMB",
+        control_space_bar = "SPACE",
+		control_left_stick = "LEFT STICK",
+		control_right_stick = "RIGHT STICK",
+		control_wasd = "WASD",
+
+		tutorial_boost = "PRESS %s TO BOOST",
+		tutorial_move = "MOVE WITH %s",
+		tutorial_shoot = "SHOOT WITH %s",
+
 		room_has_max_points = "HI SCORE",
 		room_is_bonus = "BONUS",
 		room_is_hard = "HARD",
@@ -11,7 +25,9 @@ local translations = {
 		notif_damage = "DAMAGE",
 		notif_boost = "BOOST",
 
-		notif_heart = "HP",
+        notif_heart = "HP",
+		
+		notif_ammo = "AMMO",
 
 		notif_upgrade_available = "EARNED UPGRADE",
 		notif_heart_available = "EARNED HEART",
@@ -32,7 +48,7 @@ local translations = {
 		bonus_ammo_saver = "AMMO SAVER",
 		bonus_harmed_noid = "NOID INJURY",
 		bonus_final_room_clear = "EGG SLAIN",
-        bonus_twin_saved = "TWIN SAVED",
+		bonus_twin_saved = "TWIN SAVED",
 		bonus_quick_save = "QUICK SAVE",
 		bonus_twin_protected = "PROTECTOR",
 		bonus_twin_killed = "BETRAYAL",
@@ -59,6 +75,8 @@ local translations = {
 		powerup_rocket_name                          = "MISSILE",
 		powerup_rocket_desc                          = "High-powered rocket-propelled missiles. Lasts for 6 seconds. Duration stacks.",
 
+		powerup_ammo_name                            = "EXTRA AMMO",
+		powerup_ammo_desc							 = "Useful for power hungry equipment.",
 		-- artefact_more_bullets_name = "MORE BULLETS",
 		-- artefact_damage_over_distance_name = "SNOWBALL",
 
@@ -75,9 +93,16 @@ local translations = {
 		artefact_clock_name                          = "STOP WATCH",
 		artefact_defabricator_name                   = "DEFABRICATOR",
 		artefact_warbell_name                        = "WAR BELL",
+		artefact_useless_name                        = "GIANT GEMSTONE",
+		artefact_transmitter_name                    = "BEGGAR'S BOWL",
 
-		artefact_grappling_hook_desc                 = "Shoot greenoids to pull them closer.",
+		weapon_sword_name                            = "EXECUTIONER'S SWORD",
+        weapon_big_laser_name          				 = "LASER CANNON",
+        weapon_railgun_name           				 = "RAIL GUN",
+		weapon_repulsion_field_name				     = "REPULSION FIELD",
+
 		artefact_ricochet_desc                       = "Your bullets bounce off walls.",
+		artefact_grappling_hook_desc                 = "Shoot greenoids to pull them closer.",
 		artefact_amulet_of_rage_desc                 = "Your bullets deal more damage up close.",
 		artefact_sacrificial_twin_desc               = "What are you willing to sacrifice?",
 		artefact_drone_desc                          = "A loyal companion.",
@@ -89,13 +114,16 @@ local translations = {
 		artefact_clock_desc                          = "Chain rescues to increasingly slow enemies.",
 		artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
 		artefact_warbell_desc                        = "Greenoids will attack nearby enemies.",
+		artefact_useless_desc          				 = "Too heavy to take with you.",
+		artefact_transmitter_desc      				 = "Greenoids will bring extra ammo.",
 
-		weapon_sword_name                            = "THE DIVIDING LINE",
-		weapon_sword_desc                            = "An executioner's sword.",
+		weapon_sword_desc                            = "This is the line of division.",
+		weapon_big_laser_desc                        = "Simple problems call for simple solutions.",
+		weapon_railgun_desc						     = "Shoots through anything.",
+		weapon_repulsion_field_desc				     = "Panic button.",
 
-		-- menu_back_button = "BACK",
-		menu_options_button                          = "OPTIONS",
-
+        menu_options_button                          = "OPTIONS",
+		
 		main_menu_start_button                       = "START",
 		main_menu_leaderboard_button                 = "RANKINGS",
 		menu_codex_button                            = "CODEX",
@@ -122,14 +150,12 @@ local translations = {
 		options_music_volume                         = "Music Volume",
 		options_sfx_volume                           = "SFX Volume",
 		options_debug_enabled                        = "Debug Enabled",
-		-- options_relative_mouse_aim_enabled = "Twin-Stick Mouse Enabled",
-		-- options_show_relative_aim_mouse_crosshair = "Twin-Stick Mouse Crosshair",
 		options_use_absolute_aim                     = "Absolute Mouse Aim",
-		options_mouse_sensitivity                    = "Relative Mouse Sensitivity",
-		options_relative_mouse_aim_snap_to_max_range = "Rel. Mouse Snap Distance",
+		options_mouse_sensitivity                    = "Relative Aim Sensitivity",
+		options_relative_mouse_aim_snap_to_max_range = "Rel. Aim Fixed Distance",
 		options_skip_tutorial                        = "Skip Tutorial",
-        options_enter_name                           = "Enter Name",
-		options_show_hud							 = "Immersive Mode",
+		options_enter_name                           = "Enter Name",
+		options_show_hud                             = "Immersive Mode",
 
 
 		options_brightness          = "Brightness",
@@ -147,7 +173,8 @@ local translations = {
 
 		name_entry_prompt           = "ENTER YOUR NAME",
 
-		shader_preset_soft          = "Soft",
+        shader_preset_soft          = "Soft",
+        shader_preset_glow        	= "Glow",
 		shader_preset_scanline      = "Scanline",
 		shader_preset_lcd           = "LCD",
 		shader_preset_ledboard      = "LED Board",
@@ -261,16 +288,16 @@ local translations = {
 		codex_desc_normalrescue     = "Friendly and endangered.",
 
 		codex_name_dogrescue        = "Gruppy",
-        codex_desc_dogrescue        = "Distrustful of strangers.",
-		
-        codex_name_royalguard       = "Royal Guard",
-        codex_desc_royalguard       = "On her majesty's secret service.",
+		codex_desc_dogrescue        = "Distrustful of strangers.",
+
+		codex_name_royalguard       = "Royal Guard",
+		codex_desc_royalguard       = "On her majesty's secret service.",
 
 		codex_name_royalroamer      = "Stalker",
-        codex_desc_royalroamer      = "Accustomed to the night.",
-		
+		codex_desc_royalroamer      = "Accustomed to the night.",
+
 		codex_name_rook             = "Rook",
-        codex_desc_rook             = "The fortress and its inhabitant is one.",
+		codex_desc_rook             = "Castle and castellan in one.",
 
 		codex_key_all               = "ALL",
 		codex_key_enemy             = "ENEMIES",
@@ -294,14 +321,20 @@ local translations = {
 
 		leaderboard_top_button = "TOP",
 		leaderboard_me_button = "ME",
-    },
+
+
+        artefact_guide_use = "USE WITH %s",
+        artefact_guide_ammo_requirement = "REQUIRES %s AMMO PER USE",
+		artefact_guide_min_ammo_requirement = "REQUIRES %s AMMO TO USE",
+		artefact_guide_ammo_gain = "GAINS %s AMMO PER LEVEL",
+	},
 }
 
 local Translator = Object:extend("Translator")
 
 
 function Translator:new()
-    self:set_language("en")
+	self:set_language("en")
 	self.translations = translations
 end
 
@@ -310,43 +343,46 @@ function Translator:set_language(language)
 end
 
 function Translator:get_language()
-    return self.current_language
+	return self.current_language
 end
 
 function Translator:has_key(key)
-    return self.translations[self.current_language] and self.translations[self.current_language][key]
+	return self.translations[self.current_language] and self.translations[self.current_language][key]
 end
 
 function Translator:translate(key)
-    if not (self.translations[self.current_language] and self.translations[self.current_language][key]) then
-        if self.translations["en"][key] then
-            return self.translations["en"][key]
-        else
+	if not (self.translations[self.current_language] and self.translations[self.current_language][key]) then
+		if self.translations["en"][key] then
+			return self.translations["en"][key]
+		else
 			if debug.enabled then
 				error("missing translation: " .. key)
 			end
 			return key
-        end
-    end
-    local text = self.translations[self.current_language][key]
-    if debug.enabled and text == nil then
-		error("missing translation: " .. key)
+		end
 	end
-    return text
+	local text = self.translations[self.current_language][key]
+    if text == nil then
+		if debug.enabled then
+			error("missing translation: " .. key)
+		end
+		return key
+	end
+	return text
 end
 
 local object = Translator()
 
 tr = setmetatable({}, {
-    __index = function(t, k)
+	__index = function(t, k)
 		if object[k] then
 			return object[k]
-        end
-        return object:translate(k)
-    end,
-    __call = function(t, k)
-        return object:translate(k)
-    end
+		end
+		return object:translate(k)
+	end,
+	__call = function(t, k)
+		return object:translate(k)
+	end
 })
 
 return object

@@ -21,7 +21,7 @@ function Quark:new(x, y)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self.bullet_push_modifier = 1.4
     self.drag = 0.0
-    local angle = (tau / 8) + rng.randi_range(1, 4) * (tau / 4)
+    local angle = (tau / 8) + rng:randi_range(1, 4) * (tau / 4)
     self.vel.x, self.vel.y = cos(angle), sin(angle)
     self.vel:mul_in_place(SPEED)
     self.z_index = 1

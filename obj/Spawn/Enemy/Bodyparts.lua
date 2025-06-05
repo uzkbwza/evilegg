@@ -53,7 +53,7 @@ function Eyeball:new(x, y)
     self.declump_radius = 8
     self.declump_mass = 1
 
-    self.aim_direction = Vec2(rng.random_vec2())
+    self.aim_direction = Vec2(rng:random_vec2())
 	self.on_terrain_collision = self.terrain_collision_bounce
     -- self.declump_same_class_only = true
     -- self.self_declump_modifier = 1.5
@@ -192,14 +192,14 @@ function Eyeball:update(dt)
         local dist = max(self:get_body_distance_to_player(), 1)
         local percent = clamp(remap_pow(dist, 1, 200, 100, 1, 1/4), 1, 100)
 		-- print(percent)
-		if rng.percent(percent) then
-			if rng.percent(20 + percent * 1.5) then
+		if rng:percent(percent) then
+			if rng:percent(20 + percent * 1.5) then
 				local dx, dy = self:get_body_direction_to_player()
 				self.aim_direction.x, self.aim_direction.y = dx, dy
 			else
-				self.aim_direction.x, self.aim_direction.y = rng.random_vec2()
+				self.aim_direction.x, self.aim_direction.y = rng:random_vec2()
 			end
-			self:start_tick_timer("aim_update", max(rng.randi(50, 60) - percent, 1))
+			self:start_tick_timer("aim_update", max(rng:randi(50, 60) - percent, 1))
 		end
 	end
 	
@@ -207,7 +207,7 @@ function Eyeball:update(dt)
 
 	Eyeball.super.update(self, dt)
 
-    if self.is_new_tick and rng.percent(0.8) and not self:is_tick_timer_running("laser_cooldown") then
+    if self.is_new_tick and rng:percent(0.8) and not self:is_tick_timer_running("laser_cooldown") then
 		local offset_x, offset_y = vec2_mul_scalar(self.aim_direction.x, self.aim_direction.y, 6)
 		local laser = self:spawn_object(EyeballLaser(self.pos.x + offset_x, self.pos.y + offset_y))
 		laser.direction = Vec2(vec2_snap_angle(self.aim_direction.x, self.aim_direction.y, 8))
@@ -352,7 +352,7 @@ function Foot:new(x, y)
 	self.melee_both_teams = true
 
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
-    self:set_flip(rng.coin_flip() and 1 or -1)
+    self:set_flip(rng:coin_flip() and 1 or -1)
 	self.intangible = true
 
 end
@@ -399,7 +399,7 @@ end
 
 function Foot:state_Idle_update(dt)
 	self:set_body_height(splerp(self.body_height, 24 + sin(self.tick * 0.045 + self.random_offset_ratio * 255) * 2, 200, dt))
-    if self.is_new_tick and rng.percent(2) or self.state_tick > 50 then
+    if self.is_new_tick and rng:percent(2) or self.state_tick > 50 then
         self:change_state("Stomp")
     end
 end
@@ -519,10 +519,10 @@ end
 function SniffParticle:spawn_particle(radius_mod)
 	local s = self.sequencer
 	s:start(function()
-        local rand_x, rand_y = rng.random_vec2_times(rng.randf_range(Nose.sniff_radius / 4, Nose.sniff_radius) * (radius_mod or 1))
+        local rand_x, rand_y = rng:random_vec2_times(rng:randf_range(Nose.sniff_radius / 4, Nose.sniff_radius) * (radius_mod or 1))
         local dx, dy = vec2_normalized(rand_x, rand_y)
 		
-		local size = max(abs(rng.randfn(2, 1.5)), 0.5)
+		local size = max(abs(rng:randfn(2, 1.5)), 0.5)
 		local particle = {
 			x = rand_x,
 			y = rand_y,
@@ -575,7 +575,7 @@ function Nose:get_palette()
 end
 
 function Nose:state_Idle_update(dt)
-	if self.is_new_tick and rng.percent(0.5) then
+	if self.is_new_tick and rng:percent(0.5) then
 		self:change_state("Sniff")
 	end
 end
@@ -585,7 +585,7 @@ function Nose:sniff_anim(time_on, time_off)
 	self.sprite = textures.enemy_nose2
     self:play_sfx("enemy_nose_sniff", 0.85)
 	if self.sniff_particle then
-		for i = 1, rng.randi_range(10, 20) do
+		for i = 1, rng:randi_range(10, 20) do
 			self.sniff_particle:spawn_particle(0.5)
 		end
 	end
@@ -599,7 +599,7 @@ function Nose:state_Sniff_enter()
     s:start(function()
 		self.sprite = textures.enemy_nose1
         while self.world:get_number_of_objects_with_tag("sniffing_noses") > 0 do
-            s:wait(rng.randi_range(120, 240))
+            s:wait(rng:randi_range(120, 240))
         end
         self:add_tag("sniffing_noses")
 		self:sniff_anim(5, 3)
@@ -640,8 +640,8 @@ function Nose:state_Sniff_update(dt)
         local rx, ry, rw, rh = bx - self.sniff_radius, by - self.sniff_radius, self.sniff_radius * 2, self.sniff_radius * 2
         self.world.game_object_grid:each_self(rx, ry + SNIFF_OFFSET, rw, rh, self.do_sniff, self, dt)
         if self.sniff_particle then
-			if self.is_new_tick and rng.percent(90) then
-				for _=1, rng.randi_range(1, 3) do
+			if self.is_new_tick and rng:percent(90) then
+				for _=1, rng:randi_range(1, 3) do
                     self.sniff_particle:spawn_particle()
 				end
 			end
@@ -671,7 +671,7 @@ end
 function Mouth:new(x, y)
     self.body_height = 4
     self.max_hp = 8
-	self.follow_allies = rng.coin_flip()
+	self.follow_allies = rng:coin_flip()
 
     self.hurt_bubble_radius = 8
     self.hit_bubble_radius = 7
@@ -691,7 +691,7 @@ function Mouth:new(x, y)
 end
 
 function Mouth:update(dt)
-    if self.tick > 40 and self.pause_walking_toward_player and self.is_new_tick and rng.percent(0.90) and not self:is_tick_timer_running("walk_cooldown") then
+    if self.tick > 40 and self.pause_walking_toward_player and self.is_new_tick and rng:percent(0.90) and not self:is_tick_timer_running("walk_cooldown") then
         self.pause_walking_toward_player = false
 		self:play_sfx("enemy_mouth_skitter", 0.9)
 		self:start_tick_timer("pause_walking_toward_player", 30, function()

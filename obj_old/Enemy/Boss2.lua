@@ -83,7 +83,7 @@ function Boss2:phase1(sequence)
 		"LaserCircle",
 	}
     local i = ((self.state_sequence_counter - 1) % #attacks) + 1
-    if rng.percent(50) then
+    if rng:percent(50) then
 		table.insert(sequence, "LaserBarrage")
 	end
 	table.insert(sequence, attacks[i])
@@ -102,7 +102,7 @@ function Boss2:phase2(sequence)
 		"LaserCircle",
 	}
     local i = ((self.state_sequence_counter - 1) % #attacks) + 1
-	if rng.percent(50) then
+	if rng:percent(50) then
 		table.insert(sequence, "LaserBarrage")
 	end
 	table.insert(sequence, attacks[i])
@@ -117,8 +117,8 @@ function Boss2:phase3(sequence)
         "BossLaser",
     }
     local i = ((self.state_sequence_counter - 1) % #attacks) + 1
-    if rng.percent(50) then
-        table.insert(sequence, rng.choose("LaserCircle"))
+    if rng:percent(50) then
+        table.insert(sequence, rng:choose("LaserCircle"))
     end
     table.insert(sequence, attacks[i])
 end
@@ -132,8 +132,8 @@ function Boss2:phase4(sequence)
         "BossLaser",
     }
     local i = ((self.state_sequence_counter - 1) % #attacks) + 1
-    if rng.percent(50) then
-        table.insert(sequence, rng.choose("LaserCircle", "BossLaser"))
+    if rng:percent(50) then
+        table.insert(sequence, rng:choose("LaserCircle", "BossLaser"))
     end
     table.insert(sequence, attacks[i])
 end
@@ -162,9 +162,9 @@ function Boss2:die(noscore)
 end
 
 function Boss2:do_laser_circle(angle)
-	local vx, vy = angle_to_vec2_unpacked(angle)
+	local vx, vy = vec2_from_angle(angle)
     local bw = self.bump_world
-	self.charge_aim_direction = Vec2(angle_to_vec2_unpacked(angle))
+	self.charge_aim_direction = Vec2(vec2_from_angle(angle))
 
     local hit = bw:raycast(self.pos.x, self.pos.y, self.pos.x + vx * self.laser_distance, self.pos.y + vy * self.laser_distance, nil,
         to_layer_bit(PHYSICS_PLAYER, PHYSICS_TERRAIN))
@@ -240,7 +240,7 @@ function Boss2:state_LaserBarrage_enter()
 					-- else
 						angle = (j - 1) * (tau / num_lasers) + (i - 1) * (tau / num_circles / 2)
 					-- end
-					local dx, dy = angle_to_vec2_unpacked(angle)
+					local dx, dy = vec2_from_angle(angle)
 					local x = self.pos.x + 8 * dx
 					local y = self.pos.y + 8 * dy
 					local obj = self:spawn_object(EnemyLaser(x, y, dx, dy))
@@ -314,7 +314,7 @@ function Boss2:state_LaserCircle_enter()
         -- end
         self.world:play_sfx("enemy_boss2_laser3")
 		
-		self.charge_aim_direction = Vec2(angle_to_vec2_unpacked(angle))
+		self.charge_aim_direction = Vec2(vec2_from_angle(angle))
 
 
         s:wait(60)
@@ -350,8 +350,8 @@ end
 
 function Boss2:state_Walking_enter()
     self.walk_counter = self.walk_counter or 0
-	if (self.phase == 2 and (self.walk_counter + 1) % (2) == 0) or (self.phase == 3 and rng.percent(50)) or self.phase == 4 then
-		rng.choose{
+	if (self.phase == 2 and (self.walk_counter + 1) % (2) == 0) or (self.phase == 3 and rng:percent(50)) or self.phase == 4 then
+		rng:choose{
 			self.spawn_ghosts
 		}(self)
 	end

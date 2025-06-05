@@ -1,13 +1,14 @@
 local Room = Object:extend("Room")
 local BasePickup = require("obj.Spawn.Pickup.BasePickup")
 local SpawnDataTable = require("obj.spawn_data")
+local PickupTable = require("obj.pickup_table")
 
 local debug_force_enabled = false
 local debug_force = "bonus_police"
 
-local debug_enemy_enabled = true
-local debug_enemy = "Rook"
-local num_debug_enemies = 6
+local debug_enemy_enabled = false
+local debug_enemy = "Eyeball"
+local num_debug_enemies = 1
 local num_debug_waves = 3
 
 Room.can_highlight_enemies = true
@@ -328,12 +329,16 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
 	-- print(self.room_width, self.room_height)
 	
 	-- Create boundary rectangles
-	self.bounds = Rect(self.left, self.top, self.right, self.bottom)
+	self.bounds = Rect(self.left, self.top, self.room_width, self.room_height)
 	self.bullet_bounds = Rect(
-		self.left - Room.bullet_bounds_padding_x, 
+		-- self.left - Room.bullet_bounds_padding_x, 
+		-- self.room_width + Room.bullet_bounds_padding_x * 2, 
+		-- self.room_height + Room.bullet_bounds_padding_y * 2
+		self.left, 
 		self.top - Room.bullet_bounds_padding_y,
-		self.room_width + Room.bullet_bounds_padding_x * 2, 
-		self.room_height + Room.bullet_bounds_padding_y * 2
+		-- self.top,
+		self.room_width, 
+		self.room_height + Room.bullet_bounds_padding_y
 	)
 	
     -- self.padding = Room.padding
@@ -386,6 +391,10 @@ function Room:build(params)
 
 	if params.hard_room then
 		self.is_hard = true
+	end
+
+	if params.force_ammo then
+		self.force_ammo = true
 	end
 
     if self.is_hard then
@@ -457,7 +466,7 @@ function Room:generate_enemy_pool(narrative)
 	end
 
 	if narrative["pick_random_enemy_spawn_group"] then
-        narrative.enemy_spawn_group = { rng.choose(narrative.enemy_spawn_group) }
+        narrative.enemy_spawn_group = { rng:choose(narrative.enemy_spawn_group) }
     end
 
 	
@@ -521,8 +530,8 @@ function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narr
     -- local min_level = narrative and narrative.min_level or 1
     -- local max_level = narrative and narrative.max_level or SpawnDataTable.max_level_by_type[spawn_type]
 
-    -- if rng.percent(25) then
-    -- 	level = rng.randi(min_level, max_level)
+    -- if rng:percent(25) then
+    -- 	level = rng:randi(min_level, max_level)
     -- end
 
     local spawns = {}
@@ -594,7 +603,7 @@ function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narr
         return nil
     end
 
-    local spawn = rng.weighted_choice(spawns, weights)
+    local spawn = rng:weighted_choice(spawns, weights)
     return spawn
 end
 
@@ -614,7 +623,7 @@ local NUM_FACTOR = STEP * SCALE
 
 function Room:pool_point_modifier()
 
-    return 1 + NUM_FACTOR * (H(self.level - 1 + OFFSET) - H(OFFSET))
+    return 1 + NUM_FACTOR * (H(self.level - 1 + OFFSET) - H(OFFSET)) + self.level * 0.005
 end
 
 function Room:generate_waves()
@@ -656,7 +665,7 @@ function Room:generate_waves()
 				return Room.narrative_types[debug_force]
 			end
 		end
-        return table.deepcopy(rng.weighted_choice(narrative_weights.narratives, narrative_weights.weights))
+        return table.deepcopy(rng:weighted_choice(narrative_weights.narratives, narrative_weights.weights))
     end
 
     local wave_types = {
@@ -674,7 +683,7 @@ function Room:generate_waves()
             local num_points = narrative.points * self:pool_point_modifier()
             while num_points > 0 and #wave < self.max_enemies do
 				local inserted = false	
-                local enemy = rng.weighted_choice(pool, weights)
+                local enemy = rng:weighted_choice(pool, weights)
                 if enemy and enemy.max_spawns and enemy.max_spawns <= (counts[enemy.name] or 0) then
 					local index = table.search_list(pool, enemy)
 					table.remove(pool, index)
@@ -717,7 +726,7 @@ function Room:generate_waves()
             while num_points > 0 and #wave < self.max_hazards do
 				local inserted = false
 
-                local hazard = rng.weighted_choice(pool, weights)
+                local hazard = rng:weighted_choice(pool, weights)
 				if hazard and hazard.max_spawns and hazard.max_spawns <= (counts[hazard.name] or 0) then
 					local index = table.search_list(pool, hazard)
 					table.remove(pool, index)
@@ -755,7 +764,7 @@ function Room:generate_waves()
 
                 for j = 1, #enemy_pool do
                     local enemy = enemy_pool[j]
-                    if rng.chance(pool_modification_chance_per_enemy) then
+                    if rng:chance(pool_modification_chance_per_enemy) then
                         enemy = self:get_random_spawn_with_type_and_level("enemy", enemy.level, wave_number, narrative)
                     end
 
@@ -770,7 +779,7 @@ function Room:generate_waves()
 
                 for j = 1, #hazard_pool do
                     local hazard = hazard_pool[j]
-                    if rng.chance(pool_modification_chance_per_enemy) then
+                    if rng:chance(pool_modification_chance_per_enemy) then
                         hazard = self:get_random_spawn_with_type_and_level("hazard", hazard.level, wave_number, narrative)
                     end
 
@@ -797,7 +806,7 @@ function Room:generate_waves()
                 if sub_narrative.random_pool_size then
                     for _ = 1, sub_narrative.random_pool_size do
                         table.insert(custom_pool_single_enemy_functions, function()
-                            local level = rng.randi(min_enemy_difficulty, max_enemy_difficulty)
+                            local level = rng:randi(min_enemy_difficulty, max_enemy_difficulty)
                             local enemy = self:get_random_spawn_with_type_and_level("enemy", level, wave_number, sub_narrative)
                             return enemy
                         end)
@@ -874,7 +883,7 @@ function Room:generate_waves()
 		end
 
 		for j = 1, wave_number do
-            local rescue = rng.weighted_choice(rescue_pool, rescue_weights)
+            local rescue = rng:weighted_choice(rescue_pool, rescue_weights)
 			-- print(rescue.name, rescue.spawn_weight)
             if rescue ~= nil then
                 self:add_spawn_type(rescue)
@@ -906,8 +915,8 @@ function Room:generate_waves()
 		-- hard_chance = 15
 	end
 	
-    local upgrade_pickup_chance = abs(rng.randfn(30 + max(game_state.num_queued_upgrades, 0) * 10, 1)) + hard_chance
-	-- local heart_pickup_chance = abs(rng.randfn(10, 5)) + hard_chance
+    local upgrade_pickup_chance = abs(rng:randfn(30 + max(game_state.num_queued_upgrades, 0) * 10, 1)) + hard_chance
+	-- local heart_pickup_chance = abs(rng:randfn(10, 5)) + hard_chance
 
 	-- print(game_state.num_queued_upgrades, game_state.num_queued_hearts, game_state.num_queued_artefacts)
 
@@ -932,19 +941,19 @@ function Room:generate_waves()
             table.insert(possible_indices, i)
         end
         while pickups_left and #possible_indices > 0 do
-            local index = rng.randi(1, #possible_indices)
+            local index = rng:randi(1, #possible_indices)
             local rescue = wave[possible_indices[index]]
             table.remove(possible_indices, index)
 
-            if game_state.num_queued_upgrades > 0 and not self.consumed_upgrade and rng.percent(upgrade_pickup_chance) then
+            if game_state.num_queued_upgrades > 0 and not self.consumed_upgrade and rng:percent(upgrade_pickup_chance) then
                 rescue.pickup = game_state:get_random_available_upgrade()
                 self.consumed_upgrade = rescue.pickup
-            -- elseif not self.consumed_heart and rng.percent(heart_pickup_chance) then
+            -- elseif not self.consumed_heart and rng:percent(heart_pickup_chance) then
             --     rescue.pickup = game_state:get_random_heart()
             --     self.consumed_heart = rescue.pickup
             elseif num_powerups < max_num_powerups and self.level >= min_powerup_level then
-				local powerup_pickup_chance = min(abs(rng.randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance
-				if rng.percent(powerup_pickup_chance) then
+				local powerup_pickup_chance = min(abs(rng:randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance
+				if rng:percent(powerup_pickup_chance) then
 					rescue.pickup = game_state:get_random_powerup()
 					num_powerups = num_powerups + 1
 				end
@@ -959,15 +968,15 @@ function Room:generate_waves()
     if self.needs_upgrade and not self.consumed_upgrade and not game_state:is_fully_upgraded() then
         local upgrade = game_state:get_random_available_upgrade(false)
 		print(upgrade)
-        local rescue = rng.choose(rng.choose(rescue_waves))
+        local rescue = rng:choose(rng:choose(rescue_waves))
 		while rescue.pickup ~= nil do
-			rescue = rng.choose(rng.choose(rescue_waves))
+			rescue = rng:choose(rng:choose(rescue_waves))
 		end
         rescue.pickup = upgrade
         self:add_spawn_type(upgrade)
         self.consumed_upgrade = upgrade
     end
-	-- local artefact_pickup_chance = abs(rng.randfn(40 + max(game_state.num_queued_artefacts, 0) * 55, 5)) + hard_chance
+	-- local artefact_pickup_chance = abs(rng:randfn(40 + max(game_state.num_queued_artefacts, 0) * 55, 5)) + hard_chance
 
 	if game_state.num_queued_artefacts > 0 or (self.needs_artefact) then
         local artefact = game_state:get_random_available_artefact()
@@ -990,14 +999,14 @@ function Room:generate_waves()
 	if self.needs_heart then
 		should_have_heart = true
     elseif self.wants_heart then
-		should_have_heart = rng.percent(90)
+		should_have_heart = rng:percent(90)
 
 		if self.consumed_upgrade then
-			should_have_heart = should_have_heart and rng.percent(5)
+			should_have_heart = should_have_heart and rng:percent(5)
 		end
 
         if self.consumed_artefact then
-            should_have_heart = should_have_heart and rng.percent(5)
+            should_have_heart = should_have_heart and rng:percent(5)
         end
 
 	end
@@ -1006,13 +1015,36 @@ function Room:generate_waves()
 	if should_have_heart and not self.consumed_heart then
 	-- if self.needs_heart  then
 		local heart = game_state:get_random_heart()
-        local rescue = rng.choose(rng.choose(rescue_waves))
-		while rescue.pickup ~= nil do
-			rescue = rng.choose(rng.choose(rescue_waves))
+		local rescue = rng:choose(rng:choose(rescue_waves))
+		for i=1, 100 do
+			if rescue.pickup == nil then
+				rescue.pickup = heart
+				self:add_spawn_type(heart)
+				self.consumed_heart = heart
+				break
+			end
+			rescue = rng:choose(rng:choose(rescue_waves))
 		end
-		rescue.pickup = heart
-		self:add_spawn_type(heart)
-		self.consumed_heart = heart
+	end
+	
+    if game_state.artefacts.transmitter then
+		local num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2 }
+		local rescue = rng:choose(rng:choose(rescue_waves))
+		if self.force_ammo or rng:percent(20) then
+			for _=1, num_greenoids_with_ammo do
+				for _=1, 100 do
+					if rescue.pickup == nil then
+						rescue.pickup = PickupTable.powerups.AmmoPowerup
+						self:add_spawn_type(rescue.pickup)
+						break
+					end
+					rescue = rng:choose(rng:choose(rescue_waves))
+				end
+			end
+
+		end
+	
+		
 	end
 	
 

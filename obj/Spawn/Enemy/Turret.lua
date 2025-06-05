@@ -27,7 +27,7 @@ function Turret:new(x, y)
 
 	self.highlight_circle = -1
 
-	self.hurts_allies = rng.chance(1 / 3)
+	self.hurts_allies = rng:chance(1 / 3)
 end
 
 
@@ -37,14 +37,14 @@ function Turret:start_shoot_timer(time)
 		local s = self.sequencer
         s:start(function()
             while self.world:get_number_of_objects_with_tag("turret_shooting") >= 3 do
-                s:wait(rng.randi_range(60, 120))
+                s:wait(rng:randi_range(60, 120))
             end
 			self:add_tag("turret_shooting")
             for i = 1, 3 do
                 self:shoot()
                 s:wait(15)
             end
-			while rng.percent(5) do
+			while rng:percent(5) do
 				s:wait(20)
 			end
 			self:remove_tag("turret_shooting")
@@ -56,19 +56,19 @@ end
 
 local SPREAD = deg2rad(5)
 function Turret:shoot()
-    local shoot_x, shoot_y = vec2_rotated(self.aim_dir_x, self.aim_dir_y, rng.randfn(0, SPREAD))
+    local shoot_x, shoot_y = vec2_rotated(self.aim_dir_x, self.aim_dir_y, rng:randfn(0, SPREAD))
     local bx, by = self:get_body_center()
 	local bulletx, bullety = bx + shoot_x * self.shoot_distance, by + shoot_y * self.shoot_distance
     local bullet = self:spawn_object(TurretBullet(bulletx, bullety))
     bullet:apply_impulse(shoot_x * self.shoot_speed, shoot_y * self.shoot_speed)
 	self:play_sfx("enemy_turret_shoot", 0.75)
 	for i = 1, 3 do
-		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng.randi_range(50, 120), abs(rng.randfn(12, 3)), Palette.muzzle_flash_smoke, rng.randf_range(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng.randf_range(0, 60)))
+		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng:randi_range(50, 120), abs(rng:randfn(12, 3)), Palette.muzzle_flash_smoke, rng:randf_range(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng:randf_range(0, 60)))
 	end
 end
 
 function Turret:enter()
-	self:start_shoot_timer(max(1, rng.randi(60, Turret.shoot_delay)))
+	self:start_shoot_timer(max(1, rng:randi(60, Turret.shoot_delay)))
 	self:add_hurt_bubble(0, self.body_height, self.hurt_bubble_radius, "main")
 	self:add_hit_bubble(0, self.body_height, self.hit_bubble_radius, "main", 1)
 	self:add_hurt_bubble(-3, self.body_height, 5, "main2")

@@ -83,7 +83,7 @@ function AllyFinder:get_random_ally()
 end
 
 function AllyFinder:random_last_player_pos()
-	return rng.choose(table.values(self.world.last_player_positions))
+	return rng:choose(table.values(self.world.last_player_positions))
 end
 
 function AllyFinder:random_last_ally_pos()
@@ -103,7 +103,7 @@ function AllyFinder:random_last_ally_body_pos()
 end
 
 function AllyFinder:random_last_player_body_pos()
-	local pos = rng.choose(table.values(self.world.last_player_body_positions))
+	local pos = rng:choose(table.values(self.world.last_player_body_positions))
 	return pos.x, pos.y
 end
 

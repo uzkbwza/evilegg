@@ -411,32 +411,32 @@ function Color.hsl_to_rgb_unpacked(h, s, l)
 end
 
 function Color.adjust_hue_unpacked(r, g, b, amount)
-    local h, s, l = Color.to_hsl_u(r, g, b)
+    local h, s, l = Color.to_hsl_unpacked(r, g, b)
     return Color.hsl_to_rgb_unpacked((h + amount) % 1, s, l)
 end
 
 function Color.adjust_saturation_unpacked(r, g, b, amount)
-    local h, s, l = Color.to_hsl_u(r, g, b)
-    return Color.hsl_to_rgb_unpacked(h, math.max(0, math.min(1, s + amount)), l)
+    local h, s, l = Color.to_hsl_unpacked(r, g, b)
+    return Color.hsl_to_rgb_unpacked(h, math.max(0, math.min(1, s * amount)), l)
 end
 
 function Color.adjust_lightness_unpacked(r, g, b, amount)
-    local h, s, l = Color.to_hsl_u(r, g, b)
-    return Color.hsl_to_rgb_unpacked(h, s, math.max(0, math.min(1, l + amount)))
+    local h, s, l = Color.to_hsl_unpacked(r, g, b)
+    return Color.hsl_to_rgb_unpacked(h, s, math.max(0, math.min(1, l * amount)))
 end
 
 function Color.with_hue_unpacked(r, g, b, new_hue)
-    local _, s, l = Color.to_hsl_u(r, g, b)
+    local _, s, l = Color.to_hsl_unpacked(r, g, b)
     return Color.hsl_to_rgb_unpacked(new_hue, s, l)
 end
 
 function Color.with_saturation_unpacked(r, g, b, new_saturation)
-    local h, _, l = Color.to_hsl_u(r, g, b)
+    local h, _, l = Color.to_hsl_unpacked(r, g, b)
     return Color.hsl_to_rgb_unpacked(h, new_saturation, l)
 end
 
 function Color.with_lightness_unpacked(r, g, b, new_lightness)
-    local h, s, _ = Color.to_hsl_u(r, g, b)
+    local h, s, _ = Color.to_hsl_unpacked(r, g, b)
     return Color.hsl_to_rgb_unpacked(h, s, new_lightness)
 end
 

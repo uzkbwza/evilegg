@@ -66,7 +66,7 @@ local conf = {
 		},
 
 		secondary_weapon = {
-			mouse = { "rmb" },
+            mouse = { "rmb" },
 			joystick_axis = { 
 				axis = "triggerright",
 				dir = 1,
@@ -107,6 +107,13 @@ local conf = {
 			}
 		},
 
+		show_hud = {
+			keyboard = {
+				{"lctrl"}, 
+				{"rctrl"},
+			},
+			joystick = {"back"}
+		},
 
 		debug_editor_toggle = {
 			debug = true,
@@ -223,7 +230,7 @@ local conf = {
 			debug = true,
 			keyboard = {
 				{ "f" },
-				{ "p" }
+				-- { "p" }
 			}
         },
 		
@@ -232,7 +239,7 @@ local conf = {
 			keyboard = {
 				{ "lctrl", "f" },
                 { "rctrl", "f" },
-				{ "p" },
+				-- { "p" },
 			}
 		},
 
@@ -260,6 +267,10 @@ local conf = {
 
 	},
 }
+
+if IS_EXPORT then
+	conf.input_actions.secondary_weapon.keyboard = { "lshift" }
+end
 
 local function load_input_preset(preset)
 	for k, v in pairs(preset.actions) do

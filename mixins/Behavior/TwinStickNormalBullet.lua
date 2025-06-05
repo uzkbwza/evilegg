@@ -206,10 +206,12 @@ end
 function TwinStickNormalBullet:twin_stick_normal_bullet_debug_draw()
 	if not debug.can_draw_bounds() then return end
     graphics.set_color(Color.blue)
-	graphics.circle("line", 0, 0, self.radius)
-    local x, y, w, h = self:get_rect()
-	x, y = self:to_local(x, y)
-	graphics.rectangle("line", x, y, w, h)
+
+    local prev_x, prev_y = 0, 0
+	if self.prev_pos then
+		prev_x, prev_y = self:to_local(self.prev_pos.x, self.prev_pos.y)
+	end
+	graphics.debug_capsule(prev_x, prev_y, 0, 0, self.radius, gametime.tick % 2 == 0)
 end
 
 return TwinStickNormalBullet

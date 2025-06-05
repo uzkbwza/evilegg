@@ -13,8 +13,8 @@ debuggy.profiling = false
 debuggy.disable_music = false
 debuggy.lines = {}
 debuggy.memory_used = 0
-debuggy.skip_tutorial_sequence = true
-debuggy.no_hatch_sound = false
+debuggy.skip_tutorial_sequence = false
+debuggy.no_hatch_sound = true
 debuggy.can_frame_advance = true
 debuggy.slow_motion = false
 

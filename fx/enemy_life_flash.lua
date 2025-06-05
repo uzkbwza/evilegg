@@ -58,16 +58,16 @@ function LifeFlash:new(x, y, splatter_x, splatter_y, texture, size_mod)
 	local pixels = {}
 
     for i = 1, PIXEL_COUNT * self.size_mod do
-        local vel_x, vel_y = rng.random_vec2()
-		vel_x = vel_x * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
-        vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
+        local vel_x, vel_y = rng:random_vec2()
+		vel_x = vel_x * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
+        vel_y = vel_y * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
 		
         local pixel = {
             x = vel_x * 0.25,
             y = vel_y * 0.25,
 			vel_x = vel_x,
             vel_y = vel_y,
-			radius = rng.randfn(1, 0.5) / 2
+			radius = rng:randfn(1, 0.5) / 2
         }
 		pixels[i] = pixel
     end

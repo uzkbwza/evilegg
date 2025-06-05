@@ -19,8 +19,8 @@ local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 local EGG_ROOM_START = 30
 local EGG_ROOM_PERIOD = 20
 
-local FLOOR_CANVAS_WIDTH = 512
-local FLOOR_CANVAS_HEIGHT = 512
+local FLOOR_CANVAS_WIDTH = 1024
+local FLOOR_CANVAS_HEIGHT = 1024
 
 function GameWorld:new(x, y)
 	self.draw_sort = function(a, b)
@@ -48,23 +48,25 @@ function GameWorld:new(x, y)
 	self:add_signal("player_died")
 	self:add_signal("player_death_sequence_finished")
 
-	self:add_spatial_grid("game_object_grid", 32)
-	self:add_spatial_grid("declump_objects", 32)
-	self:add_spatial_grid("pickup_objects", 32)
-	self:add_spatial_grid("fungus_grid", 32)
-	self:add_spatial_grid("bullet_grid", 32)
-	self:add_spatial_grid("chargers", 32)
-	self:add_spatial_grid("rescue_grid", 32)
+	local grid_size = 24
+
+	self:add_spatial_grid("game_object_grid", grid_size)
+	self:add_spatial_grid("declump_objects", grid_size)
+	self:add_spatial_grid("pickup_objects", grid_size)
+	self:add_spatial_grid("fungus_grid", grid_size)
+	self:add_spatial_grid("bullet_grid", grid_size)
+	self:add_spatial_grid("chargers", grid_size)
+	self:add_spatial_grid("rescue_grid", grid_size)
 
 	self.hurt_bubbles = {}
-	self.hurt_bubbles["player"] = shash.new(32)
-	self.hurt_bubbles["enemy"] = shash.new(32)
-	self.hurt_bubbles["neutral"] = shash.new(32)
+	self.hurt_bubbles["player"] = shash.new(grid_size)
+	self.hurt_bubbles["enemy"] = shash.new(grid_size)
+	self.hurt_bubbles["neutral"] = shash.new(grid_size)
 
 	self.hit_bubbles = {}
-	self.hit_bubbles["player"] = shash.new(32)
-	self.hit_bubbles["enemy"] = shash.new(32)
-	self.hit_bubbles["neutral"] = shash.new(32)
+	self.hit_bubbles["player"] = shash.new(grid_size)
+	self.hit_bubbles["enemy"] = shash.new(grid_size)
+	self.hit_bubbles["neutral"] = shash.new(grid_size)
 
 	self.empty_update_objects = bonglewunch()
 
@@ -75,7 +77,7 @@ function GameWorld:new(x, y)
 	self.players = {}
 	self.last_player_positions = {}
 	self.last_player_body_positions = {}
-	self.player_entered_direction = Vec2(rng.random_4_way_direction())
+	self.player_entered_direction = Vec2(rng:random_4_way_direction())
 	self.room_clear_fx_t = -1
 	self.player_hurt_fx_t = -1
     self.room_border_fade_in_time = 0
@@ -140,6 +142,19 @@ function GameWorld:enter()
 		self:quick_notify(
 			"+" .. tr[heart_type.notification_text],
 			heart_type.notification_palette
+		)
+	end)
+
+	signal.connect(game_state, "secondary_weapon_ammo_gained", self, "on_secondary_weapon_ammo_gained", function(amount)
+		self:quick_notify(
+			"+" .. tr.notif_ammo,
+			nil,
+			nil,
+			0.0,
+			50,			
+			true
+			-- ammo_type.notification_palette
+			-- "notif_upgrade_available"
 		)
 	end)
 
@@ -307,11 +322,11 @@ function GameWorld:spawn_rescues(spawns)
 	s:start(function()
 		for _, rescue in pairs(spawns) do
 			-- s:start(function()
-			for _ = 1, rng.randi_range(60, 120) do
+			for _ = 1, rng:randi_range(60, 120) do
 				
 				if self.state ~= "RoomClear" then
 					-- while self:get_number_of_objects_with_tag("rescue_object") >= max_rescues do
-					-- 	s:wait(rng.randi_range(60, 120))
+					-- 	s:wait(rng:randi_range(60, 120))
 					-- end
 					-- while self:is_tick_timer_running("rescue_spawn_cooldown") do
 					--     s:wait(1)
@@ -322,7 +337,7 @@ function GameWorld:spawn_rescues(spawns)
 				end
 			end
 			-- if self.state ~= "RoomClear" then
-			-- 	self.timescaled:start_tick_timer("rescue_spawn_cooldown", rng.randi_range(40, 120))
+			-- 	self.timescaled:start_tick_timer("rescue_spawn_cooldown", rng:randi_range(40, 120))
 			-- end
 
 			if game_state.game_over then return end
@@ -331,9 +346,6 @@ function GameWorld:spawn_rescues(spawns)
 
 			-- local rescue_object = self:spawn_object(rescue.rescue.class(self:get_valid_spawn_position()))
 			local rescue_object = self:spawn_rescue(rescue.rescue.class, rescue.pickup, self:get_valid_spawn_position())
-
-
-
 		end
 	end)
 end
@@ -580,8 +592,8 @@ end
 function GameWorld:get_random_position_in_room()
 	local room_width = self.room.room_width
 	local room_height = self.room.room_height
-	local x = rng.randf_range(-room_width / 2, room_width / 2)
-	local y = rng.randf_range(-room_height / 2, room_height / 2)
+	local x = rng:randf_range(-room_width / 2, room_width / 2)
+	local y = rng:randf_range(-room_height / 2, room_height / 2)
 	return x, y
 end
 
@@ -781,59 +793,59 @@ function GameWorld:on_player_died()
 		self.object_time_scale = 1
 		self.player_death_fx = false
 
-		s:wait(5)
+		-- s:wait(18)
 		
-		while self:get_number_of_objects_with_tag("enemy") > 0 do
-			local waited = false
-			local enemies = self:get_objects_with_tag("enemy")
+		-- while self:get_number_of_objects_with_tag("enemy") > 0 do
+		-- 	local waited = false
+		-- 	local enemies = self:get_objects_with_tag("enemy")
 
-			for i, enemy in enemies:ipairs() do
+		-- 	for i, enemy in enemies:ipairs() do
 				
-				if enemy:has_tag("hazard") then
-					self:remove_tag(enemy, "enemy")
-					goto continue
-				end
+		-- 		if enemy:has_tag("hazard") then
+		-- 			self:remove_tag(enemy, "enemy")
+		-- 			goto continue
+		-- 		end
 
-				if enemy.spawn_data and enemy.spawn_data.boss then
-					self:remove_tag(enemy, "enemy")
-					goto continue
-				end
+		-- 		if enemy.spawn_data and enemy.spawn_data.boss then
+		-- 			self:remove_tag(enemy, "enemy")
+		-- 			goto continue
+		-- 		end
 
-                -- if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
-				-- 	goto continue
-				-- end
+        --         -- if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
+		-- 		-- 	goto continue
+		-- 		-- end
 				
-				if enemy.die then
-					enemy:die(self:get_random_object_with_tag("player"))
-				elseif not enemy.is_queued_for_destruction then
-					enemy:queue_destroy()
-				end
-                if i % 5 == 0 then
-                    s:wait(5)
-                    waited = true
-                end
+		-- 		if enemy.die then
+		-- 			enemy:die(self:get_random_object_with_tag("player"))
+		-- 		elseif not enemy.is_queued_for_destruction then
+		-- 			enemy:queue_destroy()
+		-- 		end
+        --         if i % 5 == 0 then
+        --             s:wait(5)
+        --             waited = true
+        --         end
 				
-				::continue::
-			end
-			if not waited then
-				s:wait(1)
-			end
-		end
+		-- 		::continue::
+		-- 	end
+		-- 	if not waited then
+		-- 		s:wait(1)
+		-- 	end
+		-- end
 
 
-		while self:get_number_of_objects_with_tag("rescue_object") > 0 do
-			local waited = false
-			local rescues = self:get_objects_with_tag("rescue_object")
-			for _, rescue in rescues:ipairs() do
-				-- local player = self:get_random_object_with_tag("player")
-				rescue:die()
-				s:wait(5)
-				waited = true
-			end
-			if not waited then
-				s:wait(1)
-			end
-		end
+		-- while self:get_number_of_objects_with_tag("rescue_object") > 0 do
+		-- 	local waited = false
+		-- 	local rescues = self:get_objects_with_tag("rescue_object")
+		-- 	for _, rescue in rescues:ipairs() do
+		-- 		-- local player = self:get_random_object_with_tag("player")
+		-- 		rescue:die()
+		-- 		s:wait(5)
+		-- 		waited = true
+		-- 	end
+		-- 	if not waited then
+		-- 		s:wait(1)
+		-- 	end
+		-- end
 
 
 		self:emit_signal("player_death_sequence_finished")
@@ -844,6 +856,7 @@ end
 
 function GameWorld:create_next_rooms()
     local next_level = game_state.level + 1
+
 
 	print(next_level - EGG_ROOM_START)
 	
@@ -859,11 +872,13 @@ function GameWorld:create_next_rooms()
 	local needs_artefact = game_state.num_queued_artefacts > 0
 	local wants_heart = game_state.num_queued_hearts > 0
 
-	local upgrade_room = rng.randi(1, 3)
-	local artefact_room = rng.randi(1, 3)
-	local heart_room = rng.randi(1, 3)
-	local hard_room = rng.randi(1, 3)
-    
+	local upgrade_room = rng:randi(1, 3)
+	local artefact_room = rng:randi(1, 3)
+	local heart_room = rng:randi(1, 3)
+	local hard_room = rng:randi(1, 3)
+	local ammo_room = rng:randi(1, 3)
+	
+	game_state.already_selected_secondary_weapon_this_level = false
 	game_state.recently_selected_artefacts = {}
 	game_state.recently_selected_upgrades = {}
 
@@ -875,7 +890,8 @@ function GameWorld:create_next_rooms()
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
-			hard_room = i == hard_room and game_state.level >= EGG_ROOM_START
+			hard_room = i == hard_room and game_state.level >= EGG_ROOM_START,
+			force_ammo = i == ammo_room and game_state.level % 2 == 0
 		})
 		table.insert(rooms, room)
 	end
@@ -1319,15 +1335,15 @@ function GameWorld:get_valid_spawn_position(depth)
 	local c = 0
 	local spawned_on_player = false
 
-	local random_player_pos = rng.choose(table.values(self.last_player_body_positions))
+	local random_player_pos = rng:choose(table.values(self.last_player_body_positions))
 
 	-- while vec2_distance(x, y, self.last_player_body_pos.x, self.last_player_body_pos.y) < 32 do
 	-- if c > 0 then
 	-- 	spawned_on_player = false
 	-- end
 	-- while vec2_distance(x, y, self.player_position.x, self.player_position.y) < 32 do
-	x = rng.randi_range(-self.room.room_width / 2, self.room.room_width / 2)
-	y = rng.randi_range(-self.room.room_height / 2, self.room.room_height / 2)
+	x = rng:randi_range(-self.room.room_width / 2, self.room.room_width / 2)
+	y = rng:randi_range(-self.room.room_height / 2, self.room.room_height / 2)
 	local wave_enemies = self:get_objects_with_tag("wave_enemy")
 	local hazards = self:get_objects_with_tag("hazard")
 	local wave_spawners = self:get_objects_with_tag("enemy_spawner")
@@ -1384,8 +1400,8 @@ function GameWorld:get_valid_spawn_position(depth)
 		if valid then
 			break
 		else
-			x = rng.randi_range(-self.room.room_width / 2, self.room.room_width / 2)
-			y = rng.randi_range(-self.room.room_height / 2, self.room.room_height / 2)
+			x = rng:randi_range(-self.room.room_width / 2, self.room.room_width / 2)
+			y = rng:randi_range(-self.room.room_height / 2, self.room.room_height / 2)
 		end
 		-- end
 
@@ -1397,7 +1413,7 @@ function GameWorld:get_valid_spawn_position(depth)
 		-- end
 	end
 
-	if not self.spawned_on_player and rng.percent(1) and vec2_distance(0, 0, random_player_pos.x, random_player_pos.y) > SPAWN_ON_PLAYER_AT_THIS_DISTANCE then
+	if not self.spawned_on_player and rng:percent(1) and vec2_distance(0, 0, random_player_pos.x, random_player_pos.y) > SPAWN_ON_PLAYER_AT_THIS_DISTANCE then
 		x = random_player_pos.x
 		y = random_player_pos.y
 		spawned_on_player = true
@@ -1526,19 +1542,22 @@ function GameWorld:draw()
 		graphics.pop()
 	end
 
-	do
-		self:floor_canvas_push()
-		if self.tags and self.tags["floor_draw"] then
-			for _, obj in (self.tags["floor_draw"]):ipairs() do
-				do
-					graphics.push("all")
-					graphics.translate(self:get_object_draw_position(obj))
-					obj:floor_draw()
-					graphics.pop()
+
+    do
+		if not self.paused then
+			self:floor_canvas_push()
+			if self.tags and self.tags["floor_draw"] then
+				for _, obj in (self.tags["floor_draw"]):ipairs() do
+					do
+						graphics.push("all")
+						graphics.translate(self:get_object_draw_position(obj))
+						obj:floor_draw()
+						graphics.pop()
+					end
 				end
 			end
+			self:floor_canvas_pop()
 		end
-		self:floor_canvas_pop()
 	end
 
 	graphics.set_color(1, 1, 1, 1)
@@ -1646,10 +1665,10 @@ function GameWorld:draw()
         graphics.set_font(font)
 
 		if self.tutorial_state == 1 then
-			graphics.print_centered("PRESS " .. (input.last_input_device == "gamepad" and "LEFT TRIGGER" or "SPACE") .. " TO BOOST", font, 0, 16)
+			graphics.print_centered(tr.tutorial_boost:format(input.last_input_device == "gamepad" and tr.control_left_trigger or tr.control_space_bar), font, 0, 16)
 		elseif self.tutorial_state == 2 then
-			graphics.print_centered("MOVE WITH " .. (input.last_input_device == "gamepad" and "LEFT STICK" or "WASD"), font, 0, -16)
-			graphics.print_centered("SHOOT WITH " .. (input.last_input_device == "gamepad" and "RIGHT STICK" or "LMB"), font, 0, 16)
+			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and tr.control_left_stick or tr.control_wasd), font, 0, -16)
+			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and tr.control_right_stick or tr.control_left_mouse), font, 0, 16)
 		end
 	end
 
@@ -1680,7 +1699,6 @@ function GameWorld:draw()
 	if draw_bounds_over then
 		self:draw_room_bounds()
 	end
-
 end
 
 function GameWorld:get_border_color()

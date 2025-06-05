@@ -44,7 +44,7 @@ end
 
 function EvilGreenoidBoss:try_start_targeted_bullet_burst()
 	if game_state.egg_rooms_cleared > 0 and self.is_new_tick and not self:is_tick_timer_running("targeted_bullet_burst") and self.greenoid_health < self.greenoid_max_health * 0.4 then
-		self:start_tick_timer("targeted_bullet_burst", 90 * rng.randi_range(1, 3))
+		self:start_tick_timer("targeted_bullet_burst", 90 * rng:randi_range(1, 3))
 		self:targeted_bullet_burst()
 	end
 end
@@ -106,19 +106,19 @@ end
 function EvilGreenoidBoss:add_greenoid()
     local greenoid = {
         elapsed = 0,
-		palette_offset = rng.randi_range(0, 500),
-        angle = rng.random_angle(),
-        orbit_width = clamp01(rng.randfn(0.5, 0.25)),
-		orbit_modifier = rng.randfn(1, 0.1),
-        orbit_direction = rng.rand_sign(),
-		follow_speed = pow(rng.randf_range(0, 1), 4) * 300,
-        orbit_phase = rng.randf_range(0, 1),
+		palette_offset = rng:randi_range(0, 500),
+        angle = rng:random_angle(),
+        orbit_width = clamp01(rng:randfn(0.5, 0.25)),
+		orbit_modifier = rng:randfn(1, 0.1),
+        orbit_direction = rng:rand_sign(),
+		follow_speed = pow(rng:randf_range(0, 1), 4) * 300,
+        orbit_phase = rng:randf_range(0, 1),
 		x = self.pos.x,
         y = self.pos.y,
     }
 
-    if rng.percent(4) then
-		greenoid.follow_speed = greenoid.follow_speed * (1 + abs(rng.randfn(0, 5)))
+    if rng:percent(4) then
+		greenoid.follow_speed = greenoid.follow_speed * (1 + abs(rng:randfn(0, 5)))
 	end
 	greenoid.tick = floor(greenoid.elapsed)
     table.insert(self.greenoids, greenoid)
@@ -157,7 +157,7 @@ end
 function EvilGreenoidBoss:state_Idle_enter()
     local s = self.sequencer
     s:start(function()
-        s:wait(rng.randi_range(1, max(2 - game_state.egg_rooms_cleared, 1)) * 30)
+        s:wait(rng:randi_range(1, max(2 - game_state.egg_rooms_cleared, 1)) * 30)
 		self:change_state(self:get_next_attack())
 	end)
 end
@@ -191,7 +191,7 @@ function EvilGreenoidBoss:get_next_attack()
 		dict[self.last_attack] = dict[self.last_attack] * 0.3
 	end
 
-	attack = rng.weighted_choice_dict(dict)
+	attack = rng:weighted_choice_dict(dict)
 
 	self.last_attack = attack
 
@@ -205,14 +205,14 @@ end
 
 function EvilGreenoidBoss:state_Thrash_enter(dt)
     self:play_sfx("enemy_yolk_start_thrash", 1, 1.0)
-    if rng.percent(25) then
-        local new_x, new_y = rng.random_4_way_direction()
+    if rng:percent(25) then
+        local new_x, new_y = rng:random_4_way_direction()
 
         while new_x == self.thrash_x and new_y == self.thrash_y do
-            new_x, new_y = rng.random_4_way_direction()
+            new_x, new_y = rng:random_4_way_direction()
         end
         self.thrash_x, self.thrash_y = new_x, new_y
-    elseif rng.percent(60) then
+    elseif rng:percent(60) then
         local pbx, pby = self:to_local(self:closest_last_player_body_pos())
         self.thrash_x, self.thrash_y = vec2_to_cardinal(pbx, pby)
     else
@@ -260,7 +260,7 @@ end
 
 
 function EvilGreenoidBoss:spawn_thrash_projectiles()
-	local start_angle = rng.random_angle()
+	local start_angle = rng:random_angle()
 	local num_spawns = 11
 	local num_bullets_per_spawn = 6
     local min_speed = 1.6
@@ -272,7 +272,7 @@ function EvilGreenoidBoss:spawn_thrash_projectiles()
 		for i = 1, num_spawns do
 			for j = 1, num_bullets_per_spawn do
 				local ang_offset = (tau / (num_bullets_per_spawn))
-				local angle = start_angle + j * (tau / num_bullets_per_spawn) + rng.randf_range(-ang_offset, ang_offset)
+				local angle = start_angle + j * (tau / num_bullets_per_spawn) + rng:randf_range(-ang_offset, ang_offset)
                 local _speed = lerp(max_speed, min_speed, (i - 1) / num_spawns)
 				
 				local projectile = self.world:spawn_object(ThrashProjectile(x, y))
@@ -290,7 +290,7 @@ function EvilGreenoidBoss:state_CoilBullets_enter()
 	local s = self.sequencer
 	s:start(function()
         s:wait(20)
-		local num_bursts = rng.randi_range(2, 6)
+		local num_bursts = rng:randi_range(2, 6)
         self:spawn_coil_bullets(num_bursts)
 		s:wait(floor(45 / 3) * num_bursts)
 		self:change_state("Idle")
@@ -329,7 +329,7 @@ function EvilGreenoidBoss:spawn_coil_bullets2()
         local num_waves = 5
 		local burst_length = 3
 		local added_angle = deg2rad(30)
-		-- self.coil_spin_dir = self.coil_spin_dir or rng.rand_sign()
+		-- self.coil_spin_dir = self.coil_spin_dir or rng:rand_sign()
 		-- self.coil_spin_dir = self.coil_spin_dir * -1
 
 		local width = 5
@@ -341,7 +341,7 @@ function EvilGreenoidBoss:spawn_coil_bullets2()
 
             s:start(function()
 				local angle_offset = added_angle * (num_waves - i)
-				-- local shot_type = rng.randi(1, 3)
+				-- local shot_type = rng:randi(1, 3)
 				local shot_type = 1
 				for j = 1, burst_length do
 
@@ -398,11 +398,11 @@ function EvilGreenoidBoss:spawn_coil_bullets(bursts)
 		for burst=1, bursts do
 			local num_bullets = 3
 			local num_waves = 4
-			local random_angle = rng.random_angle()
+			local random_angle = rng:random_angle()
 			local angle_offset = tau / num_bullets
-			-- self.coil_spin_dir = self.coil_spin_dir or rng.rand_sign()
+			-- self.coil_spin_dir = self.coil_spin_dir or rng:rand_sign()
 			-- self.coil_spin_dir = self.coil_spin_dir * -1
-			local turn_direction = rng.rand_sign()
+			local turn_direction = rng:rand_sign()
 			
 			for i = 1, num_waves do
 				local stopwatch = self:get_stopwatch("coil_bullets")
@@ -410,8 +410,8 @@ function EvilGreenoidBoss:spawn_coil_bullets(bursts)
 				for j = 1, num_bullets do
                     local angle = j * angle_offset + random_angle + turn_direction * 0.016 * stopwatch.elapsed
 					if not (self.state == "Thrash" and self.thrash_started) then
-						local bullet1 = self.world:spawn_object(CoilBullet(self.pos.x, self.pos.y, 0, angle_to_vec2_unpacked(angle)))
-						local bullet2 = self.world:spawn_object(CoilBullet(self.pos.x, self.pos.y, pi, angle_to_vec2_unpacked(angle)))
+						local bullet1 = self.world:spawn_object(CoilBullet(self.pos.x, self.pos.y, 0, vec2_from_angle(angle)))
+						local bullet2 = self.world:spawn_object(CoilBullet(self.pos.x, self.pos.y, pi, vec2_from_angle(angle)))
 					end
 				end
 				s:wait(5)
@@ -522,17 +522,17 @@ function EvilGreenoidBoss:targeted_bullet_burst()
 end
 
 function ThrashProjectile:new(x, y)
-    self.max_hp = 10
+    self.max_hp = 3
     self.terrain_collision_radius = 1
     self.hit_bubble_radius = 1
     self.hurt_bubble_radius = 4
-	self.bullet_passthrough = true
+	-- self.bullet_passthrough = true
     ThrashProjectile.super.new(self, x, y)
 	self.z_index = 1
     self.drag = 0.0005
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
-	self.bullet_push_modifier = 0.25
+	self.bullet_push_modifier = 0.85
 	-- self:add_elapsed_ticks()
 end
 

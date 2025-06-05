@@ -6,7 +6,7 @@ function ExplosionRadiusWarning:new(x, y, radius, parent)
 	self:ref("parent", parent)
 	self.z_index = -1
 	self:add_time_stuff()
-	self.random_offset = rng.randi(0, 100)
+	self.random_offset = rng:randi(0, 100)
 end
 
 function ExplosionRadiusWarning:update(dt)

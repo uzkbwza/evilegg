@@ -27,7 +27,7 @@ function EvilPlayer:new(x, y)
 	self.target_angle = 0
 	self.melee_attacking = false
     self.intangible = true
-	-- self.sfx_offset = rng.randi_range(-25, 25)
+	-- self.sfx_offset = rng:randi_range(-25, 25)
 	self.sfx_offset = 0
 end
 
@@ -110,9 +110,9 @@ function EvilPlayer:state_Awake_update(dt)
 	
     if self.is_new_tick then
 		
-        if rng.percent(4) and not self:is_tick_timer_running("shooting") and not self:is_tick_timer_running("shooting_cooldown") then
-            self:start_tick_timer("shooting", rng.randi(30, 90), function()
-				self:start_tick_timer("shooting_cooldown", rng.randi(30, 90))
+        if rng:percent(4) and not self:is_tick_timer_running("shooting") and not self:is_tick_timer_running("shooting_cooldown") then
+            self:start_tick_timer("shooting", rng:randi(30, 90), function()
+				self:start_tick_timer("shooting_cooldown", rng:randi(30, 90))
 			end)
 		end
 		
@@ -126,8 +126,8 @@ function EvilPlayer:state_Awake_update(dt)
 			self:play_sfx("enemy_evil_player_smallshoot")
         end
 		
-		if not self:is_tick_timer_running("shooting_big_bullet_cooldown") and rng.percent(0.08 + 0.09 * min(self.friends_killed, 5)) then
-            self:start_tick_timer("shooting_big_bullet_cooldown", rng.randi(10, 30))
+		if not self:is_tick_timer_running("shooting_big_bullet_cooldown") and rng:percent(0.08 + 0.09 * min(self.friends_killed, 5)) then
+            self:start_tick_timer("shooting_big_bullet_cooldown", rng:randi(10, 30))
 			local spread = deg2rad(17)
 			
 			self:play_sfx("enemy_evil_player_bigshoot")

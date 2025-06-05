@@ -51,7 +51,7 @@ end
 function ShotgunnerBullet:enter()
 	-- local s = self.sequencer
 	-- s:start(function()
-    --     s:wait(rng.randi(2))
+    --     s:wait(rng:randi(2))
 	-- 	self.melee_both_teams = true
 	-- end)
 end
@@ -123,7 +123,7 @@ function Shotgunner:new(x, y)
 	self.walk_frequency = 4
 	self.roam_chance = 6
 	self.walk_speed = self.walk_speed or 0.7
-	self.aim_direction = Vec2(rng.random_vec2())
+	self.aim_direction = Vec2(rng:random_vec2())
 end
 
 function Shotgunner:enter()
@@ -151,11 +151,11 @@ function Shotgunner:update(dt)
 		self.is_roaming = true
 	end
 
-    if self.is_new_tick and rng.percent(16) then
+    if self.is_new_tick and rng:percent(16) then
 		dx, dy = vec2_snap_angle(dx, dy, 16, 0)
         self.aim_direction.x, self.aim_direction.y = dx, dy
 
-		if rng.percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 then 
+		if rng:percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 then 
 			self:start_tick_timer("shoot_timer", 155)
 			self:shoot()
 		end
@@ -174,8 +174,8 @@ function Shotgunner:shoot()
 	end)
 	for i=1, NUM_BULLETS do
 		local bullet = self:spawn_object(ShotgunnerBullet(bx + offset_x, by + offset_y))
-		local angle = deg2rad(rng.randf_range(-SPREAD, SPREAD)) + self.aim_direction:angle()
-		local speed = rng.randfn(BULLET_SPEED, BULLET_SPEED * 0.15)
+		local angle = deg2rad(rng:randf_range(-SPREAD, SPREAD)) + self.aim_direction:angle()
+		local speed = rng:randfn(BULLET_SPEED, BULLET_SPEED * 0.15)
 		bullet:apply_impulse(cos(angle) * speed, sin(angle) * speed)
 	end
 end

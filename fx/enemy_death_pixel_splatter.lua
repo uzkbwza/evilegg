@@ -52,7 +52,7 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     dy = dy + height / 2
 
 
-	self.random_start_tick = rng.randi_range(0, 999)
+	self.random_start_tick = rng:randi_range(0, 999)
 
 	local diagonal_size = vec2_magnitude(width, height)
 	self.hit_angle = vec2_angle(vel_dir_x, vel_dir_y)
@@ -104,8 +104,8 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 				x = 0,
 				y = 0,
 
-				-- vel_x = rng.randfn(speed_x, 0.005),
-				-- vel_y = rng.randfn(speed_y, 0.005),
+				-- vel_x = rng:randfn(speed_x, 0.005),
+				-- vel_y = rng:randfn(speed_y, 0.005),
 				vel_x = pixel_vel_x,
 				vel_y = pixel_vel_y,
 			}

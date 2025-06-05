@@ -57,7 +57,7 @@ function Cuboid:new(x, y)
     self.body_height = BODY_HEIGHT
     self.offset_radius = 90
 
-    self.spin_dir = rng.rand_sign()
+    self.spin_dir = rng:rand_sign()
 
     self.approaching = true
 
@@ -66,7 +66,7 @@ function Cuboid:new(x, y)
 
 	self.beaming = false
 
-    self.random_bullet_angle = rng.randf_range(0, tau)
+    self.random_bullet_angle = rng:randf_range(0, tau)
 	self.on_terrain_collision = self.terrain_collision_bounce
 end
 
@@ -77,8 +77,8 @@ function Cuboid:enter()
 	local s = self.sequencer
 	s:start(function()
 		self:set_body_height(300)
-		s:wait(rng.randi_range(20))
-        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng.randf_range(20, 40), "outQuad")
+		s:wait(rng:randi_range(20))
+        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng:randf_range(20, 40), "outQuad")
         self.melee_attacking = true
 		self.intangible = false
 		self.beaming = false
@@ -146,7 +146,7 @@ function Cuboid:death_sequence()
     self.approaching = false
     self.exploding = true
 	self.melee_attacking = false
-	self.z_index = 1
+	self.z_index = 0.1
     -- self.melee_attacking = false
     -- self.bullet_push_modifier = self.bullet_push_modifier * 0.75
     self.bullet_push_modifier = 0
@@ -252,6 +252,7 @@ CuboidBullet.death_sfx_volume = 0.6
 
 function CuboidBullet:new(x, y)
 	self.max_hp = 9
+	self.team = "neutral"
 	CuboidBullet.super.new(self, x, y)
     self.drag = 0.0
     self.hit_bubble_radius = 5

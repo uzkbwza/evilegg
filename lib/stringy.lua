@@ -120,10 +120,67 @@ function stringy.filter(str, filter)
 	return result
 end
 
-function utf8.sub(s,i,j)
-    i=utf8.offset(s,i)
-    j=utf8.offset(s,j+1)-1
-    return string.sub(s,i,j)
+function utf8.sub(s, i, j)
+    i = utf8.offset(s, i)
+    j = utf8.offset(s, j + 1) - 1
+    return string.sub(s, i, j)
+end
+
+function stringy.fraction(decimal_num, max_denominator)
+    max_denominator = max_denominator or 10000
+
+    -- Handle special cases
+    if decimal_num == 0 then
+        return "0/1"
+    end
+
+    -- Handle negative numbers
+    local is_negative = decimal_num < 0
+    decimal_num = math.abs(decimal_num)
+
+    -- Extract integer part
+    local integer_part = math.floor(decimal_num)
+    local fractional_part = decimal_num - integer_part
+
+    -- If no fractional part, return as whole number
+    if fractional_part == 0 then
+        local result = tostring(integer_part)
+        return is_negative and "-" .. result or result
+    end
+
+    -- Find best fraction approximation using continued fractions method
+    local best_numerator = 0
+    local best_denominator = 1
+    local best_error = math.abs(fractional_part)
+
+    -- Try different denominators
+    for denominator = 1, max_denominator do
+        local numerator = math.floor(fractional_part * denominator + 0.5)
+        local error = math.abs(fractional_part - numerator / denominator)
+
+        if error < best_error then
+            best_numerator = numerator
+            best_denominator = denominator
+            best_error = error
+
+            -- If we found exact match, break
+            if error < 1e-10 then
+                break
+            end
+        end
+    end
+
+    -- Add integer part to numerator
+    best_numerator = best_numerator + integer_part * best_denominator
+
+    -- Simplify the fraction
+    local gcd = gcd(best_numerator, best_denominator)
+    best_numerator = best_numerator / gcd
+    best_denominator = best_denominator / gcd
+
+    -- Format result
+    local result = best_numerator .. "/" .. best_denominator
+    return is_negative and "-" .. result or result
 end
 
 return stringy

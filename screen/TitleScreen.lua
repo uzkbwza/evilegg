@@ -104,9 +104,9 @@ function TitleScreen:generate_title_lines()
         local quad_table = graphics.get_quad_table(texture, quad, TITLE_QUAD_WIDTH, height)
         local line = {
             quad = quad_table,
-            start_offset = (rng.randf(100, 200) + height) * rng.rand_sign(),
-			-- speed = rng.randf(3, 7),
-            speed = (rng.randf(2, 4)),
+            start_offset = (rng:randf(100, 200) + height) * rng:rand_sign(),
+			-- speed = rng:randf(3, 7),
+            speed = (rng:randf(2, 4)),
 		}
 
         -- if SCREENSHOT_MODE then
@@ -140,8 +140,8 @@ function TitleScreen:generate_stars()
 
         while not valid and attempts < 100 do
             new_pos = Vec2(
-                rng.randi(0, STAR_FIELD_WIDTH) - STAR_FIELD_WIDTH / 2,
-                rng.randi(0, STAR_FIELD_HEIGHT) - STAR_FIELD_HEIGHT / 2
+                rng:randi(0, STAR_FIELD_WIDTH) - STAR_FIELD_WIDTH / 2,
+                rng:randi(0, STAR_FIELD_HEIGHT) - STAR_FIELD_HEIGHT / 2
             )
             attempts = attempts + 1
             valid = true
@@ -171,11 +171,11 @@ function TitleScreen:generate_stars()
 
         self.stars[i] = {
             pos = new_pos,
-            sparkle_offset = rng.randi(),
-            no_sparkle = rng.percent(80),
-            sparkle_time_modifier = rng.randfn(1, 0.1),
-            distance = stepify(rng.randf(0.2, 1), 0.2),
-			flicker_offset = rng.randi()
+            sparkle_offset = rng:randi(),
+            no_sparkle = rng:percent(80),
+            sparkle_time_modifier = rng:randfn(1, 0.1),
+            distance = stepify(rng:randf(0.2, 1), 0.2),
+			flicker_offset = rng:randi()
         }
 
         if self.stars[i].distance < 0.4 then
@@ -204,7 +204,6 @@ end
 function TitleScreen:enter()
 
 	audio.stop_music()
-
     local s = self.sequencer
     s:start(function()
         self.started = true
@@ -334,8 +333,8 @@ function TitleScreen:update(dt)
     -- if self.is_new_tick then
     -- 	for i=1, #self.stars do
     --         local star = self.stars[i]
-    -- 		if rng.percent(5) then
-    -- 			star.color = rng.percent(70) and Color.white or (rng.percent(50) and Color.green or (rng.percent(20) and Color.yellow or Color.darkgreen))
+    -- 		if rng:percent(5) then
+    -- 			star.color = rng:percent(70) and Color.white or (rng:percent(50) and Color.green or (rng:percent(20) and Color.yellow or Color.darkgreen))
     -- 		end
     -- 	end
     -- end
@@ -350,8 +349,8 @@ function TitleScreen:update(dt)
     self.star_elapsed = self.star_elapsed + dt * self.stars_move_speed
 
 
-    if self.showing_lens_flare2 and self.is_new_tick and rng.percent(35) then
-		for i=1, rng.randi(0, 3) do
+    if self.showing_lens_flare2 and self.is_new_tick and rng:percent(35) then
+		for i=1, rng:randi(0, 3) do
 			self:generate_lens_flare_starburst_line()
 		end
     end
@@ -366,15 +365,15 @@ function TitleScreen:generate_lens_flare_starburst_line()
 		return
 	end
 
-	local r = rng.randfn(1, 0.1)
-	local theta = rng.random_angle()
+	local r = rng:randfn(1, 0.1)
+	local theta = rng:random_angle()
 
-	local dx, dy = angle_to_vec2_unpacked(theta)
+	local dx, dy = vec2_from_angle(theta)
 
     local dotted1 = -(vec2_dot(LENS_FLARE_BURST_DIRECTION.x, LENS_FLARE_BURST_DIRECTION.y, dx, dy))
 	local dotted2 = abs(vec2_dot(dx, dy, vec2_rotated(LENS_FLARE_BURST_DIRECTION.x, LENS_FLARE_BURST_DIRECTION.y, tau / 4)))
 	local dotted = max(abs(dotted1), dotted2)
-	local extra = rng.randf(0, (dotted) ^ 5)
+	local extra = rng:randf(0, (dotted) ^ 5)
 
 
 	r = r + extra
@@ -384,11 +383,11 @@ function TitleScreen:generate_lens_flare_starburst_line()
 
     if (dotted) > d then
 		local new = remap_pow(1 - dotted, 0.0, 1 - d, 0.0, 3.0, 3)
-        r = r * rng.randf(1.5, new)
+        r = r * rng:randf(1.5, new)
 	end
 	
     if dotted1 < 0 then
-        if rng.percent(25) then
+        if rng:percent(25) then
 			return self:generate_lens_flare_starburst_line()
 		end
 		r = r * 0.75
@@ -400,10 +399,10 @@ function TitleScreen:generate_lens_flare_starburst_line()
 		theta = theta,
 		vx = vx,
 		vy = vy,
-		speed = clamp(rng.randfn(1, 0.24), 0.1, 10.0),
-        random_offset = rng.randi(1, 100),
+		speed = clamp(rng:randfn(1, 0.24), 0.1, 10.0),
+        random_offset = rng:randi(1, 100),
 		opacity = 0,
-		width = max(abs(rng.randfn(1, 2)), 2)
+		width = max(abs(rng:randfn(1, 2)), 2)
 	}
 
     self.lens_flare_starburst_lines[line] = true
@@ -412,7 +411,7 @@ function TitleScreen:generate_lens_flare_starburst_line()
     s:start(function()
         s:tween(function(t)
             line.opacity = math.bump(t)
-        end, 0, 1, rng.randfn(120, 20) * r, "linear")
+        end, 0, 1, rng:randfn(120, 20) * r, "linear")
 		self.lens_flare_starburst_lines[line] = nil
 		
 	end)
@@ -437,6 +436,8 @@ function TitleScreen:draw()
 	
     local vertical_repeats = idiv(self.viewport_size.y, STAR_FIELD_HEIGHT)
 	local horizontal_repeats = idiv(self.viewport_size.x, STAR_FIELD_WIDTH)
+
+	graphics.translate(0, -12)
 
     -- bench.start_bench("draw_stars")
     -- local line_cache = {

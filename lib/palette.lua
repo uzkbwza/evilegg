@@ -152,7 +152,7 @@ function Palette:get_color_index_unpacked(r, g, b)
 end
 
 function Palette:random_color()
-    return self.colors[rng.randi_range(1, self.length)]
+    return self.colors[rng:randi_range(1, self.length)]
 end
 
 function Palette:interpolate(t)
@@ -248,7 +248,7 @@ function Palette:new_mapped(mapping)
 end
 
 function Palette:get_random_color()
-	return self.colors[rng.randi_range(1, self.length)]
+	return self.colors[rng:randi_range(1, self.length)]
 end
 
 function Palette:sub_cycle()

@@ -66,9 +66,10 @@ function ArtefactSpawn:get_sprite()
 end
 
 function ArtefactSpawn:update(dt)
-	if self.spawner then
-		self.spawner:move_to(self.pos.x, self.pos.y)
-	end
+    if self.spawner then
+        self.spawner:move_to(self.pos.x, self.pos.y)
+    end
+	self:collide_with_terrain()
 end
 
 function ArtefactSpawn:state_Dormant_draw()
@@ -94,7 +95,7 @@ function ArtefactSpawn:state_Idle_enter()
             s:tween_property(self, "text_amount4", 0, 1, 15, "linear")
         end)
         s:wait(20)
-        self.pickupable = true
+        self.pickupable = not self.artefact.no_pickup
     end)
     local players = self:get_players()
     for _, player in players:ipairs() do
@@ -109,8 +110,10 @@ end
 
 function ArtefactSpawn:hit_by(other)
 	if self:is_tick_timer_running("hit_cooldown") then return end
-	self:start_tick_timer("hit_cooldown", 2)
-    self.hp = self.hp - 1
+    self:start_tick_timer("hit_cooldown", 2)
+    local was_above_1 = self.hp > 1
+    self.hp = self.hp - (other.damage or 1)
+	if was_above_1 then self.hp = max(self.hp, 1) end
     local s = self.sequencer
 	
 	self:start_timer("damage_flash", 10)
@@ -178,9 +181,12 @@ function ArtefactSpawn:state_Idle_draw()
 	
 	
 	if self.artefact.is_secondary_weapon then
-		local tip1 = "USE WITH " .. (input.last_input_device == "gamepad" and "RIGHT TRIGGER" or "RMB")
-		local tip3 = "REQUIRES " .. self.artefact.ammo_needed_per_use .. " AMMO PER USE"
-		local tip2 = "GAINS " .. self.artefact.ammo_gain_per_level .. " AMMO PER LEVEL"
+        local tip1 = tr.artefact_guide_use:format(input.last_input_device == "gamepad" and tr.control_right_trigger or
+        tr.control_right_mouse)
+		local ammo_count1 = string.fraction(self.artefact.minimum_ammo_needed_to_use_normalized or self.artefact.ammo_needed_per_use_normalized)
+		local ammo_count1_text = self.artefact.minimum_ammo_needed_to_use and tr.artefact_guide_min_ammo_requirement or tr.artefact_guide_ammo_requirement
+		local tip3 = ammo_count1_text:format(ammo_count1)
+		local tip2 = tr.artefact_guide_ammo_gain:format(string.fraction(self.artefact.ammo_gain_per_level_normalized))
 		
 		tip1 = tip1:sub(1, tip1:len() * self.text_amount2)
 		tip2 = tip2:sub(1, tip2:len() * self.text_amount3)
@@ -191,8 +197,8 @@ function ArtefactSpawn:state_Idle_draw()
 		graphics.print_centered(tip1, fonts.depalettized.image_font2, 0, 25)
 		graphics.set_color(Color.green)
 		graphics.print_centered(tip2, fonts.depalettized.image_font2, 0, 34)
-		graphics.set_color(Color.red)
-		graphics.print_centered(tip3, fonts.depalettized.image_font2, 0, 43)
+		-- graphics.set_color(Color.red)
+		-- graphics.print_centered(tip3, fonts.depalettized.image_font2, 0, 43)
 	end
 
 

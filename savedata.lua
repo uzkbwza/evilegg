@@ -17,6 +17,8 @@ local default_savedata = {
     codex_items = {},
     new_codex_items = {},
 	first_time_playing = true,
+	game_version = GAME_VERSION,
+	leaderboard_version = GAME_LEADERBOARD_VERSION,
 }
 
 local SCORE_COUNT = 100
@@ -45,6 +47,23 @@ function savedata:load()
         self.uid = UUID()
     end
 
+    if self.scores[GAME_LEADERBOARD_VERSION] == nil then
+        self.scores[GAME_LEADERBOARD_VERSION] = {}
+    end
+	
+	if self.category_highs[GAME_LEADERBOARD_VERSION] == nil then
+		self.category_highs[GAME_LEADERBOARD_VERSION] = {}
+	end
+	
+	if self.game_version ~= GAME_VERSION then
+		self.was_old_game_version = true
+		self.game_version = GAME_VERSION
+	end
+
+	if self.leaderboard_version ~= GAME_LEADERBOARD_VERSION then
+		self.was_old_leaderboard_version = true
+		self.leaderboard_version = GAME_LEADERBOARD_VERSION
+	end
 end
 
 function savedata:save()
@@ -56,13 +75,21 @@ function savedata:save()
         if k == "default_savedata" then
             goto continue
         end
-        if not table.equal(v, default_savedata[k]) then
-            tab[k] = table.deepcopy(v)
-        end
+		if k == "was_old_game_version" then
+			goto continue
+		end
+		if k == "was_old_leaderboard_version" then
+			goto continue
+		end
+        -- if not table.equal(v, default_savedata[k]) then
+		tab[k] = table.deepcopy(v)
+        -- end
         ::continue::
     end
 
-    love.filesystem.write("_savedata.lua", require("lib.tabley").serialize(tab))
+	local s = require("lib.tabley").serialize(tab)
+
+    love.filesystem.write("_savedata.lua", s)
 end
 
 function savedata:initial_load()
@@ -78,11 +105,11 @@ end
 
 function savedata:sort_scores()
 
-	for _, category in pairs(self.scores) do
-		table.sort(category, function(a, b) return a.score > b.score end)
-	end
-
-	for _, category in pairs(self.scores) do
+    for _, category in pairs(self.scores[GAME_LEADERBOARD_VERSION]) do
+        table.sort(category, function(a, b) return a.score > b.score end)
+    end
+	
+	for _, category in pairs(self.scores[GAME_LEADERBOARD_VERSION]) do
 		while #category > SCORE_COUNT do
 			table.remove(category)
 		end
@@ -106,7 +133,7 @@ function savedata:set_save_data(key, value)
 end
 
 function savedata:add_category_death(category)	
-    if self.category_death_count[category] == nil then
+	if self.category_death_count[category] == nil then
         self.category_death_count[category] = 0
     end
     self.category_death_count[category] = self.category_death_count[category] + 1
@@ -119,34 +146,33 @@ function savedata:add_score(run)
 	run = table.deepcopy(run)
 	
 	if run.category == nil then
-		run.category = debug.enabled and leaderboard.default_category
+		run.category = leaderboard.default_category
 	end
-	self.scores[run.category] = self.scores[run.category] or {}
-	table.insert(self.scores[run.category], run)
+	self.scores[GAME_LEADERBOARD_VERSION][run.category] = self.scores[GAME_LEADERBOARD_VERSION][run.category] or {}
+	table.insert(self.scores[GAME_LEADERBOARD_VERSION][run.category], run)
 	self:sort_scores()
 
-	if self.category_highs[run.category] == nil then
-		self.category_highs[run.category] = {
-		}
+	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category] == nil then
+		self.category_highs[GAME_LEADERBOARD_VERSION][run.category] = {}
 	end
 	
-	if self.category_highs[run.category].score == nil then
-		self.category_highs[run.category].score = 0
+	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].score == nil then
+		self.category_highs[GAME_LEADERBOARD_VERSION][run.category].score = 0
 	end
 
-    if self.category_highs[run.category].kills == nil then
-        self.category_highs[run.category].kills = 0
+    if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].kills == nil then
+        self.category_highs[GAME_LEADERBOARD_VERSION][run.category].kills = 0
     end
 	
-	if self.category_highs[run.category].level == nil then
-		self.category_highs[run.category].level = 0
+	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].level == nil then
+		self.category_highs[GAME_LEADERBOARD_VERSION][run.category].level = 0
 	end
 
-    if self.category_highs[run.category].rescues == nil then
-        self.category_highs[run.category].rescues = 0
+    if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].rescues == nil then
+        self.category_highs[GAME_LEADERBOARD_VERSION][run.category].rescues = 0
     end
 
-    local category_highs = self.category_highs[run.category]
+    local category_highs = self.category_highs[GAME_LEADERBOARD_VERSION][run.category]
 	
 	if run.score > category_highs.score then
 		category_highs.score = run.score
@@ -170,12 +196,19 @@ end
 function savedata:get_high_score_run(category)
 	category = category or (leaderboard.default_category)
     self:sort_scores()
-	if not self.scores[category] then
+	if not self.scores[GAME_LEADERBOARD_VERSION][category] then
 		return nil
 	end
-	return self.scores[category][1]
+	return self.scores[GAME_LEADERBOARD_VERSION][category][1]
 end
 
+function savedata:get_category_highs(category)
+	category = category or (leaderboard.default_category)
+	if not self.category_highs[GAME_LEADERBOARD_VERSION][category] then
+		return nil
+	end
+	return self.category_highs[GAME_LEADERBOARD_VERSION][category]
+end
 
 function savedata:_add_codex_item(spawn)
 	if not self.codex_items[spawn] then

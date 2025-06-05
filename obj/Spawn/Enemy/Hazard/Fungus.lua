@@ -25,9 +25,10 @@ local MAX_FUNGI = 60
 Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
 Fungus.cannot_hit_egg = true
+Fungus.is_fungus = true
 
 function Fungus:new(x, y, propogate_frequency)
-    self.team = game_state.artefacts.death_cap and "player" or "neutral"
+    self.team = "neutral"
 	self.hitbox_team = game_state.artefacts.death_cap and "player" or "enemy"
     self.max_hp = (game_state.artefacts.death_cap and BASE_HP_FRIENDLY or BASE_HP)
 	self.highest_hp = (game_state.artefacts.death_cap and MAX_HP_FRIENDLY or MAX_HP)
@@ -62,7 +63,7 @@ function Fungus:new(x, y, propogate_frequency)
     self.death_sfx_volume = 0.5
 	self.death_sfx = "hazard_fungus_die"
     self.hit_bubble_radius = nil
-	self.palette = nil
+    self.palette = nil
 end
 
 function Fungus:enter()
@@ -91,14 +92,19 @@ function Fungus:start_draw_dots_timer()
 end
 
 function Fungus:filter_melee_attack(bubble)
+	if game_state.artefacts.death_cap then
+		if bubble.parent and bubble.parent.team == "player" then return false end
+	end
+	
 	if bubble.parent and bubble.parent.is_artefact then
 		return false
 	end
+	
 	return true
 end
 
 function Fungus:start_propagate_timer()
-	self:start_tick_timer("propagate", max(rng.randfn(self.propogate_frequency, PROPOGATE_VARIANCE_DEVIATION), 10), function()
+	self:start_tick_timer("propagate", max(rng:randfn(self.propogate_frequency, PROPOGATE_VARIANCE_DEVIATION), 10), function()
 		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and self.big then
 			self:propagate()
 		end
@@ -155,7 +161,7 @@ function Fungus:propagate()
 
 	local valid = true
 
-	local test_x, test_y = rng.random_vec2_times(radius)
+	local test_x, test_y = rng:random_vec2_times(radius)
 
 	local f = function(other)
 		local real_x, real_y = self.pos.x + test_x, self.pos.y + test_y
@@ -182,17 +188,17 @@ function Fungus:propagate()
 		valid = true
         self.world.fungus_grid:each(rect_x, rect_y, rect_w, rect_h, f)
 		if valid then break end
-		test_x, test_y = rng.random_vec2_times(radius)
+		test_x, test_y = rng:random_vec2_times(radius)
 	end
 
 	if valid then
-		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng.randfn(1, 0.4), 0.1, 1.9)), test_x, test_y)
+		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng:randfn(1, 0.4), 0.1, 1.9)), test_x, test_y)
 	end
 
 end
 
 function Fungus:start_hp_gain_timer()
-	self:start_tick_timer("gain_hp", HP_GAIN_FREQUENCY * clamp(rng.randfn(1, 0.1), 0.5, 1.5), function()
+	self:start_tick_timer("gain_hp", HP_GAIN_FREQUENCY * clamp(rng:randfn(1, 0.1), 0.5, 1.5), function()
 		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and not self.big then
 			-- self:propagate()
 			self:heal(self.hp_gain_amount, true)
@@ -229,9 +235,9 @@ function Fungus:floor_draw()
     if self.draw_dots then
         local palette = Palette[self:get_sprite()]
         local color = palette:get_color(1)
-        local vec_x, vec_y = rng.random_vec2_times(rng.randf(PROPOGATE_RADIUS * 0.0, PROPOGATE_RADIUS * (0.5 + self.hp / 10)))
+        local vec_x, vec_y = rng:random_vec2_times(rng:randf(PROPOGATE_RADIUS * 0.0, PROPOGATE_RADIUS * (0.5 + self.hp / 10)))
 		graphics.set_color(color.r * COLOR_MOD, color.g * COLOR_MOD, color.b * COLOR_MOD)
-        graphics.circle("fill", vec_x, vec_y, rng.randf(0.5, 2) * (1 + self.hp / 5))
+        graphics.circle("fill", vec_x, vec_y, rng:randf(0.5, 2) * (1 + self.hp / 5))
 		self.draw_dots = false
 	end
 end

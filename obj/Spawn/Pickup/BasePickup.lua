@@ -14,7 +14,7 @@ function BasePickup:new(x, y)
     self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
 
 	self:add_signal("picked_up")
-	self.random_offset = rng.randi(0, 255)
+	self.random_offset = rng:randi(0, 255)
 	self.random_offset_ratio = self.random_offset / 255
 
     self.z_index = 0

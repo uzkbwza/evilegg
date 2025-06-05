@@ -95,8 +95,8 @@ function SkullBird:move_around()
 		local c = 0
         while self:is_cell_solid(next_cell_x, next_cell_y, 0) or self:is_solid_object_at_cell(next_cell_x, next_cell_y) do
             self.target_cell = self.target_cell * 0
-            if rng.coin_flip() then
-                self.target_cell = Vec2(current_cell_x + rng.rand_sign(), current_cell_y)
+            if rng:coin_flip() then
+                self.target_cell = Vec2(current_cell_x + rng:rand_sign(), current_cell_y)
             else
                 self.target_cell = Vec2(current_cell_x, current_cell_y - self.world.scroll_direction * (self.reversed and -1 or 1))
             end
@@ -116,7 +116,7 @@ function SkullBird:move_around()
 		end
 
 		if self.target_cell.x ~= current_cell_x and self.target_cell.y ~= current_cell_y then
-            if rng.coin_flip() then
+            if rng:coin_flip() then
                 self.target_cell = Vec2(self.target_cell.x, current_cell_y)
             else
                 self.target_cell = Vec2(current_cell_x, self.target_cell.y)

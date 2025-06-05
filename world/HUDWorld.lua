@@ -102,7 +102,7 @@ function HUDWorld:draw()
 	local show_time_on_room_clear = world.state == "RoomClear" or world.state == "LevelTransition"
 	local show_time_on_room_start = room_elapsed < 60 or room_elapsed < 90 and idivmod_eq_zero(gametime.tick, 3, 2)
 	
-	if show_time_on_room_clear or show_time_on_room_start or self.canvas_layer.parent.ui_layer.state == "Paused" then
+	if show_time_on_room_clear or show_time_on_room_start or self.canvas_layer.parent.ui_layer.state == "Paused" or self.force_show_time then
 		local font = fonts.depalettized.image_font2
 		graphics.set_font(font)
 		graphics.set_color(Color.white)

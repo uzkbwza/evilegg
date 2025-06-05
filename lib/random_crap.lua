@@ -445,7 +445,7 @@ end
 
 
     -- if debug.enabled then
-	-- 	local dir_x, dir_y = angle_to_vec2_unpacked(angle)
+	-- 	local dir_x, dir_y = vec2_from_angle(angle)
 	-- 	print(string.format("step:%-2d step_4:%-2d step_8:%-2d step_32:%-2d dir_x:%-6.3f dir_y:%-6.3f angle:%-6.2f texture_index:%-2s rot:%-6.2f y_scale:%-2d",
 	-- 		step,
 	-- 		step_4,

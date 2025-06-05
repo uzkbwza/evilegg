@@ -14,7 +14,7 @@ function RocketBullet:new(x, y, extra_bullet)
 	self.hit_vel_multip = 40
 	self.explosion_damage = self.damage * 2.5
     self.damage = 1
-    -- self.random_offset = rng.randi(1, 100)
+    -- self.random_offset = rng:randi(1, 100)
 	self.center_out_velocity_multiplier = 6
     self.particles = {}
     if extra_bullet then

@@ -1,12 +1,12 @@
 -- ===========================================================================
---  Evil Egg – Main Love2D bootstrap
---  Cleaned up for readability & maintenance, 2025‑05‑26
+--  Evil Egg
 -- ===========================================================================
 
--- ---------------------------------------------------------------------------
---  Globals & Configuration
--- ---------------------------------------------------------------------------
-GAME_VERSION = "0.1.0"
+GAME_VERSION = "0.0a.0"
+GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
+
+print("Game version: " .. GAME_VERSION)
+print("Leaderboard version: " .. GAME_LEADERBOARD_VERSION)
 
 conf         = require "conf"
 usersettings = require "usersettings"; usersettings:initial_load()
@@ -135,7 +135,7 @@ function love.run()
         gametime.frames     = gametime.frames + 1
         gametime.is_new_tick= (prev_tick~=gametime.tick)
 
-        -- Dynamically enable fixed‑delta when a single frame stalls badly (>½ max allowed)
+        -- Dynamically enable fixed‑delta when the game slows down (>=2x max fps allowed)
         if (dt > (conf.max_delta_seconds or 0) * 0.5) then
             force_fixed_time_buildup = approach(force_fixed_time_buildup, FORCE_FIXED_TIME_LOW_FPS_THRESHOLD_SECONDS, dt)
         else
@@ -151,9 +151,11 @@ function love.run()
         local debug_ffwd  = debug.enabled and debug.fast_forward
         local fixed_enabled = conf.use_fixed_delta or force_fixed
         local cap_fps     = usersettings.cap_framerate and not debug_ffwd
+		
 		dbg("force_fixed", force_fixed, Color.cyan)
 		dbg("debug_ffwd", debug_ffwd, Color.cyan)
 		dbg("fixed_enabled", fixed_enabled, Color.cyan)
+		dbg("delta", seconds_to_frames(dt), Color.cyan)
         if not fixed_enabled and not cap_fps and not debug_ffwd then
 			dbg("fixed step", false, Color.cyan)
             gametime.delta, gametime.delta_seconds = delta_frame, delta_frame/TICKRATE

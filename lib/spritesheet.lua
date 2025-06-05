@@ -48,7 +48,7 @@ function SpriteSheet:get_quad(id)
 end
 
 function SpriteSheet:random()
-    return self[rng.randi(1, #self)]
+    return self[rng:randi(1, #self)]
 end
 
 function SpriteSheet:loop(tick, ticks_per_frame, offset)

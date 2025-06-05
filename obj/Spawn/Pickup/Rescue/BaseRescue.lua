@@ -46,7 +46,7 @@ function BaseRescue:new(x, y)
     if self.auto_state_machine then
         self:init_state_machine()
     end
-	self.random_offset = rng.randi()
+	self.random_offset = rng:randi()
 
 end
 
@@ -76,7 +76,7 @@ function BaseRescue:enter()
 		end)
 	end
     self:start_timer("quick_save_time", QUICK_SAVE_TIME)
-    self:start_timer("invulnerability", START_INVULNERABILITY)
+    self:start_tick_timer("invulnerability", START_INVULNERABILITY)
     if self.holding_pickup then
         self:initialize_hp(self.max_hp + 1)
     end
@@ -90,12 +90,12 @@ function BaseRescue:get_rescue_rect()
 end
 
 function BaseRescue:spawn_particle()
-	local x, y = rng.random_vec2_times(rng.randf_range(0.5, self.hurt_bubble_radius * 3))
+	local x, y = rng:random_vec2_times(rng:randf_range(0.5, self.hurt_bubble_radius * 3))
 	self:spawn_object_relative(BaseRescueSpawnParticle(), x, y)
 end
 
 function BaseRescue:hit_by(other)
-    if self:is_timer_running("invulnerability") then
+    if self:is_tick_timer_running("invulnerability") then
         return
     end
 
@@ -117,7 +117,7 @@ function BaseRescue:hit_by(other)
 	end
 	-- dbg("damage dealt to rescue", damage)
     self:damage(damage)
-    self:start_timer("invulnerability", self.hp <= 1 and LAST_HIT_INVULNERABILITY or HIT_INVULNERABILITY)
+    self:start_tick_timer("invulnerability", self.hp <= 1 and LAST_HIT_INVULNERABILITY or HIT_INVULNERABILITY)
 
 
     -- local sprite = self:get_sprite()
@@ -246,7 +246,7 @@ function BaseRescue:on_pickup()
 		local num_bullets = 12 + (game_state.upgrades.bullets) * 8
         for i = 1, num_bullets do
 			local bullet = self:spawn_object(RingOfLoyaltyBullet(bx, by, true))
-			bullet.direction = angle_to_vec2(tau / num_bullets * i)
+			bullet.direction = Vec2.from_angle(tau / num_bullets * i)
 		end
 	end
 
@@ -313,13 +313,16 @@ local twinkle_sounds = {
 }
 
 function BaseRescue:update_shared(dt)
-    BaseRescue.super.update_shared(self, dt)
+    self.intangible = self:is_tick_timer_running("invulnerability")
+	
+	BaseRescue.super.update_shared(self, dt)
     if self.holding_pickup then
-		if self.is_new_tick and not self:is_timer_running("twinkle_cooldown") then
-			self:play_sfx(rng.choose(twinkle_sounds), abs(rng.randfn(0.0, 0.1) * rng.randfn(1.0, 2.0)))
-			self:start_timer("twinkle_cooldown", 6)
-		end
-	end
+        if self.is_new_tick and not self:is_timer_running("twinkle_cooldown") then
+            self:play_sfx(rng:choose(twinkle_sounds), abs(rng:randfn(0.0, 0.1) * rng:randfn(1.0, 2.0)))
+            self:start_timer("twinkle_cooldown", 6)
+        end
+    end
+	
 end
 
 local WARBELL_RADIUS = 90
@@ -361,7 +364,7 @@ function BaseRescue:update(dt)
                     table.insert(valid, bubble)
                 end
             end
-            local aiming_at = rng.choose(valid)
+            local aiming_at = rng:choose(valid)
             if aiming_at then
                 local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
@@ -384,7 +387,7 @@ function BaseRescue.try_avoid_enemy(bubble, self)
 end
 
 function BaseRescue:draw()
-    if not (self:is_timer_running("invulnerability") and (gametime.tick % 2 == 0)) then
+    if not (self:is_tick_timer_running("invulnerability") and (gametime.tick % 2 == 0)) then
 		graphics.push()
 		BaseRescue.super.draw(self)
 		graphics.pop()
@@ -397,7 +400,7 @@ function BaseRescueArrowParticle:new(x, y, target)
 	self.duration = 0
 	self:ref("target", target)
 	self.z_index = 10
-	self.random_offset = rng.randi(0, 100)
+	self.random_offset = rng:randi(0, 100)
 end
 
 function BaseRescueArrowParticle:update(dt)
@@ -497,7 +500,7 @@ function BaseRescueFloorParticle:new(x, y, target)
     self:ref("target", target)
 	self.z_index = -1
 	self.size = target.hurt_bubble_radius * 3
-	self.random_offset = rng.randi(0, 100)
+	self.random_offset = rng:randi(0, 100)
 end
 
 function BaseRescueFloorParticle:update(dt)
@@ -589,8 +592,8 @@ end
 
 function BaseRescueSpawnParticle:new(x, y)
     BaseRescueSpawnParticle.super.new(self, x, y)
-    self.duration = rng.randf_range(30, 45)
-	self.size = clamp(rng.randfn(4, 0.25), 1, 8)
+    self.duration = rng:randf_range(30, 45)
+	self.size = clamp(rng:randfn(4, 0.25), 1, 8)
 end
 
 function BaseRescueSpawnParticle:update(dt)
@@ -622,20 +625,20 @@ function BaseRescuePickupParticle:new(x, y, target, pickup)
 			return
 		end
 		local bx, by = self.target:get_body_center()
-		local angle = stepify(rng.random_angle(), tau / 16)
-		local size = rng.randfn(24, 12)
+		local angle = stepify(rng:random_angle(), tau / 16)
+		local size = rng:randfn(24, 12)
 		-- local to_player = false
-		local is_line = rng.percent(10)
-		local max_resolution = rng.randi(2, 5)
+		local is_line = rng:percent(10)
+		local max_resolution = rng:randi(2, 5)
 
-		if rng.percent(20) then
+		if rng:percent(20) then
 			local px, py = self:closest_last_player_body_pos()
-			angle = (atan2(py - self.pos.y, px - self.pos.x)) + rng.randfn(0, tau / 128)
+			angle = (atan2(py - self.pos.y, px - self.pos.x)) + rng:randfn(0, tau / 128)
 			size = vec2_distance(px, py, bx, by) * 0.7
 			-- to_player = true
 		end
 
-		size = clamp(size, 8, max(rng.randfn(48, 10), 1))
+		size = clamp(size, 8, max(rng:randfn(48, 10), 1))
 		-- twinkle sound?
 		local line = { angle = angle, t = 0, size = size, rect_color = Palette.pickup_line:random_color(), id = self.line_id, is_line = is_line, max_resolution = max_resolution }
 		self.line_id = self.line_id + 1
@@ -651,7 +654,7 @@ function BaseRescuePickupParticle:update(dt)
 		local bx, by = self.target:get_body_center()
         self:move_to(splerp_vec(self.pos.x, self.pos.y, bx + cos(elapsed * 0.045) * 3,
         by - self.target.hurt_bubble_radius + sin(elapsed * 0.045) * 1.5 * (0.667) - 7, 60, dt))
-        if self.is_new_tick and rng.percent(80) then
+        if self.is_new_tick and rng:percent(80) then
 			self.sequencer:start(self.particle_function)
 		end
     else

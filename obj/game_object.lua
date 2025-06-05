@@ -335,7 +335,11 @@ end
 
 function GameObject:queue_destroy()
     self.is_queued_for_destruction = true
-    self:defer(self.destroy)
+    if self.world then
+		self.world:add_object_to_destroy(self)
+	else
+		self:defer(self.destroy)
+	end
 end
 
 

@@ -6,46 +6,62 @@ function closest_point_on_line_segment(px, py, ax, ay, bx, by)
 end
 
 function closest_points_on_two_line_segments(ax, ay, bx, by, cx, cy, dx, dy)
-    local ABx = bx - ax
-    local ABy = by - ay
-    local CDx = dx - cx
-    local CDy = dy - cy
-    local ACx = cx - ax
-    local ACy = cy - ay
+    -- Δ goodies
+    local ux,  uy  = bx - ax, by - ay           -- AB vector
+    local vx,  vy  = dx - cx, dy - cy           -- CD vector
+    local wx,  wy  = ax - cx, ay - cy           -- AC vector
 
-    local ABdotAB = ABx*ABx + ABy*ABy     -- |AB|^2
-    local CDdotCD = CDx*CDx + CDy*CDy     -- |CD|^2
-    local ABdotCD = ABx*CDx + ABy*CDy     -- AB·CD
-    local ACdotAB = ACx*ABx + ACy*ABy     -- AC·AB
-    local ACdotCD = ACx*CDx + ACy*CDy     -- AC·CD
+    local a  = ux*ux + uy*uy                    -- |u|²
+    local b  = ux*vx + uy*vy                    -- u·v
+    local c  = vx*vx + vy*vy                    -- |v|²
+    local d  = ux*wx + uy*wy                    -- u·w
+    local e  = vx*wx + vy*wy                    -- v·w
 
-    local denom = ABdotAB * CDdotCD - ABdotCD * ABdotCD
+    local denom = a*c - b*b                     -- always ≥ 0
 
-    local s, t
+    local s, t                                -- param along AB & CD
+
     if denom ~= 0 then
-        -- If denom == 0, lines are parallel or nearly parallel
-        s = (ABdotCD * ACdotCD - CDdotCD * ACdotAB) / denom
-        t = (ABdotAB * ACdotCD - ABdotCD * ACdotAB) / denom
+        s = (b*e - c*d) / denom
     else
-        -- Parallel or nearly parallel: fallback
-        s = 0
-        if CDdotCD ~= 0 then
-            t = ACdotCD / CDdotCD
-        else
-            t = 0
-        end
+        s = 0                                  -- lines are (anti)parallel, pick A
     end
 
-    -- Clamp s, t to [0, 1] so the points lie within the segments
-    if s < 0 then s = 0 elseif s > 1 then s = 1 end
-    if t < 0 then t = 0 elseif t > 1 then t = 1 end
+    if s < 0 then
+        s = 0
+    elseif s > 1 then
+        s = 1
+    end
 
-    -- Compute closest points
-    local px1 = ax + ABx * s
-    local py1 = ay + ABy * s
-    local px2 = cx + CDx * t
-    local py2 = cy + CDy * t
-    return px1, py1, px2, py2
+    -- clamp t using the now-clamped s
+    local numer = b*s + e
+    if numer <= 0 then
+        t = 0
+        s = -(d) / a
+        if s < 0 then
+            s = 0
+        elseif s > 1 then
+            s = 1
+        end
+    elseif numer >= c then
+        t = 1
+        s = (b - d) / a
+        if s < 0 then
+            s = 0
+        elseif s > 1 then
+            s = 1
+        end
+    else
+        t = numer / c
+    end
+
+    -- actual closest coords
+    local px = ax + s*ux
+    local py = ay + s*uy
+    local qx = cx + t*vx
+    local qy = cy + t*vy
+
+    return px, py, qx, qy
 end
 
 function distance_squared_to_line_segment(px, py, ax, ay, bx, by)
@@ -55,7 +71,6 @@ end
 function distance_to_line_segment(px, py, ax, ay, bx, by)
 	return sqrt(distance_squared_to_line_segment(px, py, ax, ay, bx, by))
 end
-
 function line_segment_intersection_point(ax, ay, bx, by, cx, cy, dx, dy)
 	local denominator = ((ax - bx) * (cy - dy) - (ay - by) * (cx - dx))
 
@@ -70,6 +85,63 @@ function line_segment_intersection_point(ax, ay, bx, by, cx, cy, dx, dy)
 	if t < 0 or t > 1 or u < 0 or u > 1 then return nil end
 
 	return ax + (t * (bx - ax)), ay + (t * (by - ay))
+end
+
+function line_rect_intersection(x1, y1, x2, y2, rx, ry, rw, rh)
+    local ix1, iy1, ix2, iy2
+    local count = 0
+    
+    -- Check intersection with left edge
+    local ix, iy = line_segment_intersection_point(x1, y1, x2, y2, rx, ry, rx, ry + rh)
+    if ix then
+        if count == 0 then
+            ix1, iy1 = ix, iy
+        else
+            ix2, iy2 = ix, iy
+        end
+        count = count + 1
+    end
+    
+    -- Check intersection with right edge
+    ix, iy = line_segment_intersection_point(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh)
+    if ix then
+        if count == 0 then
+            ix1, iy1 = ix, iy
+        else
+            ix2, iy2 = ix, iy
+        end
+        count = count + 1
+    end
+    
+    -- Check intersection with top edge
+    ix, iy = line_segment_intersection_point(x1, y1, x2, y2, rx, ry, rx + rw, ry)
+    if ix then
+        if count == 0 then
+            ix1, iy1 = ix, iy
+        else
+            ix2, iy2 = ix, iy
+        end
+        count = count + 1
+    end
+    
+    -- Check intersection with bottom edge
+    ix, iy = line_segment_intersection_point(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh)
+    if ix then
+        if count == 0 then
+            ix1, iy1 = ix, iy
+        else
+            ix2, iy2 = ix, iy
+        end
+        count = count + 1
+    end
+    
+    if count == 0 then
+        return nil
+    elseif count == 1 then
+        return ix1, iy1
+    else
+        return ix1, iy1, ix2, iy2
+    end
 end
 
 function circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y)
@@ -180,7 +252,7 @@ function capsule_capsule_collision(ax, ay, bx, by, abr, cx, cy, dx, dy, cdr)
 	local rs = abr + cdr
 	local dist_x = pcdx - pabx
 	local dist_y = pcdy - paby
-	return (dist_x*dist_x) + (dist_y*dist_y) <= (rs * rs)
+	return (dist_x * dist_x) + (dist_y * dist_y) <= rs * rs
 end
 
 function capsule_contains_point(ax, ay, bx, by, abr, px, py)

@@ -9,14 +9,14 @@ function JetpackDust:new(x, y, flip)
 
     self.drag = 0.01
     self.z_index = -1
-    self.radius = rng.randfn(2.0, 0.65)
+    self.radius = rng:randfn(2.0, 0.65)
 
     self:implement(Mixins.Behavior.SimplePhysics)
 
-    local ix, iy = vec2_rotated(-1, 2, rng.randf(-tau / 10, tau / 10))
-    local speed = rng.randfn(0.5, 0.25)
+    local ix, iy = vec2_rotated(-1, 2, rng:randf(-tau / 10, tau / 10))
+    local speed = rng:randfn(0.5, 0.25)
     self:apply_impulse(flip * ix * speed, iy * speed)
-    self.duration = round(rng.randfn(8, 2))
+    self.duration = round(rng:randfn(8, 2))
 
     self:implement(Mixins.Behavior.BumpCollision)
     self:enable_bump_mask(PHYSICS_TERRAIN)

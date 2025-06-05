@@ -7,25 +7,25 @@ local LevelBonus = require("levelbonus.LevelBonus")
 function MainGame:new()
 	MainGame.super.new(self)
 	-- self.main_screen = Screens.TestPaletteCyclingScreen
-    self.main_screen_class = Screens.MainScreen
+	self.main_screen_class = Screens.MainScreen
 	graphics.set_pre_canvas_draw_function(function()
 		local clear_color = self:get_clear_color()
 		if clear_color then
-            graphics.set_clear_color(clear_color)
+			graphics.set_clear_color(clear_color)
 			graphics.clear(clear_color)
 		end
 	end)
 end
 
 function MainGame:load()
-    MainGame.super.load(self)
+	MainGame.super.load(self)
 
-    -- fonts.main_font = fonts["PixelOperatorMono8"]
-    -- fonts.hud_font = fonts["PixelOperatorMono8"]
-    -- fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
-    -- fonts.cn_jp_kr = fonts["quan8"]
-    fonts.main_font = fonts.depalettized.image_font2
-    fonts.hud_font = fonts.depalettized.image_font2
+	-- fonts.main_font = fonts["PixelOperatorMono8"]
+	-- fonts.hud_font = fonts["PixelOperatorMono8"]
+	-- fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
+	-- fonts.cn_jp_kr = fonts["quan8"]
+	fonts.main_font = fonts.depalettized.image_font2
+	fonts.hud_font = fonts.depalettized.image_font2
 	fonts.main_font_bold = fonts.depalettized.image_font2
 end
 
@@ -57,20 +57,19 @@ end
 function GlobalState:reset_game_state()
 	self:destroy_game_state()
 	game_state = GlobalGameState()
-
 end
 
 function GlobalState:destroy_game_state()
 	signal.cleanup(game_state)
-    game_state = nil
+	game_state = nil
 end
 
 GlobalGameState.max_upgrades = {
 	fire_rate = 1,
 	range = 2,
 	bullets = 1,
-    damage = 1,
-    -- knockback = 1, -- combined with bullet speed
+	damage = 1,
+	-- knockback = 1, -- combined with bullet speed
 	bullet_speed = 1,
 	-- boost = 1,
 }
@@ -83,31 +82,31 @@ GlobalGameState.xp_until_artefact = 3000
 
 function GlobalGameState:new()
 	self.enable_adaptive_difficulty = false
-    self.level = 1
-    self.wave = 1
-    self.difficulty = 1
-    self.enemies_killed = 0
+	self.level = 1
+	self.wave = 1
+	self.difficulty = 1
+	self.enemies_killed = 0
 	self.rescues_saved = 0
 	self.good_ending = false
 	self.rescues_saved_this_level = 0
-    self.score = 0
-    self.score_multiplier = 1
-    self.xp = 0
+	self.score = 0
+	self.score_multiplier = 1
+	self.xp = 0
 	self.start_time = love.timer.getTime()
-    self.game_time = 0
+	self.game_time = 0
 	self.rescue_chain_bonus = 0
 
-    self.rescue_chain = 0
+	self.rescue_chain = 0
 
-    self.level_bonuses = {}
+	self.level_bonuses = {}
 	self.all_bonuses = {}
 	self.level_scores = {}
 
-    self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
-    self.xp_until_heart = 1
-    self.xp_until_upgrade = 1020
-    -- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
-    self.xp_until_artefact = 1800
+	self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
+	self.xp_until_heart = 1
+	self.xp_until_upgrade = 1020
+	-- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
+	self.xp_until_artefact = 1800
 
 	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
 	self.heart_xp_target = self.xp + self.xp_until_heart
@@ -117,23 +116,23 @@ function GlobalGameState:new()
 	self.reached_heart_xp_at = 0
 	self.reached_artefact_xp_at = 0
 
-    self.num_queued_upgrades = 0
-    self.num_queued_artefacts = 0
-    self.num_queued_hearts = 0
+	self.num_queued_upgrades = 0
+	self.num_queued_artefacts = 0
+	self.num_queued_hearts = 0
 
 	self.egg_rooms_cleared = 0
 
 	self.bullet_powerup = nil
 	self.bullet_powerup_time = 0
 
-    self.game_over = false
+	self.game_over = false
 
 	self.leaderboard_category = leaderboard.default_category
 
 	self.used_sacrificial_twin = false
 
 	self.hearts = 1
-	
+
 	self.total_damage_taken = 1
 
 	self.rescue_chain_difficulty = 0
@@ -143,48 +142,48 @@ function GlobalGameState:new()
 
 	self.aggression_bonus = 0
 
-    self.artefacts = {
+	self.artefacts = {
 
-    }
+	}
 
-    self.artefact_slots = {
-		
+	self.artefact_slots = {
+
 	}
 
 	self.last_spawned_artefacts = {
-    }
-	
-    self.artefacts_destroyed = {
+	}
 
-    }
-	
+	self.artefacts_destroyed = {
+
+	}
+
 	self.num_spawned_artefacts = 0
 
 	self.secondary_weapon = nil
 	self.secondary_weapon_ammo = 0
-	
+
 	self.recently_selected_artefacts = {}
 	self.recently_selected_upgrades = {}
 	self.selected_artefact_slot = 1
 
-    self.upgrades = {
-        fire_rate = 0,
-        range = 0,
-        bullets = 0,
-        damage = 0,
-        bullet_speed = 0,
-        -- boost = 0,
-    }
+	self.upgrades = {
+		fire_rate = 0,
+		range = 0,
+		bullets = 0,
+		damage = 0,
+		bullet_speed = 0,
+		-- boost = 0,
+	}
 
-    signal.register(self, "player_upgraded")
-    signal.register(self, "player_heart_gained")
+	signal.register(self, "player_upgraded")
+	signal.register(self, "player_heart_gained")
 	signal.register(self, "player_heart_lost")
-    signal.register(self, "player_powerup_gained")
-    signal.register(self, "player_downgraded")
-    signal.register(self, "xp_threshold_reached")
+	signal.register(self, "player_powerup_gained")
+	signal.register(self, "player_downgraded")
+	signal.register(self, "xp_threshold_reached")
 	signal.register(self, "player_artefact_gained")
 	signal.register(self, "player_artefact_removed")
-    signal.register(self, "player_artefact_slot_changed")
+	signal.register(self, "player_artefact_slot_changed")
 	signal.register(self, "player_secondary_weapon_gained")
 	signal.register(self, "player_secondary_weapon_lost")
 	signal.register(self, "tried_to_use_secondary_weapon_with_no_ammo")
@@ -196,33 +195,46 @@ function GlobalGameState:new()
 
 	self.score_categories = {}
 
-    self.skip_tutorial = usersettings.skip_tutorial or self.level > 1
-    if savedata.first_time_playing then self.skip_tutorial = false end
+	self.skip_tutorial = usersettings.skip_tutorial or self.level > 1
+	if savedata.first_time_playing then self.skip_tutorial = false end
+
+	if debug.enabled then
+		local cheat = true
 		
-    if debug.enabled then
+		if cheat then
+			
+			-- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
+			-- self:gain_artefact(PickupTable.artefacts.SwordSecondaryWeapon)
+			-- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
+			self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
+			self:gain_secondary_weapon_ammo(math.huge)
 
-        -- self.level = 30
-		-- self.hearts = self.max_hearts
+			-- self.num_queued_artefacts = 5
+			self.rescue_chain = 20
+			self.rescue_chain_bonus = 20
 
-		for i=1, 9 do
-			self:gain_artefact(self:get_random_available_artefact())
-		end		
+			self.level = 30
+			self.hearts = self.max_hearts
 
-        for i = 1, 5 do
-			self:upgrade(self:get_random_available_upgrade(false))
+			for i = 1, 9 do
+				self:gain_artefact(self:get_random_available_artefact())
+			end
+
+			for i = 1, 3 do
+				self:upgrade(self:get_random_available_upgrade(false))
+
+			end 
 		end
-		
-		
+
 		-- self.upgrades.fire_rate = self.max_upgrades.fire_rate
 		-- self.upgrades.range = self.max_upgrades.range
 		-- self.upgrades.bullets = self.max_upgrades.bullets
 		-- self.upgrades.damage = self.max_upgrades.damage
-        -- self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
-    end
+		-- self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
+	end
 end
 
 function GlobalGameState:update(dt)
-
 	if debug.enabled then
 		-- dbg("xp", self.xp)
 		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
@@ -235,14 +247,14 @@ function GlobalGameState:update(dt)
 		dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
 		dbg("aggression_bonus", self.aggression_bonus)
 	end
-	
+
 	if not self.game_over then
 		self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
 	end
 end
 
 function GlobalGameState:on_hatched()
-    self.hatched = true
+	self.hatched = true
 	signal.emit(self, "hatched")
 end
 
@@ -259,33 +271,39 @@ end
 function GlobalGameState:drain_bullet_powerup_time(dt)
 	self.bullet_powerup_time = self.bullet_powerup_time - dt
 	if self.bullet_powerup_time < 0 then
-        self.bullet_powerup_time = 0
+		self.bullet_powerup_time = 0
 		self.bullet_powerup = nil
 	end
 end
 
 function GlobalGameState:level_bonus(bonus_name)
-    self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] or 0
-    self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] + 1
+	self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] or 0
+	self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] + 1
 	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] or 0
-    self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] + 1
+	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] + 1
 end
 
 function GlobalGameState:set_selected_artefact_slot(slot)
-    local old = self.selected_artefact_slot
-    self.selected_artefact_slot = slot
-    if old ~= slot then
-        signal.emit(self, "player_artefact_slot_changed", slot, old)
-    end
+	local old = self.selected_artefact_slot
+	self.selected_artefact_slot = slot
+	if old ~= slot then
+		signal.emit(self, "player_artefact_slot_changed", slot, old)
+	end
 end
 
-
 function GlobalGameState:gain_artefact(artefact)
-    if self.artefacts[artefact.key] then
-        return
-    end
+
+	if artefact == nil then return end
 	
-    if artefact.is_secondary_weapon then
+	if artefact.no_pickup then
+		return
+	end
+
+	if self.artefacts[artefact.key] then
+		return
+	end
+
+	if artefact.is_secondary_weapon then
 		self:gain_secondary_weapon(artefact)
 		return
 	end
@@ -294,13 +312,13 @@ function GlobalGameState:gain_artefact(artefact)
 	self:remove_artefact(self.selected_artefact_slot)
 	-- end
 
-    self.artefact_slots[self.selected_artefact_slot] = artefact
+	self.artefact_slots[self.selected_artefact_slot] = artefact
 
 	local slot = self.selected_artefact_slot
-	
-    self.artefacts[artefact.key] = { slot = self.selected_artefact_slot, artefact = artefact }
 
-	
+	self.artefacts[artefact.key] = { slot = self.selected_artefact_slot, artefact = artefact }
+
+
 	local found_free_space = false
 	for i = 1, GlobalGameState.max_artefacts do
 		if not self.artefact_slots[i] then
@@ -320,43 +338,42 @@ function GlobalGameState:gain_artefact(artefact)
 end
 
 function GlobalGameState:gain_secondary_weapon(artefact)
-    local new_ammo = artefact.starting_ammo
-    if self.secondary_weapon then
-        if self.secondary_weapon == artefact then
-            new_ammo = self.secondary_weapon_ammo + artefact.starting_ammo
-            if new_ammo > artefact.ammo then
-                new_ammo = artefact.ammo
-            end
-        else
-            self:lose_secondary_weapon()
-        end
-    end
+	local new_ammo = artefact.starting_ammo
+	if self.secondary_weapon then
+		if self.secondary_weapon == artefact then
+			new_ammo = self.secondary_weapon_ammo + artefact.starting_ammo
+			if new_ammo > artefact.ammo then
+				new_ammo = artefact.ammo
+			end
+		else
+			self:lose_secondary_weapon()
+		end
+	end
 
-    self.secondary_weapon = artefact
-    self.secondary_weapon_ammo = new_ammo
+	self.secondary_weapon = artefact
+	self.secondary_weapon_ammo = new_ammo
 
-    signal.emit(self, "player_secondary_weapon_gained", artefact)
+	signal.emit(self, "player_secondary_weapon_gained", artefact)
 end
 
 function GlobalGameState:on_tried_to_use_secondary_weapon_with_no_ammo()
 	signal.emit(self, "tried_to_use_secondary_weapon_with_no_ammo")
 end
 
-
 function GlobalGameState:lose_secondary_weapon()
-    self.secondary_weapon = nil
-    self.secondary_weapon_ammo = 0
-    signal.emit(self, "player_secondary_weapon_lost")
+	self.secondary_weapon = nil
+	self.secondary_weapon_ammo = 0
+	signal.emit(self, "player_secondary_weapon_lost")
 end
 
 function GlobalGameState:can_use_secondary_weapon()
-	return self.secondary_weapon and self.secondary_weapon_ammo >= self.secondary_weapon.ammo_needed_per_use
+	return self.secondary_weapon and self.secondary_weapon_ammo >= self.secondary_weapon.ammo_needed_per_use and self.secondary_weapon_ammo >= self.secondary_weapon.minimum_ammo_needed_to_use
 end
 
 function GlobalGameState:use_secondary_weapon_ammo(amount)
-    if not self.secondary_weapon then
-        return
-    end
+	if not self.secondary_weapon then
+		return
+	end
 	local old = self.secondary_weapon_ammo
 	amount = amount or self.secondary_weapon.ammo_needed_per_use
 	self.secondary_weapon_ammo = self.secondary_weapon_ammo - amount
@@ -364,13 +381,13 @@ function GlobalGameState:use_secondary_weapon_ammo(amount)
 		self.secondary_weapon_ammo = 0
 	end
 	self.used_secondary_weapon_this_level = true
-	
+
 	signal.emit(self, "secondary_weapon_ammo_used", amount, old, self.secondary_weapon_ammo)
 end
 
 function GlobalGameState:gain_secondary_weapon_ammo(amount)
-    local old = self.secondary_weapon_ammo
-	self.secondary_weapon_ammo = self.secondary_weapon_ammo + amount
+	local old = self.secondary_weapon_ammo
+    self.secondary_weapon_ammo = self.secondary_weapon_ammo + amount
 	if self.secondary_weapon_ammo > self.secondary_weapon.ammo then
 		self.secondary_weapon_ammo = self.secondary_weapon.ammo
 	end
@@ -378,15 +395,15 @@ function GlobalGameState:gain_secondary_weapon_ammo(amount)
 end
 
 function GlobalGameState:remove_artefact(slot)
-    if not self.artefact_slots[slot] then
-        return
-    end
-    local artefact = self.artefact_slots[slot]
-	
-	self.artefacts[artefact.key] = nil
-    self.artefact_slots[slot] = nil
+	if not self.artefact_slots[slot] then
+		return
+	end
+	local artefact = self.artefact_slots[slot]
 
-    if artefact.remove_function then
+	self.artefacts[artefact.key] = nil
+	self.artefact_slots[slot] = nil
+
+	if artefact.remove_function then
 		artefact.remove_function(self, slot)
 	end
 
@@ -395,46 +412,46 @@ end
 
 function GlobalGameState:on_game_over()
 	self.game_over = true
-    savedata:add_category_death(self.leaderboard_category)
-    savedata:set_save_data("death_count", savedata.death_count + 1)
+	savedata:add_category_death(self.leaderboard_category)
+	savedata:set_save_data("death_count", savedata.death_count + 1)
 	leaderboard.add_death()
 end
 
 function GlobalGameState:on_egg_room_cleared()
-    self.egg_rooms_cleared = self.egg_rooms_cleared + 1
+	self.egg_rooms_cleared = self.egg_rooms_cleared + 1
 	self:level_bonus("elevator_killed")
 end
 
 function GlobalGameState:gain_xp(amount)
-    if self.game_over then return end
+	if self.game_over then return end
 	if self.final_room_entered then return end
-    self.xp = self.xp + amount
+	self.xp = self.xp + amount
 
 	if not self:is_fully_upgraded() then
-		local ratio = remap_clamp(self:get_upgrade_ratio(), 0.0, 5/7, 2.0, 0.4)
+		local ratio = remap_clamp(self:get_upgrade_ratio(), 0.0, 5 / 7, 2.0, 0.4)
 		local amount = (amount) * ratio
 		-- print(self:get_upgrade_ratio(), ratio)
 		self.xp_until_upgrade = self.xp_until_upgrade - amount
 	end
 	self.xp_until_heart = self.xp_until_heart - amount
-    -- self.xp_until_powerup = self.xp_until_powerup - amount
+	-- self.xp_until_powerup = self.xp_until_powerup - amount
 	self.xp_until_artefact = self.xp_until_artefact - amount
-    if self.xp_until_upgrade <= 0 then
-		self.xp_until_upgrade = self.xp_until_upgrade + (GlobalGameState.xp_until_upgrade + rng.randi(-100, 100))
-        self:on_upgrade_xp_threshold_reached()
-    end
+	if self.xp_until_upgrade <= 0 then
+		self.xp_until_upgrade = self.xp_until_upgrade + (GlobalGameState.xp_until_upgrade + rng:randi(-100, 100))
+		self:on_upgrade_xp_threshold_reached()
+	end
 	if self.xp_until_heart <= 0 then
-        self.xp_until_heart = self.xp_until_heart + GlobalGameState.xp_until_heart + rng.randi(-100, 100)
-        self:on_heart_xp_threshold_reached()
-    end
-    -- if self.xp_until_powerup <= 0 then
-    --     self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng.randi(-1, 1) - (self.level * 0.45), 8)
-    --     self:on_powerup_xp_threshold_reached()
-    -- end
-    if self.xp_until_artefact <= 0 then
-        self.xp_until_artefact = self.xp_until_artefact + GlobalGameState.xp_until_artefact + rng.randi(-100, 100)
-        self:on_artefact_xp_threshold_reached()
-    end
+		self.xp_until_heart = self.xp_until_heart + GlobalGameState.xp_until_heart + rng:randi(-100, 100)
+		self:on_heart_xp_threshold_reached()
+	end
+	-- if self.xp_until_powerup <= 0 then
+	--     self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng:randi(-1, 1) - (self.level * 0.45), 8)
+	--     self:on_powerup_xp_threshold_reached()
+	-- end
+	if self.xp_until_artefact <= 0 then
+		self.xp_until_artefact = self.xp_until_artefact + GlobalGameState.xp_until_artefact + rng:randi(-100, 100)
+		self:on_artefact_xp_threshold_reached()
+	end
 end
 
 function GlobalGameState:on_damage_taken()
@@ -443,7 +460,7 @@ function GlobalGameState:on_damage_taken()
 end
 
 function GlobalGameState:apply_level_bonus_difficulty(bonus)
-    self.bonus_difficulty_modifier = self.bonus_difficulty_modifier + (bonus or 0)
+	self.bonus_difficulty_modifier = self.bonus_difficulty_modifier + (bonus or 0)
 end
 
 function GlobalGameState:queue_level_bonus(bonus)
@@ -454,38 +471,38 @@ function GlobalGameState:on_level_start()
 	table.insert(self.level_scores, self.score)
 	self.level = self.level + 1
 	self.boss_level = false
-    self.any_room_failures = false
+	self.any_room_failures = false
 	self.any_damage_taken = false
-    self.aggression_bonus = 0
-	
+	self.aggression_bonus = 0
+
 	self.harmed_noid = false
-    self.level_bonuses = {}
-    self.queued_level_bonuses = self.queued_level_bonuses or {}
-	
-    for k, v in pairs(self.queued_level_bonuses) do
-        for _ = 1, v do
-            self:level_bonus(k)
-        end
-    end
+	self.level_bonuses = {}
+	self.queued_level_bonuses = self.queued_level_bonuses or {}
+
+	for k, v in pairs(self.queued_level_bonuses) do
+		for _ = 1, v do
+			self:level_bonus(k)
+		end
+	end
 	self.queued_level_bonuses = {}
 	self.rescues_saved_this_level = 0
 	self.used_secondary_weapon_this_level = false
-    if debug.enabled then
-        print("--- Score Categories ---")
-        local sum = 0
-        for k, v in pairs(self.score_categories) do
-            sum = sum + v
-        end
-        for k, v in pairs(self.score_categories) do
-            local percent = (v / sum) * 100
-            print(string.format("%s: %d (%.2f%%)", k, v, percent))
-        end
-        print("------------------------")
-    end
-    self.bonus_difficulty_modifier = approach(self.bonus_difficulty_modifier, 0,
-    stepify(self.bonus_difficulty_modifier * 0.2, 0.05))
+	if debug.enabled then
+		print("--- Score Categories ---")
+		local sum = 0
+		for k, v in pairs(self.score_categories) do
+			sum = sum + v
+		end
+		for k, v in pairs(self.score_categories) do
+			local percent = (v / sum) * 100
+			print(string.format("%s: %d (%.2f%%)", k, v, percent))
+		end
+		print("------------------------")
+	end
+	self.bonus_difficulty_modifier = approach(self.bonus_difficulty_modifier, 0,
+		stepify(self.bonus_difficulty_modifier * 0.2, 0.05))
 	if self.secondary_weapon then
-        self:gain_secondary_weapon_ammo(self.secondary_weapon.ammo_gain_per_level)
+		self:gain_secondary_weapon_ammo(self.secondary_weapon.ammo_gain_per_level)
 	end
 end
 
@@ -499,9 +516,8 @@ function GlobalGameState:on_room_clear()
 		if self.artefacts.sacrificial_twin then
 			self:level_bonus("twin_protected")
 		end
-
 	else
-        self:level_bonus("final_room_clear")
+		self:level_bonus("final_room_clear")
 		if self.artefacts.sacrificial_twin then
 			self:level_bonus("twin_saved")
 		end
@@ -529,11 +545,10 @@ function GlobalGameState:on_room_clear()
 	if not self.used_secondary_weapon_this_level then
 		self:level_bonus("ammo_saver")
 	end
-
 end
 
 function GlobalGameState:on_final_room_entered()
-    self.final_room_entered = true
+	self.final_room_entered = true
 end
 
 function GlobalGameState:on_final_room_cleared()
@@ -544,12 +559,12 @@ end
 local RESCUE_CHAIN_MULTIPLIER_CAP = 20
 
 function GlobalGameState:on_rescue(rescue_object)
-    -- self.score_multiplier = self.score_multiplier + 0.1
-    self.rescues_saved = self.rescues_saved + 1
+	-- self.score_multiplier = self.score_multiplier + 0.1
+	self.rescues_saved = self.rescues_saved + 1
 	self.rescues_saved_this_level = self.rescues_saved_this_level + 1
 	-- self:gain_xp(0.5)
-    self.rescue_chain = self.rescue_chain + 1
-    self.rescue_chain_bonus = self.rescue_chain_bonus + 1
+	self.rescue_chain = self.rescue_chain + 1
+	self.rescue_chain_bonus = self.rescue_chain_bonus + 1
 	self.rescue_chain_bonus = min(self.rescue_chain_bonus, RESCUE_CHAIN_MULTIPLIER_CAP)
 	self.rescue_chain_difficulty = min(self.rescue_chain_difficulty + 1, 30)
 	self.highest_rescue_chain = max(self.highest_rescue_chain, self.rescue_chain)
@@ -558,11 +573,11 @@ function GlobalGameState:on_rescue(rescue_object)
 end
 
 function GlobalGameState:on_rescue_failed()
-    -- self.score_multiplier = self.score_multiplier - 0.25
+	-- self.score_multiplier = self.score_multiplier - 0.25
 	self.rescue_chain_difficulty = max(self.rescue_chain_difficulty - 12, 0)
-    self.rescue_chain = 0
+	self.rescue_chain = 0
 	self.rescue_chain_bonus = 0
-    self.any_room_failures = true
+	self.any_room_failures = true
 end
 
 function GlobalGameState:greenoid_harm_penalty()
@@ -571,60 +586,59 @@ end
 
 function GlobalGameState:on_greenoid_harmed()
 	self.harmed_noid = true
-    -- self.rescue_chain_bonus = self.rescue_chain_bonus - 3
-    -- if self.rescue_chain_bonus < 0 then
-    --     self.rescue_chain_bonus = 0
-    -- end
+	-- self.rescue_chain_bonus = self.rescue_chain_bonus - 3
+	-- if self.rescue_chain_bonus < 0 then
+	--     self.rescue_chain_bonus = 0
+	-- end
 	signal.emit(self, "greenoid_harmed")
 end
 
 function GlobalGameState:get_max_upgrade(upgrade_type)
 	local offset = 0
-    if self.artefacts.more_bullets and upgrade_type == "bullets" then
+	if self.artefacts.more_bullets and upgrade_type == "bullets" then
 		offset = offset + 1
 	end
-    return self.max_upgrades[upgrade_type] + offset
+	return self.max_upgrades[upgrade_type] + offset
 end
 
 function GlobalGameState:is_fully_upgraded()
-    for k, v in pairs(self.upgrades) do
-        if not self:get_max_upgrade(k) then
-            return false
-        end
-        if v < self:get_max_upgrade(k) then
-            return false
-        end
-    end
-    return true
+	for k, v in pairs(self.upgrades) do
+		if not self:get_max_upgrade(k) then
+			return false
+		end
+		if v < self:get_max_upgrade(k) then
+			return false
+		end
+	end
+	return true
 end
 
 function GlobalGameState:add_kill()
 	if self.game_over then return end
-    self.enemies_killed = self.enemies_killed + 1
+	self.enemies_killed = self.enemies_killed + 1
 end
 
 function GlobalGameState:add_score_multiplier(multiplier)
 	if self.game_over then return end
-    self.score_multiplier = self.score_multiplier + multiplier
+	self.score_multiplier = self.score_multiplier + multiplier
 	if self.score_multiplier < 1 then
 		self.score_multiplier = 1
 	end
 end
 
 function GlobalGameState:get_run_data_table()
-
 	local artefacts = {}
 
-	for i=1, GlobalGameState.max_artefacts do
+	for i = 1, GlobalGameState.max_artefacts do
 		artefacts[i] = self.artefact_slots[i] and self.artefact_slots[i].key or "none"
 	end
 
 	return {
 		name = savedata.name,
-        uid = savedata.uid,
+		uid = savedata.uid,
 		score = self.score,
-        --- extra stuff
-		leaderboard_version = LEADERBOARD_VERSION,
+		--- extra stuff
+		leaderboard_version = GAME_LEADERBOARD_VERSION,
 		timestamp = os.time(),
 		kills = self.enemies_killed,
 		level = self.level,
@@ -635,14 +649,14 @@ function GlobalGameState:get_run_data_table()
 		secondary_weapon = self.secondary_weapon and self.secondary_weapon.key,
 		good_ending = self.good_ending,
 		damage_taken = self.total_damage_taken,
-		highest_rescue_chain = self.highest_rescue_chain
+		highest_rescue_chain = self.highest_rescue_chain,
 	}
 end
 
 function GlobalGameState:gain_heart(heart)
-    self.hearts = self.hearts + 1
+	self.hearts = self.hearts + 1
 	if self.hearts > GlobalGameState.max_hearts then
-        self.hearts = GlobalGameState.max_hearts
+		self.hearts = GlobalGameState.max_hearts
 		if self.artefacts.stone_trinket and not self:is_fully_upgraded() then
 			local upgrade = self:get_random_available_upgrade(false)
 			if upgrade then
@@ -650,13 +664,13 @@ function GlobalGameState:gain_heart(heart)
 			end
 		end
 		game_state:level_bonus("overheal")
-    else
+	else
 		signal.emit(self, "player_heart_gained", heart)
 	end
 end
 
 function GlobalGameState:gain_powerup(powerup)
-    if powerup.bullet_powerup then
+	if powerup.bullet_powerup then
 		if powerup == self.bullet_powerup then
 			self.bullet_powerup_time = self.bullet_powerup_time + seconds_to_frames(powerup.bullet_powerup_time - 1)
 		else
@@ -664,6 +678,7 @@ function GlobalGameState:gain_powerup(powerup)
 			self.bullet_powerup_time = seconds_to_frames(powerup.bullet_powerup_time - 1)
 		end
 	end
+	if powerup.gained_function then powerup.gained_function(self) end
 	signal.emit(self, "player_powerup_gained", powerup)
 end
 
@@ -676,22 +691,22 @@ function GlobalGameState:get_score_breakdown()
 end
 
 function GlobalGameState:lose_heart()
-    if self.hearts > 0 then
-        self.hearts = self.hearts - 1
+	if self.hearts > 0 then
+		self.hearts = self.hearts - 1
 		signal.emit(self, "player_heart_lost")
-    end
+	end
 end
 
 function GlobalGameState:upgrade(upgrade)
 	local type = upgrade.upgrade_type
-    self.upgrades[type] = self.upgrades[type] + 1
-    if self.upgrades[type] > self:get_max_upgrade(type) then
-        self.upgrades[type] = self:get_max_upgrade(type)
-    else
+	self.upgrades[type] = self.upgrades[type] + 1
+	if self.upgrades[type] > self:get_max_upgrade(type) then
+		self.upgrades[type] = self:get_max_upgrade(type)
+	else
 		signal.emit(self, "player_upgraded", upgrade)
 	end
 
-    if debug.enabled then
+	if debug.enabled then
 		-- for k, v in pairs(self.upgrades) do
 		-- 	dbg("upgrade_" .. tostring(k), v)
 		-- end
@@ -699,7 +714,7 @@ function GlobalGameState:upgrade(upgrade)
 end
 
 function GlobalGameState:downgrade(upgrade)
-    local type = upgrade.upgrade_type
+	local type = upgrade.upgrade_type
 	if self.upgrades[type] > 0 then
 		self.upgrades[type] = self.upgrades[type] - 1
 		if self.upgrades[type] < 0 then
@@ -710,7 +725,7 @@ function GlobalGameState:downgrade(upgrade)
 end
 
 function GlobalGameState:random_downgrade()
-    local tab = {}
+	local tab = {}
 	local any_upgrades = false
 	for k, v in pairs(PickupTable.upgrades) do
 		if game_state.upgrades[v.upgrade_type] and game_state.upgrades[v.upgrade_type] > 0 then
@@ -719,13 +734,13 @@ function GlobalGameState:random_downgrade()
 		end
 	end
 	if any_upgrades then
-		local type = rng.choose(tab)
+		local type = rng:choose(tab)
 		self:downgrade(type)
 	end
 end
 
 function GlobalGameState:on_upgrade_xp_threshold_reached()
-    self.num_queued_upgrades = self.num_queued_upgrades + 1
+	self.num_queued_upgrades = self.num_queued_upgrades + 1
 	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
 	self.reached_upgrade_xp_at = self.xp
 
@@ -735,19 +750,19 @@ function GlobalGameState:on_upgrade_xp_threshold_reached()
 end
 
 function GlobalGameState:on_heart_xp_threshold_reached()
-    self.num_queued_hearts = self.num_queued_hearts + 1
+	self.num_queued_hearts = self.num_queued_hearts + 1
 	self.heart_xp_target = self.xp + self.xp_until_heart
 	self.reached_heart_xp_at = self.xp
 	signal.emit(self, "xp_threshold_reached", "heart")
 end
 
 -- function GlobalGameState:on_powerup_xp_threshold_reached()
-    -- self.num_queued_powerups = self.num_queued_powerups + 1
-	-- signal.emit(self, "xp_threshold_reached", "powerup")
+-- self.num_queued_powerups = self.num_queued_powerups + 1
+-- signal.emit(self, "xp_threshold_reached", "powerup")
 -- end
 
 function GlobalGameState:on_artefact_xp_threshold_reached()
-    self.num_queued_artefacts = self.num_queued_artefacts + 1
+	self.num_queued_artefacts = self.num_queued_artefacts + 1
 	self.artefact_xp_target = self.xp + self.xp_until_artefact
 	self.reached_artefact_xp_at = self.xp
 	signal.emit(self, "xp_threshold_reached", "artefact")
@@ -760,64 +775,71 @@ local EXTRA_CHAIN_BASE = 1.4
 local MAX_SCORE_MULTIPLIER = 30
 
 function GlobalGameState:get_score_multiplier(include_rescue_chain)
-    local multiplier = self.score_multiplier
+	local multiplier = self.score_multiplier
 
-    if include_rescue_chain == nil then
-        include_rescue_chain = true
-    end
+	if include_rescue_chain == nil then
+		include_rescue_chain = true
+	end
 
 
-    if include_rescue_chain then
-        multiplier = multiplier + self:get_rescue_chain_multiplier()
-    end
+	if include_rescue_chain then
+		multiplier = multiplier + self:get_rescue_chain_multiplier()
+	end
 
-    multiplier = multiplier * (1 + self:get_difficulty_modifier(false))
-    multiplier = stepify_floor(multiplier, MIN_SCORE_MULTIPLIER)
-    multiplier = min(multiplier, MAX_SCORE_MULTIPLIER)
+	multiplier = multiplier * (1 + self:get_difficulty_modifier(false))
+	multiplier = stepify_floor(multiplier, MIN_SCORE_MULTIPLIER)
+	multiplier = min(multiplier, MAX_SCORE_MULTIPLIER)
 
-    return multiplier
+	return multiplier
+end
+
+function GlobalGameState:artefacts_full()
+	for i = 1, GlobalGameState.max_artefacts do
+		if not self.artefact_slots[i] then
+			return false
+		end
+	end
+	return true
 end
 
 function GlobalGameState:get_rescue_chain_multiplier()
-    -- local rescue_chain_multiplier = self.rescue_chain
-    -- local max_chain = MAX_CHAIN - 4
+	-- local rescue_chain_multiplier = self.rescue_chain
+	-- local max_chain = MAX_CHAIN - 4
 
-    -- if rescue_chain_multiplier > max_chain then
-    --     local extra = rescue_chain_multiplier - max_chain
+	-- if rescue_chain_multiplier > max_chain then
+	--     local extra = rescue_chain_multiplier - max_chain
 
-    --     local scaled_extra = (logb(extra + 1.50, EXTRA_CHAIN_BASE) * EXTRA_CHAIN_MULTIPLIER) +
-    --         (extra * MIN_SCORE_MULTIPLIER - MIN_SCORE_MULTIPLIER)
-    --     scaled_extra = min(scaled_extra, extra)
+	--     local scaled_extra = (logb(extra + 1.50, EXTRA_CHAIN_BASE) * EXTRA_CHAIN_MULTIPLIER) +
+	--         (extra * MIN_SCORE_MULTIPLIER - MIN_SCORE_MULTIPLIER)
+	--     scaled_extra = min(scaled_extra, extra)
 
-    --     rescue_chain_multiplier = max_chain + scaled_extra
-    -- else
-    --     rescue_chain_multiplier = self.rescue_chain
-    -- end
+	--     rescue_chain_multiplier = max_chain + scaled_extra
+	-- else
+	--     rescue_chain_multiplier = self.rescue_chain
+	-- end
 
-    -- return clamp(rescue_chain_multiplier, 0, RESCUE_CHAIN_MULTIPLIER_CAP)
+	-- return clamp(rescue_chain_multiplier, 0, RESCUE_CHAIN_MULTIPLIER_CAP)
 
 	return self.rescue_chain_bonus
 end
 
-
 local DIFFICULTY_MULTIPLIER = 0.4
 
 function GlobalGameState:get_difficulty_modifier(include_rescue_chain)
-
 	if not self.enable_adaptive_difficulty then
 		return 0
 	end
 
-    if include_rescue_chain == nil then
+	if include_rescue_chain == nil then
 		include_rescue_chain = true
 	end
 
-    local upgrade_sum = 0
-    for upgrade, count in pairs(self.upgrades) do
-        upgrade_sum = upgrade_sum + count
-    end
+	local upgrade_sum = 0
+	for upgrade, count in pairs(self.upgrades) do
+		upgrade_sum = upgrade_sum + count
+	end
 
-    local upgrade_modifier = upgrade_sum / 12
+	local upgrade_modifier = upgrade_sum / 12
 	local heart_modifier = self.hearts / 6
 
 	local rescue_modifier = include_rescue_chain and (min(self.rescue_chain_difficulty / 30, 1) * 0.35) or 0
@@ -833,10 +855,12 @@ end
 
 function GlobalGameState:on_artefact_destroyed(artefact)
 	if artefact.key == "sacrificial_twin" then
-        self:queue_level_bonus("twin_killed")
+		self:queue_level_bonus("twin_killed")
 		self.used_sacrificial_twin = true
 	end
-    self.artefacts_destroyed[artefact.key] = true
+	if not artefact.infinite_spawns then
+		self.artefacts_destroyed[artefact.key] = true
+	end
 end
 
 function GlobalGameState:determine_score(score)
@@ -844,12 +868,12 @@ function GlobalGameState:determine_score(score)
 end
 
 function GlobalGameState:get_random_available_upgrade(allow_nil)
-    if allow_nil == nil then
+	if allow_nil == nil then
 		allow_nil = true
 	end
-    local tab = {}
-    for k, v in pairs(PickupTable.upgrades) do
-        if not v.base then
+	local tab = {}
+	for k, v in pairs(PickupTable.upgrades) do
+		if not v.base then
 			if not allow_nil then
 				if self:get_max_upgrade(v.upgrade_type) then
 					if self.upgrades[v.upgrade_type] < self:get_max_upgrade(v.upgrade_type) then
@@ -860,21 +884,21 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
 				table.insert(tab, v)
 			end
 		end
-    end
+	end
 
-    local v = rng.weighted_choice(tab, function(upgrade)
-        local weight = try_function(upgrade.spawn_weight)
-	
+	local v = rng:weighted_choice(tab, function(upgrade)
+		local weight = try_function(upgrade.spawn_weight)
+
 		if table.list_has(self.recently_selected_upgrades, upgrade.upgrade_type) then
 			weight = weight / 100
 		end
 		return weight
 	end)
-	
+
 	if allow_nil and v and self:get_max_upgrade(v.upgrade_type) then
 		if self.upgrades[v.upgrade_type] < self:get_max_upgrade(v.upgrade_type) then
-            return v
-        else
+			return v
+		else
 			return nil
 		end
 	end
@@ -890,57 +914,63 @@ function GlobalGameState:use_sacrificial_twin()
 end
 
 function GlobalGameState:prune_artefact(artefact)
-    table.insert(self.recently_selected_artefacts, artefact.key)
+	table.insert(self.recently_selected_artefacts, artefact.key)
 	if #self.recently_selected_artefacts > 3 then
 		table.remove(self.recently_selected_artefacts, 1)
 	end
 end
 
 function GlobalGameState:prune_upgrade(upgrade)
-    table.insert(self.recently_selected_upgrades, upgrade.upgrade_type)
+	table.insert(self.recently_selected_upgrades, upgrade.upgrade_type)
 	if #self.recently_selected_upgrades > 3 then
 		table.remove(self.recently_selected_upgrades, 1)
 	end
 end
 
 function GlobalGameState:get_random_available_artefact()
+	local tab = {}
+    local random_secondary_weapon_pool = {}
+	local spawn_when_full_pool = {}
 
-    local tab = {}
-    for k, v in pairs(PickupTable.artefacts) do
-        if not v.base then
-
+	for k, v in pairs(PickupTable.artefacts) do
+		if not v.base then
 			-- if not self.secondary_weapon then
 			-- 	if not v.is_secondary_weapon then
 			-- 		goto continue
 			-- 	end
 			-- end
 
+
 			if self.artefacts[v.key] then
 				goto continue
 			end
-			
+
 			if self.last_spawned_artefacts[v.key] then
 				goto continue
 			end
-            
+
 			if table.list_has(self.recently_selected_artefacts, v.key) then
-                goto continue
-            end
-            
+				goto continue
+			end
+
 			if self.used_sacrificial_twin and v.key == "sacrificial_twin" then
-                goto continue
-            end
+				goto continue
+			end
 
             if self.artefacts_destroyed[v.key] then
                 goto continue
             end
 			
+			if v.requires_secondary_weapon and self.secondary_weapon == nil then
+				goto continue
+			end
+
 			if v.can_spawn then
 				if not v.can_spawn() then
 					goto continue
 				end
 			end
-			
+
 			if v.requires_artefacts then
 				for _, artefact in pairs(v.requires_artefacts) do
 					if not self.artefacts[artefact] then
@@ -950,6 +980,20 @@ function GlobalGameState:get_random_available_artefact()
 			end
 
 			if self.secondary_weapon == v then
+				goto continue
+			elseif self.already_selected_secondary_weapon_this_level and v.is_secondary_weapon and not self.num_spawned_artefacts == 1 then
+				goto continue
+			elseif v.is_secondary_weapon then
+				if self.num_spawned_artefacts < 1 then
+					goto continue
+				end
+
+				table.insert(random_secondary_weapon_pool, v)
+				goto continue
+			end
+
+			if v.spawn_when_full then
+				table.insert(spawn_when_full_pool, v)
 				goto continue
 			end
 
@@ -963,55 +1007,105 @@ function GlobalGameState:get_random_available_artefact()
 			table.insert(tab, v)
 			::continue::
 		end
-    end
+	end
 
-    local v = rng.weighted_choice(tab, function(artefact)
+	local num_total_weapons = 0
+
+	if self:artefacts_full() and not self.secondary_weapon then
+		tab = random_secondary_weapon_pool
+	end
+
+	if self:artefacts_full() and self.secondary_weapon then
+		tab = spawn_when_full_pool
+	end
+
+    if table.is_empty(tab) then
+		tab = spawn_when_full_pool
+	end
+
+	if #random_secondary_weapon_pool > 0 then
+		table.insert(tab, rng:weighted_choice(random_secondary_weapon_pool, function(weapon)
+			return weapon.spawn_weight
+		end))
+	end
+
+	-- for _, v in pairs(PickupTable.artefacts) do
+	-- 	if not v.base and v.is_secondary_weapon then
+	-- 		num_total_weapons = num_total_weapons + 1
+	-- 	end
+	-- end
+
+	local v = rng:weighted_choice(tab, function(artefact)
 		local weight = try_function(artefact.spawn_weight)
-        
+
 		if debug.enabled and artefact.debug_spawn_weight then
-            weight = artefact.debug_spawn_weight
-        end
-	
+			weight = artefact.debug_spawn_weight
+		end
+
 		if artefact.is_secondary_weapon then
-			if self.secondary_weapon then
-                weight = weight * 0.01
-			end
+
+			-- weight = weight / max(num_total_weapons, 1)
+
+            if self.secondary_weapon then
+                weight = min(weight, 300)
+            else
+                if self.num_spawned_artefacts >= 1 and not self.secondary_weapon then
+                    weight = 1000000000000
+                else
+                    weight = 5000
+                end
+				if self.weapons_picked and self.weapons_picked[artefact.key] then
+					weight = weight / 100
+				end
+            end
+			
+			
+
 		end
 
 		return weight
 	end)
 
+	if v and v.is_secondary_weapon then
+		self.already_selected_secondary_weapon_this_level = true
+        self.spawned_guaranteed_secondary_weapon = true
+		self.weapons_picked = self.weapons_picked or {}
+		self.weapons_picked[v.key] = true
+	end
 
 	return v
 end
 
 function GlobalGameState:get_random_powerup()
 	local tab = {}
-    for k, v in pairs(PickupTable.powerups) do
-        if v.base then
-            goto continue
-        end
+	for k, v in pairs(PickupTable.powerups) do
+		if v.base then
+			goto continue
+		end
         if v.subtype ~= "powerup" then
             goto continue
         end
-        table.insert(tab, v)
-        ::continue::
-    end
-	local v = rng.weighted_choice(tab, "spawn_weight")
+		if v.no_spawn then
+			goto continue
+		end
+		table.insert(tab, v)
+		::continue::
+	end
+	local v = rng:weighted_choice(tab, "spawn_weight")
 
-    return v
+	return v
 end
 
 function GlobalGameState:get_random_heart()
-    local heart = rng.choose(table.filtered(table.values(PickupTable.hearts), function(heart)
-        return not heart.base
-    end))
+	local heart = rng:choose(table.filtered(table.values(PickupTable.hearts), function(heart)
+		return not heart.base
+	end))
 	-- table.pretty_print(heart)
 	return heart
 end
 
 function GlobalGameState:consume_upgrade()
-    self.num_queued_upgrades = max(0, self.num_queued_upgrades - 1)
+	self.num_queued_upgrades = max(0, self.num_queued_upgrades - 1)
 end
 
 -- function GlobalGameState:consume_powerup()
@@ -1019,17 +1113,17 @@ end
 -- end
 
 function GlobalGameState:consume_heart()
-    self.num_queued_hearts = max(0, self.num_queued_hearts - 1)
+	self.num_queued_hearts = max(0, self.num_queued_hearts - 1)
 end
 
 function GlobalGameState:consume_artefact()
-    self.num_queued_artefacts = max(0, self.num_queued_artefacts - 1)
+	self.num_queued_artefacts = max(0, self.num_queued_artefacts - 1)
 end
 
 function GlobalGameState:add_score(score, score_category)
 	if self.game_over then return end
 	-- if score <= 0 then return end
-    self.score = self.score + score
+	self.score = self.score + score
 	self.score = max(self.score, 0)
 	assert(type(score_category) == "string", "score_category must be a string")
 	self.score_categories[score_category] = self.score_categories[score_category] or 0

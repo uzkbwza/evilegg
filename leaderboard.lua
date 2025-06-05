@@ -4,7 +4,6 @@
 -- this code is mostly LLM generated. it probably sucks! 
 -- please do not use it to make my life harder.
 
-LEADERBOARD_VERSION = "0.0.0"
 
 local socket = require "socket"
 local json   = require "lib.json"
@@ -13,7 +12,7 @@ local thread = require "love.thread"
 local LB = {}
 LB.host, LB.port    = "168.235.104.144", 5000
 
-LB.default_category = debug.enabled and "debug" or "normal"
+LB.default_category = (debug.enabled and "debug" or "normal")
 
 LB.categories = {
 	"normal",
@@ -113,26 +112,35 @@ end
 ----------------------------------------------------------------------
 -- helpers to add category or default it -----------------------------
 ----------------------------------------------------------------------
-local function cat(arg_cat) return arg_cat or LB.default_category end
+local function cat(arg_cat)
+    local c = arg_cat or LB.default_category
+    return c .. "_" .. GAME_LEADERBOARD_VERSION
+end
+
+LB.cat = cat
 
 ----------------------------------------------------------------------
 -- API ---------------------------------------------------------------
 ----------------------------------------------------------------------
-function LB.submit(run, cb, category)
-	local _run = table.deepcopy(run); _run.cmd="submit"; _run.category = cat(category)
+function LB.submit(run, category, process_name, cb)
+	category = (process_name or category == nil) and cat(category) or category
+	local _run = table.deepcopy(run); _run.cmd="submit"; _run.category = (category)
 	rpc(_run, cb)   -- here 'name' is the callback
 end
 
-function LB.fetch(page, per, category, cb)
-    rpc({cmd="fetch", uid=savedata.uid, page=page, per=per, category=cat(category)}, cb)
+function LB.fetch(page, per, category, process_name, cb)
+	category = process_name and cat(category) or category
+    rpc({cmd="fetch", uid=savedata.uid, page=page, per=per, category=(category)}, cb)
 end
 
-function LB.lookup(uid, per, category, cb)
+function LB.lookup(uid, per, category, process_name, cb)
+	category = process_name and cat(category) or category
     if type(per) == "function" then cb, per, category = per, nil, category end
-    rpc({cmd="lookup", user=uid, per=per, category=cat(category)}, cb)
+    rpc({cmd="lookup", user=uid, per=per, category=(category)}, cb)
 end
 
-function LB.page_with_user(uid, per, category, cb)
+function LB.page_with_user(uid, per, category, process_name, cb)
+	category = process_name and cat(category) or category
 	LB.lookup(uid, per, category, function(ok, res)
 		if not ok then
 			cb(false, res)

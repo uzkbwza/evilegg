@@ -404,7 +404,7 @@ function CanvasLayer:clear()
 end
 
 ---@param old_layer_or_index number|CanvasLayer|string
----@param new_layer 
+---@param new_layer CanvasLayer|string
 function CanvasLayer:replace_layer(old_layer_or_index, new_layer)
     local index = type(old_layer_or_index) == "number" and old_layer_or_index or self:get_index_of_layer(old_layer_or_index)
     if not index then return end
@@ -712,6 +712,8 @@ function CanvasLayer:update(dt) end
 function CanvasLayer:pre_world_draw() end
 function CanvasLayer:draw() end
 function CanvasLayer:enter() end
-function CanvasLayer:exit() end
+function CanvasLayer:exit()
+	
+end
 
 return CanvasLayer

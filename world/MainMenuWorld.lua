@@ -23,7 +23,7 @@ function MainMenuWorld:enter()
 	-- self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
     self:start_timer("create_buttons", 10, function() self:create_buttons() end)
-    self:ref("title_text", self:spawn_object(TitleTextObject(2, 50)))
+    self:ref("title_text", self:spawn_object(TitleTextObject(2, 38)))
 	local title_y = self.title_text.pos.y
 	local s = self.sequencer
     s:start(function()

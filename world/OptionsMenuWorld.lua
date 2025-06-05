@@ -97,7 +97,7 @@ function OptionsMenuWorld:enter()
 			end
 		end
 	},
-	{ "screen_shader_preset", item_type = "cycle", options = { "shader_preset_soft", "shader_preset_scanline", "shader_preset_lcd", "shader_preset_ledboard", "shader_preset_none" },
+	{ "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
 
 		get_func = function()
 			-- if usersettings.use_screen_shader then
@@ -160,6 +160,14 @@ function OptionsMenuWorld:enter()
         self.menu_items[1]:add_neighbor(self.menu_items[#self.menu_items], "up")
         self.menu_items[#self.menu_items]:add_neighbor(self.menu_items[1], "down")
     end
+end
+
+function OptionsMenuWorld:get_screen_shader_presets()
+	local presets = {}
+	for _, preset in ipairs(graphics.screen_shader_presets) do
+		table.insert(presets, preset[1])
+	end
+	return presets
 end
 
 function OptionsMenuWorld:add_menu_item(menu_table)

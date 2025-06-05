@@ -294,6 +294,10 @@ function HUDLayer:update(dt)
 		self.skipping_bonus_screen = true
 	end
 
+	if input.show_hud_held then
+		self:start_timer("show_hud_held", 2)
+	end 
+
 	for i, meter in ipairs(self.xp_bars) do
 		if meter.xp < game_state.xp then
 			meter.xp = approach(meter.xp, game_state.xp, dt * 30)
@@ -305,7 +309,8 @@ function HUDLayer:update(dt)
         table.insert(self.xp_bars, first)
     end
 	
-    self.world.showing = self:should_show()
+	self.world.showing = self:should_show()
+	self.world.force_show_time = self:is_timer_running("show_hud_held")
 end
 
 local bonus_palette = PaletteStack:new(Color.black, Color.white)
@@ -314,6 +319,8 @@ function HUDLayer:should_show()
     if self.parent.ui_layer.state == "Paused" then return true end
 	
 	if game_state.game_over_screen_force_hud then return true end
+
+	if self:is_timer_running("show_hud_held") then return true end
 
 	return usersettings.show_hud
 end
@@ -408,7 +415,9 @@ function HUDLayer:pre_world_draw()
 	graphics.translate(charwidth * 20 + 6, 0)
 	graphics.translate(charwidth * 11 + 3, 0)
 
-	local high_score = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].score or 0
+
+	local category_high = savedata:get_category_highs(game_state.leaderboard_category)
+	local high_score = category_high and category_high.score or 0
 
 	if self.score_display < high_score then
 		graphics.set_color(Color.darkgrey)

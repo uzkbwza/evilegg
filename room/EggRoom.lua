@@ -88,7 +88,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
         if choice == "kill_elevator" then
 			audio.play_music_if_stopped("music_evil_player_theme")
 
-			local boss = rng.choose(bosses)
+			local boss = rng:choose(bosses)
             self["boss_" .. boss](self)
 			
 			if self.world.player_died then
@@ -115,10 +115,9 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 			-- audio.stop_music()\
             audio.play_music_if_stopped("music_egg_boss_ambience", 1.0)
 			
-            -- signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
-				
-			
-			-- end, true)
+            signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
+				-- audio.play_music("music_egg_boss1", 1.0)
+			end, true)
 			
             while self.egg_boss do
                 s:wait(1)

@@ -66,19 +66,19 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, u
 		self.pixel_count = PIXEL_COUNT * self.size_mod
 
 		for i = 1, self.pixel_count do
-			local vel_x, vel_y = rng.random_vec2()
-			vel_x = vel_x * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
-			vel_y = vel_y * SPEED * self.size_mod * rng.randfn(0.5, 0.15)
+			local vel_x, vel_y = rng:random_vec2()
+			vel_x = vel_x * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
+			vel_y = vel_y * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
 			
 
 			local darkergrey = Color.darkergrey
-			local alpha = clamp(rng.randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)
+			local alpha = clamp(rng:randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)
 			local pixel = {
 				x = vel_x * 0.25,
 				y = vel_y * 0.25,
 				vel_x = vel_x,
 				vel_y = vel_y,
-				radius = rng.randfn(1, 0.5) / 2,
+				radius = rng:randfn(1, 0.5) / 2,
 				color = Color(alpha, alpha, alpha)
 			}
 			pixels[i] = pixel
@@ -182,7 +182,7 @@ function DeathFlash:floor_draw()
 		graphics.pop()
 		for i = 1, 10 do
 			graphics.set_color(Color.black)
-			graphics.rectangle_centered("fill", rng.randf(-size, size), rng.randf(-size, size), rng.randf(1, 10) * self.size_mod, rng.randf(1, 10) * self.size_mod)
+			graphics.rectangle_centered("fill", rng:randf(-size, size), rng:randf(-size, size), rng:randf(1, 10) * self.size_mod, rng:randf(1, 10) * self.size_mod)
 		end
 	end
 

@@ -102,23 +102,23 @@ function EggElevator:update(dt)
 		end
 
 		if self.back and ((not self:is_tick_timer_running("pillar_cooldown")) or #self.pillars == 0) and not self.stop_pillars then
-			if rng.percent(90) then
-				self:play_sfx(rng.choose(pillar_spawn_sfx), 0.23)
+			if rng:percent(90) then
+				self:play_sfx(rng:choose(pillar_spawn_sfx), 0.23)
 			end
-			self:start_tick_timer("pillar_cooldown", rng.randi_range(5, 40))
-			local start_offset_x, start_offset_y = rng.random_vec2_times(rng.randfn(rng.randf_range(-3, 3), 7))
+			self:start_tick_timer("pillar_cooldown", rng:randi_range(5, 40))
+			local start_offset_x, start_offset_y = rng:random_vec2_times(rng:randfn(rng:randf_range(-3, 3), 7))
 			start_offset_y = start_offset_y * 0.65
 			local pillar = {
 				start_offset_x = start_offset_x,
 				start_offset_y = start_offset_y,
-				width = abs(rng.randfn(10, 6)),
-				shine_x_offset = rng.randfn(0, 5),
-				-- shine_angle_offset = rng.randfn(0, 0.1),
+				width = abs(rng:randfn(10, 6)),
+				shine_x_offset = rng:randfn(0, 5),
+				-- shine_angle_offset = rng:randfn(0, 0.1),
 				t = 0.0,
 				elapsed = 0.0,
-				lifetime = rng.randi_range(90, 450),
-				random_offset = rng.randi(),
-				random_offset2 = rng.randi(),
+				lifetime = rng:randi_range(90, 450),
+				random_offset = rng:randi(),
+				random_offset2 = rng:randi(),
 			}
 			table.insert(self.pillars, pillar)
 			local s = self.sequencer
@@ -129,8 +129,9 @@ function EggElevator:update(dt)
 		end
 	end
 	
-	local force_elevator = debug.enabled and debug.fast_forward
+	-- local force_elevator = debug.enabled and debug.fast_forward
 	-- local force_elevator = debug.enabled
+	-- local force_elevator = false
 
     if (not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator) then
         local closest_player = self:get_closest_player()

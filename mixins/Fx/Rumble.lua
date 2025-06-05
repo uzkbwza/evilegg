@@ -16,8 +16,8 @@ function Rumble:__mix_init()
 end
 
 function Rumble:get_rumble_vec()
-	local dx, dy = rng.random_vec2()
-	return (dx * rng.randf(self.rumble_amount*0.5, self.rumble_amount)), (dy * rng.randf(self.rumble_amount*0.5, self.rumble_amount))
+	local dx, dy = rng:random_vec2()
+	return (dx * rng:randf(self.rumble_amount*0.5, self.rumble_amount)), (dy * rng:randf(self.rumble_amount*0.5, self.rumble_amount))
 end
 
 function Rumble:start_rumble(amount, duration, easing_function)

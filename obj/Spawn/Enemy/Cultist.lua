@@ -125,7 +125,7 @@ function Cultist:update(dt)
                 local rescue_pos = Vec2(self:to_local(rescue.pos.x, rescue.pos.y))
                 rescue_pos.y = 0
 				if rescue_pos.x == 0 then
-					rescue_pos.x = rng.rand_sign()
+					rescue_pos.x = rng:rand_sign()
 				end
 				rescue_pos:normalize_in_place():mul_in_place(GRAB_RADIUS)
                 self.hold_positions[rescue] = rescue_pos
@@ -142,13 +142,13 @@ function Cultist:update(dt)
                         end
                         rescue:damage(1)
                         self:start_timer("heal_fx", 25)
-                        self:heal(5, true)
+                        self:heal(4, true)
                     end
                     self:spawn_object(BiteParticle(bx, by))
                     self:play_sfx("enemy_cultist_bite")
 
                     s:wait(HURT_TIME)
-                    -- while rng.percent(80) do
+                    -- while rng:percent(80) do
                     s:wait(10)
                     -- end
                     if not self.hold_positions[rescue] then
@@ -172,8 +172,8 @@ function Cultist:update(dt)
             pulled = true
             local dx, dy = self:body_direction_to(rescue)
             rescue:apply_force(-dx * PULL_FORCE, -dy * PULL_FORCE)
-            if self.is_new_tick and rng.percent(80) then
-                for i = 1, rng.randi_range(1, 2) do
+            if self.is_new_tick and rng:percent(80) then
+                for i = 1, rng:randi_range(1, 2) do
                     self.pull_particle:add_particle(rescue:get_body_center())
                 end
             end
@@ -259,20 +259,20 @@ function Cultist:spawn_rescue_projectile()
     -- projectile.target = self:get_closest_player()
 
     local s = self.sequencer
-    local num_projectiles = rng.randi_range(2, 5)
-    if rng.percent(10) then
-		num_projectiles = num_projectiles + rng.randi_range(1, 3)
+    local num_projectiles = rng:randi_range(2, 5)
+    if rng:percent(10) then
+		num_projectiles = num_projectiles + rng:randi_range(1, 3)
 	end
 	s:start(function()
         for i = 1, num_projectiles do
 			local x, y = self:get_body_center()
 
 			local projectile = self:spawn_object(CultistBullet(x, y))
-			projectile:apply_impulse(rng.random_vec2_times(1.15))
+			projectile:apply_impulse(rng:random_vec2_times(1.15))
 			s:wait(15)
 		end
     end)
-	self:start_tick_timer("spawn_projectile", rng.randi_range(20, 50) * num_projectiles, function()
+	self:start_tick_timer("spawn_projectile", rng:randi_range(20, 50) * num_projectiles, function()
         if self.powered_up then
 			self:spawn_rescue_projectile()
 		end
@@ -358,11 +358,11 @@ end
 function PullParticle:add_particle(start_x, start_y)
 	local particle = {}
 	local bx, by = self.parent:get_body_center()
-	local offset_x, offset_y = rng.random_vec2_times(rng.randf(10, 2))
+	local offset_x, offset_y = rng:random_vec2_times(rng:randf(10, 2))
 	particle.start_x = start_x + offset_x
     particle.start_y = start_y + offset_y
 
-	local end_offset_x, end_offset_y = rng.random_vec2_times(rng.randf(10, 2))
+	local end_offset_x, end_offset_y = rng:random_vec2_times(rng:randf(10, 2))
 	particle.end_offset_x = end_offset_x
     particle.end_offset_y = end_offset_y
 	
@@ -370,12 +370,12 @@ function PullParticle:add_particle(start_x, start_y)
 	particle.end_y = by
     particle.t = 0
 	particle.elapsed = 0
-    particle.size = rng.randf_range(0.25, 1) * 4
+    particle.size = rng:randf_range(0.25, 1) * 4
 	self.particles[particle] = true
 
 	local s = self.sequencer
     s:start(function()
-        s:tween_property(particle, "t", 0, 1, rng.randfn(20, 5), "inOutQuad")
+        s:tween_property(particle, "t", 0, 1, rng:randfn(20, 5), "inOutQuad")
 		self.particles[particle] = nil
 	end)
 end
@@ -417,25 +417,25 @@ end
 function FloorParticle:finish()
 	self.done = true
 	for particle, _ in pairs(self.particles) do
-		particle.outward_speed = abs(rng.randfn(2, 0.5))
+		particle.outward_speed = abs(rng:randfn(2, 0.5))
 	end
 end
 
 function FloorParticle:update(dt)
 	if self.parent ~= nil then
-		if self.is_new_tick and not self.done and rng.percent(40 * (1 + (self.parent.hp - 4) / 3)) then
+		if self.is_new_tick and not self.done and rng:percent(40 * (1 + (self.parent.hp - 4) / 3)) then
 			local particle = {}
-			particle.dist = rng.randf_range(12, 64) * (1 + (self.parent.hp - 4) / 6)
-			particle.start_angle = rng.randf_range(0, tau)
+			particle.dist = rng:randf_range(12, 64) * (1 + (self.parent.hp - 4) / 6)
+			particle.start_angle = rng:randf_range(0, tau)
 			particle.t = 0
-			particle.visible = rng.percent(25)
+			particle.visible = rng:percent(25)
 			particle.angle_offset = 0
 			particle.elapsed = 0
 			particle.outward_offset = 0
 			particle.outward_speed = 0
-			particle.final_offset = rng.randf(-1, 1) * tau
-			particle.size = rng.randf_range(0.25, 1) * 4 * (1 + (self.parent.hp - 4) / 8)
-			particle.offset = rng.randf(0, tau)
+			particle.final_offset = rng:randf(-1, 1) * tau
+			particle.size = rng:randf_range(0.25, 1) * 4 * (1 + (self.parent.hp - 4) / 8)
+			particle.offset = rng:randf(0, tau)
 			self.particles[particle] = true
 		end
 	end
@@ -495,17 +495,17 @@ function FloorParticle:floor_draw()
 	if not self.done then
 		graphics.set_color(0, 0, 0, 1)
 		
-		for i = 1, rng.randi_range(1, 3) do
-			local size = rng.randf_range(2, 5)
-			local vx, vy = rng.random_vec2_times(rng.randfn(0, 3))
+		for i = 1, rng:randi_range(1, 3) do
+			local size = rng:randf_range(2, 5)
+			local vx, vy = rng:random_vec2_times(rng:randfn(0, 3))
 			graphics.rectangle_centered("fill", vx, vy, size, size)
 		end
 	end
 	
     for particle, _ in pairs(self.particles) do
 
-		if rng.percent(60) then goto continue end
-		local alpha = abs(rng.randfn(0.35, 0.055)) * particle.angle_offset
+		if rng:percent(60) then goto continue end
+		local alpha = abs(rng:randfn(0.35, 0.055)) * particle.angle_offset
 		graphics.set_color(alpha * 1, alpha * 0.1, 0)
 		local size = particle.size * (particle.angle_offset)
 		local vx, vy = self:get_particle_position(particle)
@@ -582,7 +582,7 @@ function CultistBullet:update(dt)
     end
     if self.is_new_tick then 
 		local bx, by = self:get_body_center()
-		self:spawn_object(CultistBulletFx(vec2_add(bx, by, rng.random_vec2_times(rng.randf(0, 2)))))
+		self:spawn_object(CultistBulletFx(vec2_add(bx, by, rng:random_vec2_times(rng:randf(0, 2)))))
         if self.tick == self.home_time then
 			self:play_sfx("enemy_cultist_bullet_home")
 		end

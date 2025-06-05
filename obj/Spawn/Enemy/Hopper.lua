@@ -44,7 +44,7 @@ function Hopper:state_Waiting_enter()
     self.sprite = textures.enemy_hopper1
 	local s = self.sequencer
 	s:start(function()
-		s:wait(rng.randi_range(self.min_wait_time, (not self.started) and self.max_start_time or self.max_wait_time))
+		s:wait(rng:randi_range(self.min_wait_time, (not self.started) and self.max_start_time or self.max_wait_time))
 		self.started = true
         self:change_state("Hopping")
 	end)
@@ -56,13 +56,13 @@ end
 
 function Hopper:state_Hopping_enter()
     self.sprite = textures.enemy_hopper3
-    local hop_dir = Vec2(rng.random_8_way_direction())
+    local hop_dir = Vec2(rng:random_8_way_direction())
     self:apply_impulse(hop_dir.x * self.hop_speed, hop_dir.y * self.hop_speed)
 	self:play_sfx(self.hop_sfx, 1.0, 1.0)
 end
 
 function Hopper:state_Hopping_exit()
-	-- if rng.percent(100) then
+	-- if rng:percent(100) then
 		self:play_sfx(self.shoot_sfx, 1.0, 1.0)
 		for i = 1, self.number_hop_bullets do
 			local angle = (tau / self.number_hop_bullets) * i + self.elapsed
@@ -75,7 +75,9 @@ end
 
 function Hopper:state_Hopping_update(dt)
 	local speed = self.vel:magnitude()
-    self:set_body_height(splerp(self.body_height, self.default_body_height + speed * self.body_height_mod, 190, dt))
+	local target_height = self.default_body_height + speed * self.body_height_mod
+	target_height = min(target_height, 32)
+    self:set_body_height(splerp(self.body_height, target_height, 190, dt))
 	if speed < 0.125 then
 		self:change_state("Waiting")
 	end
@@ -93,7 +95,7 @@ function FastHopper:new(x, y)
 	self.max_hp = 2
 	self.drag = 0.325
 	self.hop_speed = 7.5
-	self.number_hop_bullets = floor(rng.randfn(3, 0.15))
+	self.number_hop_bullets = floor(rng:randfn(3, 0.15))
 	self.min_wait_time = 20
 	self.max_wait_time = 90
 	self.max_start_time = 90
@@ -140,7 +142,7 @@ function BigHopper:state_Hopping_exit()
 	BigHopper.super.state_Hopping_exit(self)
     self.drag = 0.05
 
-	local num_hoppers = rng.randi(2, 7)
+	local num_hoppers = rng:randi(2, 7)
 
 	if not game_state.game_over then
 		for i = 1, num_hoppers do

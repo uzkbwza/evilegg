@@ -2,13 +2,13 @@ local MuzzleFlashSmoke = Effect:extend("MuzzleFlashSmoke")
 
 function MuzzleFlashSmoke:new(x, y, duration, size, palette, speed, dir_x, dir_y, offset_distance)
 	MuzzleFlashSmoke.super.new(self, x, y)
-	self.duration = duration * rng.randfn(1.0, 0.15)
+	self.duration = duration * rng:randfn(1.0, 0.15)
 	self.size = size
 	self.z_index = 0.5
 	self.speed = speed or 0.5
 	self.palette = palette or Palette.muzzle_flash_smoke
-	self.offset = rng.randi()
-	self.offset_x, self.offset_y = rng.randfn(0, size / 8), rng.randfn(0, size / 8)
+	self.offset = rng:randi()
+	self.offset_x, self.offset_y = rng:randfn(0, size / 8), rng:randfn(0, size / 8)
 	self.dir_x, self.dir_y = vec2_rotated(dir_x or 0, dir_y or 0, angle_diff(vec2_angle(self.offset_x, self.offset_y), vec2_angle(dir_x, dir_y)) * 0.25)
 	self.offset_distance = offset_distance or 0
 end

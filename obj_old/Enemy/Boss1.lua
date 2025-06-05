@@ -146,38 +146,38 @@ end
 
 function Boss1:phase1(sequence)
 
-	if rng.coin_flip() then
+	if rng:coin_flip() then
 		table.insert(sequence, "ShortHover")
 	else
 		table.insert(sequence, "Hover")
 	end
-	if (self.state_counter % 4 == 0) or rng.percent(5) and self.state_counter ~= 1 then 
+	if (self.state_counter % 4 == 0) or rng:percent(5) and self.state_counter ~= 1 then 
 		table.insert(sequence, "Throw2")
-		if rng.percent(50) then
+		if rng:percent(50) then
 			table.insert(sequence, "Charge")
 		end
 	else
-		if rng.percent(35) then
+		if rng:percent(35) then
 			table.insert(sequence, "Charge")
-			if rng.coin_flip() then
-				if rng.coin_flip() then
+			if rng:coin_flip() then
+				if rng:coin_flip() then
 					-- table.insert(sequence, "Charge")
 				else
 					table.insert(sequence, "Throw1")
 				end
 			end
-			while rng.percent(25) do
-				table.insert(sequence, rng.choose("Throw1", "Charge"))
+			while rng:percent(25) do
+				table.insert(sequence, rng:choose("Throw1", "Charge"))
 			end
 		else
 			table.insert(sequence, "Throw1")
-			if rng.coin_flip() then
+			if rng:coin_flip() then
 				table.insert(sequence, "Throw1")
 			else
 				table.insert(sequence, "Charge")
 			end
-			while rng.percent(25) do
-				table.insert(sequence, rng.choose("Throw1", "Charge"))
+			while rng:percent(25) do
+				table.insert(sequence, rng:choose("Throw1", "Charge"))
 			end
 		end
 	end
@@ -210,15 +210,15 @@ function Boss1:spawn_birds(one)
 		local middle = self.world.scroll_center
 		local chance = min(100 * (1 - self.health / self.max_health), 90)
 		for i=1,one and 1 or 3 do
-			if rng.percent((i>1 and 50) or chance) then
-				local ydir = rng.rand_sign()
+			if rng:percent((i>1 and 50) or chance) then
+				local ydir = rng:rand_sign()
 				local y = middle.y
 				if self.player then	
 					y = self.player.pos.y
 				end
 				y = y + 96 * ydir + (i-1) * 16 * -ydir
 				y = clamp(y, middle.y - 96, middle.y + 80)
-				local x = middle.x + 80 * rng.rand_sign()
+				local x = middle.x + 80 * rng:rand_sign()
 				local f = FlyerEnemy(x, y)
 
 				f.ignore_despawn = true
@@ -404,7 +404,7 @@ function Boss1:state_Throw2_enter()
 		self:set_flip(-dir)
 		
 		local num = 4
-		if rng.percent(50) then
+		if rng:percent(50) then
 			num = num + 4
 		end
 

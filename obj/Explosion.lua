@@ -11,7 +11,8 @@ local DEFAULT_PARAMS = {
 	particle_count_modifier = 1,
 	explode_sfx = "explosion",
 	explode_sfx_volume = 0.9,
-	explode_vfx = nil,
+    explode_vfx = nil,
+	force_modifier = 1.0,
 	ignore_explosion_force = {},
 }
 
@@ -24,12 +25,14 @@ function Explosion:new(x, y, params)
     self.size = params.size or DEFAULT_PARAMS.size
     self.team = params.team or (self.team or "enemy")
 	self.hit_bubble_damage = params.damage or DEFAULT_PARAMS.damage
+	self.damage = self.hit_bubble_damage
 	self.melee_both_teams = params.melee_both_teams or DEFAULT_PARAMS.melee_both_teams
 	self.draw_scale = params.draw_scale or DEFAULT_PARAMS.draw_scale
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self.explode_vfx = params.explode_vfx or DEFAULT_PARAMS.explode_vfx
 	self.explode_sfx = params.explode_sfx or DEFAULT_PARAMS.explode_sfx
     self.explode_sfx_volume = params.explode_sfx_volume or DEFAULT_PARAMS.explode_sfx_volume
+	self.force_modifier = params.force_modifier or DEFAULT_PARAMS.force_modifier
     self:ref_bongle("ignore_explosion_force")
 	for _, obj in ipairs(params.ignore_explosion_force or DEFAULT_PARAMS.ignore_explosion_force) do
 		self:ref_bongle_push("ignore_explosion_force", obj)
@@ -60,11 +63,15 @@ function Explosion:enter()
 	
 	local x, y, w, h = self:get_rect()
     self.world.game_object_grid:each(x, y, w, h, function(obj)
-		if obj.is_simple_physics_object and not obj.is_player and not self.ignore_explosion_force:has(obj) then
-			local dxy = self.pos:direction_to(obj.pos)
-			local dist = self.pos:distance_to(obj.pos)
-			local force = (self.size / dist) / 2
-			obj:apply_force(dxy.x * force, dxy.y * force)
+        if obj.is_simple_physics_object and not obj.is_player and not self.ignore_explosion_force:has(obj) then
+            local x, y = obj.pos.x, obj.pos.y
+			while x == self.pos.x and y == self.pos.y do
+				x, y = vec2_add(obj.pos.x, obj.pos.y, rng:randf(-1, 1), rng:randf(-1, 1))
+			end
+			local dist = vec2_distance(self.pos.x, self.pos.y, x, y)
+			local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, x, y)
+			local force = ((self.size / dist) / 2) * self.force_modifier
+			obj:apply_force(dx * force, dy * force)
 		end
 	end)
 
@@ -83,42 +90,42 @@ function Explosion:enter()
     self.size = self.size * 1.25
 	local scale = self.size * self.draw_scale
 	local number_of_puffs = (scale / 3) + 5
-	number_of_puffs = rng.randf(number_of_puffs * 0.8, number_of_puffs * 1.2)
+	number_of_puffs = rng:randf(number_of_puffs * 0.8, number_of_puffs * 1.2)
 	local number_of_smoke_trails = (scale / 4) + 4
-    number_of_smoke_trails = rng.randf(number_of_smoke_trails * 0.8, number_of_smoke_trails * 1.2)
+    number_of_smoke_trails = rng:randf(number_of_smoke_trails * 0.8, number_of_smoke_trails * 1.2)
 	-- self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, scale * 1.75, 0, 0, Vec2(0, 0)))
 	s:start(function()
 		for i = 1, number_of_puffs * self.particle_count_modifier do
-			local dist = abs(rng.randfn(0, scale * 0.75))
+			local dist = abs(rng:randfn(0, scale * 0.75))
 			dist = min(dist, scale * 1.25)
-			local dx, dy = rng.random_vec2_times(dist)
+			local dx, dy = rng:random_vec2_times(dist)
 			local size1 = abs((1 - (dist / scale)) * 1)
-            local size = abs(size1 * scale * rng.randfn(0.4, 1.25))
+            local size = abs(size1 * scale * rng:randfn(0.4, 1.25))
 			size = abs(min(size, scale * 1))
 
-			local duration = size * rng.randfn(1.0, 1.25) * 10
-			local vel = Vec2(dx, dy):normalize_in_place():mul_in_place(rng.randf(0.5, 1) * dist * 0.15)
+			local duration = size * rng:randfn(1.0, 1.25) * 10
+			local vel = Vec2(dx, dy):normalize_in_place():mul_in_place(rng:randf(0.5, 1) * dist * 0.15)
             self:spawn_object(ExplosionSmoke(self.pos.x + dx, self.pos.y + dy, size, duration, 0, vel))
-            if rng.percent(10) then
+            if rng:percent(10) then
 				s:wait(1)
 			end
 		end
 	end)
 	s:start(function()
 		for i = 1, number_of_smoke_trails * self.particle_count_modifier do
-			local dist = rng.randf(scale * 0.25, scale * 0.8)
-			local dx, dy = rng.random_vec2_times(dist)
-            local size = abs((pow(1 - (dist / scale), 1)) * scale * rng.randfn(1.0, 0.25) * 0.35) * 1.5
-			size = min(size, rng.randfn(3, 1))
+			local dist = rng:randf(scale * 0.25, scale * 0.8)
+			local dx, dy = rng:random_vec2_times(dist)
+            local size = abs((pow(1 - (dist / scale), 1)) * scale * rng:randfn(1.0, 0.25) * 0.35) * 1.5
+			size = min(size, rng:randfn(3, 1))
 			local dir_x, dir_y = vec2_normalized(dx, dy)
-			local force = rng.randf(size * 0.05, size * 0.005)
+			local force = rng:randf(size * 0.05, size * 0.005)
 			local h_force_x, h_force_y = dir_x * force, dir_y * force
-            local v_force = rng.randf(force * 10.85, force * 2.25)
+            local v_force = rng:randf(force * 10.85, force * 2.25)
 			h_force_x = h_force_x * 6.5
 			h_force_y = h_force_y * 6.5
 			local vel = Vec3(h_force_x, h_force_y, -v_force)
             self:spawn_object(ExplosionSmokeTrail(self.pos.x + dx, self.pos.y + dy, size, vel, rng(-1, -5)))
-			if rng.percent(10) then
+			if rng:percent(10) then
 				s:wait(1)
 			end
 		end
@@ -150,8 +157,8 @@ function ExplosionSmoke:new(x, y, size, duration, y_offset, vel)
     self.duration = min(max(duration or 30, 30), 40)
     ExplosionSmoke.super.new(self, x, y)
 	self.vel = vel or Vec2(0, 0)
-    self.y_speed = max(rng.randfn(1, 0.5) - self.size * 0.01, 0)
-	self.color_tick_speed = rng.randf(1, 0.15)
+    self.y_speed = max(rng:randfn(1, 0.5) - self.size * 0.01, 0)
+	self.color_tick_speed = rng:randf(1, 0.15)
 end
 
 
@@ -180,7 +187,7 @@ function ExplosionSmoke:floor_draw()
     local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 6)
 	
 	if not self.is_new_tick then return end
-	if not rng.percent(5) then return end
+	if not rng:percent(5) then return end
 
 	graphics.set_color(self.tick % 2 == 0 and Color.darkergrey or Color.black)
 	graphics.rectangle(self.from_trail and "line" or self.tick > 10 and "line" or "fill", -size / 2, -size / 2, size, size)
@@ -198,7 +205,7 @@ function ExplosionSmokeTrail:new(x, y, size, vel, y_offset)
     self.size = size or 0
     self.vel = vel or Vec3(0, 0, 0)
     self.positions = {}
-	self.fill_time = rng.randf(30, 8)
+	self.fill_time = rng:randf(30, 8)
 	-- self.z_index = -1
 end
 
@@ -218,18 +225,18 @@ function ExplosionSmokeTrail:update(dt)
     elseif self.is_new_tick then
         -- local smoke = self:spawn_object(ExplosionSmoke(self.pos.x, self.pos.y, self.size * 0.9, self.size, self.y_offset))
         -- smoke.from_trail = true
-        if rng.percent(66) then
-            local size = self.size * 0.9 * rng.randfn(1.0, 0.25)
+        if rng:percent(66) then
+            local size = self.size * 0.9 * rng:randfn(1.0, 0.25)
             table.insert(self.positions, {
                 pos = self.pos:clone(),
                 size = size,
                 tick = 0,
                 y_offset = self.y_offset,
-                duration = size * rng.randfn(1.0, 1.25) * 7,
-                palette_tick_length = rng.randfn(1.0, 0.25),
+                duration = size * rng:randfn(1.0, 1.25) * 7,
+                palette_tick_length = rng:randfn(1.0, 0.25),
             })
         end
-        if self.size <= 1 and rng.percent(1) then
+        if self.size <= 1 and rng:percent(1) then
 			self:queue_destroy()
 		end
     end
@@ -286,8 +293,8 @@ function ExplosionSmokeTrail:floor_draw()
     -- graphics.set_color(Color.black)
     -- graphics.rectangle("fill", -size / 2 - 1, -size/2 + self.y_offset - 1, size + 2, size + 2)
     -- else
-    graphics.set_color(rng.percent(50) and Color.darkergrey or Color.black)
-	if rng.percent(3) then
+    graphics.set_color(rng:percent(50) and Color.darkergrey or Color.black)
+	if rng:percent(3) then
 		graphics.set_color(Color.grey)
 	end
     graphics.rectangle("line", -size / 2, -size / 2, size, size)

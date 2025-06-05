@@ -25,7 +25,7 @@ local SPAWN_CATEGORY_ORDER = {
 local PAGE_CATEGORY_ORDER = table.extend({"all"}, SPAWN_CATEGORY_ORDER)
 
 function CodexWorld:new(x, y)
-    CodexWorld.super.new(self, x, y)
+CodexWorld.super.new(self, x, y)
     self:add_signal("exit_menu_requested")
     self.object_buttons = {}
     self.page_number = 1

@@ -80,6 +80,10 @@ function Rect:clamp_point(px, py)
     return clamp(px, self.x, self.x + self.width), clamp(py, self.y, self.y + self.height)
 end
 
+function Rect:get_line_intersection(x1, y1, x2, y2)
+    return line_rect_intersection(x1, y1, x2, y2, self.x, self.y, self.width, self.height)
+end
+
 function Rect:clamp_circle(px, py, radius)
     return clamp(px, self.x - radius, self.x + self.width + radius), clamp(py, self.y - radius, self.y + self.height + radius)
 end

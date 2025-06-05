@@ -47,6 +47,10 @@ PlayerCharacter.bullet_powerups = {
 
 PlayerCharacter.secondary_weapon_objects = {
 	SwordSlash = require("obj.Player.SecondaryWeapons.SwordSlash"),
+	BigLaserBeam = require("obj.Player.SecondaryWeapons.BigLaserBeam")[1],
+    BigLaserBeamAimingLaser = require("obj.Player.SecondaryWeapons.BigLaserBeam")[2],
+    RepulsionField = require("obj.Player.SecondaryWeapons.RepulsionField"),
+	RailGunProjectile = require("obj.Player.SecondaryWeapons.RailGunProjectile"),
 }
 
 
@@ -70,7 +74,7 @@ function PlayerCharacter:new(x, y)
 
     self.aim_radius = 12
 
-    self.moving_direction = Vec2(rng.random_vec2())
+    self.moving_direction = Vec2(rng:random_vec2())
     self.hover_particle_direction = self.moving_direction:clone()
 
     self.hurt_bubble_radius = 2
@@ -86,6 +90,8 @@ function PlayerCharacter:new(x, y)
 
     self.shooting = false
     self.mouse_aim_offset = Vec2(0, -1)
+    self.real_mouse_aim_offset = Vec2(0, -1)
+	self.real_aim_direction = Vec2(0, -1)
     self.mouse_mode = true
     self.persist = true
 
@@ -229,6 +235,20 @@ function PlayerCharacter:spawn_drone()
 	self:ref("drone", drone)
 end
 
+function PlayerCharacter:can_draw_aim_sight()
+	if self:get_stopwatch("firing_big_laser") then
+		return false
+	end
+
+	if self.big_laser_beam_aiming_laser then
+		return false
+	end
+	if self.big_laser_beam then
+		return false
+	end
+	return true
+end
+
 function PlayerCharacter:enter()
 	self:add_hurt_bubble(0, 0, self.hurt_bubble_radius, "main")
     self:add_tag("player")
@@ -251,6 +271,57 @@ function PlayerCharacter:start_invulnerability_timer(duration)
 	self:start_timer("invulnerability", duration)
 end
 
+function PlayerCharacter:set_aim_direction(x, y)
+    -- local old_x, old_y = self.aim_direction.x, self.aim_direction.y
+    -- local max_speed = self:get_aim_max_speed()
+    -- if max_speed then
+    --     local diff_x, diff_y = vec2_normalized(x - old_x, y - old_y)
+    --     local diff_magnitude = vec2_magnitude(diff_x, diff_y)
+    --     -- if diff_magnitude > max_speed * dt then
+    --         diff_x, diff_y = vec2_normalized_times(diff_x, diff_y, max_speed * dt)
+    --     -- end
+    --     x, y = old_x + diff_x, old_y + diff_y
+    -- end
+    self.aim_direction:set(x, y):normalize_in_place()
+end
+
+
+
+function PlayerCharacter:set_real_mouse_aim_direction(x, y, dt)
+    local old_x, old_y = self.real_mouse_aim_offset.x, self.real_mouse_aim_offset.y
+    local max_speed = self:get_aim_max_speed()
+    if max_speed then
+        local diff_x, diff_y = vec2_normalized(x - old_x, y - old_y)
+        local diff_magnitude = vec2_magnitude(diff_x, diff_y)
+        -- if diff_magnitude > max_speed * dt then
+        diff_x, diff_y = vec2_normalized_times(diff_x, diff_y, max_speed * dt)
+        -- end
+        x, y = old_x + diff_x, old_y + diff_y
+    end
+    self.real_mouse_aim_offset:set(x, y)
+	if max_speed then
+		self.real_mouse_aim_offset:normalize_in_place()
+        self.aim_direction:set(self.real_mouse_aim_offset.x, self.real_mouse_aim_offset.y):normalize_in_place()
+		self.mouse_aim_offset:set(self.aim_direction.x, self.aim_direction.y)
+		-- self.real_mouse_aim_offset:set(self.aim_offset.x, self.aim_offset.y)
+	end
+	self.real_aim_direction:set(x, y):normalize_in_place()
+end
+
+function PlayerCharacter:set_mouse_offset(x, y)
+	self.mouse_aim_offset.x, self.mouse_aim_offset.y = vec2_limit_length(x, y, 1)
+end
+
+function PlayerCharacter:can_shoot()
+	if self:get_stopwatch("firing_big_laser") then
+		return false
+	end
+	if self.big_laser_beam or self.big_laser_beam_aiming_laser then
+		return false
+	end
+	return true
+end
+
 function PlayerCharacter:handle_input(dt)
     local input = self:get_input_table()
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
@@ -271,9 +342,9 @@ function PlayerCharacter:handle_input(dt)
 
     if not self.mouse_mode then
         if aim_magnitude >= aim_deadzone then
-            self.aim_direction:set(aim_x, aim_y):normalize_in_place()
+            self:set_mouse_offset(aim_x, aim_y)
+            self:set_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
             self.shooting = true
-            self.mouse_aim_offset:set(aim_x, aim_y)
         else
             if aim_magnitude > 0.1 then
                 self.mouse_aim_offset.x, self.mouse_aim_offset.y = splerp_vec(self.mouse_aim_offset.x,
@@ -286,27 +357,30 @@ function PlayerCharacter:handle_input(dt)
             self.mouse_pos_x = global_mouse_x
             self.mouse_pos_y = global_mouse_y
             local mouse_x, mouse_y = self:to_local(global_mouse_x, global_mouse_y)
-            self.mouse_aim_offset:set(vec2_limit_length(mouse_x, mouse_y, 1))
-            self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
+            mouse_x, mouse_y = vec2_limit_length(mouse_x, mouse_y, 1)
+            self:set_mouse_offset(mouse_x, mouse_y)
+            self:set_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
         else
             local mdx, mdy = input.mouse.dxy_absolute.x, input.mouse.dxy_absolute.y
 
             if vec2_magnitude_squared(mdx, mdy) > 0 then
-                self.mouse_aim_offset.x = self.mouse_aim_offset.x + mdx * gametime.delta * usersettings
-                .mouse_sensitivity
-                self.mouse_aim_offset.y = self.mouse_aim_offset.y + mdy * gametime.delta * usersettings
-                    .mouse_sensitivity
+                self:set_mouse_offset(self.mouse_aim_offset.x + mdx * gametime.delta * usersettings.mouse_sensitivity,
+                    self.mouse_aim_offset.y + mdy * gametime.delta * usersettings.mouse_sensitivity)
                 if usersettings.relative_mouse_aim_snap_to_max_range then
-                    self.mouse_aim_offset:normalize_in_place()
+                    local mouse_x, mouse_y = vec2_normalized(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
+                    self:set_mouse_offset(mouse_x, mouse_y)
                 else
-                    self.mouse_aim_offset:limit_length(1)
+                    local mouse_x, mouse_y = vec2_limit_length(self.mouse_aim_offset.x, self.mouse_aim_offset.y, 1)
+                    self:set_mouse_offset(mouse_x, mouse_y)
                 end
             end
 
-            self.aim_direction:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y):normalize_in_place()
+            self:set_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
         end
         -- self.aim_direction:normalize_in_place()
     end
+
+    self:set_real_mouse_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y, dt)
 
     if input.move_normalized.x ~= 0 or input.move_normalized.y ~= 0 then
         self.moving_direction:set(input.move_normalized.x, input.move_normalized.y)
@@ -343,7 +417,7 @@ function PlayerCharacter:handle_input(dt)
 
     self.shooting = self.shooting or input.shoot_held
 
-    if (not (digital_aim_input and self.shoot_held_time < SHOOT_INPUT_DELAY)) and self.shooting and not self:is_tick_timer_running("shoot_cooldown") then
+    if self:can_shoot() and (not (digital_aim_input and self.shoot_held_time < SHOOT_INPUT_DELAY)) and self.shooting and not self:is_tick_timer_running("shoot_cooldown") then
         local cooldown = self:fire_current_bullet()
         -- if self.state == "Walk" then
 
@@ -372,27 +446,34 @@ function PlayerCharacter:handle_input(dt)
         self.shoot_held_time = self.shoot_held_time + dt
     end
 
-	local secondary_stopwatch = self:get_stopwatch("secondary_weapon_held")
-	local secondary_weapon = self:get_secondary_weapon()
+    local secondary_stopwatch = self:get_stopwatch("secondary_weapon_held")
+    local secondary_weapon = self:get_secondary_weapon()
 
-	if input.secondary_weapon_pressed and game_state.secondary_weapon and game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
-		game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
-	end
+    local weapon = game_state.secondary_weapon
+    local has_weapon = input.secondary_weapon_pressed and weapon
+    local not_enough_ammo = weapon and (
+        game_state.secondary_weapon_ammo < weapon.ammo_needed_per_use or
+        (weapon.minimum_ammo_needed_to_use and game_state.secondary_weapon_ammo < weapon.minimum_ammo_needed_to_use)
+    )
 
-	if input.secondary_weapon_held and secondary_weapon and secondary_weapon.rapid_fire then
-		if self:can_use_secondary_weapon() then
-			self:on_secondary_weapon_pressed()
-		end
-	elseif input.secondary_weapon_pressed then
+    if has_weapon and not_enough_ammo then
+        game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
+    end
+
+    if input.secondary_weapon_held and secondary_weapon and secondary_weapon.rapid_fire then
+        if self:can_use_secondary_weapon() then
+            self:on_secondary_weapon_pressed()
+        end
+    elseif input.secondary_weapon_pressed then
         self.buffering_secondary_weapon = true
         self:start_tick_timer("secondary_weapon_buffer", SECONDARY_BUFFER_TIME, function()
-			self.buffering_secondary_weapon = false
-		end)
-    elseif input.secondary_weapon_released then
-		if secondary_stopwatch then
-			self:on_secondary_weapon_released()
-		end
-	end
+            self.buffering_secondary_weapon = false
+        end)
+    elseif self:can_release_secondary_weapon() and (secondary_weapon and secondary_weapon.holdable and self:get_stopwatch("secondary_weapon_held") and not input.secondary_weapon_held) or (input.secondary_weapon_released and not (secondary_weapon and secondary_weapon.holdable)) then
+        if secondary_stopwatch then
+            self:on_secondary_weapon_released()
+        end
+    end
 
     if self.buffering_secondary_weapon then
         if self:can_use_secondary_weapon() then
@@ -401,16 +482,32 @@ function PlayerCharacter:handle_input(dt)
             self:stop_tick_timer("secondary_weapon_buffer")
         end
     end
-	
 
-	if secondary_stopwatch and secondary_weapon and secondary_weapon.holdable then
-		local method = "secondary_" .. secondary_weapon.key .. "_held"
-		if self[method] then
-			self[method](self, dt)
-		end
-	end
+
+    if secondary_stopwatch and secondary_weapon and secondary_weapon.holdable then
+        local method = "secondary_" .. secondary_weapon.key .. "_held"
+        if self[method] then
+            self[method](self, dt)
+        end
+    end
 end
 
+function PlayerCharacter:can_release_secondary_weapon()
+	if self:is_tick_timer_running("firing_big_laser_minimum_duration") then
+		return false
+	end
+    
+    return true
+end
+
+
+function PlayerCharacter:get_aim_max_speed()
+	if self:get_stopwatch("firing_big_laser") then
+		return 0.035
+	end
+
+	return nil
+end
 
 function PlayerCharacter:get_secondary_weapon()
 	return game_state.secondary_weapon
@@ -426,18 +523,24 @@ function PlayerCharacter:on_secondary_weapon_pressed()
 		return
 	end
 	
-    if not secondary_weapon.holdable then
-        if secondary_weapon.cooldown > 0 then
-            self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown)
-        end
-        local method = "secondary_" .. secondary_weapon.key .. "_pressed"
-        if self[method] then
-            self[method](self)
-        end
-    else
+	local method = "secondary_" .. secondary_weapon.key .. "_pressed"
+	if self[method] then
+		self[method](self)
+	end
+    if secondary_weapon.holdable then
         self:start_stopwatch("secondary_weapon_held")
     end
 	
+end
+
+function PlayerCharacter:start_secondary_weapon_cooldown()
+	local secondary_weapon = self:get_secondary_weapon()
+	if not secondary_weapon then
+		return
+	end
+	if secondary_weapon.cooldown > 0 then
+		self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown)
+	end
 end
 
 function PlayerCharacter:on_secondary_weapon_released()
@@ -459,8 +562,14 @@ function PlayerCharacter:can_use_secondary_weapon()
 	if not game_state.secondary_weapon then
 		return false
 	end
-	if game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
-		return false
+    if game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
+        return false
+    end
+	
+	if game_state.secondary_weapon.minimum_ammo_needed_to_use then
+		if game_state.secondary_weapon_ammo < game_state.secondary_weapon.minimum_ammo_needed_to_use then
+			return false
+		end
 	end
 
 	if self:get_stopwatch("secondary_weapon_held") then
@@ -493,13 +602,13 @@ function PlayerCharacter:fire_current_bullet()
 
     for i = 1, num_bullets do
         if num_bullets >= 1 then
-            self:fire_bullet(class, self.aim_direction:rotated(deg2rad(spread * i)), 0, class.h_offset * i, true)
-            self:fire_bullet(class, self.aim_direction:rotated(deg2rad(-spread * i)), 0, -class.h_offset * i, true)
+            self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(spread * i)), 0, class.h_offset * i, true)
+            self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(-spread * i)), 0, -class.h_offset * i, true)
         end
     end
 	
     if self.drone then
-		self:fire_bullet_at_position(class, self.aim_direction:clone():mul_in_place(-1), self.drone.pos.x, self.drone.pos.y, true)
+		self:fire_bullet_at_position(class, self.real_aim_direction:clone():mul_in_place(-1), self.drone.pos.x, self.drone.pos.y, true)
 	end
 
 	return cooldown
@@ -513,7 +622,7 @@ function PlayerCharacter:create_drone()
 end
 
 function PlayerCharacter:get_shoot_position()
-    local aim_x, aim_y = self.aim_direction.x, self.aim_direction.y
+    local aim_x, aim_y = self.real_aim_direction.x, self.real_aim_direction.y
     return self.pos.x + aim_x * SHOOT_DISTANCE, self.pos.y + aim_y * SHOOT_DISTANCE - self.body_height
 end
 
@@ -574,7 +683,7 @@ function PlayerCharacter:hit_by(by)
             -- self:play_sfx("old_player_death", 0.85)
             game_state:lose_heart()
             -- local percent = game_state.artefacts.stone_trinket and 50 or 100
-			-- if rng.percent(percent) then
+			-- if rng:percent(percent) then
 			game_state:random_downgrade()
             -- end
 			
@@ -793,7 +902,7 @@ function PlayerCharacter:state_Hover_update(dt)
 	if self.is_new_tick then
         for i = 1, (1) do
             local bx, by = self.pos.x, self.pos.y
-            local offsx, offsy = rng.random_vec2_times(rng.randfn(0, 1.0))
+            local offsx, offsy = rng:random_vec2_times(rng:randfn(0, 1.0))
             bx = bx + offsx
             by = by + offsy
             local vel_x, vel_y = self.hover_particle_direction.x, self.hover_particle_direction.y
@@ -803,19 +912,19 @@ function PlayerCharacter:state_Hover_update(dt)
             vel_x = vel_x + self.hover_vel.x
             vel_y = vel_y + self.hover_vel.y
             local random = false
-            if rng.percent(15) or vec2_magnitude_squared(vel_x, vel_y) < vec2_magnitude_squared(self.moving_direction.x, self.moving_direction.y) then
-                vel_x, vel_y = rng.random_vec2_times(game_state.artefacts.boost_damage and 5 or 4)
+            if rng:percent(15) or vec2_magnitude_squared(vel_x, vel_y) < vec2_magnitude_squared(self.moving_direction.x, self.moving_direction.y) then
+                vel_x, vel_y = rng:random_vec2_times(game_state.artefacts.boost_damage and 5 or 4)
                 random = true
             end
 
-            vel_x, vel_y = vec2_rotated(vel_x, vel_y, rng.randfn(0, tau / 32))
+            vel_x, vel_y = vec2_rotated(vel_x, vel_y, rng:randfn(0, tau / 32))
             vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y,
-                rng.randfn(1.0, 0.25) * (((not random) and game_state.artefacts.boost_damage) and 1.75 or 1.5))
+                rng:randfn(1.0, 0.25) * (((not random) and game_state.artefacts.boost_damage) and 1.75 or 1.5))
             vel_x, vel_y = vec2_clamp_magnitude(vel_x, vel_y, 1, math.huge)
 
             local offsx2, offsy2 = vec2_normalized_times(-vel_x, -vel_y, 5)
-            offsx2 = offsx2 * abs(rng.randfn(0, 1.0))
-            offsy2 = offsy2 * abs(rng.randfn(0, 1.0))
+            offsx2 = offsx2 * abs(rng:randfn(0, 1.0))
+            offsy2 = offsy2 * abs(rng:randfn(0, 1.0))
             bx = bx + offsx2
             by = by + offsy2
 
@@ -873,7 +982,15 @@ function PlayerCharacter:state_Hover_exit()
 end
 
 function PlayerCharacter:exit()
-	self:stop_sfx("player_hover")
+    self:stop_sfx("player_hover")
+	
+    if self.big_laser_beam_aiming_laser then
+        self.big_laser_beam_aiming_laser:finish()
+	end
+
+    if self.big_laser_beam then
+		self.big_laser_beam:finish()
+	end
 end
 
 
@@ -936,21 +1053,99 @@ end
 
 ------------------------------------------ secondary weapon methods ------------------------------------------
 --------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+
 
 
 function PlayerCharacter:secondary_sword_pressed()
     game_state:use_secondary_weapon_ammo()
     self.slash_direction = self.slash_direction or 1
 	self.slash_direction = self.slash_direction * -1
-	self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.aim_direction, self.slash_direction))
+	self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.real_aim_direction, self.slash_direction))
+	self:start_secondary_weapon_cooldown()
+end
+
+function PlayerCharacter:secondary_railgun_pressed()
+    game_state:use_secondary_weapon_ammo()
+	local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
+
+    self:spawn_object(self.secondary_weapon_objects.RailGunProjectile(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x, self.real_aim_direction.y))
+	self:start_secondary_weapon_cooldown()
+end
+
+local TARGET_DURATION = 24
+local FIRE_MIN_DURATION = 36
+
+function PlayerCharacter:secondary_big_laser_pressed()
+
+    local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
+	
+	self:ref("big_laser_beam_aiming_laser",
+	self:spawn_object(self.secondary_weapon_objects.BigLaserBeamAimingLaser(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x,
+            self.real_aim_direction.y, TARGET_DURATION + 1)))
+
+	self:start_tick_timer("big_laser_beam_aiming_laser", TARGET_DURATION)
+end
+
+function PlayerCharacter:secondary_big_laser_held(dt)
+
+    local stopwatch = self:get_stopwatch("secondary_weapon_held")
+	local firing_laser_stopwatch = self:get_stopwatch("firing_big_laser")
+
+    if stopwatch then
+		if firing_laser_stopwatch then
+            if firing_laser_stopwatch.elapsed > FIRE_MIN_DURATION then
+                game_state:use_secondary_weapon_ammo(dt * game_state.secondary_weapon.held_ammo_consumption_rate)
+                if game_state.secondary_weapon_ammo <= 0 then
+                    self:stop_stopwatch("secondary_weapon_held")
+                    self:secondary_big_laser_released()
+                    game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
+                end
+            end
+        elseif not self:is_tick_timer_running("big_laser_beam_aiming_laser") then
+			game_state:use_secondary_weapon_ammo()
+            self:start_stopwatch("firing_big_laser")
+			self:start_tick_timer("firing_big_laser_minimum_duration", FIRE_MIN_DURATION)
+			local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
+			self:ref("big_laser_beam", self:spawn_object(self.secondary_weapon_objects.BigLaserBeam(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x, self.real_aim_direction.y)))
+		end
+
+        if self.big_laser_beam then
+            self.big_laser_beam:move_to(self:get_body_center())
+            self.big_laser_beam:set_direction(self.real_aim_direction.x, self.real_aim_direction.y)
+        end
+		if self.big_laser_beam_aiming_laser then
+			self.big_laser_beam_aiming_laser:move_to(self:get_body_center())
+			self.big_laser_beam_aiming_laser:set_direction(self.real_aim_direction.x, self.real_aim_direction.y)
+		end
+	end
+end
+
+function PlayerCharacter:secondary_big_laser_released()
+	if self:get_stopwatch("firing_big_laser") then
+		self:stop_stopwatch("firing_big_laser")
+	end
+    if self.big_laser_beam then
+		self.big_laser_beam:finish()
+        self:unref("big_laser_beam")
+    end
+    if self.big_laser_beam_aiming_laser then
+        self.big_laser_beam_aiming_laser:finish()
+        self:unref("big_laser_beam_aiming_laser")
+    end
+	self:play_sfx("player_big_laser_power_down", 0.8, 1)
 end
 
 
-
-
-
-
-
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------
 
@@ -961,10 +1156,10 @@ HoverFx.hit_velocity = 0.1
 function HoverFx:new(x, y, vel_x, vel_y)
     HoverFx.super.new(self, x, y)
     self.sprite = textures.player_hover_fx
-    self.duration = 8 + max(rng.randfn(0, 3), 1) * (game_state.artefacts.boost_damage and 1.5 or 1)
+    self.duration = 8 + max(rng:randfn(0, 3), 1) * (game_state.artefacts.boost_damage and 1.5 or 1)
     self.drag = 0.2
     -- if game_state.artefacts.boost_damage then self.drag = 0.05 end
-    self.size = max(rng.randfn(game_state.artefacts.boost_damage and 10.0 or 8.0, 1.25), 1.0)
+    self.size = max(rng:randfn(game_state.artefacts.boost_damage and 10.0 or 8.0, 1.25), 1.0)
     -- self.z_index = -1
     self.hover_vel = Vec2(vel_x, vel_y):mul_in_place(1.5)
     self.terrain_collision_radius = 1
@@ -1002,8 +1197,8 @@ function HoverFx:draw_particle(floor, elapsed, tick, t)
 
 	local color
 	if floor then
-		local alpha = clamp(rng.randfn(0.05, 0.05), 0.00, 0.15)
-		-- local redmod = abs(rng.randfn(0.0, 0.05))
+		local alpha = clamp(rng:randfn(0.05, 0.05), 0.00, 0.15)
+		-- local redmod = abs(rng:randfn(0.0, 0.05))
 		graphics.set_color(alpha * 0.5, alpha * 0.30, alpha)
 	else
 		color = (self.palette):interpolate_clamped(t)
@@ -1018,14 +1213,14 @@ function HoverFireTrail:new(x, y)
     HoverFireTrail.super.new(self, x, y)
     self.sprite = textures.player_hover_fire_trail
 	self.team = "player"
-    self.duration = 90 + rng.randfn(0, 6)
+    self.duration = 90 + rng:randfn(0, 6)
     self.z_index = 0
     self.persist = false
     self.hit_cooldown = 3
 	self.particles = {}
 	self.to_remove = {}
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
-	self.random_offset = rng.randi(0, 100)
+	self.random_offset = rng:randi(0, 100)
 end
 
 function HoverFireTrail:filter_melee_attack(bubble)
@@ -1063,14 +1258,14 @@ function HoverFireTrail:update(dt)
 	end
 
     if self.is_new_tick and not self.done then
-        for i = 1, rng.randi(2) do
-			if rng.percent(10) then
+        for i = 1, rng:randi(2) do
+			if rng:percent(10) then
 				local particle = {}
-				particle.x, particle.y = rng.random_vec2_times(rng.randf_range(0, self:get_bubble("hit", "main").radius * 2))
-				particle.size = rng.randfn(3, 1)
+				particle.x, particle.y = rng:random_vec2_times(rng:randf_range(0, self:get_bubble("hit", "main").radius * 2))
+				particle.size = rng:randfn(3, 1)
 				particle.elapsed = 0
-				particle.duration = rng.randf_range(10, 50)
-				particle.speed = rng.randf_range(0.15, 0.4)
+				particle.duration = rng:randf_range(10, 50)
+				particle.speed = rng:randf_range(0.15, 0.4)
 				self.particles[particle] = true
 			end
 		end
@@ -1115,12 +1310,12 @@ function HoverDashFx:new(x, y, vel_x, vel_y)
 	for i = 1, 20 do
 		local particle = {}
 		particle.pos = Vec2(0, 0)
-		particle.vel_x, particle.vel_y = rng.random_vec2_times(rng.randfn(rng.randf_range(0.2, 2.5), 0.1))
-		local vel_mod = rng.randf(0.25, 3)
+		particle.vel_x, particle.vel_y = rng:random_vec2_times(rng:randfn(rng:randf_range(0.2, 2.5), 0.1))
+		local vel_mod = rng:randf(0.25, 3)
 		particle.vel_x = particle.vel_x + vel_x * vel_mod
 		particle.vel_y = particle.vel_y + vel_y * vel_mod
 		particle.size = 1
-		local alpha = clamp(rng.randfn(0.15, 0.005), 0.00, 0.18)
+		local alpha = clamp(rng:randfn(0.15, 0.005), 0.00, 0.18)
 		particle.color = Color(alpha * 0.5, alpha * 0.30, alpha)
 		table.insert(self.particles, particle)
 	end
@@ -1157,7 +1352,7 @@ function HoverDashFx:draw_particles()
 end
 
 function HoverFx:floor_draw()
-	if self.is_new_tick and (rng.percent(5) or (self.player and rng.percent(100 - self.player.state_tick * 5))) then
+	if self.is_new_tick and (rng:percent(5) or (self.player and rng:percent(100 - self.player.state_tick * 5))) then
 		local elapsed = self.elapsed
 		local tick = self.tick
 		local t = elapsed / self.duration
@@ -1208,11 +1403,12 @@ function PlayerShadow:new(x, y, target)
     self.duration = 0
     self:ref("target", target)
 	self.z_index = -2
-	self.size = 7
-    self.random_offset = rng.randi(0, 100)
+    self.size = 7
+    self.random_offset = rng:randi()
     signal.connect(self.target, "moved", self, "on_target_moved", function()
 		self:move_to(self.target.pos.x, self.target.pos.y)
 	end)
+	self.irng = rng:new_instance()
 end
 
 function PlayerShadow:die()
@@ -1247,6 +1443,81 @@ function PlayerShadow:draw(elapsed)
     graphics.rectangle_centered("line", 0, 0, size, size * 0.75)
     graphics.rectangle_centered("line", 0, 0, size + 4, size * 0.75 + 4)
 
+		
+    if self.target and game_state.secondary_weapon and game_state.secondary_weapon.is_railgun and not idivmod_eq_zero(gametime.tick, 1, 2) then
+
+		local oscillation = (sin01(self.elapsed * 0.02) + sin01(self.elapsed * 0.1655) * 0.5 + sin01(self.elapsed * 0.923) * 0.25 + sin01(self.elapsed * 0.03) * 0.125) / 4
+
+        self.target:body_translate()
+		
+		local start_x, start_y = self.pos.x, self.pos.y
+		local vx, vy = vec2_normalized_times(self.target.real_aim_direction.x, self.target.real_aim_direction.y, 300 + 100 * oscillation)
+        local end_x, end_y = start_x + vx, start_y + vy
+		
+
+		local period = 10
+        local irng = self.irng
+        local tick1 = stepify(self.tick + self.random_offset, period)
+		local tick2 = stepify(self.tick + self.random_offset + period, period)
+		irng:set_seed(tick1)
+		local offsx1, offsy1 = irng:random_vec2_times(irng:randf_range(0, 4))
+		irng:set_seed(tick2)
+        local offsx2, offsy2 = irng:random_vec2_times(irng:randf_range(0, 4))
+		
+		local t = inverse_lerp(tick1, tick2, self.elapsed + self.random_offset)
+
+		local offsx, offsy = vec2_lerp(offsx1, offsy1, offsx2, offsy2, t)
+
+		end_x, end_y = vec2_add(end_x, end_y, offsx, offsy)
+
+        local x, y = self.world.room.bullet_bounds:get_line_intersection(start_x, start_y, end_x, end_y)
+        if not x or not y then
+            x, y = end_x, end_y
+        end
+		
+		x, y = self:to_local(x, y)
+
+        start_x, start_y = self:to_local(start_x, start_y)
+        end_x, end_y = self:to_local(end_x, end_y)
+
+		local oscillation2 = sin01(self.elapsed * 0.300) + sin01(self.elapsed * 0.115) + sin01(self.elapsed * 0.215) * 0.5 + sin01(self.elapsed * 0.13) * 0.25 + sin01(self.elapsed * 0.04) * 0.25
+		local x1, y1 = start_x, start_y
+        local x2, y2 = vec2_lerp(x1, y1, x, y, (-self.elapsed * 0.0025) % 1)
+		local x3, y3 = vec2_lerp(x2, y2, x, y, 0.1)
+        local x4, y4 = vec2_lerp(x3, y3, x, y, 0.8)
+        local x5, y5 = vec2_lerp(x4, y4, x, y, 0.1)
+		local x6, y6 = x, y
+
+        graphics.set_line_width(3)
+		graphics.set_color(Color.black)
+		graphics.line(x1, y1, x2, y2)
+		-- graphics.line(x2, y2, x3, y3)
+		graphics.line(x3, y3, x4, y4)
+		-- graphics.line(x4, y4, x5, y5)
+		graphics.line(x5, y5, x6, y6)
+		local color = (idivmod_eq_zero(gametime.tick, 2, 2) and (Color.orange) or (Color.yellow))
+
+		local cooldown = self.target and self.target:is_tick_timer_running("secondary_weapon_cooldown")
+
+		if cooldown then
+			color = (idivmod_eq_zero(gametime.tick, 2, 2) and (Color.darkpurple) or (Color.purple))
+		end
+
+		graphics.set_color(color)
+		if idivmod_eq_zero(gametime.tick + 2, 1, 17) then
+            graphics.set_color(Color.white)
+			if cooldown then
+				graphics.set_color(Color.darkgrey)
+			end
+		end
+		graphics.set_line_width(1)
+		graphics.line(x1, y1, x2, y2)
+		-- graphics.line(x2, y2, x3, y3)
+		graphics.line(x3, y3, x4, y4)
+		-- graphics.line(x4, y4, x5, y5)
+		graphics.line(x5, y5, x6, y6)
+
+	end
 end
 
 
@@ -1266,15 +1537,15 @@ end
 
 
 function AimDraw:laser_sight_draw(thickness, color, start_x, start_y, end_x, end_y, dash)
+	if not (self.player and self.player:can_draw_aim_sight()) then return end
 	graphics.set_line_width(thickness)
 	graphics.set_color(color)
-	if dash then
-		graphics.dashline(start_x, start_y, end_x, end_y, 2, 2)
-	else
-		graphics.line(start_x, start_y, end_x, end_y)
-	end
-	-- graphics.circle("fill", start_x, start_y, thickness / 2)
-	-- graphics.circle("fill", end_x, end_y, thickness / 2)
+    if dash then
+        graphics.dashline(start_x, start_y, end_x, end_y, 2, 2)
+    else
+        graphics.line(start_x, start_y, end_x, end_y)
+    end
+
 end
 
 
@@ -1301,17 +1572,17 @@ function AimDraw:draw()
     if self.player.mouse_mode and usersettings.use_absolute_aim then
         local global_mouse_x, global_mouse_y = self.player.mouse_pos_x, self.player.mouse_pos_y
         local mouse_x, mouse_y = self:to_local(global_mouse_x, global_mouse_y)
-        local laser_start_x, laser_start_y = vec2_normalized_times(mouse_x, mouse_y, self.player.aim_radius * 0.5)
+        local laser_start_x, laser_start_y = vec2_normalized_times(self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y, self.player.aim_radius * 0.5)
         local laser_end_x, laser_end_y = mouse_x, mouse_y
 		local mouse_dist = vec2_magnitude(mouse_x, mouse_y)
 		if mouse_dist > LASER_SIGHT_DISTANCE_MODIFIER * self.player.aim_radius then
-			laser_end_x, laser_end_y = vec2_normalized_times(mouse_x, mouse_y, LASER_SIGHT_DISTANCE_MODIFIER * self.player.aim_radius)
+			laser_end_x, laser_end_y = vec2_normalized_times(self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y, LASER_SIGHT_DISTANCE_MODIFIER * self.player.aim_radius)
 		end
 		self:laser_sight_draw(3, Color.black, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
 		self:laser_sight_draw(1, Color.magenta, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
-		self:draw_crosshair(mouse_x, mouse_y)
+		self:draw_crosshair(mouse_x, mouse_y, true)
     else
-        local aim_x, aim_y = self.player.mouse_aim_offset.x, self.player.mouse_aim_offset.y
+        local aim_x, aim_y = self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y
         local start_x, start_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 0.5)
         local end_x, end_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 1.0)
         -- if self.player.mouse_mode then
@@ -1332,7 +1603,7 @@ function AimDraw:draw()
 
         if self.player.mouse_mode then
             -- graphics.circle("fill", start_x1, start_y1, 5)		
-            local aim_vec_x, aim_vec_y = self.player.mouse_aim_offset.x, self.player.mouse_aim_offset.y
+            local aim_vec_x, aim_vec_y = self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y
             local length = vec2_magnitude(aim_vec_x, aim_vec_y) * LASER_SIGHT_DISTANCE_MODIFIER
             local x, y = end_x1 * length, end_y1 * length
             -- graphics.circle("line", x, y, 5)
@@ -1380,14 +1651,18 @@ function AimDraw:draw()
     -- end
 end
 
-function AimDraw:draw_crosshair(x, y)
+function AimDraw:draw_crosshair(x, y, force)
 	local size = 9
+
+    if not (force or (self.player and self.player:can_draw_aim_sight())) then
+		return
+	end
 
 	graphics.push()
 	graphics.translate(x, y)
 	
 	graphics.push()
-	graphics.rotate(self.player.mouse_aim_offset:angle() + self.elapsed * 0.1)
+	graphics.rotate(self.player.real_mouse_aim_offset:angle() + self.elapsed * 0.1)
 	graphics.set_line_width(3)
 	graphics.set_color(Color.black)
 	graphics.dashrect_centered(0, 0, size, size, 3, 3)

@@ -39,10 +39,10 @@ function HoopSnake:new(x, y)
 	self.angular_vel = 0.0
     self.angular_accel = 0.0
 	self.bullet_angle = 0
-	self.bullet_angle_offset = rng.random_angle()
-    -- self.bullet_angle = rng.coin_flip() and (tau / 8) or 0
+	self.bullet_angle_offset = rng:random_angle()
+    -- self.bullet_angle = rng:coin_flip() and (tau / 8) or 0
 	-- self.bullet_angle = 0
-	self.bullet_angle_dir = rng.rand_sign()
+	self.bullet_angle_dir = rng:rand_sign()
 	self.on_terrain_collision = self.terrain_collision_bounce
 	self:set_physics_limits(HoopSnake.physics_limits)
     self.telegraphing_vecs = {
@@ -81,15 +81,15 @@ function HoopSnake:on_damaged(damage)
             self.segment_damage_accumulator = self.segment_damage_accumulator - self.segment_hp
             local dx, dy = 0, 0
             -- if abs(diff_x) > abs(diff_y) then
-            -- 	dx = rng.rand_sign()
+            -- 	dx = rng:rand_sign()
             -- else
-            -- 	dy = rng.rand_sign()
+            -- 	dy = rng:rand_sign()
             -- end
             while dx == 0 and dy == 0 do
-                if rng.percent(50) then
-                    dx = rng.rand_sign()
+                if rng:percent(50) then
+                    dx = rng:rand_sign()
                 else
-                    dy = rng.rand_sign()
+                    dy = rng:rand_sign()
                     -- else
                     -- dy = 0
                 end
@@ -121,10 +121,10 @@ function HoopSnake:on_damaged(damage)
 
 
 
-                -- if rng.percent(50) then
+                -- if rng:percent(50) then
                 -- else
                 -- end
-                if rng.percent(20) then
+                if rng:percent(20) then
                     self.bullet_angle_dir = -self.bullet_angle_dir
                 end
                 local new_dx, new_dy = dx, dy
@@ -212,8 +212,8 @@ function HoopSnake:draw()
 end
 
 function HoopSnake:update(dt)
-    if self.target == nil or (self.is_new_tick and rng.percent(0.5)) then
-        self:ref("target", rng.percent(75) and self:get_random_player() or self:get_random_ally())
+    if self.target == nil or (self.is_new_tick and rng:percent(0.5)) then
+        self:ref("target", rng:percent(75) and self:get_random_player() or self:get_random_ally())
     end
 
     if self.target ~= nil then
@@ -233,7 +233,7 @@ function HoopSnake:update(dt)
 	-- self.bullet_angle = self.bullet_angle - dt * lerp(self.bullet_angle_min_speed, self.bullet_angle_max_speed, 1 - self.segment_ratio) * self.bullet_angle_dir
 	self.bullet_angle = self.bullet_angle_offset + self.angle_offset * 0.11
 
-	if self.is_new_tick and rng.percent(3 + 30 * (1 - self.segment_ratio)) then
+	if self.is_new_tick and rng:percent(3 + 30 * (1 - self.segment_ratio)) then
 		self:play_sfx("enemy_hoop_snake_hiss", 0.5)
 	end
 end

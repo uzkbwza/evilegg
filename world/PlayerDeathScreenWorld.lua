@@ -24,18 +24,17 @@ end
 
 function PlayerDeathScreenWorld:enter()
 	
-	local prev_high_score = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].score or 0
-	local prev_high_kills = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].kills or 0
-	local prev_high_level = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].level or 0
-	local prev_high_rescues = savedata.category_highs[game_state.leaderboard_category] and savedata.category_highs[game_state.leaderboard_category].rescues or 0
+	local prev_high_score = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).score or 0
+	local prev_high_kills = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).kills or 0
+	local prev_high_level = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).level or 0
+	local prev_high_rescues = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).rescues or 0
 	
 	local score_table = game_state:get_run_data_table()
 	
 	savedata:add_score(score_table)
 
-	leaderboard.submit(score_table, function(ok, res) end)
+    leaderboard.submit(score_table, game_state.leaderboard_category, true, function(ok, res) end)
 	
-
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0)))
 
 	local text_center = self.you_died_font:getWidth(YOU_DIED_TEXT) / 2
@@ -70,7 +69,7 @@ function PlayerDeathScreenWorld:enter()
 		self:play_sfx("ui_death_background_grow2", 1.0)
 		for _, object in self:get_objects_with_tag("game_over_letter"):ipairs() do
 			s:start(function()
-				-- s:wait(rng.randi_range(1, 30))
+				-- s:wait(rng:randi_range(1, 30))
 				s:tween(function(t) object:move_to(object.pos.x, t * -100) end, 0, 1, 30, "linear")
 			end)
 		end
@@ -189,7 +188,7 @@ function YouDiedLetter:new(x, y, char, y_offset, x_offset)
 	self.beam_in_t = 0
 	self.beaming_in = false
 	self.drawing_letter = false
-	self.beam_dir = rng.rand_sign()
+	self.beam_dir = rng:rand_sign()
 end
  
 function YouDiedLetter:enter()
@@ -200,7 +199,7 @@ function YouDiedLetter:enter()
 
 	s:start(function()
 		self:play_sfx("ui_game_over_letter_beam")
-		-- s:wait(rng.randi_range(1, 30))
+		-- s:wait(rng:randi_range(1, 30))
 		
 		-- s:start(function()
 		self.beaming_in = true

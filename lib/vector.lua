@@ -75,7 +75,11 @@ function Vec2:magnitude_squared()
 end
 
 function Vec2:angle_to(b)
-	return math.atan2(b.y - self.y, b.x - self.x)
+    return math.atan2(b.y - self.y, b.x - self.x)
+end
+
+function Vec2.from_angle(angle)
+    return Vec2(cos(angle), sin(angle))
 end
 
 function Vec2:normalized()
@@ -587,15 +591,23 @@ function vec2_magnitude_table(a)
 end
 
 function vec2_approach(x1, y1, x2, y2, delta)
-	return approach(x1, x2, delta), approach(y1, y2, delta)
+    return approach(x1, x2, delta), approach(y1, y2, delta)
+end
+
+function vec2_from_angle(angle)
+	return cos(angle), sin(angle)
 end
 
 function vec2_normalized(x, y)
     local mag = vec2_magnitude(x, y)
-	if mag == 0 then
-		return 0, 0
-	end
+    if mag == 0 then
+        return 0, 0
+    end
     return x / mag, y / mag
+end
+
+function vec2_sign(x, y)
+    return sign(x), sign(y)
 end
 
 function vec2_normalized_times(x, y, scalar)
@@ -659,43 +671,65 @@ function vec2_dot_table(a, b)
 end
 
 function vec2_angle(x, y)
-    return math.atan2(y, x)
+    return atan2(y, x)
 end
 
 function vec2_angle_to(x1, y1, x2, y2)
-	return math.atan2(y2 - y1, x2 - x1)
+	return atan2(y2 - y1, x2 - x1)
 end
 
 function vec2_angle_table(a)
-    return math.atan2(a.y, a.x)
+    return atan2(a.y, a.x)
 end
 
 function vec2_rotated(x, y, angle)
-    local cos_a = math.cos(angle)
-    local sin_a = math.sin(angle)
+    local cos_a = cos(angle)
+    local sin_a = sin(angle)
     return x * cos_a - y * sin_a, x * sin_a + y * cos_a
 end
 
+function vec2_perpendicular(x, y)
+    return y, -x
+end
+
+function vec2_perpendicular_counter_clockwise(x, y)
+    return -y, x
+end
+
+function vec2_perpendicular_clockwise(x, y)
+    return y, -x
+end
+
+
+function vec2_perpendicular_normalized_times(x, y, scalar)
+	local perp_x, perp_y = vec2_perpendicular(x, y)
+	local mag = vec2_magnitude(perp_x, perp_y)
+	if mag == 0 then
+		return 0, 0
+	end
+	return perp_x / mag * scalar, perp_y / mag * scalar
+end
+
 function vec2_rotated_table(a, angle)
-    local cos_a = math.cos(angle)
-    local sin_a = math.sin(angle)
+    local cos_a = cos(angle)
+    local sin_a = sin(angle)
     return a.x * cos_a - a.y * sin_a, a.x * sin_a + a.y * cos_a
 end
 
 function vec2_manhattan_distance(x1, y1, x2, y2)
-    return math.abs(x1 - x2) + math.abs(y1 - y2)
+    return abs(x1 - x2) + abs(y1 - y2)
 end
 
 function vec2_manhattan_distance_table(a, b)
-    return math.abs(a.x - b.x) + math.abs(a.y - b.y)
+    return abs(a.x - b.x) + abs(a.y - b.y)
 end
 
 function vec2_rounded(x, y)
-    return math.floor(x + 0.5), math.floor(y + 0.5)
+    return floor(x + 0.5), floor(y + 0.5)
 end
 
 function vec2_rounded_table(a)
-    return math.floor(a.x + 0.5), math.floor(a.y + 0.5)
+    return floor(a.x + 0.5), floor(a.y + 0.5)
 end
 
 function vec2_distance_squared(x1, y1, x2, y2)

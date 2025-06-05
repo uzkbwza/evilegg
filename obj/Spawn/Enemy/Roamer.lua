@@ -25,7 +25,7 @@ function Roamer:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.Roamer)
 	self.declump_radius = 5
 	self.walk_toward_player_chance = 60
-	self.follow_allies = rng.percent(20)
+	self.follow_allies = rng:percent(20)
     self.walk_frequency = 6
 	self.body_height = 5
 	self.declump_mass = 2.5
@@ -33,7 +33,7 @@ function Roamer:new(x, y)
 end
 
 function Roamer:update(dt)
-    if self.is_new_tick and self.tick % self.walk_frequency == 0 and rng.percent(10) then
+    if self.is_new_tick and self.tick % self.walk_frequency == 0 and rng:percent(10) then
 		self:play_sfx("enemy_roamer_walk", 0.25, 1.0)
 	end
 end
@@ -177,7 +177,7 @@ function RoyalRoamer:update(dt)
     RoyalRoamer.super.update(self, dt)
 
     if self.is_new_tick then
-		self.outline_flash = rng.percent(25)
+		self.outline_flash = rng:percent(25)
 	end
 
     if self.roaming then
@@ -190,12 +190,12 @@ function RoyalRoamer:update(dt)
 			self:start_stopwatch("wait_stopwatch")
 		end
     end
-    if self.is_new_tick and self.tick > 120 and rng.percent(5) and not self.roaming and not self:is_tick_timer_running("roam_cooldown") then
+    if self.is_new_tick and self.tick > 120 and rng:percent(5) and not self.roaming and not self:is_tick_timer_running("roam_cooldown") then
         local bx, by = self:get_body_center()
         local rx, ry, rw, rh = bx - MOVE_RADIUS, by - MOVE_RADIUS, MOVE_RADIUS * 2, MOVE_RADIUS * 2
         self.world.game_object_grid:each_self(rx, ry, rw, rh, self.roam_a_bit, self)
         if not self.roaming and not self.player_too_close then
-            if rng.percent(min(0.1 + self.elapsed * 0.02, 10)) then
+            if rng:percent(min(0.1 + self.elapsed * 0.02, 10)) then
                 self:start_short_roam()
             end
         end
@@ -226,9 +226,9 @@ end
 
 function RoyalRoamer:start_short_roam()
 	self.roaming = true
-	self:start_tick_timer("roam_timer", rng.randi_range(20, 70 + min(self.elapsed * 0.05, 90)), function()
+	self:start_tick_timer("roam_timer", rng:randi_range(20, 70 + min(self.elapsed * 0.05, 90)), function()
 		self.roaming = false
-		self:start_tick_timer("roam_cooldown", rng.randi_range(20, 70))
+		self:start_tick_timer("roam_cooldown", rng:randi_range(20, 70))
 	end)
 end
 

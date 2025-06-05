@@ -100,7 +100,7 @@ function Sniper:new(x, y)
     -- self.roam_chance = 6
     -- self.walk_speed = self.walk_speed or 0.9
     self.aim_target = self.pos:clone()
-    self.aim_target.x, self.aim_target.y = vec2_add(self.aim_target.x, self.aim_target.y, rng.random_vec2_times(1))
+    self.aim_target.x, self.aim_target.y = vec2_add(self.aim_target.x, self.aim_target.y, rng:random_vec2_times(1))
 	self.aim_valid = false
 	self.aim_direction = Vec2()
 end
@@ -115,9 +115,9 @@ local FORWARD_SPEED = 0.01
 function Sniper:state_Waiting_enter()
 	local s = self.sequencer
 	s:start(function()
-		s:wait(rng.randi(40, 120))
+		s:wait(rng:randi(40, 120))
 		while not self.aim_valid do
-			s:wait(rng.randi(15, 60))
+			s:wait(rng:randi(15, 60))
 		end
 		self:change_state("Shooting")
 	end)
@@ -161,7 +161,7 @@ function Sniper:state_Shooting_enter()
 		if self.sniper_aim then
 			self.sniper_aim.off = true
 		end
-		s:wait(rng.randi(30, 90))
+		s:wait(rng:randi(30, 90))
 		self:change_state("Waiting")
 	end)
 end

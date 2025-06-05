@@ -18,7 +18,7 @@ return {
 	
 	twin_saved = {
 		text_key = "bonus_twin_saved",
-		score = function() return max(game_state.score * 0.5, 5000) end,
+		score = function() return max(game_state.score * 0.1, 5000) end,
         score_multiplier = 0.00,
 		ignore_score_multiplier = true,
 
@@ -135,7 +135,7 @@ return {
         score = 20000,
         negative = true,
 		ignore_score_multiplier = true,
-		score_multiplier = 0.5,
+		score_multiplier = 0.40,
 		xp = 0,
 	},
 

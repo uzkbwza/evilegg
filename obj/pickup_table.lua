@@ -20,11 +20,6 @@ local Upgrades = {
 
 	RangeUpgrade = {
 		icon = textures.pickup_upgrade_range_icon,
-		-- textures = {
-			-- textures.pickup_upgrade_range_icon,
-			-- textures.pickup_upgrade_range_icon,
-			-- textures.pickup_upgrade_range_icon,
-		-- },
 		upgrade_type = "range",
 		notification_text = "notif_range",
 		notification_palette = "notif_range_up",
@@ -34,11 +29,6 @@ local Upgrades = {
 	
 	NumBulletsUpgrade = {
 		icon = textures.pickup_upgrade_num_bullets_icon,
-		-- textures = {
-		-- 	textures.pickup_upgrade_num_bullets_icon,
-		-- 	textures.pickup_upgrade_num_bullets_icon,
-		-- 	textures.pickup_upgrade_num_bullets_icon,
-		-- },
 		upgrade_type = "bullets",
 		notification_text = "notif_bullets",
 		notification_palette = "notif_bullets_up",
@@ -48,11 +38,6 @@ local Upgrades = {
 
 	BulletSpeedUpgrade = {
 		icon = textures.pickup_upgrade_bullet_speed_icon,
-		-- textures = {
-		-- 	textures.pickup_upgrade_bullet_speed_icon,
-		-- 	textures.pickup_upgrade_bullet_speed_icon,
-		-- 	textures.pickup_upgrade_bullet_speed_icon,
-		-- },
 		upgrade_type = "bullet_speed",
 		notification_text = "notif_bullet_speed",
 		notification_palette = "notif_bullet_speed_up",
@@ -62,11 +47,6 @@ local Upgrades = {
 
 	DamageUpgrade = {
 		icon = textures.pickup_upgrade_damage_icon,
-		-- textures = {
-		-- 	textures.pickup_upgrade_damage_icon,
-		-- 	textures.pickup_upgrade_damage_icon,
-		-- 	textures.pickup_upgrade_damage_icon,
-		-- },
 		upgrade_type = "damage",
 		notification_text = "notif_damage",
 		notification_palette = "notif_damage_up",
@@ -74,27 +54,12 @@ local Upgrades = {
 		description = "upgrade_desc_damage",
 	},
 
-	-- BoostUpgrade = {
-	-- 	icon = textures.pickup_upgrade_boost_icon,
-	-- 	-- textures = {
-	-- 	-- 	textures.pickup_upgrade_boost_icon,
-	-- 	-- 	textures.pickup_upgrade_boost_icon,
-	-- 	-- 	textures.pickup_upgrade_boost_icon,
-	-- 	-- },
-	-- 	upgrade_type = "boost",
-	-- 	notification_text = "notif_boost_up",
-	-- 	notification_palette = "notif_boost_up",
-	-- },
 }
 
 local Powerups = {
 	BasePowerup = {
 		icon = textures.pickup_powerup_placeholder,
-		-- textures = {
-		-- 	textures.pickup_powerup_placeholder,
-		-- 	textures.pickup_powerup_placeholder,
-		-- 	textures.pickup_powerup_placeholder,
-		-- },
+
         spawn_weight = 1000,
 		bullet_powerup = false,
 		bullet_powerup_time = 10,
@@ -114,6 +79,26 @@ local Powerups = {
 		bullet_powerup_time = 6,
 		name = "powerup_rocket_name",
 		description = "powerup_rocket_desc",
+    },
+	
+	AmmoPowerup = {
+		icon = textures.pickup_base,
+        spawn_weight = 1000,
+		textures = {
+			-- textures.pickup_base,
+			textures.pickup_powerup_ammo1,
+			textures.pickup_powerup_ammo2,
+			-- textures.pickup_powerup_rocket3,
+        },
+        bullet_powerup = false,
+		name = "powerup_ammo_name",
+        description = "powerup_ammo_desc",
+		no_spawn = true,
+		gained_function = function(game_state)
+			if game_state.secondary_weapon then
+				game_state:gain_secondary_weapon_ammo(game_state.secondary_weapon.ammo_powerup_gain)
+			end
+		end
 	},
 
 	
@@ -166,26 +151,7 @@ local Artefacts = {
 		description = "artefact_ricochet_desc",
 		spawn_weight = 1000,
     },
-	
-	-- MoreBulletsArtefact = {
-    --     icon = textures.pickup_artefact_more_bullets,
-	-- 	key = "more_bullets",
-	-- 	name = "artefact_more_bullets_name",
-	-- 	description = "artefact_more_bullets_desc",
-    --     spawn_weight = 1000,
-	-- 	remove_function = function(game_state)
-	-- 		game_state.upgrades.bullets = min(game_state.upgrades.bullets, game_state:get_max_upgrade("bullets"))
-	-- 	end,
-    -- },
-	
-	-- DamageOverDistanceArtefact = {
-    --     icon = textures.pickup_artefact_damage_over_distance,
-	-- 	key = "damage_over_distance",
-	-- 	name = "artefact_damage_over_distance_name",
-	-- 	description = "artefact_damage_over_distance_desc",
-    --     spawn_weight = 1000,
-    -- },
-	
+
 	AmuletOfRageArtefact = {
         icon = textures.pickup_artefact_amulet_of_rage,
 		key = "amulet_of_rage",
@@ -210,12 +176,12 @@ local Artefacts = {
         
 		can_spawn = function()
 			if not game_state then return true end
-			return game_state.num_spawned_artefacts >= 1
+			return game_state.num_spawned_artefacts >= 2
 		end,
 
         spawn_weight = function()
 			if not game_state then return 1000 end
-			if game_state.num_spawned_artefacts ~= 1 then return 1000 end
+			if game_state.num_spawned_artefacts ~= 2 then return 1000 end
             return 1000000000000000
         end,
 
@@ -299,6 +265,27 @@ local Artefacts = {
         -- spawn_weight = 10000000000000,
 	},
 	
+    TransmitterArtefact = {
+		icon = textures.pickup_artefact_transmitter,
+		key = "transmitter",
+		name = "artefact_transmitter_name",
+		description = "artefact_transmitter_desc",
+		spawn_weight = 1000,
+		-- debug_spawn_weight = 10000000000000,
+		requires_secondary_weapon = true
+	},
+
+	UselessArtefact = {
+		icon = textures.pickup_artefact_gemstone,
+		key = "useless",
+		name = "artefact_useless_name",
+		description = "artefact_useless_desc",
+		spawn_weight = 1000,
+		spawn_when_full = true,
+		no_pickup = true,
+		infinite_spawns = true,
+	},
+	
 	-- Secondary Weapons
 
 	SwordSecondaryWeapon = {
@@ -317,13 +304,98 @@ local Artefacts = {
 		ammo_needed_per_use = 1,
 		low_ammo_threshold = 3,
         starting_ammo = 4,
-		ammo_color = Color.white,
+		ammo_powerup_gain = 2,
+		ammo_color = Color.magenta,
+
+		show_individual_ammo = false,
 
         cooldown = 8,
   
 		holdable = false,
 		rapid_fire = false,
 	},
+
+	BigLaserSecondaryWeapon = {
+		sprite = textures.pickup_weapon_big_laser,
+		icon = textures.pickup_weapon_big_laser_icon,
+		hud_icon = textures.pickup_weapon_big_laser_hud,
+		key = "big_laser",
+		name = "weapon_big_laser_name",
+		description = "weapon_big_laser_desc",
+        spawn_weight = 1000,
+        -- debug_spawn_weight = 1000000000,
+
+		is_secondary_weapon = true,
+		ammo = 500,
+		ammo_gain_per_level = 60,
+        ammo_needed_per_use = 150,
+        minimum_ammo_needed_to_use = 150,
+		held_ammo_consumption_rate = 1.5,
+		low_ammo_threshold = 299,
+		starting_ammo = 100,
+		ammo_powerup_gain = 40,
+		ammo_color = Color.cyan,
+
+        cooldown = 0,
+		show_individual_ammo = false,
+		
+		holdable = true,
+		rapid_fire = false,
+		-- divide_ammo_to_one = true,
+
+		-- reduce_ammo_counts = true,
+    },
+	
+	RailGunSecondaryWeapon = {
+		sprite = textures.pickup_weapon_railgun,
+		icon = textures.pickup_weapon_railgun_icon,
+		hud_icon = textures.pickup_weapon_railgun_hud,
+		key = "railgun",
+		name = "weapon_railgun_name",
+        description = "weapon_railgun_desc",
+		spawn_weight = 1000,
+        is_secondary_weapon = true,
+		
+		ammo = 48,
+		ammo_gain_per_level = 8,
+        ammo_needed_per_use = 8,
+		ammo_powerup_gain = 4,
+		
+		low_ammo_threshold = 23,
+		starting_ammo = 8,
+		ammo_color = Color.red,
+		
+		show_individual_ammo = false,
+		
+        cooldown = 70,
+		is_railgun = true,
+
+		-- divide_ammo_to_one = true,
+
+	},
+	
+    -- RepulsionFieldSecondaryWeapon = {
+	-- 	sprite = textures.pickup_weapon_repulsion_field,
+	-- 	icon = textures.pickup_weapon_repulsion_field_icon,
+	-- 	hud_icon = textures.pickup_weapon_repulsion_field_hud,
+	-- 	key = "repulsion_field",
+	-- 	name = "weapon_repulsion_field_name",
+    --     description = "weapon_repulsion_field_desc",
+	-- 	-- debug_spawn_weight = 10000000000,
+	-- 	spawn_weight = 1000,
+    --     is_secondary_weapon = true,
+		
+    --     show_individual_ammo = false,
+		
+	-- 	ammo = 12,
+	-- 	ammo_gain_per_level = 1,
+	-- 	ammo_needed_per_use = 2,
+	-- 	low_ammo_threshold = 3,
+	-- 	starting_ammo = 2,
+    --     ammo_color = Color.orange,
+
+	-- 	-- spawnable = false,
+	-- }
 }
 
 
@@ -341,17 +413,52 @@ local function process_pickup_table(tab, subtype, base_name)
 			process_inheritance(parent)
 		end
 	end
+
+	local ammo_keytab = { "ammo", "ammo_gain_per_level", "ammo_needed_per_use", "low_ammo_threshold", "starting_ammo", "minimum_ammo_needed_to_use", "held_ammo_consumption_rate", "ammo_powerup_gain" }
 	
-	for k, v in pairs(tab) do
+    for k, v in pairs(tab) do
         v.name = v.name or k
-		if v.icon == nil and not k == base_name then
-			error("no icon for " .. k)
-		end
+        if v.icon == nil and not k == base_name then
+            error("no icon for " .. k)
+        end
         v.icon = v.icon or textures.pickup_placeholder
-		v.textures = v.textures or {v.icon, v.icon, v.icon}
+        v.textures = v.textures or { v.icon, v.icon, v.icon }
         v.type = "pickup"
-		v.subtype = subtype
-	end
+        v.subtype = subtype
+
+        if subtype == "artefact" and v.is_secondary_weapon then
+
+            -- if v.reduce_ammo_counts then
+            --     local values = {}
+            --     for i, key in ipairs(ammo_keytab) do
+            --         if v[key] then
+            --             values[i] = v[key]
+            --         end
+            --     end
+
+            --     local greatest_common_divisor = gcd(table.fast_unpack(values))
+
+            --     for i, key in ipairs(ammo_keytab) do
+            --         if v[key] then
+            --             v[key] = v[key] / greatest_common_divisor
+            --         end
+            --     end
+            -- end
+
+
+            -- if v.divide_ammo_to_one then
+			-- if v.ammo_needed_per_use > 1 then
+			local num_ammo = v.ammo_needed_per_use
+			for i, key in ipairs(ammo_keytab) do
+				if v[key] then
+					v[key .. "_normalized"] = v[key] / num_ammo
+				end
+			end
+			-- end
+			-- end
+        end
+    end
+	
     for k, v in pairs(tab) do
         process_inheritance(v)
     end

@@ -21,11 +21,23 @@ function audio.load()
     audio.sfx = sfx
     audio.music = music
 
+		
+	
+    -- audio.set_effect("global", {
+	-- type = "equalizer",
+	-- highcut = 9000,
+	-- highgain = 0.8,
+	-- 	lowgain = 1.2
+	-- })
+	-- print("i'm a global lowpass, don't forget about me!")
+    -- audio.set_volume(0.5)
+	
     local wav_paths = filesystem.get_files_of_type("assets/audio", "wav", true)
     local ogg_paths = filesystem.get_files_of_type("assets/audio", "ogg", true)
 
 	for _, v in ipairs(wav_paths) do
-		local sound = audio.newSource(v, "static")
+        local sound = audio.newSource(v, "static")
+		sound:setEffect("global")
 		local name = filesystem.filename_to_asset_name(v, "wav", "audio_")
 		if sfx[name] then
 			asset_collision_error(name, v, wav_paths[name])
@@ -34,10 +46,11 @@ function audio.load()
 	end
 	
 	dbg("num sfx loaded", table.length(sfx))
-
-
+	
+	
     for _, v in ipairs(ogg_paths) do
         local sound = audio.newSource(v, "stream")
+		sound:setEffect("global")
         local name = filesystem.filename_to_asset_name(v, "ogg", "audio_")
         if music[name] then
             asset_collision_error(name, v, ogg_paths[name])
@@ -45,7 +58,7 @@ function audio.load()
         music[name] = sound
     end
 
-	audio.set_volume(1.0)
+
 
 end
 

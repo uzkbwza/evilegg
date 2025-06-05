@@ -102,7 +102,7 @@ function Blinker:state_Waiting_enter()
 	
 	local target = 120
     if not self.blinked_yet then
-        target = rng.randf(60, 300)
+        target = rng:randf(60, 300)
     end
 	local s = self.sequencer
 	s:start(function()
@@ -124,8 +124,8 @@ function Blinker:state_Blinking_enter()
 	self.blinked_yet = true
 	local s = self.sequencer
     s:start(function()
-		local x = rng.randf(self.world.room.left, self.world.room.right)
-        local y = rng.randf(self.world.room.top, self.world.room.bottom)
+		local x = rng:randf(self.world.room.left, self.world.room.right)
+        local y = rng:randf(self.world.room.top, self.world.room.bottom)
 		self.start_x, self.start_y = self.pos.x, self.pos.y
         self.blink_target_x, self.blink_target_y = x, y
         s:wait(5)

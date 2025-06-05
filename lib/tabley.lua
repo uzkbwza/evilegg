@@ -249,14 +249,12 @@ function tabley.sorted(t, sort)
 end
 
 function tabley.deepcopy(orig, copies)
-	if type(orig) ~= "table" then
-		return orig
-	end
-
-    copies = copies or {}
-    local orig_type = type(orig)
-    local copy
+	local orig_type = type(orig)
+	
+	
+    local copy = orig
     if orig_type == 'table' then
+		copies = copies or {}
         if copies[orig] then
             copy = copies[orig]
         else
@@ -267,8 +265,6 @@ function tabley.deepcopy(orig, copies)
             end
             setmetatable(copy, tabley.deepcopy(getmetatable(orig), copies))
         end
-    else -- number, string, boolean, etc
-        copy = orig
     end
     return copy
 end

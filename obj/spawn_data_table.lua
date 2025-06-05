@@ -186,7 +186,8 @@ local Enemies = {
 
 	Chargesploder = {
 		inherit = { "Charger" },
-		level = 4,
+        level = 4,
+		min_level = 7,
 		extra_score = 100,
 		spawn_points = 100,
         icon = textures.enemy_chargesploder1,
@@ -206,6 +207,7 @@ local Enemies = {
 		min_level = 14,
 		extra_score = 200,
 		spawn_points = 120,
+		room_select_weight = 300,
         icon = textures.enemy_cube4,
 		-- spawn_group = { "basic" },
     },
@@ -277,8 +279,9 @@ local Enemies = {
 	
 	Rook = {
 		level = 4,
-		min_level = 35,
-        spawn_points = 130,
+		min_level = 36,
+        spawn_points = 150,
+		spawn_weight_modifier = 0.4,
 		room_select_weight = 500,
 		icon = textures.enemy_big_monster1,
 	},

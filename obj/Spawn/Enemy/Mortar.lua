@@ -44,7 +44,7 @@ function Mortar:state_Normal_enter()
     local s = self.sequencer
     s:start(function()
         if self.shot_yet then
-            s:wait(rng.randi(120, 500))
+            s:wait(rng:randi(120, 500))
         else
             s:wait(60)
         end
@@ -88,7 +88,7 @@ function MortarProjectile:new(x, y)
     self:add_sequencer()
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self.sprite_y = 0
-    self.random_offset = rng.randf(0, 1)
+    self.random_offset = rng:randf(0, 1)
 	self.z_index = 2
 end
 
@@ -107,9 +107,9 @@ function MortarProjectile:enter()
 	
     for i = 1, 20 do
 		local x, y = self.pos.x, self.pos.y
-		local dx, dy = rng.random_vec2_times(rng.randf(0, 16))
-        local obj = self:spawn_object(MortarProjectileSmoke(x + dx, y + dy, rng.randfn(-6, 3)))
-		obj.duration = obj.duration * rng.randfn(1, 0.15)
+		local dx, dy = rng:random_vec2_times(rng:randf(0, 16))
+        local obj = self:spawn_object(MortarProjectileSmoke(x + dx, y + dy, rng:randfn(-6, 3)))
+		obj.duration = obj.duration * rng:randfn(1, 0.15)
 	end
 
 	s:start(function()
@@ -125,7 +125,7 @@ function MortarProjectile:enter()
 
         s:tween_property(self, "sprite_y", 0, SPRITE_Y, 120.0, "inCubic")
 		local ally
-        if rng.percent(25) then
+        if rng:percent(25) then
             ally = self:get_random_ally()
         else
             ally = self:get_random_player()
@@ -133,7 +133,7 @@ function MortarProjectile:enter()
 
         while ally == nil do
             s:wait(1)
-            if rng.percent(25) then
+            if rng:percent(25) then
                 ally = self:get_random_ally()
             else
                 ally = self:get_random_player()
@@ -144,7 +144,7 @@ function MortarProjectile:enter()
         self.state = "Down"
         self:movev_to(pos, 60.0)
         self:ref("shadow", self:spawn_object(MortarShadow(self.pos.x, self.pos.y)))
-        self:bind_destruction(self.shadow)
+		self.shadow:ref("parent", self)
         self.max_height = SPRITE_Y2
 		self.go_time = 0
         self.descend_time = 60.0
@@ -191,7 +191,7 @@ function MortarProjectile:update(dt)
     if self.state == "Up" then
         if self.is_new_tick and self.tick % 3 == 0 and self.go_time < 90 then
             local x, y = self.pos.x, self.pos.y
-            local dx, dy = rng.random_vec2_times(rng.randf(0, 3))
+            local dx, dy = rng:random_vec2_times(rng:randf(0, 3))
             self:spawn_object(MortarProjectileSmoke(x + dx, y + dy, self.sprite_y))
         end
 		if self.is_new_tick and self.tick % 10 == 0 and self.go_time < 90 and self.go_time > 10 then
@@ -209,7 +209,7 @@ function MortarProjectileSmoke:new(x, y, sprite_y)
     MortarProjectileSmoke.super.new(self, x, y)
     self.duration = 20
     self.z_index = 2
-    self.size_mod = rng.randfn(1, 0.1)
+    self.size_mod = rng:randfn(1, 0.1)
     self.sprite_y = sprite_y
 end
 
@@ -299,6 +299,10 @@ function MortarShadow:draw_circ(radius, thickness)
 	graphics.set_line_width(thickness)
     graphics.set_color(idivmod_eq_zero(gametime.tick, 4, 2) and Color.red or Color.yellow)
 	graphics.ellipse("line", 0, 0, radius, radius * 1, 10)
+end
+
+function MortarShadow:update(dt)
+	if not self.parent then self:queue_destroy() end
 end
 
 AutoStateMachine(Mortar, "Normal")

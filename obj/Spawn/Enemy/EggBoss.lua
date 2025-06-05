@@ -9,14 +9,17 @@ local PickupTable = require "obj.pickup_table"
 local RoyalGuard = require("obj.Spawn.Enemy.Enforcer")[2]
 local RoyalRoamer = require("obj.Spawn.Enemy.Roamer")[3]
 local Explosion = require("obj.Explosion")
-
+local Rook = require("obj.Spawn.Enemy.Rook")
 local EggShadow = BaseEnemy:extend("EggShadow")
 
 
-local SKIP_PHASE_1, SKIP_PHASE_2 = false, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
+SKIP_PHASE_3 = SKIP_PHASE_3 and debug.enabled
+SKIP_PHASE_4 = SKIP_PHASE_4 and debug.enabled
+SKIP_PHASE_5 = SKIP_PHASE_5 and debug.enabled
 
 local QUAD_SIZE = 10
 
@@ -43,8 +46,8 @@ local _new = ""
 for i=1, #DIALOGUE do
 	local c = DIALOGUE:sub(i, i)
     _new = _new .. c
-    if rng.percent(5) then
-		local j = rng.randi_range(1, 26)
+    if rng:percent(5) then
+		local j = rng:randi_range(1, 26)
 		_new = _new .. string.sub("abcdefghijklmnopqrstuvwxyz", j, j)
 	end
 end
@@ -54,8 +57,8 @@ DIALOGUE = _new
 print(DIALOGUE)
 
 local function get_random_speech()
-    local size = floor(pow(clamp01(abs(rng.randfn(0.5, 0.7))), 2) * rng.randi_range(1, 15)) + 1
-	local start_index = rng.randi_range(1, #DIALOGUE - size)
+    local size = floor(pow(clamp01(abs(rng:randfn(0.5, 0.7))), 2) * rng:randi_range(1, 15)) + 1
+	local start_index = rng:randi_range(1, #DIALOGUE - size)
 	return DIALOGUE:sub(start_index, start_index + size)
 end
 
@@ -108,7 +111,7 @@ function EggBoss:new()
 		
 		-- Add randomness within a controlled range
 		local variance = max_hp * 0.08 * normalized -- variance decreases as HP gets lower
-		self.crack_points[i] = base_value + rng.randf_range(-variance, variance)
+		self.crack_points[i] = base_value + rng:randf_range(-variance, variance)
 	end
 	
 	table.insert(self.crack_points, SHELL_HP - 10)
@@ -189,7 +192,7 @@ function EggBoss:hit_by(object)
 
 	if object.cannot_hit_egg then return end
 
-	if self.state == "Phase3" then
+	if self.state == "Phase3" or self.state == "Phase5" then
 		self:start_timer("shadow_hurt_flash", 1)
 	end
 
@@ -216,7 +219,7 @@ function EggBoss:damage(amount)
     else
 		if self.can_take_damage then
 			Mixins.Behavior.Health.damage(self, amount)
-			if self.state == "Phase3" and self.hp < BASE_HP * 0.5 and not self.phase2_started_twice then
+			if self.state == "Phase3" and (self.hp < BASE_HP * 0.5 or (self.spawning_stalkers and SKIP_PHASE_3)) and not self.phase2_started_twice then
 				self:change_state("Phase2")
 				self.phase2_started_twice = true
 			end
@@ -257,7 +260,7 @@ function EggBoss:crack_shell()
 	self.world.camera:start_rumble(3, 15, ease("linear"), true, false)
 
 	
-	local start_id = rng.choose(table.keys(self.shell_fragment_locations))
+	local start_id = rng:choose(table.keys(self.shell_fragment_locations))
 	local start_x, start_y = id_to_xy(start_id, QUAD_SIZE)
 	local center_fragment = self.shell_fragment_locations[start_id]
 	
@@ -307,7 +310,7 @@ function EggBoss:spawn_blood(crack_center, initial)
         local fragment_distances = {}
         for id, fragment in pairs(self.shell_fragment_locations) do
             local dist = vec2_distance(fragment.x, fragment.y, crack_center.x, crack_center.y)
-            dist = dist + rng.randf_range(-2, 2)
+            dist = dist + rng:randf_range(-2, 2)
 
             table.insert(fragment_distances, {
                 id = id,
@@ -330,7 +333,7 @@ function EggBoss:spawn_blood(crack_center, initial)
             local screen_y = fragment.y + by
             local dx, dy = vec2_direction_to(bx, by, fragment.x + bx, fragment.y + by)
             if dx ~= 0 or dy ~= 0 then
-				local z_force = remap(dy, -1, 1, -1, rng.randf_range(-1, 5))
+				local z_force = remap(dy, -1, 1, -1, rng:randf_range(-1, 5))
                 self:spawn_object(CrackFragment(bx + fragment.x, real_y,  -(screen_y - real_y), dx, dy, z_force, fragment))
             end
             self:remove_shell_fragment(fragment)
@@ -350,21 +353,37 @@ function EggBoss:spawn_blood(crack_center, initial)
     -- end
 
 
-	-- for i = 1, initial and max(min(abs(rng.randfn(1, 1)), 3), 0) or max(min(abs(rng.randfn(4, 2)), 7), 1) do
+	-- for i = 1, initial and max(min(abs(rng:randfn(1, 1)), 3), 0) or max(min(abs(rng:randfn(4, 2)), 7), 1) do
 
 
 	if SKIP_PHASE_1 and initial then return end
 
-	self:play_sfx("enemy_evil_egg_blood_squirt", 0.4)
 	
-	for i = 1, (not initial) and max(min(abs(rng.randfn(1.25, 1)), 5), 0) or max(min(abs(rng.randfn(4, 2)), 7), 1) do
-		local dx, dy = vec2_rotated(bdx, bdy, rng.randfn(0, tau / 12))
-        dx, dy = vec2_mul_scalar(dx, dy, rng.randfn(1.0, 0.45))
+	local normal_spawns = max(min(abs(rng:randfn(1.25, 1)), 5), 0)
+	local initial_spawns = max(min(abs(rng:randfn(4, 2)), 7), 1)
+	local num_spawns = (not initial) and normal_spawns or initial_spawns
+	local base_rotation = rng:randfn(0, tau / 12)
+	local base_speed = rng:randfn(1.0, 0.45)
+	local phase2_speed_multiplier = 0.25
+	local spawn_x = crack_center.x + bx
+	local spawn_y = real_y
+    local spawn_z = -(screen_y - real_y)
+    if self.phase2_started_twice and num_spawns > 0 then
+        num_spawns = max(num_spawns * 0.65, 1)
+    end
+	
+	if num_spawns > 0 then
+		self:play_sfx("enemy_evil_egg_blood_squirt", 0.4)
+	end
+
+	for i = 1, num_spawns do
+		local dx, dy = vec2_rotated(bdx, bdy, base_rotation)
+        dx, dy = vec2_mul_scalar(dx, dy, base_speed)
 		
 		if self.state == "Phase2" then
-			dx, dy = vec2_mul_scalar(dx, dy, 0.25)
+			dx, dy = vec2_mul_scalar(dx, dy, phase2_speed_multiplier)
 		end
-		self:spawn_object(BloodSpawner(crack_center.x + bx, real_y, -(screen_y - real_y), dx, dy)):ref("parent", self)
+		self:spawn_object(BloodSpawner(spawn_x, spawn_y, spawn_z, dx, dy)):ref("parent", self)
 	end
 end
 
@@ -401,7 +420,7 @@ end
 function EggBoss:try_spawn_blood()
 	if self.is_new_tick then
         for _, crack_center in ipairs(self.crack_centers) do
-			if rng.percent(0.15) then
+			if rng:percent(self.phase2_started_twice and 0.08 or 0.15) then
 				self:spawn_blood(crack_center)
 			end
 		end
@@ -463,7 +482,7 @@ function EggBoss:draw()
 		
 		local color_mod = 1 - self.shadow_darkness
 
-		if self.shadow_darkness > 0 then
+		if self.shadow_darkness > 0 and not self.land_warning then
 			graphics.set_color(Color.darkergrey.r * color_mod, Color.darkergrey.g * color_mod, Color.darkergrey.b * color_mod)
 		end
 
@@ -551,7 +570,7 @@ function EggBoss:spawn_speech(front, can_make_sound)
 	local bx, by = self:get_body_center()
 	local height = 60
 	-- local width = 65
-	-- local x_offset = rng.randf_range(-width / 2, width / 2)
+	-- local x_offset = rng:randf_range(-width / 2, width / 2)
 	-- if not front then
 	-- 	if abs(x_offset) < 50 then
 	-- 		x_offset = 50 * sign(x_offset)
@@ -562,7 +581,7 @@ function EggBoss:spawn_speech(front, can_make_sound)
 
 	local font_height = SPEECH_FONT:getHeight()
 	
-	local y_offset =  rng.randf_range(-height / 2, height / 2)
+	local y_offset =  rng:randf_range(-height / 2, height / 2)
 
     local y = by + y_offset
 
@@ -578,9 +597,9 @@ function EggBoss:spawn_speech(front, can_make_sound)
 
 	orbit_width_ratio = remap_clamp(orbit_width_ratio, 0, 1, 0.5, 1)
 
-	orbit_width_ratio = rng.randf_range(orbit_width_ratio, orbit_width_ratio + 0.15)
+	orbit_width_ratio = rng:randf_range(orbit_width_ratio, orbit_width_ratio + 0.15)
 
-	local speech = self:spawn_object(FloatingSpeech(x, y, get_random_speech(), rng.rand_sign(), front, can_make_sound, orbit_width_ratio))
+	local speech = self:spawn_object(FloatingSpeech(x, y, get_random_speech(), rng:rand_sign(), front, can_make_sound, orbit_width_ratio))
 	speech:ref("parent", self)
 	return speech
 end
@@ -618,36 +637,65 @@ function EggBoss:state_Phase2_enter()
 		end, 0, 1, 120, "inCubic")
         self:hide()
 
-		self.egg_blood_palette = Palette.egg_blood:clone()
-		self.shadow_darkness = 0.0
+		-- self.egg_blood_palette = Palette.egg_blood:clone()
+		-- self.shadow_darkness = 0.0
 
         local num_seconds = 40
         local num_greenoids = 16
 
-        local heart_spawn = rng.randi_range(1, num_greenoids)
-        -- local upgrade_spawn = rng.randi_range(1, num_greenoids)
+        local heart_spawn = rng:randi_range(1, num_greenoids)
+        -- local upgrade_spawn = rng:randi_range(1, num_greenoids)
 		-- while heart_spawn == upgrade_spawn do
-			-- upgrade_spawn = rng.randi_range(1, num_greenoids)
+			-- upgrade_spawn = rng:randi_range(1, num_greenoids)
 		-- end
 
-        if not SKIP_PHASE_2 then
+        local skip = false
+		if self.phase2_started_twice then
+			skip = SKIP_PHASE_4
+		else
+			skip = SKIP_PHASE_2
+		end
+
+        if not (skip) then
             local wait_time = floor(seconds_to_frames(num_seconds / num_greenoids))
             for i = 1, num_greenoids do
                 s:wait(wait_time)
                 local pickup = i == heart_spawn and PickupTable.hearts.NormalHeart or
                     (not game_state:is_fully_upgraded() and game_state:get_random_available_upgrade(false))
+				
+				if i ~= heart_spawn then
+                    for _, object in self.world:get_objects_with_tag("rescue_object"):ipairs() do
+						if object.holding_pickup == pickup then
+							pickup = nil
+						end
+					end
+				end
+
                 self:spawn_greenoid(pickup)
-                for j = 1, (self.phase2_started_twice and rng.randi_range(1, 2) or 2) do
+                for j = 1, (self.phase2_started_twice and rng:randi_range(2, 3) or 2) do
+                -- for j = 1, (2) do
                     self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
-						self:spawn_wave_enemy(object)
-					end)
+                        self:spawn_wave_enemy(object)
+                    end)
                 end
+				if self.phase2_started_twice and i % 3 == 0 and i > num_greenoids * 0.33 and self.world:get_number_of_objects_with_tag("rook") < 2 then
+					local x, y = nil, nil
+					-- local random_shadow = self.world:get_random_object_with_tag("egg_shadow")
+					-- if random_shadow then
+					-- 	x, y = random_shadow:get_body_center()
+					-- 	x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf_range(0, random_shadow.radius)))
+					-- end
+					self.world:spawn_something(Rook, x, y, nil, nil, function(object)
+						self:spawn_wave_enemy(object)
+						object:add_tag_on_enter("rook")
+					end)
+				end
             end
 
             s:wait(120)
         end
 		
-		while self.world:get_number_of_objects_with_tag("RoyalGuard") > 0 do
+		while self.world:get_number_of_objects_with_tag("royalguard") > 0 or self.world:get_number_of_objects_with_tag("rook") > 0 do
 			s:wait(1)
 		end
 
@@ -686,7 +734,7 @@ function EggBoss:state_Phase2_enter()
 		self.z_index = old_z_index
 
         if self.phase2_started_twice then
-			self:change_state("Phase4")
+			self:change_state("Phase5")
 		else
 			self:change_state("Phase3")
 		end
@@ -718,46 +766,48 @@ function EggBoss:state_Phase2_update(dt)
 end
 
 function EggBoss:spawn_greenoid(pickup)
-    self.world:spawn_rescue(NormalRescue, pickup, self.world:get_valid_spawn_position())
+	if not game_state.game_over then
+		self.world:spawn_rescue(NormalRescue, pickup, self.world:get_valid_spawn_position())
+	end
 end
 
 function EggBoss:state_Phase3_enter()
-	self.spawning_stalkers = false
+    self.spawning_stalkers = false
     self.roaming = false
-	local s = self.sequencer
+    local s = self.sequencer
     s:start(function()
-
-		s:start(function() 
-			self.shadow_darkness = 0.0
-			s:tween_property(self, "shadow_darkness", 0.0, 1.0, 100, "linear")
-		end)
+        s:start(function()
+            self.shadow_darkness = 0.0
+            s:tween_property(self, "shadow_darkness", 0.0, 1.0, 100, "linear")
+        end)
 
         s:start(function()
-			self.egg_blood_palette = Palette.egg_blood:clone()
+            self.egg_blood_palette = Palette.egg_blood:clone()
 
 
             local colors = {
                 Color.black,
                 Color.black,
-				Color.nearblack,
-			}
+                Color.nearblack,
+            }
 
             local skip_color = function(color)
-				return not table.list_has(colors, color)
-			end
+                return not table.list_has(colors, color)
+            end
 
             for colornum = 1, 90 do
-				-- self.egg_blood_palette:set_color(i, Color.red)
+                -- self.egg_blood_palette:set_color(i, Color.red)
                 local found = false
                 local colors_skipped = 0
-				local palette_index = 1
+                local palette_index = 1
                 while true do
                     if skip_color(self.egg_blood_palette:get_color(palette_index)) then
                         if colornum > 10 then
                             local r, g, b = self.egg_blood_palette:get_color_unpacked(palette_index)
-							local mod = 0.99
-                            self.egg_blood_palette:set_color_unpacked(self.egg_blood_palette:get_valid_index(palette_index), r * mod, g * mod, b * mod, 1)
-						end
+                            local mod = 0.99
+                            self.egg_blood_palette:set_color_unpacked(
+                            self.egg_blood_palette:get_valid_index(palette_index), r * mod, g * mod, b * mod, 1)
+                        end
                         if colors_skipped >= colornum - 1 then
                             break
                         else
@@ -765,22 +815,22 @@ function EggBoss:state_Phase3_enter()
                             -- palette_index = palette_index + 1
                         end
                     end
-					palette_index = palette_index + 1
+                    palette_index = palette_index + 1
                 end
-				-- self.egg_blood_palette:add_color(table.get_circular(colors, palette_index), palette_index)
-				if colornum % 5 == 0 then 
-					s:wait(5)
-				end
-			end
+                -- self.egg_blood_palette:add_color(table.get_circular(colors, palette_index), palette_index)
+                if colornum % 5 == 0 then
+                    s:wait(5)
+                end
+            end
 
-			self.can_take_damage = true
+            self.can_take_damage = true
         end)
-		
-		s:wait(100)
+
+        s:wait(100)
 
 
 
-		local num_shadows = 8
+        local num_shadows = 8
         for i = 1, num_shadows do
             local angle = i * tau / num_shadows
 
@@ -793,45 +843,52 @@ function EggBoss:state_Phase3_enter()
             self:spawn_object(EggShadow(0, 0, angle, 186, -0.0066, 110)):ref("parent", self)
             s:wait(10)
         end
-        
-		self.roaming = true
 
-		self.spawning_stalkers = true
-		
+        self.roaming = true
+
+        self.spawning_stalkers = true
+
         s:wait(200)
-		for _, shadow in self.world:get_objects_with_tag("egg_shadow"):ipairs() do
-			shadow:start_moving()
-		end
-	end)
+        for _, shadow in self.world:get_objects_with_tag("egg_shadow"):ipairs() do
+            shadow:start_moving()
+        end
+    end)
+end
+
+function EggBoss:state_Phase3_exit()
+	for _, shadow in self.world:get_objects_with_tag("egg_shadow"):ipairs() do
+		shadow:start_oscillating()
+	end
 end
 
 function EggBoss:state_Phase3_update(dt)
     self:set_body_height(self:get_hover_body_height())
 	-- dbg("number_of_stalkers", self.world:get_number_of_objects_with_tag("royal_roamer"))
     if self.spawning_stalkers and self.is_new_tick then
-        if self.state_tick % 5 == 0 and self.world:get_number_of_objects_with_tag("royal_roamer") + self.world:get_number_of_objects_with_tag("wave_spawn") - 3 < 50 then
-        -- if self.state_tick % 5 == 0 and self.world:get_number_of_objects_with_tag("royal_roamer") < 50 then
+        if self.state_tick % 5 == 0 and self.world:get_number_of_objects_with_tag("royal_roamer") + self.world:get_number_of_objects_with_tag("wave_spawn") - 3 < 40 then
+            -- if self.state_tick % 5 == 0 and self.world:get_number_of_objects_with_tag("royal_roamer") < 50 then
             -- local pbx, pby = self:random_last_player_body_pos()
-			local x, y = nil, nil
+            local x, y = nil, nil
             local random_shadow = self.world:get_random_object_with_tag("egg_shadow")
             if random_shadow then
                 x, y = random_shadow:get_body_center()
-				x, y = vec2_add(x, y, rng.random_vec2_times(rng.randf_range(0, random_shadow.radius)))
+                x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf_range(0, random_shadow.radius)))
             end
-            -- local dist = rng.randf_range(32, 90)
-            -- local angle = rng.randf_range(0, tau)
+            -- local dist = rng:randf_range(32, 90)
+            -- local angle = rng:randf_range(0, tau)
             -- local x, y = vec2_from_polar(dist, angle)
             -- x, y = pbx + x, pby + y
-			self.world:spawn_something(RoyalRoamer, x, y, nil, nil, function(object)
-				-- self:spawn_wave_enemy(object)
-				object:add_tag_on_enter("royal_roamer")
-				object:add_tag_on_enter("wave_enemy")
-			end)
-		end
+            self.world:spawn_something(RoyalRoamer, x, y, nil, nil, function(object)
+                -- self:spawn_wave_enemy(object)
+                object:add_tag_on_enter("royal_roamer")
+                object:add_tag_on_enter("wave_enemy")
+            end)
+        end
+
 	end
 end
 
-function EggBoss:state_Phase4_enter()
+function EggBoss:state_Phase5_enter()
 	self.spawning_stalkers = false
     self.roaming = false
 	self.can_take_damage = true
@@ -843,19 +900,19 @@ function BloodSpawner:new(x, y, body_height, dx, dy)
 	BloodSpawner.super.new(self, x, y)
 	self.z_index = 1000
 	self.melee_attacking = false
-	self.rotation = rng.randf_range(0, tau)
+	self.rotation = rng:randf_range(0, tau)
 
     self.gravity = 0.0
 	self.intangible = true
 	self.drag = 0.001
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
-	self:apply_impulse(vec2_mul_scalar(dx, dy, rng.randf_range(0.5, 2.55)))
+	self:apply_impulse(vec2_mul_scalar(dx, dy, rng:randf_range(0.5, 2.55)))
 	if dy < 0 then
 		self.z_index = 0
 	end
 	self:lazy_mixin(Mixins.Behavior.PositionHistory, 10)
-    self.random_offset = rng.randi()
+    self.random_offset = rng:randi()
 	
 end
 
@@ -871,7 +928,7 @@ function BloodSpawner:enter()
 	local s = self.sequencer
 	s:start(function()
 		local start_height = self.body_height
-		local tween_time = max(start_height * 0.4 + rng.randf_range(-10, 10), 5)
+		local tween_time = max(start_height * 0.4 + rng:randf_range(-10, 10), 5)
 
 		s:tween(function(t)
 			self:set_body_height(lerp(start_height, 0, t))
@@ -891,7 +948,7 @@ function BloodSpawner:die()
 end
 
 function BloodSpawner:bloodstain()
-	local scale = clamp01(rng.randfn(0.5, 0.25))
+	local scale = clamp01(rng:randfn(0.5, 0.25))
     self.scale = scale
 	self.drag = lerp(0.04, 0.06, scale)
 
@@ -944,7 +1001,7 @@ function BloodSpawner:update(dt)
 		self:end_zap_sequence()
 	end
 
-    if self.stained and self.is_new_tick and rng.percent(0.5) and not self.zapping then
+    if self.stained and self.is_new_tick and rng:percent(0.5) and not self.zapping then
 
         if self.world:get_number_of_objects_with_tag("egg_boss_blood") < 1 then
             goto nevermind
@@ -1184,7 +1241,7 @@ end
 
 
 function CrackFragment:new(x, y, height, dx, dy, z_force, fragment)
-	self.speed = rng.randf_range(0.4, 2)
+	self.speed = rng:randf_range(0.4, 2)
 	CrackFragment.super.new(self, x, y)
     self.dx = dx
     if dy < 0 then
@@ -1195,10 +1252,10 @@ function CrackFragment:new(x, y, height, dx, dy, z_force, fragment)
     self.z = height
     self.z_vel = -z_force
 	self.z_acc = 0.0
-	self.gravity = rng.randf_range(0.05, 0.15)
+	self.gravity = rng:randf_range(0.05, 0.15)
 	self.fragment = fragment
     self:add_elapsed_time()
-	self.random_offset = rng.randi()
+	self.random_offset = rng:randi()
 	self:add_elapsed_ticks()
 end
 
@@ -1257,13 +1314,13 @@ function FloatingSpeech:new(x, y, text, dir, front, can_make_sound, orbit_width_
 	self.orbit_width_ratio = orbit_width_ratio
 
 	if can_make_sound then
-		self:play_sfx("enemy_evil_egg_speech" .. rng.randi(1, 5), 0.6)
+		self:play_sfx("enemy_evil_egg_speech" .. rng:randi(1, 5), 0.6)
 	end
 
     -- self.duration = 12 * #self.text
 	self.duration = 100
 
-	self.phase_offset = rng.randf_range(-1, 1)
+	self.phase_offset = rng:randf_range(-1, 1)
 
 	self:add_elapsed_time()
     self:add_elapsed_ticks()
@@ -1349,6 +1406,9 @@ function FloatingSpeech:draw()
 end
 
 
+local SHADOW_ACTIVATION_THRESHOLD = 0.70
+local SHADOW_ACTIVATION_WARNING_WINDOW = 0.5
+local SHADOW_ACTIVATION_FADEOUT_WINDOW = 0.025
 
 function EggShadow:new(x, y, angle, distance, speed, swell_amount)
     EggShadow.super.new(self, x, y)
@@ -1366,22 +1426,39 @@ function EggShadow:new(x, y, angle, distance, speed, swell_amount)
     self.intangible = true
     self.radius = 1
 	self.angle = angle
+	self.active = false
     self:move_to(vec2_from_polar(self.distance, self.angle))
     self.melee_attacking = false
 	self.center_x, self.center_y = 0, 0
+	self.oscillation = SHADOW_ACTIVATION_THRESHOLD
+	self.oscillation_frequency = rng:randf_range(0.5, 1.5)
+    self.oscillation_dir = 1
+    self.oscillation_scale = clamp(abs(rng:randfn(1, 0.25)), 0.25, 1.25)
+    self.oscillation_swell = rng:randf_range(0.25, 1)
+	self.square_rotation = 0.0
+    self.oscillation_rotation_speed = clamp(rng:randfn(0.125, 0.1) * rng:rand_sign(), -0.2, 0.2)
+	self.swell_elapsed = 0
+	self.oscillation_swell_speed = clamp(abs(rng:randfn(1, 0.25)), 0.75, 1.5)
 end
 
 function EggShadow:enter()
+	self:play_sfx("enemy_evil_egg_shadow_spawn", 0.6)
     self.center_x, self.center_y = self.parent.pos.x, self.parent.pos.y
 	
 	self:add_tag("egg_shadow")
     local s = self.sequencer
 
     self:add_hit_bubble(0, 0, self.radius, "main", 2)
+
+	-- self:start_timer("sfx2", 30, function()
+		-- self:play_sfx("enemy_evil_egg_shadow_spawn2", 0.6)
+	-- end)
+
     s:start(function()
         s:tween(function(t)
            self:set_radius(lerp(1, 26, t))
         end, 0, 1, 200, "linear")
+		
     end)
 	self:start_tick_timer("attack_timer", 180, function()
 		self.melee_attacking = true
@@ -1389,38 +1466,73 @@ function EggShadow:enter()
 end
 
 function EggShadow:start_moving()
-	self:start_stopwatch("move_stopwatch")
+	self.moving = true
 end
 
 function EggShadow:collide_with_terrain()
 end
 
 function EggShadow:update(dt)
-    local stopwatch = self:get_stopwatch("move_stopwatch")
+    -- local stopwatch = self:get_stopwatch("move_stopwatch")
     local dist = self.distance
-    if stopwatch then
-        self.angle = self.angle - dt * pow(clamp01(stopwatch.elapsed / 900), 2) * self.speed
-        dist = self.distance + sin(stopwatch.elapsed * 0.01) * self.swell_amount
-		self:set_radius(26 + sin(stopwatch.elapsed * 0.01) * 10)
+
+    local oscillation_stopwatch = self:get_stopwatch("oscillate_stopwatch")
+	local oscillation_elapsed = oscillation_stopwatch and oscillation_stopwatch.elapsed or 0
+
+
+    if self.oscillating then
+		local old_oscillation = self.oscillation
+        self.oscillation = sin((oscillation_stopwatch.elapsed) * 0.01 * self.oscillation_frequency + self.random_offset)
+        local dir = self.oscillation > old_oscillation and 1 or -1
+		self.oscillation_dir = dir
+		self:set_active(self.oscillation >= SHADOW_ACTIVATION_THRESHOLD)
+	end
+
+    if self.moving then
+		self.swell_elapsed = self.swell_elapsed + dt * lerp(1, self.oscillation_swell_speed, clamp01(oscillation_elapsed / 1200))
+
+        self.angle = self.angle - dt * pow(clamp01(self.swell_elapsed / 900), 2) * self.speed
+        dist = self.distance * lerp(1, 0.65, clamp01(oscillation_elapsed / 1200)) +
+			sin(self.swell_elapsed * 0.01) *
+        	lerp(self.swell_amount, self.swell_amount * self.oscillation_swell, clamp01(oscillation_elapsed / 900))
+        local radius = 26 - clamp01(oscillation_elapsed / 1000) * 5 +
+        sin(self.swell_elapsed * 0.01) * lerp(10, 0, clamp01(oscillation_elapsed / 1200))
+		local oscillation_modifier = lerp(1, remap(self.oscillation, -1, 1, 0.5, 1) * self.oscillation_scale, clamp01(oscillation_elapsed / 700))
+		self:set_radius(radius * oscillation_modifier)
     end
 
     local x, y = vec2_from_polar(dist, self.angle)
+
     if self.parent and self.parent.state == "Phase3" then
-        self.center_x, self.center_y = splerp_vec(self.center_x, self.center_y, self.parent.pos.x, self.parent.pos.y, 120.00, dt)
+        self.center_x, self.center_y = splerp_vec(self.center_x, self.center_y, self.parent.pos.x, self.parent.pos.y,
+            120.00, dt)
     else
-		self.center_x, self.center_y = splerp_vec(self.center_x, self.center_y, 0, 0, 2000.00, dt)
+        self.center_x, self.center_y = splerp_vec(self.center_x, self.center_y, 0, 0, 2000.00, dt)
     end
+	
+	self.square_rotation = self.square_rotation + dt * lerp(0.125, self.oscillation_rotation_speed, clamp01(oscillation_elapsed / 1220))
 
 
     self:move_to(self.center_x + x, self.center_y + y)
 end
 
+function EggShadow:set_active(active)
+    self.active = active
+	self.melee_attacking = active
+end
+
 function EggShadow:set_radius(radius)
+
 	self.radius = radius
 	self:set_bubble_radius("hit", "main", max(self.radius - 10, 1))
 	self:set_bubble_radius("hurt", "main", max(self.radius - 1, 1))
 	self.declump_radius = max(self.radius - 2, 1)
 	self.terrain_collision_radius = max(self.radius - 2, 1)
+end
+
+function EggShadow:start_oscillating()
+    self.oscillating = true
+	self:start_stopwatch("oscillate_stopwatch")
 end
 
 function EggShadow:get_sprite()
@@ -1438,12 +1550,37 @@ function EggShadow:floor_draw()
 		-- graphics.set_color(Color.red)
 	-- end
 	for i=1, self.radius * 5 do
-		graphics.points(rng.random_vec2_times(rng.randf_range(0, self.radius)))
+		graphics.points(rng:random_vec2_times(rng:randf_range(0, self.radius)))
 	end
 end
 
 function EggShadow:draw()
-	-- local stopwatch = self:get_stopwatch("move_stopwatch")
+    -- local stopwatch = self:get_stopwatch("move_stopwatch")
+	
+    local activating = false
+	
+
+	if self.oscillating and not self.active and self:get_stopwatch("oscillate_stopwatch").elapsed < 10 then
+		activating = true
+	elseif self.oscillation < SHADOW_ACTIVATION_THRESHOLD - (self.oscillation_dir > 0 and SHADOW_ACTIVATION_WARNING_WINDOW or SHADOW_ACTIVATION_FADEOUT_WINDOW) then
+		-- print("not drawing")
+        return
+    elseif self.oscillation < SHADOW_ACTIVATION_THRESHOLD then
+        if idivmod_eq_zero(gametime.tick, 1, 2) then
+			activating = true
+		else
+			return
+		end
+		-- print("sometimes drawing")
+	end
+
+
+	local color_mod = 1.0
+
+	if activating then
+		color_mod = 0.25
+	end
+
 	if not idivmod_eq_zero(gametime.tick, 1, 3) then
 		graphics.set_color(Color.black)
 		graphics.circle("fill", 0, 0, self.radius)
@@ -1454,16 +1591,19 @@ function EggShadow:draw()
     for i = 1, num_points do
 		local angle = (i / num_points) * tau
 		local x, y = vec2_from_polar(self.radius, angle + self.elapsed * 0.025)
-		graphics.set_color(idivmod_eq_zero(self.tick + i * 7, 1, 5) and Color.darkpurple or Color.nearblack)
+        local r, g, b = (idivmod_eq_zero(self.tick + i * 7, 1, 5) and Color.darkpurple or Color.nearblack):unpack()
+		
+		graphics.set_color(Color.adjust_lightness_unpacked(r, g, b, color_mod))
 		graphics.rectangle_centered("line", x, y, 2, 2)
 	end
 
     -- graphics.set_color(idivmod_eq_zero(self.tick + self.random_offset * 7, 1, 5) and Color.darkpurple or Color.nearblack)
 	local width = max(self.radius - 8, 1) * 2
-	graphics.rotate(self.elapsed * 0.125)
+	graphics.rotate(self.square_rotation)
 	-- graphics.rectangle_centered("line", 0, 0, width, width)
     -- graphics.set_color(Color.purple)
-    graphics.set_color(Palette.egg_blood3:tick_color(self.tick, 0, 3))
+	local r, g, b = Palette.egg_blood3:tick_color(self.tick, 0, 3):unpack()
+    graphics.set_color(Color.adjust_lightness_unpacked(r, g, b, color_mod))
 	-- graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 3))
 	graphics.rectangle_centered("line", 0, 0, width, width)
 

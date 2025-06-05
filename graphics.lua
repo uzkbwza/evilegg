@@ -345,6 +345,22 @@ function graphics.initialize_screen_shader_presets()
 			-- { shader = graphics.shader.blur, args = {} },
 			-- graphics.shader.lcd,
 		},
+		
+		{
+			
+			"shader_preset_glow",
+			-- graphics.shader.basic
+			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.045, pre_blur_samples = 8 } },
+
+			-- { shader = graphics.shader.screenfilter, args = {} },
+			-- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
+			-- { shader = graphics.shader.aberration, args = {aberration_amount = 0.3, aberration_strength = 0.6 }, },
+			-- { shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 16, intensity = 0.5, glow_curve = 1, glow_boost = 0.55 } },
+            { shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.35, glow_curve = 1, glow_boost = 0.0 } },
+            { shader = graphics.shader.glow, args = { pre_blur_size = 0.35, pre_blur_samples = 10, intensity = 0.25, glow_curve = 1, glow_boost = 0.0 } },
+			-- { shader = graphics.shader.blur, args = {} },
+			-- graphics.shader.lcd,
+		},
 
 		{
 			"shader_preset_scanline",
@@ -375,9 +391,7 @@ function graphics.initialize_screen_shader_presets()
 		
 		{
 			"shader_preset_ledboard",
-
 			{
-
 				shader = graphics.shader.led,
 				args = {
 					pixel_texture = graphics.textures.pixeltexture,
@@ -400,7 +414,9 @@ function graphics.initialize_screen_shader_presets()
 
 			-- { shader = graphics.shader.aberration, args = {} },
 			-- { shader = graphics.shader.lcd,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 2.0 } },
-		},
+        },
+
+
 	}
 
     graphics.adjustment_shader_options = graphics.adjustment_shader_options or {
@@ -592,8 +608,8 @@ function graphics.draw_loop()
     end
 
 	if graphics.screen_rumble_intensity > 0 then
-		local dx, dy = rng.random_vec2()
-		local rumble_offset_x, rumble_offset_y = (dx * rng.randf(graphics.screen_rumble_intensity*0.5, graphics.screen_rumble_intensity)), (dy * rng.randf(graphics.screen_rumble_intensity*0.5, graphics.screen_rumble_intensity))
+		local dx, dy = rng:random_vec2()
+		local rumble_offset_x, rumble_offset_y = (dx * rng:randf(graphics.screen_rumble_intensity*0.5, graphics.screen_rumble_intensity)), (dy * rng:randf(graphics.screen_rumble_intensity*0.5, graphics.screen_rumble_intensity))
         canvas_pos.x = canvas_pos.x + rumble_offset_x * viewport_pixel_scale
 		canvas_pos.y = canvas_pos.y + rumble_offset_y * viewport_pixel_scale
 	end
@@ -961,12 +977,24 @@ function graphics.rect(mode, rect)
 end
 
 function graphics.rectangle_centered(mode, x, y, width, height)
-	love.graphics.rectangle(mode, x - width / 2, y - height / 2, width, height)
+    love.graphics.rectangle(mode, x - width / 2, y - height / 2, width, height)
 end
 
--- function graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
--- love.graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
--- end
+
+function graphics.debug_capsule(x1, y1, x2, y2, radius, draw_rect)
+    graphics.circle("line", x1, y1, radius)
+    graphics.circle("line", x2, y2, radius)
+    local angle = vec2_angle_to(x1, y1, x2, y2)
+    local length = vec2_distance(x1, y1, x2, y2)
+    local offsx, offsy = vec2_rotated(radius, 0, angle + tau / 4)
+    local endx, endy = x1 + cos(angle) * length, y1 + sin(angle) * length
+    graphics.line(x1 + offsx, y1 + offsy, endx + offsx, endy + offsy)
+    graphics.line(x1 - offsx, y1 - offsy, endx - offsx, endy - offsy)
+	if draw_rect then
+		graphics.rectangle("line", x1 - radius, y1 - radius, x2 - x1 + radius * 2, y2 - y1 + radius * 2)
+	end
+end
+
 
 function graphics.poly_rect(fill, x, y, width, height, rotation, scale_x, scale_y)
 	local left_x, top_y = -width / 2, -height / 2
@@ -1004,6 +1032,57 @@ function graphics.poly_rect(fill, x, y, width, height, rotation, scale_x, scale_
 	y4 = y4 + y
 
 	graphics.polygon(fill, x1, y1, x2, y2, x3, y3, x4, y4)
+end
+
+
+function graphics.poly_rect_sides(x, y, width, height, rotation, scale_x, scale_y, side1, side2, side3, side4)
+	local left_x, top_y = -width / 2, -height / 2
+    local right_x, bottom_y = width / 2, height / 2
+	
+	local x1, y1 = left_x, top_y
+	local x2, y2 = right_x, top_y
+	local x3, y3 = right_x, bottom_y
+	local x4, y4 = left_x, bottom_y
+
+
+
+	x1, y1 = vec2_rotated(x1, y1, rotation)
+	x2, y2 = vec2_rotated(x2, y2, rotation)
+	x3, y3 = vec2_rotated(x3, y3, rotation)
+	x4, y4 = vec2_rotated(x4, y4, rotation)
+
+	x1 = x1 * scale_x
+	x2 = x2 * scale_x
+	x3 = x3 * scale_x
+	x4 = x4 * scale_x
+
+	y1 = y1 * scale_y
+	y2 = y2 * scale_y
+	y3 = y3 * scale_y
+	y4 = y4 * scale_y
+
+	x1 = x1 + x
+	x2 = x2 + x
+	x3 = x3 + x
+	x4 = x4 + x
+	y1 = y1 + y
+	y2 = y2 + y
+	y3 = y3 + y
+	y4 = y4 + y
+
+	if side1 then
+		graphics.line(x1, y1, x2, y2)
+	end
+    if side2 then
+        graphics.line(x2, y2, x3, y3)
+    end
+	if side3 then
+		graphics.line(x3, y3, x4, y4)
+	end
+	if side4 then
+		graphics.line(x4, y4, x1, y1)
+	end
+	
 end
 
 function graphics.print_right_aligned(text, font, end_x, y, r, sx, sy, ox, oy, kx, ky)

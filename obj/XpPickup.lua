@@ -40,13 +40,13 @@ function XpPickup:new(x, y, xp)
 		local xp_to_add = min(SMALL_SIZE, xp_left)
 
         if xp_left >= SMALL_SIZE * 5 then
-			if xp_left >= REALLY_HUGE_SIZE and rng.percent(60) then
+			if xp_left >= REALLY_HUGE_SIZE and rng:percent(60) then
 				texture = "pickup_xp_really_huge"
 				xp_to_add = REALLY_HUGE_SIZE
-			elseif xp_left >= HUGE_SIZE and rng.percent(60) then
+			elseif xp_left >= HUGE_SIZE and rng:percent(60) then
 				texture = "pickup_xp_huge"
 				xp_to_add = HUGE_SIZE
-			elseif xp_left >= BIG_SIZE and rng.percent(60) then
+			elseif xp_left >= BIG_SIZE and rng:percent(60) then
 				texture = "pickup_xp_big"
 				xp_to_add = BIG_SIZE
 			end
@@ -55,20 +55,20 @@ function XpPickup:new(x, y, xp)
         local p = {
             elapsed = 0,
             -- lerp_t = 0,
-            home_speed = max(rng.randfn(1, 0.5), 0.5),
-			start_vertical = rng.coin_flip(),
+            home_speed = max(rng:randfn(1, 0.5), 0.5),
+			start_vertical = rng:coin_flip(),
             texture = texture,
         }
 
 		
-        p.vel_x, p.vel_y = rng.random_vec2_times(rng.randfn(speed, speed * 0.1))
+        p.vel_x, p.vel_y = rng:random_vec2_times(rng:randfn(speed, speed * 0.1))
 		
         p.history = { { x, y, 0 } }
 		
 		
-		p.random_offset = rng.randi()
-		p.x = x + rng.randf_range(0, 10) * sign(p.vel_x)
-        p.y = y + rng.randf_range(0, 10) * sign(p.vel_y)
+		p.random_offset = rng:randi()
+		p.x = x + rng:randf_range(0, 10) * sign(p.vel_x)
+        p.y = y + rng:randf_range(0, 10) * sign(p.vel_y)
 		
 		
         p.xp = xp_to_add
@@ -96,7 +96,7 @@ function XpPickup:update(dt)
 	local picked_up = false
     for _, particle in ipairs(self.particles_to_remove) do
         self.particles:remove(particle)
-		if not particle.nopickup then
+		if not particle.no_pickup then
 			picked_up = true
 		end
     end
@@ -182,7 +182,7 @@ function XpPickup:update_particle(particle, dt)
     -- end
     if particle.elapsed > seconds_to_frames(30) then
         table.insert(self.particles_to_remove, particle)
-		particle.nopickup = true
+		particle.no_pickup = true
 		return
 	end
 end

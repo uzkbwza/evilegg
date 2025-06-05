@@ -30,7 +30,7 @@ function LeaderboardWorld:new()
 	self.current_page_number = 1
 	self.target_death_count = 0
  
-	self.current_category = leaderboard.default_category
+	self.current_category = leaderboard.cat(self.current_category)
 
 	self.run_t_values = {}
 	for i=1, PAGE_LENGTH do
@@ -118,7 +118,7 @@ function LeaderboardWorld:enter()
 		end
 		local high_score_run = savedata:get_high_score_run(self.current_category)
         if high_score_run then
-            leaderboard.submit(high_score_run, function(ok, res)
+            leaderboard.submit(high_score_run, self.current_category, false, function(ok, res)
                 if not self.is_destroyed then
                     self:fetch_user(savedata.uid)
                 end
@@ -132,7 +132,7 @@ function LeaderboardWorld:enter()
 end
 
 function LeaderboardWorld:death_count_update_loop()
-	self:start_timer("death_count_update_loop", rng.randi_range(30, 120), function()
+	self:start_timer("death_count_update_loop", rng:randi_range(30, 120), function()
 		leaderboard.get_deaths(function(ok, res)
             if ok then
                 if self.death_count == 0 then
@@ -151,7 +151,7 @@ end
 function LeaderboardWorld:fetch_user(uid)
 	self.waiting = true
 	self.error = false
-    leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, function(ok, res)
+    leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, false, function(ok, res)
 		if self.is_destroyed then
 			return
 		end
@@ -169,7 +169,7 @@ end
 function LeaderboardWorld:fetch_page(page)
 	self.waiting = true
 	self.error = false
-	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, self.wait_function)
+	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, false, self.wait_function)
 end
 
 function LeaderboardWorld:on_page_fetched(page)
@@ -230,7 +230,7 @@ function LeaderboardWorld:update(dt)
     if not self:is_timer_running("death_count") and self.death_count < self.target_death_count then
         self.death_count = self.death_count + 1
         self:start_timer("death_count_flash", 30)
-		self:start_timer("death_count", max(1, abs(rng.randfn(15, 5))))
+		self:start_timer("death_count", max(1, abs(rng:randfn(15, 5))))
 	end
 	if input.ui_cancel_pressed then
 		self.back_button:select()

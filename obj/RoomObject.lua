@@ -447,23 +447,23 @@ end
 
 function RoomFloorObject:update(dt)
 	if self.is_new_tick then
-        local num_particles = max(floor(abs(rng.randfn(0, 1.6))), 1 - self.tick)
+        local num_particles = max(floor(abs(rng:randfn(0, 1.6))), 1 - self.tick)
 		if num_particles > 0 then
 			for i=1, num_particles do 
 				local s = self.sequencer
 				s:start(function()
 					local particle = {}
-					particle.distance = clamp(rng.randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 20, MAX_PARTICLE_DISTANCE)
-					particle.size = max(rng.randfn(6.0, 1.5), 0.5)
-					particle.brightness = max(rng.randfn(0.25, 0.15), 0.05)
-					-- particle.rotated = rng.percent(50)
+					particle.distance = clamp(rng:randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 20, MAX_PARTICLE_DISTANCE)
+					particle.size = max(rng:randfn(6.0, 1.5), 0.5)
+					particle.brightness = max(rng:randfn(0.25, 0.15), 0.05)
+					-- particle.rotated = rng:percent(50)
 					particle.t = 0
-					particle.offset = clamp(rng.randfn(0, PARTICLE_FIELD_WIDTH / 4), -PARTICLE_FIELD_WIDTH, PARTICLE_FIELD_WIDTH)
+					particle.offset = clamp(rng:randfn(0, PARTICLE_FIELD_WIDTH / 4), -PARTICLE_FIELD_WIDTH, PARTICLE_FIELD_WIDTH)
 					local centered_ratio = pow(1 - abs(particle.offset) / (PARTICLE_FIELD_WIDTH), 2)
 					particle.distance = particle.distance * clamp(remap_lower(pow(centered_ratio, 1.25), 0, 1, 0.25), 0.25, 1)
 					particle.size = particle.size * remap_lower(centered_ratio, 0, 1, 0.5)
 					self.particles[particle] = true
-					s:tween_property(particle, "t", 0.0, 1, min(max(rng.randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), 300), "inCubic")
+					s:tween_property(particle, "t", 0.0, 1, min(max(rng:randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), 300), "inCubic")
 					self.particles[particle] = nil
 				end)
 			end
@@ -485,7 +485,7 @@ function RoomFloorObject:draw_particles(is_floor)
 
     for particle in pairs(self.particles) do
         if is_floor then
-			if (not self.is_new_tick) or rng.percent(80) then
+			if (not self.is_new_tick) or rng:percent(80) then
 				goto continue
 			end
 		end
@@ -509,7 +509,7 @@ function RoomFloorObject:draw_particles(is_floor)
 			-- if particle.rotated then
 			-- 	graphics.rotate(tau / 8)
 			-- end
-            graphics.rectangle((is_floor and (rng.percent(50) and "line" or "fill")) or "fill", -size * 0.5, -size * 0.5, size, size)
+            graphics.rectangle((is_floor and (rng:percent(50) and "line" or "fill")) or "fill", -size * 0.5, -size * 0.5, size, size)
 			graphics.pop()
         elseif size >= 0.5 then
             graphics.points(pos_x, pos_y)

@@ -24,7 +24,7 @@ function BaseEnemy:new(x, y)
     self:lazy_mixin(Mixins.Behavior.RandomOffsetPulse)
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 
-    self.random_offset = rng.randi(0, 255)
+    self.random_offset = rng:randi(0, 255)
 	self.random_offset_ratio = self.random_offset / 255
     self.flip = 1
 
@@ -78,7 +78,7 @@ function BaseEnemy:enter_shared()
 
     if self.spawn_sfx then
         self:play_sfx(self.spawn_sfx, self.spawn_sfx_volume or 1.0, self.spawn_sfx_pitch or 1.0)
-    else
+    -- else
 		-- if self:has_tag("wave_enemy") then
         --     self:play_sfx("enemy_spawn", 0.5, 1.0)
 		-- elseif self:has_tag("hazard") then
@@ -178,7 +178,12 @@ function BaseEnemy:normal_death_effect(hit_by)
 			center_out_velocity_multiplier = hit_by.center_out_velocity_multiplier
 		end
 
-        hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
+		
+		if hit_by.get_death_particle_hit_point then
+            hit_point_x, hit_point_y = hit_by:get_death_particle_hit_point(self)
+        else
+			hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
+		end
 
         if hit_vel_x == 0 and hit_vel_y == 0 then
             hit_point_x, hit_point_y = self.pos.x, self.pos.y

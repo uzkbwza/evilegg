@@ -17,6 +17,14 @@ function smart_array:__len()
 	return self.__length
 end
 
+function smart_array:length()
+	return self.__length
+end
+
+function smart_array:is_empty()
+	return self.__length == 0
+end
+
 function smart_array:push(obj)
     self.__length = self.__length + 1
     self[self.__length] = obj
@@ -101,7 +109,7 @@ local function benchmark_smart_array(n)
 	
     start = love.timer.getTime()
     for i = 1, n do
-        b:remove(rng.randi_range(1, n))
+        b:remove(rng:randi_range(1, n))
     end
 	local remove_time = love.timer.getTime() - start
 
@@ -130,7 +138,7 @@ local function benchmark_plain_table(n)
     -- Removal
     start = love.timer.getTime()
     for i = 1, n do
-        table.erase(t, rng.randi_range(1, n))
+        table.erase(t, rng:randi_range(1, n))
     end
 	
     local remove_time = love.timer.getTime() - start

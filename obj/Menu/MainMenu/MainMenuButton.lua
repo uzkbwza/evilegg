@@ -79,7 +79,7 @@ function MainMenuButton:update(dt)
         local target_x = self.pos.x + width - total_width / 2 + WIDTH / 2
         local target_y = self.pos.y
         letter:move_to(splerp_vec(letter.pos.x, letter.pos.y, target_x, target_y, 50, dt))
-        if self.is_new_tick and rng.percent(33) then
+        if self.is_new_tick and rng:percent(33) then
             if self.focused and not letter.focused then
                 letter:focus()
             elseif not self.focused and letter.focused then
@@ -98,7 +98,7 @@ function MainMenuButtonLetter:new(x, y, text, font, owner)
 	self.palette_stack = PaletteStack(Color.black)
 	self.palette_stack:push(Color.darkgreen)
     self.palette_stack:push(Color.white)
-	self.random_offset = rng.randi()
+	self.random_offset = rng:randi()
 	self:add_time_stuff()
     self.highlight_outline_color = Color.green
     self.width = self.font:getWidth(self.text)
@@ -106,9 +106,9 @@ function MainMenuButtonLetter:new(x, y, text, font, owner)
 end
 
 function MainMenuButtonLetter:flicker()
-	local on = rng.percent(80)
+	local on = rng:percent(80)
     self.highlight_outline_color = on and Color.green or Color.darkgreen
-	self:start_timer("flicker", rng.randi_range(1, on and 400 or 3), function()
+	self:start_timer("flicker", rng:randi_range(1, on and 400 or 3), function()
         self:defer(function() self:flicker() end)
 	end)
 end

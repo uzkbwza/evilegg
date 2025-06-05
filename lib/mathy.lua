@@ -92,12 +92,45 @@ function lerp(a, b, t)
     return a + (b - a) * t
 end
 
+function bezier_quad(x0, y0, x1, y1, x2, y2, t)
+    local mt = 1 - t
+    local mt2 = mt * mt
+    local t2 = t * t
+    
+    local x = mt2 * x0 + 2 * mt * t * x1 + t2 * x2
+    local y = mt2 * y0 + 2 * mt * t * y1 + t2 * y2
+    
+    return x, y
+end
+
+function bezier_cubic(x0, y0, x1, y1, x2, y2, x3, y3, t)
+    local mt = 1 - t
+    local mt2 = mt * mt
+    local mt3 = mt2 * mt
+    local t2 = t * t
+    local t3 = t2 * t
+    
+    local x = mt3 * x0 + 3 * mt2 * t * x1 + 3 * mt * t2 * x2 + t3 * x3
+    local y = mt3 * y0 + 3 * mt2 * t * y1 + 3 * mt * t2 * y2 + t3 * y3
+    
+    return x, y
+end
+
 function lerp_clamp(a, b, t)
     return lerp(a, b, clamp01(t))
 end
 
 function inverse_lerp(a, b, v)
     return (v - a) / (b - a)
+end
+
+function inverse_lerp_safe(a, b, v)
+    if a == b then return 0 end
+    return (v - a) / (b - a)
+end
+
+function inverse_lerp_safe_clamp(a, b, v)
+    return clamp01(inverse_lerp_safe(a, b, v))
 end
 
 function inverse_lerp_clamp(a, b, v)
@@ -108,6 +141,7 @@ function angle_diff(a, b)
     local diff = a - b
     return (diff + math.pi) % (2 * math.pi) - math.pi
 end
+
 
 function sin01(value)
     return (sin(value) / 2.0) + 0.5
@@ -126,12 +160,13 @@ function idiv(a, b)
 end
 
 function idivmod(a, b, c)
-    return idiv(a, b) % c
+    return floor(a / b) % c
 end
 
 function idivmod_eq_zero(a, b, c)
-    return idivmod(a, b, c) == 0
+    return floor(a / b) % c == 0
 end
+
 
 function stepify_safe(s, step)
 	if step == 0 then return s end
@@ -150,6 +185,30 @@ end
 function stepify_ceil(s, step)
 	return ceil(s / step) * step
 end
+
+function gcd(a, b, ...)
+    local big = max(a, b)
+    local small = min(a, b)
+
+
+    while small ~= 0 do
+		local temp = small
+        small = big % small
+        big = temp
+	end
+
+	local c, d = ...
+
+    if c then
+		return gcd(big, c, select(2, ...))
+	end
+
+	return big
+end
+
+-- print(gcd(4, 11))
+
+-- print(gcd(20, 92, 8, 44))
 
 function vec2_drag(vel_x, vel_y, drag, dt)
 	return vel_x * (pow(1 - max(drag, 0.00001), dt)), vel_y * (pow(1 - max(drag, 0.00001), dt))
@@ -242,14 +301,6 @@ function next_power_of_2(n)
 	return power
 end
 
--- Vector functions using Vec2 and Vec3 classes
-function angle_to_vec2(angle)
-    return Vec2(cos(angle), sin(angle))
-end
-
-function angle_to_vec2_unpacked(angle)
-	return cos(angle), sin(angle)
-end
 
 function polar_to_cartesian(distance, angle)
     local x = cos(angle) * distance
@@ -401,6 +452,72 @@ function get_ellipse_point(a, b, angle, phase)
     local y = b * math.sin(angle + phase)
     return x, y
 end
+
+
+function get_line_bounds(x1, y1, x2, y2)
+    -- gets the aabb of the line in the form x, y, w, h
+    local min_x = min(x1, x2)
+    local min_y = min(y1, y2)
+    local max_x = max(x1, x2)
+    local max_y = max(y1, y2)
+    return min_x, min_y, max_x - min_x, max_y - min_y
+end
+
+-- Function to clamp a point to the nearest point on or within a capsule
+function clamp_point_to_capsule(point_x, point_y, capsule_ax, capsule_ay, capsule_bx, capsule_by, capsule_radius)
+    -- Calculate the line segment vector from A to B
+    local ab_x = capsule_bx - capsule_ax
+    local ab_y = capsule_by - capsule_ay
+
+    -- Calculate vector from A to the point
+    local ap_x = point_x - capsule_ax
+    local ap_y = point_y - capsule_ay
+
+    -- Calculate the squared length of AB to avoid division by zero
+    local ab_length_squared = ab_x * ab_x + ab_y * ab_y
+
+    -- Handle degenerate case where A and B are the same point (capsule is just a circle)
+    if ab_length_squared == 0 then
+        local distance = math.sqrt(ap_x * ap_x + ap_y * ap_y)
+        if distance <= capsule_radius then
+            -- Point is already inside the circle
+            return point_x, point_y
+        else
+            -- Clamp to circle boundary
+            local scale = capsule_radius / distance
+            return capsule_ax + ap_x * scale, capsule_ay + ap_y * scale
+        end
+    end
+
+    -- Project point onto the line segment AB
+    -- t represents how far along the line segment the projection is (0 = A, 1 = B)
+    local t = (ap_x * ab_x + ap_y * ab_y) / ab_length_squared
+
+    -- Clamp t to [0, 1] to stay within the line segment
+    t = math.max(0, math.min(1, t))
+
+    -- Find the closest point on the line segment to our input point
+    local closest_x = capsule_ax + t * ab_x
+    local closest_y = capsule_ay + t * ab_y
+
+    -- Calculate distance from input point to closest point on line segment
+    local distance_x = point_x - closest_x
+    local distance_y = point_y - closest_y
+    local distance = math.sqrt(distance_x * distance_x + distance_y * distance_y)
+
+    -- If point is already within the capsule, return it unchanged
+    if distance <= capsule_radius then
+        return point_x, point_y
+    end
+
+    -- If point is outside, clamp it to the capsule surface
+    local scale = capsule_radius / distance
+    local clamped_x = closest_x + distance_x * scale
+    local clamped_y = closest_y + distance_y * scale
+
+    return clamped_x, clamped_y
+end
+
 
 function get_ellipse_arc_length(a, b, angle)
     local h = ((a - b) / (a + b)) ^ 2

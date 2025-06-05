@@ -93,9 +93,9 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
 	
 	if connection_id == nil then
 
-		connection_id = rng.randi_range(0, 1000000000)
+		connection_id = rng:randi_range(0, 1000000000)
 		while signal.unnamed_connection_ids[connection_id] do
-			connection_id = rng.randi_range(0, 1000000000)
+			connection_id = rng:randi_range(0, 1000000000)
 		end
 
 		signal.unnamed_connection_ids[connection_id] = true

@@ -37,6 +37,8 @@ function World:new(x, y)
     self.update_objects = bonglewunch()
 	
     self.draw_objects = bonglewunch()
+	
+	self.objects_to_destroy = {}
 
     self.time_scale = 1
 	self.object_time_scale = 1
@@ -145,6 +147,13 @@ function World:update_shared(dt)
         table.clear(self.deferred_functions)
     end
 	
+    for _, obj in ipairs(self.objects_to_destroy) do
+		if not obj.is_destroyed then
+			obj:destroy()
+		end
+	end
+	table.clear(self.objects_to_destroy)
+
 	World.super.update_shared(self, dt)
 end
 
@@ -488,11 +497,15 @@ function World:on_object_visibility_changed(obj)
 	end
 end
 
+function World:add_object_to_destroy(obj)
+	table.insert(self.objects_to_destroy, obj)
+end
+
 function World:add_object(obj)
 	if obj.is_destroyed then return end
-	if obj.world then
-		error("cannot move objects between worlds")
-	end
+    if obj.world then
+        error("cannot move objects between worlds")
+    end
 
 	obj.world = self
 
@@ -550,24 +563,30 @@ function World:add_to_update_tables(obj)
 end
 
 function World:remove_object(obj)
-	if not obj then return end
+    if not obj then return end
 
-	if not obj.world == self then
-		return
-	end
+    if not obj.world == self then
+        return
+    end
 
     self.id_to_object[obj.id] = nil
-	
-	obj.world = nil
-	obj.base_world = nil
-	remove_from_array(self.objects, obj)
-	remove_from_array(self.update_objects, obj)
-	self:hide_object(obj)
+
+    obj.world = nil
+    obj.base_world = nil
+    remove_from_array(self.objects, obj)
+    remove_from_array(self.update_objects, obj)
+    self:hide_object(obj)
     if obj.is_bump_object then
         self.bump_world:remove(obj)
         obj:set_bump_world(nil)
     end
-	obj:prune_signals()
+    obj:prune_signals()
+end
+
+function World:exit_shared()
+	for _, obj in self.objects:ipairs() do
+		obj:destroy()
+	end
 end
 
 return World

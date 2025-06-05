@@ -8,7 +8,7 @@ Gnome.death_cry = "enemy_gnome_death"
 
 local SPREAD = 2
 local SHOOT_SPEED = 6
-local SHOOT_INVERVAL = 4
+local SHOOT_INVERVAL = 5
 
 function Gnome:new(x, y)
     self.max_hp = 4
@@ -103,7 +103,7 @@ function Gnome:state_Normal_update(dt)
     end
 	
     if self.is_new_tick then
-		if not self.preparing_to_shoot and self.state_tick > 60 and rng.percent(1.6) and self.world:get_number_of_objects_with_tag("gnome_shooting") < 2 and not self.shooting and not self.running_away and not self:is_tick_timer_running("shooting_cooldown") then
+		if not self.preparing_to_shoot and self.state_tick > 60 and rng:percent(1.6) and self.world:get_number_of_objects_with_tag("gnome_shooting") < 2 and not self.shooting and not self.running_away and not self:is_tick_timer_running("shooting_cooldown") then
 
 			local closest_player = self:get_closest_player()
 
@@ -112,13 +112,13 @@ function Gnome:state_Normal_update(dt)
 				self:add_tag("gnome_shooting")
 				self:play_sfx("enemy_gnome_prepare_to_shoot", 0.7, 1.0)
 				self.roaming = false
-				self:start_tick_timer("preparing_to_shoot", 10, function()
+				self:start_tick_timer("preparing_to_shoot", 20, function()
                     self.preparing_to_shoot = false
 					self.shooting = true
-					self:start_tick_timer("shooting", rng.randf_range(15, 30), function()
+					self:start_tick_timer("shooting", rng:randf_range(15, 30), function()
 						self.shooting = false
 						self:remove_tag("gnome_shooting")
-						self:start_tick_timer("shooting_cooldown", rng.randf_range(30, 60))
+						self:start_tick_timer("shooting_cooldown", rng:randf_range(30, 60))
 						self.roaming = true
 					end)
 				end)
@@ -129,7 +129,7 @@ function Gnome:state_Normal_update(dt)
 				local bx, by = self:get_body_center()
 				local px, py = closest_player:get_body_center()
 				local dir_x, dir_y = vec2_direction_to(bx, by, px, py)
-				dir_x, dir_y = vec2_rotated(dir_x, dir_y, rng.randfn(0, deg2rad(SPREAD)) * (rng.percent(20) and 10 or 1))
+				-- dir_x, dir_y = vec2_rotated(dir_x, dir_y, rng:randfn(0, deg2rad(SPREAD)) * (rng:percent(20) and 10 or 1))
 				local aim_offset_x, aim_offset_y = vec2_mul_scalar(dir_x, dir_y, 4)
 				local bullet = GnomeBullet(bx + aim_offset_x, by + aim_offset_y)
 				bullet:apply_impulse(dir_x * SHOOT_SPEED, dir_y * SHOOT_SPEED)
@@ -199,8 +199,8 @@ function Gnome:state_Respawning_update(dt)
     if self.is_new_tick and self.tick % 3 == 0 then
         local particle = {}
         particle.elapsed = 0
-		particle.x = rng.randf_range(-6, 6)
-        particle.y = rng.randf_range(-2, 2)
+		particle.x = rng:randf_range(-6, 6)
+        particle.y = rng:randf_range(-2, 2)
 		particle.t = 0
 		self.respawn_particles[particle] = true
 	end

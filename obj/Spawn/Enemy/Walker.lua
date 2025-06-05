@@ -27,7 +27,7 @@ function Walker:new(x, y)
     self.hit_bubble_radius = 3
     self.body_height = 5
     Walker.super.new(self, x, y)
-	self.follow_allies = rng.percent(5)
+	self.follow_allies = rng:percent(5)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
@@ -112,7 +112,7 @@ function BigWalker:new(x, y)
 	self.declump_mass = 2
 	self.hit_bubble_radius = 5
     self.body_height = 7
-	self.shoot_offset = round(rng.randfn(0, 15))
+	self.shoot_offset = round(rng:randfn(0, 15))
 end
 
 
@@ -137,7 +137,7 @@ function BigWalker:update(dt)
 		dx, dy = vec2_mul_scalar(dx, dy, BigWalker.bullet_speed)
         self:spawn_object(BigWalkerBullet(bx, by)):apply_impulse(dx, dy)
         self:play_sfx("enemy_bigwalker_shoot")
-        self.shoot_offset = round(rng.randfn(0, 15))
+        self.shoot_offset = round(rng:randfn(0, 15))
 		self:start_tick_timer("shoot_cooldown", 45)
 	end
 end

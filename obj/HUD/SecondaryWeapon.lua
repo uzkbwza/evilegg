@@ -35,12 +35,20 @@ end
 
 function SecondaryWeapon:on_secondary_weapon_ammo_used(amount, old, new)
     local low_ammo_threshold = self:low_ammo_threshold()
+
+	if game_state.secondary_weapon.minimum_ammo_needed_to_use then
+        if old < game_state.secondary_weapon.minimum_ammo_needed_to_use then old = 0 end
+		if new < game_state.secondary_weapon.minimum_ammo_needed_to_use then new = 0 end
+	else
+		old = stepify_floor(old, game_state.secondary_weapon.ammo_needed_per_use)
+		new = stepify_floor(new, game_state.secondary_weapon.ammo_needed_per_use)	
+	end
+
 	if old > low_ammo_threshold and new <= low_ammo_threshold then
 		self:play_sfx("player_running_out_of_ammo", 0.7)
 	end
-	if new == 0 then
+	if new == 0 and old > 0 then
 		self:play_sfx("player_ran_out_of_ammo", 0.9)
-		self:play_sfx("player_not_enough_ammo")
 	end
 end
 
@@ -49,8 +57,27 @@ function SecondaryWeapon:on_secondary_weapon_ammo_gained(amount, old, new)
     -- if new > low_ammo_threshold and old <= low_ammo_threshold then
         -- self:play_sfx("player_running_out_of_ammo", 0.6)
     -- end
-    self:start_timer("gained_ammo_flash", 10)
-	self:play_sfx("player_gained_ammo", 0.7)
+
+
+	
+	if game_state.secondary_weapon.minimum_ammo_needed_to_use then
+        if old < game_state.secondary_weapon.minimum_ammo_needed_to_use then old = 0 end
+		if new < game_state.secondary_weapon.minimum_ammo_needed_to_use then new = 0 end
+	else
+		old = stepify_floor(old, game_state.secondary_weapon.ammo_needed_per_use)
+		new = stepify_floor(new, game_state.secondary_weapon.ammo_needed_per_use)
+	end
+
+	
+
+	if old < new and not (game_state.secondary_weapon.minimum_ammo_needed_to_use and new < game_state.secondary_weapon.minimum_ammo_needed_to_use) then
+		self:play_sfx("player_gained_ammo", 0.7)
+		self:start_timer("gained_ammo_flash", 10)
+    else
+		self:play_sfx("player_gained_ammo_partial", 0.7)
+		
+	end
+
 end
 
 function SecondaryWeapon:draw()
@@ -72,7 +99,19 @@ function SecondaryWeapon:draw()
     local ammo_end = self.width - 2
     local ammo_width = (ammo_end - ammo_start)
 	
-	local fireable_ammo = stepify_floor(ammo, game_state.secondary_weapon.ammo_needed_per_use)
+	local ammo_needed_per_use = game_state.secondary_weapon.ammo_needed_per_use
+
+	local fireable_ammo = stepify_floor(ammo, ammo_needed_per_use)
+
+	local min_ammo_needed_to_use = game_state.secondary_weapon.minimum_ammo_needed_to_use
+
+    if min_ammo_needed_to_use then
+		if fireable_ammo < min_ammo_needed_to_use then
+			fireable_ammo = 0
+        else
+			fireable_ammo = ammo
+		end
+	end
 
 	graphics.rectangle("fill", ammo_start, self.height - 4, ammo_width, 2)
 	
@@ -107,7 +146,7 @@ function SecondaryWeapon:draw()
 		fireable_color = self.tick % 2 == 0 and Color.red or Color.orange
 	end
 	
-	if max_ammo <= idiv(ammo_width, 4) then
+	if game_state.secondary_weapon.show_individual_ammo then
         for i = 1, max_ammo do
             local x = ammo_start + (i - 1) * (ammo_width / max_ammo)
             local y = self.height - 4
@@ -131,14 +170,73 @@ function SecondaryWeapon:draw()
             graphics.rectangle("fill", x, y, w, h)
         end
     else
-        graphics.set_color(empty_color)
-        graphics.rectangle("fill", ammo_start, self.height - 4, ammo_width, 2)
-        graphics.set_color(unfireable_color)
-        local unfireable_width = ((ammo_width / max_ammo) * ammo)
-		local fireable_width = ((ammo_width / max_ammo) * fireable_ammo)
-		graphics.rectangle("fill", ammo_start, self.height - 4, unfireable_width, 2)
-        graphics.set_color(fireable_color)
-		graphics.rectangle("fill", ammo_start, self.height - 5, fireable_width, 3)
+        if min_ammo_needed_to_use then
+			local chunk1_width = ((ammo_width / max_ammo) * min_ammo_needed_to_use)
+            local chunk2_width = ammo_width - chunk1_width
+			
+            local unfireable_chunk1_ratio = inverse_lerp_safe_clamp(0, min_ammo_needed_to_use, ammo)
+            local unfireable_chunk2_ratio = inverse_lerp_safe_clamp(min_ammo_needed_to_use, max_ammo, ammo)
+
+			local fireable_chunk1_ratio = ammo >= min_ammo_needed_to_use and 1 or 0
+			local fireable_chunk2_ratio = unfireable_chunk2_ratio
+
+            if ammo < min_ammo_needed_to_use then
+                unfireable_chunk2_ratio = 0
+				fireable_chunk2_ratio = 0
+			end
+            if ammo >= min_ammo_needed_to_use then
+                unfireable_chunk1_ratio = 1
+                fireable_chunk1_ratio = 1
+            end
+			
+			-- print(fireable_chunk1_ratio, fireable_chunk2_ratio)
+			
+			graphics.set_color(empty_color)
+			graphics.rectangle("fill", ammo_start, self.height - 4, chunk1_width - 1, 2)
+            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 4, chunk2_width, 2)
+			
+			graphics.set_color(unfireable_color)
+            graphics.rectangle("fill", ammo_start, self.height - 4, unfireable_chunk1_ratio * (chunk1_width - 1), 2)
+            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 4, unfireable_chunk2_ratio * (chunk2_width), 2)
+
+			graphics.set_color(fireable_color)
+			graphics.rectangle("fill", ammo_start, self.height - 5, fireable_chunk1_ratio * (chunk1_width - 1), 3)
+            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 5, fireable_chunk2_ratio * (chunk2_width), 3)
+			
+		else
+
+        -- elseif ammo_needed_per_use > 1 and ceil(max_ammo / ammo_needed_per_use) <= idiv(ammo_width, 4) then
+			local num_chunks = ceil(max_ammo / ammo_needed_per_use)
+			local chunk_width = (ammo_width / num_chunks)
+			
+			local w = chunk_width - 1
+            local y = self.height - 4
+			local h = 2
+			
+			for i=1, num_chunks do
+				graphics.set_color(empty_color)
+				local x = ammo_start + (i - 1) * chunk_width
+				
+                local unfireable_ratio = inverse_lerp_safe_clamp(ammo_needed_per_use * (i - 1), ammo_needed_per_use * (i),
+                ammo)
+				local fireable_ratio = fireable_ammo >= ammo_needed_per_use * (i) and 1 or 0
+
+				graphics.rectangle("fill", x, y, w, h)
+				graphics.set_color(unfireable_color)
+				graphics.rectangle("fill", x, y, w * unfireable_ratio, h)
+				graphics.set_color(fireable_color)
+				graphics.rectangle("fill", x, y - 1, w * fireable_ratio, h + 1)
+			end
+        -- else
+			-- graphics.set_color(empty_color)
+			-- graphics.rectangle("fill", ammo_start, self.height - 4, ammo_width, 2)
+			-- graphics.set_color(unfireable_color)
+			-- local unfireable_width = ((ammo_width / max_ammo) * ammo)
+			-- local fireable_width = ((ammo_width / max_ammo) * fireable_ammo)
+			-- graphics.rectangle("fill", ammo_start, self.height - 4, unfireable_width, 2)
+			-- graphics.set_color(fireable_color)
+			-- graphics.rectangle("fill", ammo_start, self.height - 5, fireable_width, 3)
+		end
 	end
 	
 	graphics.set_color(Color.white)

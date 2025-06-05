@@ -50,7 +50,7 @@ function Enforcer:state_Spawning_update(dt)
     if player and not self.player then
 		local s = self.sequencer
 		s:start(function()
-			s:wait(rng.randi_range(80, 180))
+			s:wait(rng:randi_range(80, 180))
 			self:change_state("Normal")
         end)
 		self.player = player
@@ -102,16 +102,16 @@ function Enforcer:state_Normal_update(dt)
 
         if self.state_tick > 100 and not self:is_tick_timer_running("shoot_delay") then
             if distance < 300 then
-                if rng.chance(((300 - distance) / 300) * self:shoot_chance_modifier()) then
+                if rng:chance(((300 - distance) / 300) * self:shoot_chance_modifier()) then
                     local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
                     dx, dy = vec2_snap_angle(dx, dy, 16)
                     self:shoot_bullet(dx, dy)
                 end
             end
-			-- if rng.percent(60) then
+			-- if rng:percent(60) then
 			-- 	self:start_tick_timer("shoot_delay", 10)
 			-- else
-				self:start_tick_timer("shoot_delay", clamp(rng.randfn(45, 10), 10, 100))
+				self:start_tick_timer("shoot_delay", clamp(rng:randfn(45, 10), 10, 100))
 			-- end
         end
 		
@@ -174,11 +174,11 @@ function RoyalGuard:new(x, y)
 end
 
 function RoyalGuard:enter()
-	self:add_tag("RoyalGuard")
+	self:add_tag("royalguard")
 end
 
 function RoyalGuard:shoot_bullet(dx, dy)
-	if rng.coin_flip() then
+	if rng:coin_flip() then
 		for i = -1, 1 do
 			local dx_, dy_ = vec2_rotated(dx, dy, i * tau / 16)		
 			local bullet = self:spawn_object(RoyalGuardBullet(self.pos.x, self.pos.y))

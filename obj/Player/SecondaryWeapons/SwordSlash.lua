@@ -7,12 +7,12 @@ local OFFSET = 30
 local SPEED = 5
 local DRAG = 0.4
 
-local BASE_DAMAGE = 2
+local BASE_DAMAGE = 3
 
-local PUSH_IMPULSE = 1.5
+local PUSH_IMPULSE = 2.2
 
 local NUM_HIT_BUBBLES = 16
-local HIT_BUBBLE_SIZE = 5
+local HIT_BUBBLE_SIZE = 7.5
 local ARC_DEGREES = deg2rad(210)
 
 function SwordSlash:new(x, y, direction, slash_direction)
@@ -66,6 +66,9 @@ function SwordSlash:hit_other(target, bubble)
 		if target.is_enemy_bullet then
 			impulse = impulse * 2
 		end
+		
+		impulse = impulse * (1 + game_state.upgrades.bullet_speed * 0.5) 
+
 		target:apply_impulse(self.direction.x * impulse, self.direction.y * impulse)
 	end
 
@@ -174,8 +177,12 @@ function SwordSlash:draw()
 			for j=1, num_rects do
 				local ratio = j / num_rects
 				local x2, y2 = lerp(x, x - self.direction.x * distance, ratio), lerp(y, y - self.direction.y * distance, ratio)
-				local scale3 = lerp(scale2, scale2 * (1 - ratio), 0.185)
-				graphics.rectangle_centered("fill", x2, y2, scale3, scale3)
+                local scale3 = lerp(scale2, scale2 * (1 - ratio), 0.185)
+                graphics.push()
+                graphics.translate(x2, y2)
+				-- graphics.rotate(tau / 8)
+                graphics.rectangle_centered("fill", 0, 0, scale3, scale3)
+				graphics.pop()
 			end
 			graphics.set_color(Color.white)
 

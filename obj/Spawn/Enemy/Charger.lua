@@ -31,12 +31,12 @@ function Charger:new(x, y)
 end
 
 function Charger:enter()
-	self:charge(rng.randi_range(30, 60))
+	self:charge(rng:randi_range(30, 60))
 end
 
 function Charger:hit_by(object)
 	Charger.super.hit_by(self, object)
-	if self.state == "Waiting" and rng.percent(20) then
+	if self.state == "Waiting" and rng:percent(20) then
 		self:charge(6)
 		self.beginning_charge = true
 	end
@@ -56,7 +56,7 @@ end
 function Charger:state_Waiting_enter()
     -- self.no_damage_flash = true
 
-    -- self.pdx, self.pdy = rng.random_4_way_direction()
+    -- self.pdx, self.pdy = rng:random_4_way_direction()
 
     -- self:start_tick_timer("warning", 5, function()
     -- end)
@@ -68,6 +68,11 @@ function Charger:state_Waiting_enter()
 	self:charge()
 end
 
+
+function Charger:get_death_particle_hit_velocity()
+	return vec2_mul_scalar(self.vel.x, self.vel.y, 10)
+end
+
 function Charger:charge(time)
     if self.beginning_charge then
         return
@@ -76,7 +81,7 @@ function Charger:charge(time)
     self:stop_tick_timer("waiting")
 	self:stop_tick_timer("effect")
 
-	local wait_time = time or rng.randi_range(10, 120)
+	local wait_time = time or rng:randi_range(25, 120)
 	self:start_tick_timer("effect", wait_time - 5, function()
         self.pdx, self.pdy = self:get_body_direction_to_player()
 

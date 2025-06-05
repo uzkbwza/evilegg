@@ -439,27 +439,15 @@ function TwinStickEntity:body_translate()
     graphics.translate(0, -self.body_height)
 end
 
+
 function TwinStickEntity:collision_bubble_draw(bubble)
-	local gx, gy = bubble:get_position()
-	local lx, ly = self:to_local(gx, gy)
-	graphics.circle("line", lx, ly, bubble.radius)
+    local gx, gy = bubble:get_position()
+    local lx, ly = self:to_local(gx, gy)
+    graphics.circle("line", lx, ly, bubble.radius)
 
     if bubble.capsule then
-		local lx2, ly2 = self:to_local(bubble:get_end_position())
-        graphics.circle("line", lx2, ly2, bubble.radius)
-		local angle = vec2_angle_to(lx, ly, lx2, ly2)
-        local length = vec2_distance(lx, ly, lx2, ly2)
-        local offsx, offsy = vec2_rotated(bubble.radius, 0, angle + tau / 4)
-		local endx, endy = lx + cos(angle) * length, ly + sin(angle) * length
-        graphics.line(lx + offsx, ly + offsy, endx + offsx, endy + offsy)
-        graphics.line(lx - offsx, ly - offsy, endx - offsx, endy - offsy)
-
-		if gametime.tick % 2 == 0 then
-			local rx, ry, rw, rh = bubble:get_rect()
-			rx, ry = self:to_local(rx, ry)
-
-			graphics.rectangle("line", rx, ry, rw, rh)
-		end
+        local lx2, ly2 = self:to_local(bubble:get_end_position())
+        graphics.debug_capsule(lx, ly, lx2, ly2, bubble.radius, gametime.tick % 2 == 0)
 	end
 end
 
