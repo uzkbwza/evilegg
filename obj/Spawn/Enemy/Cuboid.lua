@@ -249,6 +249,7 @@ end
 
 CuboidBullet.death_sfx = "enemy_cube_bullet_die"
 CuboidBullet.death_sfx_volume = 0.6
+CuboidBullet.is_cuboid_bullet = true
 
 function CuboidBullet:new(x, y)
 	self.max_hp = 9
@@ -259,6 +260,13 @@ function CuboidBullet:new(x, y)
 	self.hurt_bubble_radius = 10
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self.z_index = 10
+end
+
+function CuboidBullet:filter_melee_attack(bubble)
+	if bubble.parent and bubble.parent.is_cuboid_bullet then
+		return false
+	end
+	return true
 end
 
 function CuboidBullet:get_sprite()

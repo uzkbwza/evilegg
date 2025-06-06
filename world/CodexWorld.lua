@@ -61,11 +61,11 @@ function CodexWorld:enter()
     end)
 
     self:ref("previous_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 12, "←",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 14, "←",
             15, 10, false)))
 
 	self:ref("cycle_category_button",
-        self:add_menu_item(O.CodexMenu.CodexMenuCycle(MENU_ITEM_H_PADDING + 17, MENU_ITEM_V_PADDING + 12, "",
+        self:add_menu_item(O.CodexMenu.CodexMenuCycle(MENU_ITEM_H_PADDING + 17, MENU_ITEM_V_PADDING + 14, "",
             ICON_SIZE * NUM_OBJECT_COLUMNS - 37, 10, false)))
 		
 	self.cycle_category_button.get_value_func = function()
@@ -77,7 +77,7 @@ function CodexWorld:enter()
 	self.cycle_category_button:set_options(PAGE_CATEGORY_ORDER)
 
 	self:ref("next_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 18, MENU_ITEM_V_PADDING + 12, " →",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 18, MENU_ITEM_V_PADDING + 14, " →",
             15, 10, false)))
 
     self.back_button:add_neighbor(self.cycle_category_button, "down")
@@ -94,7 +94,8 @@ function CodexWorld:enter()
 
     signal.connect(self.previous_page_button, "selected", self, "previous_page", function() self:cycle_page(-1) end)
     signal.connect(self.next_page_button, "selected", self, "next_page", function() self:cycle_page(1) end)
-    self:open_page(self.category_selected, self.page_number)
+	self.cycle_category_button:quiet_cycle(1)
+    -- self:open_page(self.category_selected, self.page_number)
 end
 
 function CodexWorld:update(dt)
@@ -149,7 +150,7 @@ function CodexWorld:open_spawn_description(spawn)
 			description = "[MISSING DESCRIPTION]"
 		end
 
-        local spawn_title = self:add_object(O.CodexMenu.CodexSpawnText(x, y - 5 - sprite_height / 2, title, true, Color.green, 0))
+        local spawn_title = self:add_object(O.CodexMenu.CodexSpawnText(x, y - 5 - sprite_height / 2, title, true, Color.green, 0, true))
 		self:add_tag(spawn_title, "sequence_object")
 		-- s:wait(2)
     local spawn_sprite = self:add_object(O.CodexMenu.CodexSpawnSprite(x, y, spawn
@@ -158,7 +159,7 @@ function CodexWorld:open_spawn_description(spawn)
 		self:add_tag(spawn_sprite, "sequence_object")
 		-- s:wait(2)
         
-        local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, y + sprite_height / 2, description, false, Color.white, 2))
+        local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, y + sprite_height / 2, description, false, Color.white, 2, true))
 		self:add_tag(spawn_description, "sequence_object")
 		local text_height = spawn_description.text_height
 		-- s:wait(text_height / 60)

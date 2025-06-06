@@ -27,11 +27,14 @@ function OptionsMenuToggle:draw()
     end
 	local rect_x = x + w - size + xoffs
 	local rect_y = y + 1 + yoffs
-	local rect_w = size + size_offset
-    local rect_h = size + size_offset
+	local rect_w = size + size_offset + 1
+    local rect_h = size + size_offset + 1
     graphics.set_color(Color.black)
     graphics.rectangle(fill and "fill" or "line", rect_x+1, rect_y+1, rect_w, rect_h)
-	graphics.set_color(Color.white)
+    graphics.set_color(Color.white)
+	if self.focused then
+		graphics.set_color(Color.green)
+	end
 	graphics.rectangle(fill and "fill" or "line", rect_x, rect_y, rect_w, rect_h)
 end
 

@@ -18,7 +18,11 @@ function HUDLayer:new()
 end
 
 function HUDLayer:enter()
-	self:hide()
+    self:hide()
+end
+
+function HUDLayer:exit()
+	self:stop_all_sfx()
 end
 
 function HUDLayer:on_artefact_gained(artefact, slot)

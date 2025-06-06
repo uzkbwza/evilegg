@@ -146,7 +146,8 @@ local translations = {
 		options_fps_cap                              = "FPS Cap",
 		options_fps_cap_unlimited                    = "No Cap",
 		options_zoom_level                           = "Zoom Level",
-		options_screen_shake_amount                  = "Screen Shake Amount",
+        options_screen_shake_amount                  = "Screen Shake Amount",
+		options_master_volume                        = "Master Volume",
 		options_music_volume                         = "Music Volume",
 		options_sfx_volume                           = "SFX Volume",
 		options_debug_enabled                        = "Debug Enabled",
@@ -226,7 +227,7 @@ local translations = {
 		codex_desc_cultist          = "Greenoids are their preferred protein but you will do. Mom protects them from the sun.",
 
 		codex_name_gnome            = "Gnome",
-		codex_desc_gnome            = "Pack hunter. He knows it is cruel to laugh and laughs anyway.",
+		codex_desc_gnome            = "Pack hunters. They can resurrect each other but not themselves.",
 
 		codex_name_charger          = "Charger",
 		codex_desc_charger          = "Most vulnerable when showing emotion.",
@@ -327,6 +328,14 @@ local translations = {
         artefact_guide_ammo_requirement = "REQUIRES %s AMMO PER USE",
 		artefact_guide_min_ammo_requirement = "REQUIRES %s AMMO TO USE",
 		artefact_guide_ammo_gain = "GAINS %s AMMO PER LEVEL",
+
+		photosensitivity_warning_title = "PHOTOSENSITIVITY WARNING",
+        photosensitivity_warning_text = "This game contains flashing lights and intense strobe effects.",
+
+		score_reset_warning_title = "ATTENTION",
+		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
+		score_reset_warning_text2 = "To view those rankings, please use the appropriate version of the game.",
+
 	},
 }
 

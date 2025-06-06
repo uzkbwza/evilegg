@@ -89,18 +89,17 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
     assert(type(listener) == "table", "listener is not a table")
 
     local signal_id_type = type(signal_id)
-	local connection_id_type = type(connection_id)
-	
-	if connection_id == nil then
+    local connection_id_type = type(connection_id)
 
-		connection_id = rng:randi_range(0, 1000000000)
-		while signal.unnamed_connection_ids[connection_id] do
-			connection_id = rng:randi_range(0, 1000000000)
-		end
+    if connection_id == nil then
+        connection_id = rng:randi_range(0, 1000000000)
+        while signal.unnamed_connection_ids[connection_id] do
+            connection_id = rng:randi_range(0, 1000000000)
+        end
 
-		signal.unnamed_connection_ids[connection_id] = true
-	end
-	
+        signal.unnamed_connection_ids[connection_id] = true
+    end
+
 
     assert(signal_id_type == "string" or signal_id_type == "number", "signal_id is not a string or number")
     assert(connection_id_type == "string" or connection_id_type == "number", "connection_id is not a string or number")
@@ -109,31 +108,31 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
 
 
     if oneshot == nil then oneshot = false end
-    
+
     local sig = signal.get(emitter, signal_id)
-    
+
     if sig == nil then
         error("signal `" .. tostring(signal_id) .. "` does not exist for object " .. tostring(emitter))
     end
-    
+
     sig.listeners[listener] = sig.listeners[listener] or {}
 
     -- if a function is not provided, use the connection_id as a function
 
-	if debug.enabled then 
-    	if func == nil then
-			if listener[connection_id] == nil then
-				error("function `" .. tostring(connection_id) .. "` does not exist for object " .. tostring(listener))
-			end
+    if debug.enabled then
+        if func == nil then
+            if listener[connection_id] == nil then
+                error("function `" .. tostring(connection_id) .. "` does not exist for object " .. tostring(listener))
+            end
             func = function(...)
                 listener[connection_id](listener, ...)
             end
-		end
-	else
-		func = func or function(...)
-			listener[connection_id](listener, ...)
-		end
-	end
+        end
+    else
+        func = func or function(...)
+            listener[connection_id](listener, ...)
+        end
+    end
 
 
     sig.listeners[listener][connection_id] = {
@@ -147,12 +146,18 @@ function signal.connect(emitter, signal_id, listener, connection_id, func, onesh
     local lis = signal.listeners[listener][emitter][signal_id]
 
     assert(lis[connection_id] == nil, "connection already exists!")
-    
+
     lis[connection_id] = {
         func = func,
         oneshot = oneshot,
-	}
-	return connection_id
+    }
+    return connection_id
+end
+
+function signal.lazy_connect(emitter, signal_id, listener, connection_id, func, oneshot)
+	if not signal.is_connected(emitter, signal_id, listener, connection_id) then
+		signal.connect(emitter, signal_id, listener, connection_id, func, oneshot)
+	end
 end
 
 ---@param emitter table

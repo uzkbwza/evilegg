@@ -1665,10 +1665,10 @@ function GameWorld:draw()
         graphics.set_font(font)
 
 		if self.tutorial_state == 1 then
-			graphics.print_centered(tr.tutorial_boost:format(input.last_input_device == "gamepad" and tr.control_left_trigger or tr.control_space_bar), font, 0, 16)
+			graphics.print_centered(tr.tutorial_boost:format(input.last_input_device == "gamepad" and control_glyphs.lt or control_glyphs.space), font, 0, 16)
 		elseif self.tutorial_state == 2 then
-			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and tr.control_left_stick or tr.control_wasd), font, 0, -16)
-			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and tr.control_right_stick or tr.control_left_mouse), font, 0, 16)
+			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and control_glyphs.l or tr.control_wasd), font, 0, -16)
+			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and control_glyphs.r or control_glyphs.lmb), font, 0, 16)
 		end
 	end
 

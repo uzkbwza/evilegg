@@ -57,6 +57,16 @@ function CodexMenuCycle:cycle(dir)
 	self.set_value_func(self.options[self.current_option])
 end
 
+function CodexMenuCycle:quiet_cycle(dir)
+	self.current_option = self.current_option + dir
+    if self.current_option < 1 then
+        self.current_option = self.num_options
+	elseif self.current_option > self.num_options then
+		self.current_option = 1
+	end
+	self.set_value_func(self.options[self.current_option])
+end
+
 function CodexMenuCycle:on_mouse_pressed(button)
 	CodexMenuCycle.super.on_mouse_pressed(self, button)
 

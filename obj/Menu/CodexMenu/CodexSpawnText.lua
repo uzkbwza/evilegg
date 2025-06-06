@@ -2,10 +2,10 @@ local CodexSpawnText = GameObject2D:extend("CodexSpawnText")
 
 local LINE_WIDTH = 120
 
-function CodexSpawnText:new(x, y, text, centered, color, delay)
+function CodexSpawnText:new(x, y, text, centered, color, delay, uppercase)
     CodexSpawnText.super.new(self, x, y)
-    self.font = fonts.depalettized.image_font2
-    self.text = text:upper()
+    self.font = uppercase and fonts.depalettized.image_font2 or fonts.depalettized.image_neutralfont1
+    self.text = uppercase and text:upper() or text
     
 	if centered == nil then
         centered = true

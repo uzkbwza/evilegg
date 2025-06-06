@@ -335,7 +335,7 @@ function graphics.initialize_screen_shader_presets()
 			
 			"shader_preset_soft",
 			-- graphics.shader.basic
-			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.065, pre_blur_samples = 7 } },
+			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.06, pre_blur_samples = 7 } },
 
 			-- { shader = graphics.shader.screenfilter, args = {} },
 			-- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
@@ -1131,6 +1131,7 @@ function graphics.print_centered(text, font, x, y, r, sx, sy, ox, oy, kx, ky)
     local offset_x, offset_y = graphics.text_center_offset(text, font)
     graphics.print(text, round(x + offset_x), round(y + offset_y), r, sx, sy, ox, oy, kx, ky)
 end
+
 
 function graphics.print_outline_centered(outline_color, text, font, x, y, r, sx, sy, ox, oy, kx, ky)
     local offset_x, offset_y = graphics.text_center_offset(text, font)

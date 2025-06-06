@@ -19,8 +19,9 @@ local default_usersettings = {
     screen_shake_amount = 1,
 	
     -- audio
+	master_volume = 1.0,
 	music_volume = 1.0,
-	sfx_volume = 1.0,
+    sfx_volume = 1.0,
 	
 	-- debug
 	debug_enabled = true,

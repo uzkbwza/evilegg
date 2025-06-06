@@ -507,7 +507,8 @@ function World:add_object(obj)
         error("cannot move objects between worlds")
     end
 
-	obj.world = self
+    obj.world = self
+	obj.canvas_layer = self.canvas_layer
 
 	add_to_table(self.objects, obj)
 
@@ -584,6 +585,7 @@ function World:remove_object(obj)
 end
 
 function World:exit_shared()
+	World.super.exit_shared(self)
 	for _, obj in self.objects:ipairs() do
 		obj:destroy()
 	end

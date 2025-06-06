@@ -984,7 +984,11 @@ function GlobalGameState:get_random_available_artefact()
 			elseif self.already_selected_secondary_weapon_this_level and v.is_secondary_weapon and not self.num_spawned_artefacts == 1 then
 				goto continue
 			elseif v.is_secondary_weapon then
-				if self.num_spawned_artefacts < 1 then
+                if self.num_spawned_artefacts < 1 then
+                    goto continue
+                end
+				
+				if self.secondary_weapon then
 					goto continue
 				end
 

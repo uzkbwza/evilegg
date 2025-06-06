@@ -33,15 +33,15 @@ function savedata:load()
         u = table.deepcopy(default_savedata)
     end
 
-	for k, v in pairs(default_savedata) do
-		if u[k] == nil then
-			u[k] = table.deepcopy(v)
-		end
-	end
+    for k, v in pairs(default_savedata) do
+        if u[k] == nil then
+            u[k] = table.deepcopy(v)
+        end
+    end
 
-	for k, v in pairs(u) do
-		self[k] = table.deepcopy(v)
-	end
+    for k, v in pairs(u) do
+        self[k] = table.deepcopy(v)
+    end
 
     if self.uid == nil then
         self.uid = UUID()
@@ -50,21 +50,31 @@ function savedata:load()
     if self.scores[GAME_LEADERBOARD_VERSION] == nil then
         self.scores[GAME_LEADERBOARD_VERSION] = {}
     end
-	
-	if self.category_highs[GAME_LEADERBOARD_VERSION] == nil then
-		self.category_highs[GAME_LEADERBOARD_VERSION] = {}
-	end
-	
-	if self.game_version ~= GAME_VERSION then
-		self.was_old_game_version = true
-		self.game_version = GAME_VERSION
-	end
 
-	if self.leaderboard_version ~= GAME_LEADERBOARD_VERSION then
-		self.was_old_leaderboard_version = true
-		self.leaderboard_version = GAME_LEADERBOARD_VERSION
-	end
+    if self.category_highs[GAME_LEADERBOARD_VERSION] == nil then
+        self.category_highs[GAME_LEADERBOARD_VERSION] = {}
+    end
+
+    if self.game_version ~= GAME_VERSION then
+        self.was_old_game_version = true
+		self.old_game_version = self.game_version
+        self.game_version = GAME_VERSION
+    end
+	
+    if self.leaderboard_version ~= GAME_LEADERBOARD_VERSION then
+        self.was_old_leaderboard_version = true
+		self.old_leaderboard_version = self.leaderboard_version
+        self.leaderboard_version = GAME_LEADERBOARD_VERSION
+    end
 end
+
+local ignore = {
+	["default_savedata"] = true,
+	["was_old_game_version"] = true,
+	["was_old_leaderboard_version"] = true,
+	["old_game_version"] = true,
+	["old_leaderboard_version"] = true,
+}
 
 function savedata:save()
     local tab = {}
@@ -72,15 +82,9 @@ function savedata:save()
         if type(v) == "function" then
             goto continue
         end
-        if k == "default_savedata" then
+        if ignore[k] then
             goto continue
         end
-		if k == "was_old_game_version" then
-			goto continue
-		end
-		if k == "was_old_leaderboard_version" then
-			goto continue
-		end
         -- if not table.equal(v, default_savedata[k]) then
 		tab[k] = table.deepcopy(v)
         -- end

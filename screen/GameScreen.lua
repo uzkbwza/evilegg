@@ -83,10 +83,9 @@ function GameLayer:new()
 end
 
 function GameLayer:enter()
-	self:add_world(Worlds.GameWorld(0, 0), "world")
-	signal.chain_connect("player_died", self.world, self)
-	signal.chain_connect("player_death_sequence_finished", self.world, self)
-
+    self:add_world(Worlds.GameWorld(0, 0), "world")
+    signal.chain_connect("player_died", self.world, self)
+    signal.chain_connect("player_death_sequence_finished", self.world, self)
 end
 
 function GameLayer:update(dt)
@@ -112,6 +111,9 @@ function GameLayer:get_clear_color()
 	return Color.black
 end
 
+function GameLayer:exit()
+	self:stop_all_sfx()
+end
 
 function UILayer:new()
     UILayer.super.new(self)

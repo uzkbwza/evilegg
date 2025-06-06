@@ -90,7 +90,7 @@ def clear_build_folder() -> None:
 
 def create_love_file(project_root: str) -> str:
     """Zip the whole project (minus excludes) into project.love and return its path."""
-    love_name = os.path.basename(project_root) + '.love'
+    love_name = f"{GAME_NAME}.love"
     with zipfile.ZipFile(love_name, 'w', zipfile.ZIP_DEFLATED) as z:
         for root, dirs, files in os.walk(project_root):
             rel_root = os.path.relpath(root, project_root).replace('\\', '/')
@@ -108,9 +108,10 @@ def create_love_file(project_root: str) -> str:
     print(f"Created .love file: {love_name}")
     return love_name
 
+
 # -----------------------------------------------------------------------------
 # Icon helpers
-# -----------------------------------------------------------------------------
+# -----------
 
 def _png_to_ico(src: str, dst: str) -> bool:
     if not HAVE_PIL:
@@ -174,6 +175,11 @@ def package_for_windows(love_file: str) -> None:
 
     clear_build_folder()
 
+    # Copy .love file to build folder
+    build_love = os.path.join(OUTPUT_DIR, os.path.basename(love_file))
+    shutil.copy(love_file, build_love)
+    print(f"Copied {love_file} → build/")
+
     out_exe = os.path.join(OUTPUT_DIR, OUTPUT_EXE_NAME)
 
     # Stitch LOVE.exe + game.love
@@ -220,8 +226,8 @@ def create_zip() -> None:
         for root, _, files in os.walk(OUTPUT_DIR):
             rel_root = os.path.relpath(root, OUTPUT_DIR).replace('\\', '/')
             for fname in files:
-                if fname == ZIP_NAME:
-                    continue  # don't zip the zip
+                if fname == ZIP_NAME or fname.endswith('.love'):
+                    continue  # don't zip the zip or .love files
                 arcname = fname if rel_root in ('.', '') else f"{rel_root}/{fname}"
                 z.write(os.path.join(root, fname), arcname=arcname)
     print(f"Created final ZIP archive: {zip_path}")

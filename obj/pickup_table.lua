@@ -59,7 +59,6 @@ local Upgrades = {
 local Powerups = {
 	BasePowerup = {
 		icon = textures.pickup_powerup_placeholder,
-
         spawn_weight = 1000,
 		bullet_powerup = false,
 		bullet_powerup_time = 10,
@@ -82,7 +81,7 @@ local Powerups = {
     },
 	
 	AmmoPowerup = {
-		icon = textures.pickup_base,
+		icon = textures.pickup_powerup_ammo1,
         spawn_weight = 1000,
 		textures = {
 			-- textures.pickup_base,
@@ -100,8 +99,6 @@ local Powerups = {
 			end
 		end
 	},
-
-	
 }
 
 local Hearts = {

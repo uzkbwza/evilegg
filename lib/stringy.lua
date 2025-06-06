@@ -9,10 +9,10 @@ function stringy.endswith(s, e)
 	local result = string.match(s, e.."$")
   return result ~= nil
 end
-
 function stringy.interpolate(s, ratio)
-	local result = s:sub(1, math.floor(ratio * #s))
-	return result
+    local len = utf8.len(s)
+    local result = utf8.sub(s, 1, math.floor(ratio * len))
+    return result
 end
 
 function stringy.strip_whitespace(s, left, right)

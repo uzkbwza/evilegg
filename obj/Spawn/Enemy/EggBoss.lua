@@ -24,7 +24,7 @@ SKIP_PHASE_5 = SKIP_PHASE_5 and debug.enabled
 local QUAD_SIZE = 10
 
 local SHELL_HP = SKIP_PHASE_1 and 30 or 250
-local BASE_HP = 700
+local BASE_HP = 600
 local NUM_SHELL_CRACKS = 27
 local SHELL_DAMAGE_PER_CRACK = SHELL_HP / NUM_SHELL_CRACKS
 local START_Y = 35

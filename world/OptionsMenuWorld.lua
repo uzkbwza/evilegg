@@ -4,8 +4,8 @@ local O = (require "obj")
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
-local DISTANCE_BETWEEN_ITEMS = 10
-local HEADER_SPACE = 1
+local DISTANCE_BETWEEN_ITEMS = 8
+local HEADER_SPACE = 3
 
 
 function OptionsMenuWorld:new()
@@ -38,9 +38,11 @@ function OptionsMenuWorld:enter()
 		end,
 	}
 
-    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 2
+    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING
 
 	self:ref("back_button",self:add_menu_item(back_table))
+
+	self.next_item_y = self.next_item_y + 4
 
 	-- local base = MENU_ITEM_V_PADDING
 
@@ -112,11 +114,12 @@ function OptionsMenuWorld:enter()
 	
 		{ "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
 	-- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-        { "hue",           item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+        { "hue",           item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.025 },
 	
 		-- { "invert_colors", item_type = "toggle" },
 	
 		{ "header", text = tr.options_header_audio },
+		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
 		

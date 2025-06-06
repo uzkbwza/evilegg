@@ -1,13 +1,19 @@
 local audio = {
     sfx = nil,
     music = nil,
-	playing_music = nil,
+    playing_music = nil,
+	base_master_volume = 1.0,
     -- sfx_volume = 1.0,
     -- music_volume = 1.0,
     default_rolloff = 0.00000001,
     default_z_index = 0,
     sound_objects = {},
     object_sounds = {},
+    sfx_names = {},
+	object_started_sources = {},
+	sources_to_remove = {},
+	screen_sounds = {},
+	sound_screens = {},
 	-- max_volume = 1.0,
 }
 
@@ -21,8 +27,6 @@ function audio.load()
     audio.sfx = sfx
     audio.music = music
 
-		
-	
     -- audio.set_effect("global", {
 	-- type = "equalizer",
 	-- highcut = 9000,
@@ -43,6 +47,7 @@ function audio.load()
 			asset_collision_error(name, v, wav_paths[name])
 		end
 		sfx[name] = sound
+		audio.sfx_names[sound] = name
 	end
 	
 	dbg("num sfx loaded", table.length(sfx))
@@ -71,6 +76,32 @@ function audio.update(dt)
             end
         end
     end
+	
+	-- Clean up object_started_sources for sources that are no longer playing
+	table.clear(audio.sources_to_remove)
+	for src_name, _ in pairs(audio.object_started_sources) do
+		local src = audio.get_global_sfx(src_name)
+		if not src:isPlaying() then
+			table.insert(audio.sources_to_remove, src_name)
+		end
+	end
+	
+	-- Remove the sources that are no longer playing
+	for _, src_name in ipairs(audio.sources_to_remove) do
+		audio.object_started_sources[src_name] = nil
+		if audio.sound_screens and audio.sound_screens[src_name] then
+			for screen, _ in pairs(audio.sound_screens[src_name]) do
+				if audio.screen_sounds[screen] then
+					audio.screen_sounds[screen][src_name] = nil
+					if table.is_empty(audio.screen_sounds[screen]) then
+						audio.screen_sounds[screen] = nil
+					end
+				end
+			end
+			audio.sound_screens[src_name] = nil
+		end
+	end
+	
     if debug.enabled then
 		-- dbg("audio.object_sounds", table.length(audio.sound_objects))
 	end
@@ -112,14 +143,14 @@ function audio.cleanup_sound_objects(src_name)
 	end
 end
 
-function audio.play_sfx_object_if_stopped(object, src_name, volume, pitch, loop)
+function audio.play_sfx_object_if_stopped(object, src_name, volume, pitch, loop, screen)
 	local src = audio.get_global_sfx(src_name)
 	if not src:isPlaying() then
-		audio.play_sfx_object(object, src_name, volume, pitch, loop)
+		audio.play_sfx_object(object, src_name, volume, pitch, loop, screen)
 	end
 end
 
-function audio.play_sfx_object(object, src_name, volume, pitch, loop)
+function audio.play_sfx_object(object, src_name, volume, pitch, loop, screen)
 	local src = audio.get_global_sfx(src_name)
 
     if not audio.sound_objects[src_name] then
@@ -128,6 +159,24 @@ function audio.play_sfx_object(object, src_name, volume, pitch, loop)
 	audio.object_sounds[object] = audio.object_sounds[object] or {}
     audio.sound_objects[src_name][object] = true
     audio.object_sounds[object][src_name] = true
+	
+	-- Track that this source was started by an object
+	audio.object_started_sources[src_name] = true
+	
+    if screen then
+        audio.screen_sounds[screen] = audio.screen_sounds[screen] or {}
+        audio.screen_sounds[screen][src_name] = true
+
+        audio.sound_screens[src_name] = audio.sound_screens[src_name] or {}
+        audio.sound_screens[src_name][screen] = true
+
+        if not signal.is_connected(screen, "destroyed", audio, "cleanup_screen") then
+            signal.connect(screen, "destroyed", audio, "cleanup_screen", function()
+                audio.cleanup_screen(screen)
+            end)
+        end
+    end
+
     if not signal.is_connected(object, "destroyed", audio, "cleanup_object") then
         signal.connect(object, "destroyed", audio, "cleanup_object", function()
             audio.cleanup_object(object)
@@ -167,6 +216,42 @@ function audio.stop_sfx_object(object, src_name)
     audio.remove_object_sound(object, src_name)
     if (audio.sound_objects[src_name] == nil) then
 		audio.stop_sfx_monophonic(src_name)
+	end
+end
+
+function audio.stop_all_object_sfx(screen)
+	if screen then
+		-- Stop only sounds on a specific screen
+		if not audio.screen_sounds or not audio.screen_sounds[screen] then
+			return
+		end
+
+		local sources_to_stop = {}
+		for src_name, _ in pairs(audio.screen_sounds[screen]) do
+			table.insert(sources_to_stop, src_name)
+		end
+
+		for _, src_name in ipairs(sources_to_stop) do
+			audio.stop_sfx_monophonic(src_name)
+		end
+	else
+		-- Stop all sources that were ever started by objects
+		local sources_to_stop = {}
+		for src_name, _ in pairs(audio.object_started_sources) do
+			table.insert(sources_to_stop, src_name)
+		end
+		for _, src_name in ipairs(sources_to_stop) do
+			audio.stop_sfx_monophonic(src_name)
+		end
+
+		-- Clear the tracking table since all sources are now stopped
+		table.clear(audio.object_started_sources)
+		
+		-- Also clear the object tracking tables since all sources are stopped
+		table.clear(audio.sound_objects)
+		table.clear(audio.object_sounds)
+		table.clear(audio.screen_sounds)
+		table.clear(audio.sound_screens)
 	end
 end
 
@@ -225,6 +310,7 @@ function audio.usersettings_update()
     if audio.playing_music then
         audio.playing_music:setVolume(usersettings.music_volume * audio.playing_music_volume)
     end
+	audio.set_volume(usersettings.master_volume * audio.base_master_volume)
 end
 
 function audio.stop_music()
@@ -233,6 +319,20 @@ function audio.stop_music()
 		audio.playing_music:stop()
 		audio.playing_music = nil
 	end
+end
+
+function audio.cleanup_screen(screen)
+    if audio.screen_sounds[screen] then
+        for src_name, _ in pairs(audio.screen_sounds[screen]) do
+            if audio.sound_screens[src_name] then
+                audio.sound_screens[src_name][screen] = nil
+                if table.is_empty(audio.sound_screens[src_name]) then
+                    audio.sound_screens[src_name] = nil
+                end
+            end
+        end
+        audio.screen_sounds[screen] = nil
+    end
 end
 
 return audio

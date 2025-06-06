@@ -37,9 +37,14 @@ function OptionsMenuSlider:draw()
     graphics.rectangle("fill", grabber_x+1, grabber_y+1, grabber_w, grabber_h)
 
     graphics.set_color(Color.darkergrey)
+	if self.focused then
+		graphics.set_color(Color.darkergreen)
+	end
     graphics.rectangle("fill", slider_rect_x, slider_rect_y, slider_rect_w, slider_rect_h)
-	
 	graphics.set_color(Color.white)
+	if self.focused then
+		graphics.set_color(Color.green)
+	end
     graphics.rectangle("fill", grabber_x, grabber_y, grabber_w, grabber_h)
 	graphics.set_font(self.font)
 

@@ -4,6 +4,7 @@ local debug_start = "game"
 -- local debug_start = "codex_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
+-- local debug_start = "pre_title_screen"
 -- local debug_start = "title_screen"
 
 function MainScreen:new()
@@ -14,7 +15,7 @@ function MainScreen:enter()
     if debug.enabled then
         self["start_" .. debug_start](self)
     else
-        self:start_title_screen()
+        self:start_pre_title_screen()
     end
 end
 
@@ -71,6 +72,13 @@ function MainScreen:get_clear_color()
         end
     end
     return Color.transparent
+end
+
+function MainScreen:start_pre_title_screen()
+    self:defer(function()
+        self:set_current_screen(Screens.PreTitleScreen)
+		self:connect_start_title_screen(self.current_screen)
+    end)
 end
 
 function MainScreen:start_title_screen()

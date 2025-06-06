@@ -326,7 +326,8 @@ function TitleScreen:update(dt)
     self.real_egg_pos.y = floor(self.egg_pos.y + sin(self.tick * 0.025) * 2)
 
     local input = self:get_input_table()
-    if input.ui_title_screen_start then
+
+    if input.ui_title_screen_start_pressed then
         self:emit_signal("start_main_menu_requested")
     end
 
@@ -618,7 +619,7 @@ function TitleScreen:draw()
         -- graphics.set_color(Palette.title_screen_press_start_flash:tick_color(self.tick, 0, 2))
 		local font = fonts.depalettized.image_font2
 		graphics.set_font(font)
-		graphics.printp_centered("PRESS " .. (input.last_input_device == "gamepad" and "START" or "LMB"), font, nil, 0, 0, TITLE_TEXT_Y_OFFSET + 28)
+		graphics.printp_centered("PRESS " .. (input.last_input_device == "gamepad" and control_glyphs.start or control_glyphs.lmb), font, nil, 0, 0, TITLE_TEXT_Y_OFFSET + 28)
 	end
 
 	if SCREENSHOT_MODE then

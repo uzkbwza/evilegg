@@ -125,7 +125,7 @@ local function normalize_index(index, length)
     return index
 end
 
----@param l
+---@class l
 ---@return CanvasLayer
 function CanvasLayer:load_layer(l)
 	if type(l) == "string" then
@@ -701,6 +701,25 @@ function CanvasLayer:get_sibling(offset)
 		return nil
 	end
 	return self.parent.children[id]
+end
+
+----------------------------------------------------------------
+-- Miscellaneous
+----------------------------------------------------------------
+
+function CanvasLayer:center_translate()
+	graphics.translate(self.viewport_size.x / 2, self.viewport_size.y / 2)
+end
+
+function CanvasLayer:stop_all_sfx()
+	audio.stop_all_object_sfx(self)
+end
+
+function CanvasLayer:exit_shared()
+	CanvasLayer.super.exit_shared(self)
+	for _, child in ipairs(self.children) do
+		child:destroy()
+	end
 end
 
 ----------------------------------------------------------------

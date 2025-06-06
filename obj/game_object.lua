@@ -299,7 +299,10 @@ function GameObject:defer(func, ...)
         return
     end
 
-	error(tostring(self) .. ":defer() called but no deferred function target found")
+    -- error(tostring(self) .. ":defer() called but no deferred function target found")
+	
+	func(self, ...)
+
 end
 
 		
@@ -796,12 +799,12 @@ end
 -- end
 
 function GameObject:play_sfx(sfx_name, volume, pitch, loop, x, y, z)
-	audio.play_sfx_object(self, sfx_name, volume, pitch, loop)
+	audio.play_sfx_object(self, sfx_name, volume, pitch, loop, self.canvas_layer)
     -- audio.play_sfx_monophonic(sfx_name, volume, pitch, loop)
 end
 
 function GameObject:play_sfx_if_stopped(sfx_name, volume, pitch, loop, x, y, z)
-	audio.play_sfx_object_if_stopped(self, sfx_name, volume, pitch, loop)
+	audio.play_sfx_object_if_stopped(self, sfx_name, volume, pitch, loop, self.canvas_layer)
 end
 
 function GameObject:play_world_sfx(sfx_name, volume, pitch, loop, x, y, z)
