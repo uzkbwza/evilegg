@@ -131,7 +131,7 @@ function EggElevator:update(dt)
 	
 	-- local force_elevator = debug.enabled and debug.fast_forward
 	-- local force_elevator = debug.enabled
-	-- local force_elevator = false
+	local force_elevator = false
 
     if (not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator) then
         local closest_player = self:get_closest_player()

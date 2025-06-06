@@ -6,8 +6,8 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_police"
 
-local debug_enemy_enabled = false
-local debug_enemy = "Eyeball"
+local debug_enemy_enabled = true
+local debug_enemy = "RoyalRoamer"
 local num_debug_enemies = 1
 local num_debug_waves = 3
 
@@ -1054,7 +1054,7 @@ end
 if debug.enabled then
     for i = 1, 200 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
 	end
 end
 

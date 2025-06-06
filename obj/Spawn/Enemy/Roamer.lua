@@ -135,7 +135,7 @@ RoyalRoamer.palette = Palette[textures.enemy_royalroamer1]:clone()
 function RoyalRoamer:new(x, y)
     self.max_hp = 2
     RoyalRoamer.super.new(self, x, y)
-    self.walk_speed = 1.1
+    self.base_walk_speed = 1.25
 	self.roaming = false
     self.walk_frequency = 5
 	self.bullet_push_modifier = 2.5
@@ -156,7 +156,7 @@ end
 
 function RoyalRoamer:get_sprite()
 
-    if (self.roaming or self.tick % 2 == 0) and idivmod_eq_zero(self.tick, 3, (self.roaming and 2 or 7)) then
+    if (self.roaming or self.tick % 2 == 0) and idivmod_eq_zero(self.tick, 3, (self.roaming and 2 or 17)) then
 		return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer3 or textures.enemy_royalroamer4)
     end
 
@@ -172,25 +172,52 @@ end
 local MOVE_RADIUS = 90
 local PLAYER_TOO_CLOSE_RADIUS = 24
 
-
 function RoyalRoamer:update(dt)
     RoyalRoamer.super.update(self, dt)
+
+    if self._roaming then
+        self.roaming = true
+	end
+
+	if not self.any_player then 
+		self:ref("any_player", self:get_random_player())
+	end
+
+    if not self.roaming and self.any_player and self.any_player.moving and self.is_new_tick and rng:percent(8) then
+        self.roaming = true
+    elseif self.roaming and (not self.any_player or not self.any_player.moving) then
+        -- self.roaming = false
+        self:unref("any_player")
+    end
+	
+	if self.any_player then
+		if self.any_player.state == "Hover" then
+			self.walk_speed = self.any_player.hover_vel:magnitude() * self.base_walk_speed
+		else
+			self.walk_speed = self.any_player.move_vel:magnitude() * self.base_walk_speed
+		end
+        self.walk_speed = clamp(self.walk_speed, 0.1, 1.5)
+    else
+		self.roaming = self._roaming
+		self.walk_speed = 0.5
+	end
 
     if self.is_new_tick then
 		self.outline_flash = rng:percent(25)
 	end
 
     if self.roaming then
-		if self:get_stopwatch("wait_stopwatch") then
-			self:stop_stopwatch("wait_stopwatch")
-		end
-		self.roam_elapsed = self.roam_elapsed + dt
+        if self:get_stopwatch("wait_stopwatch") then
+            self:stop_stopwatch("wait_stopwatch")
+        end
+        self.roam_elapsed = self.roam_elapsed + dt
     else
-		if not self:get_stopwatch("wait_stopwatch") then
-			self:start_stopwatch("wait_stopwatch")
-		end
+        if not self:get_stopwatch("wait_stopwatch") then
+            self:start_stopwatch("wait_stopwatch")
+        end
     end
-    if self.is_new_tick and self.tick > 120 and rng:percent(5) and not self.roaming and not self:is_tick_timer_running("roam_cooldown") then
+	
+    if self.is_new_tick and self.tick > 120 and rng:percent(0.5) and not self.roaming and not self:is_tick_timer_running("roam_cooldown") then
         local bx, by = self:get_body_center()
         local rx, ry, rw, rh = bx - MOVE_RADIUS, by - MOVE_RADIUS, MOVE_RADIUS * 2, MOVE_RADIUS * 2
         self.world.game_object_grid:each_self(rx, ry, rw, rh, self.roam_a_bit, self)
@@ -225,10 +252,10 @@ function RoyalRoamer.roam_a_bit(object, self)
 end
 
 function RoyalRoamer:start_short_roam()
-	self.roaming = true
-	self:start_tick_timer("roam_timer", rng:randi_range(20, 70 + min(self.elapsed * 0.05, 90)), function()
-		self.roaming = false
-		self:start_tick_timer("roam_cooldown", rng:randi_range(20, 70))
+	self._roaming = true
+	self:start_tick_timer("roam_timer", rng:randi_range(5, 70 + min(self.elapsed * 0.05, 90)), function()
+		self._roaming = false
+		self:start_tick_timer("roam_cooldown", rng:randi_range(5, 70))
 	end)
 end
 

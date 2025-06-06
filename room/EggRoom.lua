@@ -53,10 +53,21 @@ end
 function EggRoomDirector:get_border_color()
 	if self.world.state == "RoomClear" then return nil end
     local stopwatch = self:get_stopwatch("time_since_killed_elevator")
-	if stopwatch then
+    if stopwatch then
         local color = Color.darkergrey
         self.elevator_kill_color = self.elevator_kill_color or Color(color.r, color.g, color.b, 1)
         local mod = clamp01(stopwatch.elapsed / 90)
+        -- print(mod)
+        self.elevator_kill_color.r = color.r * mod
+        self.elevator_kill_color.g = color.g * mod
+        self.elevator_kill_color.b = color.b * mod
+        return self.elevator_kill_color
+    end
+	local stopwatch2 = self:get_stopwatch("time_since_cracked_egg")
+	if stopwatch2 then
+        local color = Color.nearblack
+        self.elevator_kill_color = self.elevator_kill_color or Color(color.r, color.g, color.b, 1)
+        local mod = clamp01(stopwatch2.elapsed / 180) * 0.6
 		-- print(mod)
 		self.elevator_kill_color.r = color.r * mod
 		self.elevator_kill_color.g = color.g * mod
@@ -116,6 +127,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
             audio.play_music_if_stopped("music_egg_boss_ambience", 1.0)
 			
             signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
+				self:start_stopwatch("time_since_cracked_egg")
 				-- audio.play_music("music_egg_boss1", 1.0)
 			end, true)
 			

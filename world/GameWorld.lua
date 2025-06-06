@@ -1702,10 +1702,10 @@ function GameWorld:draw()
 end
 
 function GameWorld:get_border_color()
-    if self.room.is_egg_room then
-        local egg_room_color = self.room:get_border_color()
-        if egg_room_color then
-            return egg_room_color
+    if self.room.get_border_color then
+        local room_color = self.room:get_border_color()
+        if room_color then
+            return room_color
         end
     end
 

@@ -295,7 +295,7 @@ local translations = {
 		codex_desc_royalguard       = "On her majesty's secret service.",
 
 		codex_name_royalroamer      = "Stalker",
-		codex_desc_royalroamer      = "Accustomed to the night.",
+		codex_desc_royalroamer      = "Weaponised obsession.",
 
 		codex_name_rook             = "Rook",
 		codex_desc_rook             = "Castle and castellan in one.",

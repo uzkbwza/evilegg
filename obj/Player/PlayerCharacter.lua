@@ -68,6 +68,7 @@ function PlayerCharacter:new(x, y)
     self.hover_vel = Vec2()
     self.hover_accel = Vec2()
     self.hover_impulse = Vec2()
+	self.move_vel = Vec2()
 	self.mouse_pos_x, self.mouse_pos_y = 0, 0
 
     self.shoot_held_time = 0
@@ -408,9 +409,14 @@ function PlayerCharacter:handle_input(dt)
 
     move_amount_x = move_amount_x * magnitude
     move_amount_y = move_amount_y * magnitude
+
+	
     if self.state == "Walk" then
+		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self:move(move_amount_x * dt * self.speed, move_amount_y * dt * self.speed)
+		self.move_vel:set(move_amount_x, move_amount_y)
     elseif self.state == "Hover" then
+		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self.hover_accel.x = self.hover_accel.x + move_amount_x * self.speed
         self.hover_accel.y = self.hover_accel.y + move_amount_y * self.speed
     end
@@ -734,6 +740,7 @@ function PlayerCharacter:die()
 end
 
 function PlayerCharacter:update(dt)
+	self.moving = false
 	-- print(self.pos)
 end
 
@@ -784,7 +791,7 @@ end
 
 function PlayerCharacter:alive_update(dt)
     self:collide_with_terrain()
-    self:handle_input(dt)
+	self:handle_input(dt)
     self:check_pickups()
 end
 

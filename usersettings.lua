@@ -32,9 +32,10 @@ local default_usersettings = {
 	mouse_sensitivity = 0.08,
 }
 
-local just_started = true
-
 local usersettings = {}
+
+local buffer = {}
+local dirty = false
 
 function usersettings:load()
     local _, u = pcall(require, "_usersettings")
@@ -44,17 +45,21 @@ function usersettings:load()
         u = default_usersettings
     end
 
-	for k, v in pairs(default_usersettings) do
-		if u[k] == nil then
-			u[k] = v
-		end
-	end
+    for k, v in pairs(default_usersettings) do
+        if u[k] == nil then
+            u[k] = v
+        end
+    end
 
-	for k, v in pairs(u) do
-		self[k] = v
-	end
-
+    for k, v in pairs(u) do
+        self[k] = v
+    end
 end
+
+function usersettings:buffer_setting(key, value)
+    buffer[key] = value
+end
+
 
 function usersettings:save()
     local tab = {}
@@ -78,18 +83,17 @@ end
 function usersettings:initial_load()
     self:load()
     self:save()
-
-    self:apply_settings()
-	just_started = false
+    if not IS_EXPORT then
+        self.fullscreen = false
+    end
+	self:apply_settings()
+	
 end
 
 
 function usersettings:apply_settings()
-    if IS_EXPORT or (not just_started) then
-		if love.window.getFullscreen() ~= self.fullscreen then
-			love.window.setFullscreen(self.fullscreen)
-		end
-    end
+	print("applying user settings")
+	love.window.setFullscreen(self.fullscreen)
 	
     love.window.setVSync(self.vsync and -1 or 0)
     if graphics then
@@ -117,10 +121,30 @@ function usersettings:reset_to_default()
 end
 
 function usersettings:set_setting(key, value)
-	if self[key] == value then return end
-    self[key] = value
-    self:save()
-    self:apply_settings()
+	if buffer[key] == value then
+		return
+	end
+
+	dirty = true
+
+    buffer[key] = value
+end
+
+function usersettings:is_dirty()
+	return dirty
+end
+
+function usersettings:apply_buffer()
+
+	dirty = false
+	
+    for k, v in pairs(buffer) do
+        self[k] = v
+    end
+	self:save()
+	self:apply_settings()
+
+	table.clear(buffer)
 end
 
 function usersettings:set_screen_shader_preset(value)

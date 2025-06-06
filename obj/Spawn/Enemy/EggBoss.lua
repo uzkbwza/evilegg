@@ -13,7 +13,7 @@ local Rook = require("obj.Spawn.Enemy.Rook")
 local EggShadow = BaseEnemy:extend("EggShadow")
 
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, false, false, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -24,7 +24,7 @@ SKIP_PHASE_5 = SKIP_PHASE_5 and debug.enabled
 local QUAD_SIZE = 10
 
 local SHELL_HP = SKIP_PHASE_1 and 30 or 250
-local BASE_HP = 600
+local BASE_HP = 500
 local NUM_SHELL_CRACKS = 27
 local SHELL_DAMAGE_PER_CRACK = SHELL_HP / NUM_SHELL_CRACKS
 local START_Y = 35
@@ -287,7 +287,7 @@ function EggBoss:crack_shell()
 	self:start_timer("crack_swell2", 40)
 
 	
-    if (self.shell_cracks - 1) % 7 == 0 then
+    if (self.shell_cracks - 1) % 7 == 0 and not SKIP_PHASE_1 then
 		local s = self.sequencer	
 		s:start(function()
 			for i=1, 2 do

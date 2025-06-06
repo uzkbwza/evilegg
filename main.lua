@@ -80,10 +80,11 @@ local function manual_gc(time_budget, memory_ceiling, disable_otherwise)
     memory_ceiling = memory_ceiling or math.huge
     local start_t  = love.timer.get_time()
     local steps    = 0
-    while (love.timer.get_time()-start_t) < time_budget and steps < 1000 do
+    while (love.timer.get_time() - start_t) < time_budget and steps < 1000 do
         if collectgarbage("step", 1) then break end
         steps = steps + 1
     end
+	dbg("gc time", (love.timer.get_time() - start_t) * 1000, Color.cyan)
     if collectgarbage("count")/1024 > memory_ceiling then collectgarbage("collect") end
     if disable_otherwise then collectgarbage("stop") end
 end
@@ -99,11 +100,14 @@ local force_fixed_time_buildup = 0.0
 local function _step(frame_dt)
     local s = love.timer.get_time()
     if love.update then love.update(frame_dt) end
-    if graphics and graphics.isActive() then
+    if graphics and graphics.is_active() then
         graphics.origin()
-        graphics.clear(graphics.getBackgroundColor())
+        graphics.clear(graphics.get_background_color())
         if love.draw then love.draw() end
         graphics.present()
+    end
+    if usersettings:is_dirty() then
+        usersettings:apply_buffer()
     end
     step_length = love.timer.get_time() - s
 end
@@ -119,9 +123,11 @@ function love.run()
     return function()
         if love.event then
             love.event.pump()
-            for name,a,b,c,d,e,f in love.event.poll() do
-                if name=="quit" then if not love.quit or not love.quit() then return a or 0 end end
-                love.handlers[name](a,b,c,d,e,f)
+            for name,a,b,c,d,e,f,g,h in love.event.poll() do
+                if name=="quit" then
+                    if not love.quit or not love.quit(b) then return a or 0, b end
+                end
+                love.handlers[name](a,b,c,d,e,f,g,h)
             end
         end
         if love.timer then dt = love.timer.step() end
@@ -206,7 +212,7 @@ function love.run()
             end
         else debug_printed_peak = false end
 
-        if conf.manual_gc then manual_gc(0.001, math.huge, false) end
+        if conf.manual_gc then manual_gc(0.00001, math.huge, false) end
         frame_length = step_length
         if cap_fps and not usersettings.vsync and not debug_ffwd then
             local min_frame_time = 1 / conf.max_fps
@@ -247,7 +253,7 @@ function love.update(dt)
     end
     graphics.update(dt)
     if input.fullscreen_toggle_pressed then
-        usersettings:set_setting("fullscreen", not (debug.enabled and usersettings.fullscreen or love.window.getFullscreen()))
+        usersettings:set_setting("fullscreen", not love.window.getFullscreen())
     end
     debug.update(dt); input.post_update()
 end

@@ -69,8 +69,8 @@ local Enemies = {
         level = 2,
 		min_level = 30,
 		icon = textures.enemy_royalroamer1,
-		spawn_points = 7,
-		room_select_weight = 50,
+		spawn_points = 9,
+		room_select_weight = 150,
 	},
 
 	Hopper = {
