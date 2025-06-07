@@ -20,4 +20,8 @@ end
 function PauseScreen:draw()
 end
 
+function PauseScreen:destroy()
+    PauseScreen.super.destroy(self)
+end
+
 return PauseScreen

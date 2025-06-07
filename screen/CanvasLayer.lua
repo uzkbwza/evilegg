@@ -239,9 +239,13 @@ function CanvasLayer:insert_layer(l, index)
     self:refresh_layer_links()
     self:init_layer(layer)
     self:bind_destruction(layer)
-	signal.connect(layer, "destroyed", self, "remove_child_on_destroy", function() self:remove_child(layer) end)
+	signal.connect(layer, "destroyed", self, "on_child_destroyed")
 	-- collectgarbage("collect")
 	return layer
+end
+
+function CanvasLayer:on_child_destroyed(child)
+    self:remove_child(child)
 end
 
 ---@param layer CanvasLayer|string
@@ -467,6 +471,26 @@ function CanvasLayer:add_world(world, name)
 	end
     return world
 end
+
+function CanvasLayer:remove_world(name)
+
+    local world
+
+	if type(name) == "string" then
+		world = self[name]
+	else
+		world = name
+	end
+
+    if not Object.is(world, World) then
+		error("world " .. name .. " is not a World")
+	end
+
+    if world then
+        world:destroy()
+    end
+end
+
 
 
 ---@param dt number
@@ -732,7 +756,12 @@ function CanvasLayer:pre_world_draw() end
 function CanvasLayer:draw() end
 function CanvasLayer:enter() end
 function CanvasLayer:exit()
-	
+
+end
+
+function CanvasLayer:destroy()
+
+    CanvasLayer.super.destroy(self)
 end
 
 return CanvasLayer

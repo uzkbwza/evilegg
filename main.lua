@@ -212,7 +212,7 @@ function love.run()
             end
         else debug_printed_peak = false end
 
-        if conf.manual_gc then manual_gc(0.00001, math.huge, false) end
+        if conf.manual_gc then manual_gc(0.0001, math.huge, false) end
         frame_length = step_length
         if cap_fps and not usersettings.vsync and not debug_ffwd then
             local min_frame_time = 1 / conf.max_fps
@@ -241,7 +241,8 @@ function love.update(dt)
         dbg("memory use (mB)", stepify_safe(debug.memory_used,0.001), Color.green)
         dbg("step length (ms)", string.format("%.3f", flen), Color.pink)
         dbg("step peak (ms)", string.format("%.3f", averaged_frame_length), Color.pink)
-        dbg("frame len (ms)", string.format("%.3f", frame_length*1000), Color.pink)
+        dbg("frame len (ms)", string.format("%.3f", frame_length * 1000), Color.pink)
+
     end
     dt = dt * gametime.scale
     input.update(dt)
@@ -261,7 +262,7 @@ end
 function love.draw()
     graphics.draw_loop()
     if debug.enabled and gametime.tick % 10 == 0 then dbg("draw calls", graphics.get_stats().drawcalls, Color.magenta) end
-    if debug.can_draw() then
+    if debug.can_draw() then 
         debug.printlines(0,0)
         if debug.drawing_dt_history then
             local w,h = love.graphics.getDimensions()

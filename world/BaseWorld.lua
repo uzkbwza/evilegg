@@ -584,11 +584,4 @@ function World:remove_object(obj)
     obj:prune_signals()
 end
 
-function World:exit_shared()
-	World.super.exit_shared(self)
-	for _, obj in self.objects:ipairs() do
-		obj:destroy()
-	end
-end
-
 return World

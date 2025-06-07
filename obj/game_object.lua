@@ -828,15 +828,24 @@ local destroyed_index_func = function(t, k)
 end
 
 function GameObject:destroy()
-	if self.is_destroyed then return end
+    if self.is_destroyed then return end
+
     if self.objects_to_destroy then
-        for v, _ in pairs(self.objects_to_destroy) do
-			if signal.get(v, "destroyed") then
-				signal.disconnect(v, "destroyed", self, "on_object_to_destroy_destroyed_early")
-			end
-            v:destroy()
+        -- Create a copy to iterate over, as the table may be modified during iteration
+        -- by the "destroyed" signal handlers.
+        local to_destroy_copy = {}
+        for obj, _ in pairs(self.objects_to_destroy) do
+            table.insert(to_destroy_copy, obj)
+        end
+
+        for _, obj in ipairs(to_destroy_copy) do
+            if not obj.is_destroyed then
+                obj:destroy()
+            end
         end
     end
+    self.objects_to_destroy = nil
+
     if self.sfx then
         for _, t in pairs(self.sfx) do
             t.src:stop()

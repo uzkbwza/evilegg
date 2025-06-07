@@ -232,9 +232,10 @@ function LeaderboardWorld:update(dt)
         self:start_timer("death_count_flash", 30)
 		self:start_timer("death_count", max(1, abs(rng:randfn(15, 5))))
 	end
-	if input.ui_cancel_pressed then
-		self.back_button:select()
-	end
+    if input.ui_cancel_pressed then
+        self.back_button:select()
+    end
+
 end
 
 function LeaderboardWorld:draw()

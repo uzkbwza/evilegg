@@ -1281,7 +1281,7 @@ function GameWorld:update(dt)
 
 	if debug.enabled then
 		dbg("enemies_to_kill", table.length(self.enemies_to_kill))
-		dbg("world_state", self.state, Color.green)
+		dbg("world state", self.state, Color.skyblue)
 		dbg("number of objects", self.objects:length())
 		-- dbg("waiting_on_rooms", self.waiting_on_rooms)
 	end
