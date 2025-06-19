@@ -25,12 +25,12 @@ function MainMenuScreen:enter()
 	audio.stop_music()
 
     local s = self.sequencer
-	self.clear_color = Color.purple:clone()
 	s:start(function() 
+		self.clear_color = Color.purple:clone()
 		for _, prop in ipairs({ "r", "g", "b" }) do
 			s:start(function()
 				s:tween_property(self.clear_color, prop, self.clear_color[prop], 0, 2, "linear", 0.125)
-				self.clear_color = Color.black:clone()
+				self.clear_color[prop] = 0
 			end)
 		end
     end)
