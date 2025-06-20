@@ -88,7 +88,7 @@ function SecondaryWeapon:draw()
 		return
 	end
 
-	if self:is_timer_running("gained_weapon_flash") and idivmod_eq_zero(self.tick, 3, 2) then
+	if self:is_timer_running("gained_weapon_flash") and iflicker(self.tick, 3, 2) then
 		return
 	end
 
@@ -123,12 +123,12 @@ function SecondaryWeapon:draw()
     local unfireable_color = Color.grey
     local fireable_color = game_state.secondary_weapon.ammo_color
 
-	if self:is_timer_running("gained_ammo_flash") and idivmod_eq_zero(self.tick, 2, 2) then
+	if self:is_timer_running("gained_ammo_flash") and iflicker(self.tick, 2, 2) then
         fireable_color = self.tick % 2 == 0 and Color.white or Color.grey
 		hud_icon_color = self.tick % 2 == 0 and hud_icon_color or Color.grey
 	end
 
-    if self:is_timer_running("not_enough_ammo_flash") and idivmod_eq_zero(self.tick, 2, 2) then
+    if self:is_timer_running("not_enough_ammo_flash") and iflicker(self.tick, 2, 2) then
         empty_color = Color.red
 		hud_icon_color = Color.darkred
 		unfireable_color = Color.orange
@@ -142,7 +142,7 @@ function SecondaryWeapon:draw()
 	local low_ammo_threshold = self:low_ammo_threshold()
 
 	
-	if game_state.secondary_weapon_ammo <= low_ammo_threshold and idivmod_eq_zero(self.tick, 3, 2) then
+	if game_state.secondary_weapon_ammo <= low_ammo_threshold and iflicker(self.tick, 3, 2) then
 		fireable_color = self.tick % 2 == 0 and Color.red or Color.orange
 	end
 	

@@ -36,7 +36,7 @@ function CodexSpawnText:draw()
 	local line_height = self.font:getHeight(" ")
     for i, line in ipairs(self.wrapped_text) do
         local text = line
-		text = line:sub(1, (1 - self:timer_time_left_ratio("show_text")) * #line)
+		text = line:sub(1, (1 - self:timer_progress("show_text")) * #line)
 
 		if self.centered then
 			graphics.print_centered(text, self.font, 0, line_height * (i - 1))

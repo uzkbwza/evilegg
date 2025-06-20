@@ -45,6 +45,7 @@ function MenuItem:new(x, y, width, height)
     if self.focusable == nil then
         self.focusable = true
     end
+	
 	if self.mouse_enabled == nil then
 		self.mouse_enabled = true
 	end

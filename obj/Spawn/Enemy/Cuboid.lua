@@ -66,7 +66,7 @@ function Cuboid:new(x, y)
 
 	self.beaming = false
 
-    self.random_bullet_angle = rng:randf_range(0, tau)
+    self.random_bullet_angle = rng:randf(0, tau)
 	self.on_terrain_collision = self.terrain_collision_bounce
 end
 
@@ -77,8 +77,8 @@ function Cuboid:enter()
 	local s = self.sequencer
 	s:start(function()
 		self:set_body_height(300)
-		s:wait(rng:randi_range(20))
-        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng:randf_range(20, 40), "outQuad")
+		s:wait(rng:randi(20))
+        s:tween(function(t) self:set_body_height(lerp(300, BODY_HEIGHT, t)) end, 0, 1, rng:randf(20, 40), "outQuad")
         self.melee_attacking = true
 		self.intangible = false
 		self.beaming = false
@@ -186,7 +186,7 @@ function Cuboid:get_sprite()
 end
 
 function Cuboid:draw()
-	if self.beaming and idivmod_eq_zero(self.tick, 2, 2) then
+	if self.beaming and iflicker(self.tick, 2, 2) then
 		graphics.push("all")
 		graphics.set_color(self:tick_pulse(1) and Color.purple or Color.red)
 		local scale = 1 - (inverse_lerp_clamp(BODY_HEIGHT, 200, self.body_height))
@@ -215,11 +215,11 @@ function Cuboid:draw()
 			graphics.push("all")
 			self:body_translate()
 			-- graphics.rotate(tau / 8)
-			local col = idivmod_eq_zero(self.tick, 2, 2) and Color.red or Color.yellow
+			local col = iflicker(self.tick, 2, 2) and Color.red or Color.yellow
 			graphics.set_color(Color.black)
 			graphics.rectangle_centered("fill", 0, 0, 34, 34)
 			graphics.set_line_width(12)
-			local dist = self:is_timer_running("explode") and (100 * (1 - self:timer_time_left_ratio("explode"))) or 0
+			local dist = self:is_timer_running("explode") and (100 * (1 - self:timer_progress("explode"))) or 0
 			graphics.set_color(Color.black)
 			for i = 1, #ALL_DIRECTIONS do
 				local direction = ALL_DIRECTIONS[i]

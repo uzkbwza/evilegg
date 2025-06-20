@@ -10,8 +10,10 @@ local SPEED = 5.0
 
 local DeathFlash = Effect:extend("DeathFlash")
 
+DeathFlash.is_death_flash = true
+
 -- TODO: use quads instead of pixels
-function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, use_grey_pixels)
+function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, use_grey_pixels, offset_start)
 	DeathFlash.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
     self.duration = 30
@@ -30,7 +32,7 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, u
 	end
 	self.width = width
 	self.height = height
-	self.start_tick = gametime.tick
+	self.start_tick = truthy_nil(offset_start) and gametime.tick or 0
     local data = graphics.texture_data[texture]
 
 

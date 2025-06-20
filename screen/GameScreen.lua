@@ -158,6 +158,15 @@ function UILayer:can_pause()
     if self.game_layer.world.player_died then
         return false
     end
+
+	if game_state.cutscene_no_pause then
+		return false
+	end
+
+	if not self.game_layer.world:can_pause() then
+		return false
+	end
+
 	if not self.hud_layer:can_pause() then
 		return false
 	end

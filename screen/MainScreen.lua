@@ -1,11 +1,11 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 
-local debug_start = "game"
+-- local debug_start = "game"
 -- local debug_start = "codex_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
--- local debug_start = "pre_title_screen"
 -- local debug_start = "title_screen"
+local debug_start = "pre_title_screen"
 
 function MainScreen:new()
     MainScreen.super.new(self)

@@ -4,8 +4,12 @@ local ICON_SIZE = 22
 
 function CodexEntryButton:new(x, y, sprite, spawn)
     CodexEntryButton.super.new(self, x, y, ICON_SIZE + 1, ICON_SIZE + 1)
-    sprite = graphics.depalettized[sprite]
-	local width, height = graphics.texture_data[sprite]:getDimensions()
+    sprite = graphics.depalettized[sprite] or sprite
+    local img_data = graphics.texture_data[sprite]
+	if img_data == nil then
+		error(string.format("%s %s", table.length(graphics.texture_paths), graphics.texture_paths[sprite]))
+	end
+	local width, height = img_data:getDimensions()
     local middle_x, middle_y = floor(width / 2), floor(height / 2)
 	local icon_width = min(ICON_SIZE, width)
 	local icon_height = min(ICON_SIZE, height)

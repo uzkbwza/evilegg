@@ -487,6 +487,16 @@ function try_function(f, ...)
     end
 end
 
+function set_true_if_nil(t, key)
+	if t[key] == nil then
+		t[key] = true
+	end
+end
+
+function truthy_nil(v)
+	return v or v == nil
+end
+
 dummy_table = setmetatable({}, {
     __index = function()
         return nil

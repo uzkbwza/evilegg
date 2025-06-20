@@ -38,7 +38,7 @@ function Walker:new(x, y)
 end
 
 function Walker:update(dt)
-    self:set_flip(idivmod_eq_zero(self.tick, 5, 2) and 1 or -1)
+    self:set_flip(iflicker(self.tick, 5, 2) and 1 or -1)
 end
 
 local EXPLOSION_RADIUS = 14

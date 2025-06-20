@@ -1,5 +1,6 @@
 local HUDLayer = CanvasLayer:extend("HUDLayer")
 local LevelBonus = require("levelbonus.LevelBonus")
+local ALWAYS_SHOW_BONUS_DETAILS = true
 
 function HUDLayer:new()
     HUDLayer.super.new(self)
@@ -81,6 +82,17 @@ function HUDLayer:start_after_level_bonus_screen()
     end
 	
 	table.sort(temp_bonuses, function(a, b)
+		if a.bonus.priority and not b.bonus.priority then
+			return true
+		end
+        if not a.bonus.priority and b.bonus.priority then
+            return false
+        end
+		
+		if a.bonus.priority and b.bonus.priority then
+			return a.bonus.priority > b.bonus.priority
+		end
+		
 		if a.bonus.negative and not b.bonus.negative then
 			return false
 		end
@@ -293,13 +305,14 @@ function HUDLayer:update(dt)
         self.score_display = game_state.score
     end
 
-	local input = self:get_input_table()
-	if (input.skip_bonus_screen_held) and self.after_level_bonus_screen then
-		self.skipping_bonus_screen = true
-	end
+    local input = self:get_input_table()
+	
+    if (input.skip_bonus_screen_held) and self.after_level_bonus_screen or not usersettings.show_hud then
+        self.skipping_bonus_screen = true
+    end
 
 	if input.show_hud_held then
-		self:start_timer("show_hud_held", 2)
+		self:start_timer("show_hud_held", 40)
 	end 
 
 	for i, meter in ipairs(self.xp_bars) do
@@ -320,6 +333,9 @@ end
 local bonus_palette = PaletteStack:new(Color.black, Color.white)
 
 function HUDLayer:should_show()
+
+	if game_state.cutscene_hide_hud then return false end
+
     if self.parent.ui_layer.state == "Paused" then return true end
 	
 	if game_state.game_over_screen_force_hud then return true end
@@ -330,7 +346,7 @@ function HUDLayer:should_show()
 end
 
 function HUDLayer:can_pause()
-	if self.after_level_bonus_screen then
+	if self.after_level_bonus_screen and usersettings.show_hud then
 		return false
 	end
 	return true
@@ -355,7 +371,7 @@ local function format_score(n, lead_zeros, font)
     local padded_str   = sign .. comma_sep(pad_str)
     local unpadded_str = sign .. comma_sep(abs_str)
 
-    -- figure out how much of padded_str we’d have to chop off
+    -- figure out how much of padded_str we'd have to chop off
     local diff_len  = #padded_str - #unpadded_str
     local hidden_str = padded_str:sub(1, diff_len)
 
@@ -459,7 +475,7 @@ function HUDLayer:pre_world_draw()
 
 	local greenoid_color = Color.green
 	if self:is_timer_running("greenoid_harmed_flash") then
-		greenoid_color = idivmod_eq_zero(self.tick, 3, 2) and Color.red or Color.green
+		greenoid_color = iflicker(self.tick, 3, 2) and Color.red or Color.green
 	end
 	graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, greenoid_color,
 		scoremult4, Color.white, scoremult5, Color.grey)
@@ -543,7 +559,7 @@ function HUDLayer:pre_world_draw()
 	local upgrade_width = 6
 	local upgrade_separation = 1
 	for i, upgrade in ipairs(self.upgrades) do
-		local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and idivmod_eq_zero(self.tick, 3, 2)
+		local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and iflicker(self.tick, 3, 2)
 		local max_level = game_state:get_max_upgrade(upgrade.name)
 		if not flashing then
 			for j = max_level, 1, -1 do
@@ -578,7 +594,7 @@ function HUDLayer:pre_world_draw()
 	graphics.push()
 
 
-    if self.after_level_bonus_screen then
+    if self.after_level_bonus_screen and usersettings.show_hud then
         local font2 = fonts.depalettized.image_font2
         graphics.set_font(font2)
         local middle_x = self.viewport_size.x / 2
@@ -586,60 +602,155 @@ function HUDLayer:pre_world_draw()
         local bonus_count = #self.after_level_bonus_screen.bonuses
         graphics.translate(middle_x - 106, middle_y - 8)
         local total_highlight_amount = 0
+		local total_flashing = iflicker((-self.tick / 2), 2, 4)
         for i, bonus in ipairs(self.after_level_bonus_screen.bonuses) do
 			
-			local font_color = idivmod_eq_zero((-self.tick / 2) + i, 2, 4) and (bonus.negative and Color.darkred or Color.orange) or (bonus.negative and Color.red or Color.yellow)
-			graphics.set_color(font_color)
-            graphics.push("all")
-            if bonus.score_apply_highlight_amount and bonus.score_apply_highlight_amount > 0.55 then
-                graphics.set_color(Color.cyan)
+            local is_flashing = iflicker((-self.tick / 2) + i, 2, 4)
+			
+			local bonus_name_color, score_color, multiplier_color, xp_color, count_color, cross_color, is_highlighted = self:get_bonus_screen_item_colors(bonus, is_flashing, i)
+			
+			
+            if is_highlighted then
                 total_highlight_amount = max(total_highlight_amount, bonus.score_apply_highlight_amount)
             end
 
-            local y = (i - (bonus_count + 1) / 2) * 10
-            -- local text = string.format("%-20s %8d [+%3dXP] [X%2d]", tr[bonus.name], bonus.score, bonus.xp, bonus.count)
-			graphics.printp(tr[bonus.name], font2, nil, 0, -12, y)
-			
-			local score_without_zeroes = comma_sep(bonus.score * bonus.count)
-			local width = font2:getWidth(score_without_zeroes)
+			graphics.set_color(bonus_name_color)
+            graphics.push("all")
 
-            graphics.printp(score_without_zeroes, font2, nil, 0, 60, y)
-            graphics.printp(string.format("×%-3.2f", bonus.score_multiplier * bonus.count), font2, nil, 0,
-                60 + width, y)
-            graphics.printp(string.format("+%-2dXP", floor(bonus.xp * bonus.count)), font2, nil, 0, 150, y)
-            graphics.printp(string.format("×%d", bonus.count), font2, nil, 0, 210, y)
+            local y = (i - (bonus_count + 1) / 2) * 10
+            -- local text = string.format("%-20s %8d [+%3dXP] [X%2d]", tr[bonus.name], bonus.score, bonus.xp, bonus.count) 
+			graphics.print(tr[bonus.name], -12, y)
+			
+			local has_score = ALWAYS_SHOW_BONUS_DETAILS or bonus.score ~= 0 or bonus.score_multiplier ~= 0
+			local has_multiplier = ALWAYS_SHOW_BONUS_DETAILS or bonus.score_multiplier ~= 0
+
+			if has_score and has_multiplier then
+				local score_without_zeroes = comma_sep(bonus.score * bonus.count)
+				local multiplier_text = string.format("%-3.2f", bonus.score_multiplier * bonus.count)
+				graphics.print_multicolor(font2, 60, y, score_without_zeroes, score_color, "×", cross_color, multiplier_text, multiplier_color)
+			elseif has_score then
+				local score_without_zeroes = comma_sep(bonus.score * bonus.count)
+				graphics.set_color(score_color)
+				graphics.print(score_without_zeroes, 60, y)
+			elseif has_multiplier then
+				local multiplier_text = string.format("%-3.2f", bonus.score_multiplier * bonus.count)
+				graphics.print_multicolor(font2, 60, y, "×", cross_color, multiplier_text, multiplier_color)
+			end
+
+			if ALWAYS_SHOW_BONUS_DETAILS or bonus.xp ~= 0 then
+				graphics.set_color(xp_color)
+				graphics.print(string.format("+%-2dXP", floor(bonus.xp * bonus.count)), 150, y)
+			end
+			graphics.set_color(count_color)
+            graphics.print(string.format("×%d", bonus.count), 210, y)
             graphics.pop()
         end
         local y = (bonus_count + 1) / 2 * 10
-		local font_color = idivmod_eq_zero((-self.tick / 2), 3, 3) and Color.purple or Color.magenta
+		local total_color = Color.magenta
+		-- local total_color = total_flashing and Color.purple or Color.magenta
 		graphics.push("all")
-		graphics.set_color(font_color)
+		graphics.set_color(total_color)
         if bonus_count > 0 then
             graphics.line(0, y + 2, 210, y + 2)
         end
         y = y + 5
         if total_highlight_amount > 0.55 then
             graphics.set_color(Color.cyan)
+        else
+            graphics.set_color(total_color)
         end
-        graphics.printp("TOTAL", font2, nil, 0, -0, y)
+        graphics.print(tr.bonus_screen_total, -0, y)
 
 		local input = self:get_input_table()
 
 		if self.after_level_bonus_screen.start_prompt then
-        	graphics.printp("PRESS " .. (input.last_input_device == "gamepad" and "START" or "TAB") .. " TO CONTINUE", font2, nil, 0, -0, y + 10)
+        	graphics.print(string.format(tr.bonus_screen_continue, (input.last_input_device == "gamepad" and control_glyphs.start or control_glyphs.tab)), -0, y + 10)
 		end
         
-		local score_without_zeroes = comma_sep(self.after_level_bonus_screen.total.score)
-		local width = font2:getWidth(score_without_zeroes)
-		graphics.printp(score_without_zeroes, font2, nil, 0, 60, y)
-		graphics.printp(string.format("×%-3.2f", self.after_level_bonus_screen.total.score_multiplier), font2, nil, 0,
-            60 + width, y)
-        graphics.printp(string.format("+%-2dXP", floor(self.after_level_bonus_screen.total.xp)), font2, nil, 0, 150, y)
+		local total_score_text = comma_sep(self.after_level_bonus_screen.total.score)
+		graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 3))
+		graphics.print(total_score_text, 60, y)
+		local current_x = 60 + font2:getWidth(total_score_text)
+
+		local multiplier_text = string.format("%-3.2f", self.after_level_bonus_screen.total.score_multiplier)
+		graphics.print_multicolor(font2, current_x, y, "×", total_color, multiplier_text, total_flashing and Color.skyblue or Color.green)
+
+		graphics.set_color(total_color)
+        graphics.print(string.format("+%-2dXP", floor(self.after_level_bonus_screen.total.xp)), 150, y)
         graphics.pop()
     end
 	graphics.pop()
 	
 
+end
+
+function HUDLayer:get_bonus_screen_item_colors(bonus, is_flashing, offset)
+	local dark_color = is_flashing and Color.darkgrey or Color.grey
+    local cross_color = is_flashing and Color.darkergrey or Color.darkgrey
+
+	local highlight_color = Color.cyan
+
+    if bonus.score_apply_highlight_amount and bonus.score_apply_highlight_amount > 0.55 then
+        return highlight_color, highlight_color, highlight_color, highlight_color, highlight_color, highlight_color, true
+    end
+
+    -- local fallback_color = is_flashing and Color.orange or Color.yellow
+	
+    local bonus_name_color = (is_flashing and Color.darkorange or Color.orange)
+	
+	if bonus.score_multiplier ~= 0 then
+		bonus_name_color = (is_flashing and Color.orange or Color.yellow)
+	end
+	
+	if bonus.xp ~= 0 then
+        bonus_name_color = (is_flashing and Color.blue or Color.skyblue)
+    end
+
+	
+    local score_color = (is_flashing and Color.orange or Color.yellow)
+	local count_color =  score_color
+	
+	local xp_color = bonus_name_color
+	
+	
+    if bonus.bonus.custom_color_function then
+        bonus_name_color = bonus.bonus.custom_color_function(bonus, is_flashing, offset)
+        count_color = bonus_name_color
+	end
+	
+
+
+	local multiplier_color = is_flashing and Color.skyblue or Color.green
+	
+	
+	if bonus.negative then
+        local negative_color = is_flashing and Color.darkred or Color.red
+        bonus_name_color = negative_color
+        score_color = negative_color
+        multiplier_color = negative_color
+        xp_color = negative_color
+        count_color = negative_color
+    end
+	
+    if bonus.score_multiplier == 0 then
+        multiplier_color = dark_color
+    end
+	
+    if bonus.score == 0 and bonus.score_multiplier == 0 then
+        score_color = dark_color
+    end
+	
+	if bonus.xp == 0 then
+        xp_color = dark_color
+    end
+	
+	if bonus.count == 0 then
+        count_color = dark_color
+    end
+	
+
+    -- bonus_name_color, score_color, multiplier_color, xp_color, count_color, cross_color, is_highlighted
+    return bonus_name_color, score_color, multiplier_color, xp_color, count_color, cross_color, false
 end
 
 function HUDLayer:create_persistent_ui()

@@ -67,8 +67,8 @@ function XpPickup:new(x, y, xp)
 		
 		
 		p.random_offset = rng:randi()
-		p.x = x + rng:randf_range(0, 10) * sign(p.vel_x)
-        p.y = y + rng:randf_range(0, 10) * sign(p.vel_y)
+		p.x = x + rng:randf(0, 10) * sign(p.vel_x)
+        p.y = y + rng:randf(0, 10) * sign(p.vel_y)
 		
 		
         p.xp = xp_to_add
@@ -165,7 +165,7 @@ function XpPickup:update_particle(particle, dt)
     -- move_y = abs(move_y) > abs(move_x) and move_y or 0
 
     if not all_directions then
-        local first = idivmod_eq_zero(particle.elapsed, max(20 * particle.home_speed - particle.elapsed * 0.08, 2), 2)
+        local first = iflicker(particle.elapsed, max(20 * particle.home_speed - particle.elapsed * 0.08, 2), 2)
         if first and particle.start_vertical or (not first and not particle.start_vertical) then
             move_x = move_x * 0.025
         else

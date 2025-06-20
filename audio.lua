@@ -64,7 +64,7 @@ function audio.load()
     end
 
 
-
+	audio.usersettings_update()
 end
 
 function audio.update(dt)
@@ -290,7 +290,7 @@ function audio.play_music_if_stopped(src, volume)
 	audio.play_music(src, volume)
 end
 
-function audio.play_music(src, volume)
+function audio.play_music(src, volume, looping)
     if debug.enabled and debug.disable_music then
 		return
 	end
@@ -300,7 +300,7 @@ function audio.play_music(src, volume)
 	end
 	audio.stop_music()
     src:setVolume(volume and (volume * usersettings.music_volume) or usersettings.music_volume)
-    src:setLooping(true)
+    src:setLooping(truthy_nil(looping))
     src:play()
     audio.playing_music = src
 	audio.playing_music_volume = volume or 1

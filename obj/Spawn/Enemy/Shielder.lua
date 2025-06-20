@@ -134,7 +134,7 @@ function Shielder.process_nearby_object(object, self)
 end
 
 function Shielder:get_sprite()
-	return idivmod_eq_zero(self.tick + self.random_offset, 3, 2) and textures.enemy_shielder1 or textures.enemy_shielder2
+	return iflicker(self.tick + self.random_offset, 3, 2) and textures.enemy_shielder1 or textures.enemy_shielder2
 end
 
 function Shielder:get_shield_rect()
@@ -148,12 +148,12 @@ function Shielder:draw()
 	local line_offset_size = 2
     
 	if self.shielding then
-		if idivmod_eq_zero(gametime.tick, 1, 2) then
+		if iflicker(gametime.tick, 1, 2) then
 			graphics.push("all") 
 				graphics.set_stencil_mode("draw", 1)
 				graphics.circle("fill", 0, 0, self.shield_radius)
 				graphics.set_stencil_mode("test", 1)
-				local offset = idivmod_eq_zero(gametime.tick, 5, line_offset_size) and 1 or 0
+				local offset = iflicker(gametime.tick, 5, line_offset_size) and 1 or 0
 				for i = -self.shield_radius, self.shield_radius, line_offset_size do
 					graphics.line(-self.shield_radius, i + offset, self.shield_radius, i + offset)
 				end
@@ -191,7 +191,7 @@ function Shielder:draw()
 end
 
 function Shielder:floor_draw()
-    if self.is_new_tick and idivmod_eq_zero(self.tick, 1, 2) then
+    if self.is_new_tick and iflicker(self.tick, 1, 2) then
 		
 	end
 end

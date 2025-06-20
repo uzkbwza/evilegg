@@ -59,7 +59,7 @@ end
 function Roamer:floor_draw()
     if self.is_new_tick and self.tick % self.walk_frequency == 0 then
         local dx
-        if idivmod_eq_zero(self.tick, self.walk_frequency, 2) then
+        if iflicker(self.tick, self.walk_frequency, 2) then
             dx = -3
         else
             dx = 3
@@ -156,16 +156,16 @@ end
 
 function RoyalRoamer:get_sprite()
 
-    if (self.roaming or self.tick % 2 == 0) and idivmod_eq_zero(self.tick, 3, (self.roaming and 2 or 17)) then
-		return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer3 or textures.enemy_royalroamer4)
+    if (self.roaming or self.tick % 2 == 0) and iflicker(self.tick, 3, (self.roaming and 2 or 17)) then
+		return (iflicker(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer3 or textures.enemy_royalroamer4)
     end
 
 
 	if self.outline_flash then
-		return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer1 or textures.enemy_royalroamer2)
+		return (iflicker(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer1 or textures.enemy_royalroamer2)
 	end
 	
-	return (idivmod_eq_zero(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer5 or textures.enemy_royalroamer6)
+	return (iflicker(self.random_offset + self.roam_elapsed, self.walk_frequency, 2) and textures.enemy_royalroamer5 or textures.enemy_royalroamer6)
 end
 
 
@@ -210,7 +210,7 @@ function RoyalRoamer:update(dt)
         if self:get_stopwatch("wait_stopwatch") then
             self:stop_stopwatch("wait_stopwatch")
         end
-        self.roam_elapsed = self.roam_elapsed + dt
+        self.roam_elapsed = self.roam_elapsed + dt * (self.walk_speed / self.base_walk_speed)
     else
         if not self:get_stopwatch("wait_stopwatch") then
             self:start_stopwatch("wait_stopwatch")
@@ -253,9 +253,9 @@ end
 
 function RoyalRoamer:start_short_roam()
 	self._roaming = true
-	self:start_tick_timer("roam_timer", rng:randi_range(5, 70 + min(self.elapsed * 0.05, 90)), function()
+	self:start_tick_timer("roam_timer", rng:randi(5, 70 + min(self.elapsed * 0.05, 90)), function()
 		self._roaming = false
-		self:start_tick_timer("roam_cooldown", rng:randi_range(5, 70))
+		self:start_tick_timer("roam_cooldown", rng:randi(5, 70))
 	end)
 end
 
@@ -264,7 +264,7 @@ function RoyalRoamer:floor_draw()
     if not self.is_new_tick then return end
 	if self.roaming and self.tick % self.walk_frequency == 0 then
         local dx
-        if idivmod_eq_zero(self.tick, self.walk_frequency, 2) then
+        if iflicker(self.tick, self.walk_frequency, 2) then
             dx = -3
         else
             dx = 3
@@ -284,5 +284,8 @@ function RoyalRoamer:floor_draw()
 	end
 end
 
+-- function RoyalRoamer:collide_with_terrain()
+	
+-- end
 
 return { Roamer, Roamsploder, RoyalRoamer }

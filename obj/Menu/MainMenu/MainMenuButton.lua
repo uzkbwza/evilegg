@@ -25,8 +25,9 @@ function MainMenuButton:enter()
     self:ref_array("letters")
 	local width = 0
     for i = 1, #self.text do
-		local char = self.text:sub(i, i)
-		local letter = self:spawn_object(MainMenuButtonLetter(self.pos.x + width, self.pos.y, char, self.font, self))
+        local char = self.text:sub(i, i)
+		local x, y = rng:random_vec2_times(rng:randf(0, 10))
+		local letter = self:spawn_object(MainMenuButtonLetter(x, self.pos.y, char, self.font, self))
 		width = self.font:getWidth(self.text:sub(1, i))
         self:ref_array_push("letters", letter).z_index = self.z_index + 0.1
 		self:bind_destruction(letter)
@@ -108,7 +109,7 @@ end
 function MainMenuButtonLetter:flicker()
 	local on = rng:percent(80)
     self.highlight_outline_color = on and Color.green or Color.darkgreen
-	self:start_timer("flicker", rng:randi_range(1, on and 400 or 3), function()
+	self:start_timer("flicker", rng:randi(1, on and 400 or 3), function()
         self:defer(function() self:flicker() end)
 	end)
 end
@@ -130,7 +131,7 @@ function MainMenuButtonLetter:draw()
     self.palette_stack:set_color(2, self.focused and (self.highlight_outline_color) or Color.darkergrey)
 	if self.owner and (self.owner.select_highlight or self.owner.focus_highlight) then
         self.palette_stack:set_color(3, Color.green)
-        -- if idivmod_eq_zero(self.tick, 1, 2) then
+        -- if iflicker(self.tick, 1, 2) then
 		self.palette_stack:set_color(2, Color.green)
 		-- end
 	else

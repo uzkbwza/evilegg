@@ -1,0 +1,7 @@
+---
+description: 
+globs: *.lua
+alwaysApply: false
+---
+lua best practices:
+do not modify tables while iterating over them!

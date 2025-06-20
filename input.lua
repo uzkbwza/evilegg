@@ -37,7 +37,7 @@ input.mouse = {
     is_touch = false,
 }
 
-input.last_input_device = "mkb"
+input.last_input_device = "gamepad"
 
 input.signals = {}
 

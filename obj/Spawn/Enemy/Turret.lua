@@ -37,7 +37,7 @@ function Turret:start_shoot_timer(time)
 		local s = self.sequencer
         s:start(function()
             while self.world:get_number_of_objects_with_tag("turret_shooting") >= 3 do
-                s:wait(rng:randi_range(60, 120))
+                s:wait(rng:randi(60, 120))
             end
 			self:add_tag("turret_shooting")
             for i = 1, 3 do
@@ -63,7 +63,7 @@ function Turret:shoot()
     bullet:apply_impulse(shoot_x * self.shoot_speed, shoot_y * self.shoot_speed)
 	self:play_sfx("enemy_turret_shoot", 0.75)
 	for i = 1, 3 do
-		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng:randi_range(50, 120), abs(rng:randfn(12, 3)), Palette.muzzle_flash_smoke, rng:randf_range(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng:randf_range(0, 60)))
+		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng:randi(50, 120), abs(rng:randfn(12, 3)), Palette.muzzle_flash_smoke, rng:randf(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng:randf(0, 60)))
 	end
 end
 
@@ -105,7 +105,7 @@ local gun_textures = {
 }
 
 function Turret:draw()
-    if self.highlight_circle > 0 and idivmod_eq_zero(self.tick, 4, 2) then
+    if self.highlight_circle > 0 and iflicker(self.tick, 4, 2) then
 		graphics.set_color(Color.red)
 		graphics.rectangle_centered("line", 0, 0, self.highlight_circle, self.highlight_circle)
 	end

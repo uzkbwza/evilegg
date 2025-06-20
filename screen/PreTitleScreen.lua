@@ -64,7 +64,7 @@ function PhotosensitivityWarningScreen:draw()
 
 	graphics.set_font(font)
     graphics.set_color(Color.red)
-    local width = self.viewport_size.x - 20
+    local width = conf.viewport_size.x - 20
     local height = font:getHeight()
 	
 	graphics.translate(0, -height / 2)
@@ -90,12 +90,12 @@ function ScoreResetWarningScreen:draw()
 	local font2 = fonts.depalettized.image_neutralfont1
 	graphics.set_font(font)
     graphics.set_color(Color.red)
-    local width = self.viewport_size.x - 20
+    local width = conf.viewport_size.x - 20
     local height = font:getHeight()
 	
 	graphics.translate(0, -30)
 	
-	if (not self.cant_progress) or not idivmod_eq_zero(self.tick + 10, 2, 5) then
+	if (not self.cant_progress) or not iflicker(self.tick + 10, 2, 5) then
 		graphics.print_centered(tr.score_reset_warning_title, font, 0, -8)
 	end
     graphics.set_color(Color.white)

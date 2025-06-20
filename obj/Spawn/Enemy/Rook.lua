@@ -159,11 +159,11 @@ end
 function RookProjectile:break_apart()
 
 	local speed = self.broken_piece and self.vel:magnitude() or 3.2
-    local num_pieces = floor(rng:randf_range(6, 8) * self.scale)
+    local num_pieces = floor(rng:randf(6, 8) * self.scale)
 	for i = 1, num_pieces do
         local angle = rng:random_angle() + (tau / num_pieces) * i
 		local dx, dy = vec2_from_angle(angle)
-		local piece = self:spawn_object(RookProjectile(self.pos.x + dx * 3, self.pos.y + dy * 3, self.break_scale * rng:randf_range(0.4, 0.6), dx, dy, speed * 0.8))
+		local piece = self:spawn_object(RookProjectile(self.pos.x + dx * 3, self.pos.y + dy * 3, self.break_scale * rng:randf(0.4, 0.6), dx, dy, speed * 0.8))
         piece:add_enter_function(shoot_piece)
 	end
 end
@@ -241,8 +241,8 @@ function RookProjectile:update(dt)
 	if self.is_new_tick and not self.shot_yet then
         local particle = {
             angle = stepify(rng:random_angle(), tau / 4) + tau / 8,
-			speed = rng:randf_range(0.1, 0.2),
-            distance = rng:randf_range(16, 128),
+			speed = rng:randf(0.1, 0.2),
+            distance = rng:randf(16, 128),
         }
         self.grow_particles:push(particle)
     end
@@ -316,22 +316,22 @@ function RookProjectile:draw(floor_draw)
 			crng:set_seed(self.random_offset + i)
 			
 			crng:set_seed(slowtick1)
-			local size1 = crng:randf_range(center and 10.0 or 1.0, center and 24.0 or 4.0)
-			local base_x1, base_y1 = crng:random_vec2_times(crng:randf_range(0.5, center and 1.0 or 24.5) * self.scale)
+			local size1 = crng:randf(center and 10.0 or 1.0, center and 24.0 or 4.0)
+			local base_x1, base_y1 = crng:random_vec2_times(crng:randf(0.5, center and 1.0 or 24.5) * self.scale)
 			crng:set_seed(slowtick2)
-			local size2 = crng:randf_range(center and 10.0 or 1.0, center and 24.0 or 4.0)
-			local base_x2, base_y2 = crng:random_vec2_times(crng:randf_range(0.5, center and 1.0 or 24.5) * self.scale)
+			local size2 = crng:randf(center and 10.0 or 1.0, center and 24.0 or 4.0)
+			local base_x2, base_y2 = crng:random_vec2_times(crng:randf(0.5, center and 1.0 or 24.5) * self.scale)
 
 
 			crng:set_seed(tick1)
-			local center_x1, center_y1 = crng:random_vec2_times(crng:randf_range(0, 2))
+			local center_x1, center_y1 = crng:random_vec2_times(crng:randf(0, 2))
 			crng:set_seed(tick2)
-			local center_x2, center_y2 = crng:random_vec2_times(crng:randf_range(0, 2))
+			local center_x2, center_y2 = crng:random_vec2_times(crng:randf(0, 2))
 			
 			crng:set_seed(tick1 + self.random_offset)
-			local stroke_x1, stroke_y1 = crng:random_vec2_times(crng:randf_range(0, 2))
+			local stroke_x1, stroke_y1 = crng:random_vec2_times(crng:randf(0, 2))
 			crng:set_seed(tick2 + self.random_offset)
-			local stroke_x2, stroke_y2 = crng:random_vec2_times(crng:randf_range(0, 2))
+			local stroke_x2, stroke_y2 = crng:random_vec2_times(crng:randf(0, 2))
 			
 			local base_x, base_y = vec2_lerp(base_x1, base_y1, base_x2, base_y2, slow_t)
 
@@ -350,7 +350,7 @@ function RookProjectile:draw(floor_draw)
 			if center or rect_size >= 1 then
 				
 				crng:set_seed(self.random_offset + i)
-				local rotate_dir = crng:randf_range(-1, 1)
+				local rotate_dir = crng:randf(-1, 1)
 				
 				stroke_x, stroke_y = vec2_rotated(stroke_x, stroke_y, rotate_dir * self.elapsed * 0.15)
 				center_x, center_y = vec2_rotated(center_x, center_y, rotate_dir * self.elapsed * 0.15)

@@ -20,7 +20,7 @@ end
 function ExplosionRadiusWarning:draw()
 	if not self.parent then return end
     graphics.rotate(self.elapsed * 0.05)
-	-- if idivmod_eq_zero(gametime.tick + self.random_offset, 1, 3) then
+	-- if iflicker(gametime.tick + self.random_offset, 1, 3) then
 		self:draw_circ((self.elapsed + self.random_offset) % self.radius, 2, "line")
 		self:draw_circ(self.radius, 1, self.parent.about_to_explode and "fill" or "line")
 		-- self:draw_circ(self.radius - 2, 1)
@@ -36,7 +36,7 @@ function ExplosionRadiusWarning:draw_circ(radius, thickness, fill_type)
 	if self.parent.about_to_explode then
 		graphics.set_color(Color.yellow)
 	else
-		graphics.set_color(idivmod_eq_zero(gametime.tick + self.random_offset, 4, 2) and Color.orange or Color.red)
+		graphics.set_color(iflicker(gametime.tick + self.random_offset, 4, 2) and Color.orange or Color.red)
 	end
 	graphics.ellipse(fill_type, 0, 0, radius, radius * 1, 10)
 end

@@ -24,7 +24,7 @@ function ScoreNumberEffect:new(x, y, score)
 	self.game_score_high = game_state:determine_score(1000)
     self.duration = 60
 	self.z_index = 0
-    self.random_offset = rng:randi_range(0, 1000)
+    self.random_offset = rng:randi(0, 1000)
 	self.palette = palette_low
 	if self.score >= self.game_score_high then
 		self.palette = palette_high

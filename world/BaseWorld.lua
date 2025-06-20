@@ -38,7 +38,7 @@ function World:new(x, y)
 	
     self.draw_objects = bonglewunch()
 	
-	self.objects_to_destroy = {}
+	self.world_objects_to_destroy = {}
 
     self.time_scale = 1
 	self.object_time_scale = 1
@@ -147,12 +147,12 @@ function World:update_shared(dt)
         table.clear(self.deferred_functions)
     end
 	
-    for _, obj in ipairs(self.objects_to_destroy) do
+    for _, obj in ipairs(self.world_objects_to_destroy) do
 		if not obj.is_destroyed then
 			obj:destroy()
 		end
 	end
-	table.clear(self.objects_to_destroy)
+	table.clear(self.world_objects_to_destroy)
 
 	World.super.update_shared(self, dt)
 end
@@ -311,29 +311,28 @@ end
 
 local Rbt = require "datastructure.rbt"
 
-function World:get_visible_objects()
-	self.draw_objects_table = self.draw_objects_table or {}
-	
+function World:populate_visible_objects_table()
+    self.draw_objects_table = self.draw_objects_table or {}
 	table.clear(self.draw_objects_table)
     for _, obj in ((self.draw_objects):ipairs()) do
         table.insert(self.draw_objects_table, obj)
     end
-	
-	
-    if self.draw_sort then
-        table.sort(self.draw_objects_table, self.draw_sort)
-	-- 	local rbt = Rbt(self.draw_sort)
-    --     for _, obj in ipairs(self.draw_objects_table) do
-    --         rbt:insert(obj)
-    --     end
-		
-	-- 	self.draw_objects_table = rbt
+end
 
-    end
+function World:get_visible_objects(sort)
+    self:populate_visible_objects_table()
 
-	-- return self.sorted_draw_objects
+    if sort == nil or sort then
+		self:sort_visible_objects()
+	end
 
 	return self.draw_objects_table
+end
+
+function World:sort_visible_objects()
+    if self.draw_sort then
+        table.sort(self.draw_objects_table, self.draw_sort)
+    end
 end
 
 function World:get_mouse_position()
@@ -370,9 +369,10 @@ function World:draw_object(obj)
 		obj:draw()
 	end
 
-	if debug.can_draw() then
-		if obj.debug_draw_shared then obj:debug_draw_shared() end
-	end
+    if debug.can_draw() then
+        if obj.debug_draw_shared then obj:debug_draw_shared() end
+    end
+	
 	graphics.pop()
 end
 
@@ -498,7 +498,7 @@ function World:on_object_visibility_changed(obj)
 end
 
 function World:add_object_to_destroy(obj)
-	table.insert(self.objects_to_destroy, obj)
+	table.insert(self.world_objects_to_destroy, obj)
 end
 
 function World:add_object(obj)

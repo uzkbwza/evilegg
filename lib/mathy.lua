@@ -163,7 +163,7 @@ function idivmod(a, b, c)
     return floor(a / b) % c
 end
 
-function idivmod_eq_zero(a, b, c)
+function iflicker(a, b, c)
     return floor(a / b) % c == 0
 end
 

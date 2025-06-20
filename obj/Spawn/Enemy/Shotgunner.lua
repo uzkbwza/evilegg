@@ -131,7 +131,7 @@ function Shotgunner:enter()
 end
 
 function Shotgunner:get_sprite()
-    return idivmod_eq_zero(self.tick, 10, 2) and textures.enemy_shotgunner1 or textures.enemy_shotgunner2
+    return iflicker(self.tick, 10, 2) and textures.enemy_shotgunner1 or textures.enemy_shotgunner2
 end
 
 local shotgun_sprites = {
@@ -174,7 +174,7 @@ function Shotgunner:shoot()
 	end)
 	for i=1, NUM_BULLETS do
 		local bullet = self:spawn_object(ShotgunnerBullet(bx + offset_x, by + offset_y))
-		local angle = deg2rad(rng:randf_range(-SPREAD, SPREAD)) + self.aim_direction:angle()
+		local angle = deg2rad(rng:randf(-SPREAD, SPREAD)) + self.aim_direction:angle()
 		local speed = rng:randfn(BULLET_SPEED, BULLET_SPEED * 0.15)
 		bullet:apply_impulse(cos(angle) * speed, sin(angle) * speed)
 	end

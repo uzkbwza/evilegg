@@ -44,7 +44,7 @@ end
 
 function EvilGreenoidBoss:try_start_targeted_bullet_burst()
 	if game_state.egg_rooms_cleared > 0 and self.is_new_tick and not self:is_tick_timer_running("targeted_bullet_burst") and self.greenoid_health < self.greenoid_max_health * 0.4 then
-		self:start_tick_timer("targeted_bullet_burst", 90 * rng:randi_range(1, 3))
+		self:start_tick_timer("targeted_bullet_burst", 90 * rng:randi(1, 3))
 		self:targeted_bullet_burst()
 	end
 end
@@ -106,13 +106,13 @@ end
 function EvilGreenoidBoss:add_greenoid()
     local greenoid = {
         elapsed = 0,
-		palette_offset = rng:randi_range(0, 500),
+		palette_offset = rng:randi(0, 500),
         angle = rng:random_angle(),
         orbit_width = clamp01(rng:randfn(0.5, 0.25)),
 		orbit_modifier = rng:randfn(1, 0.1),
         orbit_direction = rng:rand_sign(),
-		follow_speed = pow(rng:randf_range(0, 1), 4) * 300,
-        orbit_phase = rng:randf_range(0, 1),
+		follow_speed = pow(rng:randf(0, 1), 4) * 300,
+        orbit_phase = rng:randf(0, 1),
 		x = self.pos.x,
         y = self.pos.y,
     }
@@ -157,7 +157,7 @@ end
 function EvilGreenoidBoss:state_Idle_enter()
     local s = self.sequencer
     s:start(function()
-        s:wait(rng:randi_range(1, max(2 - game_state.egg_rooms_cleared, 1)) * 30)
+        s:wait(rng:randi(1, max(2 - game_state.egg_rooms_cleared, 1)) * 30)
 		self:change_state(self:get_next_attack())
 	end)
 end
@@ -272,7 +272,7 @@ function EvilGreenoidBoss:spawn_thrash_projectiles()
 		for i = 1, num_spawns do
 			for j = 1, num_bullets_per_spawn do
 				local ang_offset = (tau / (num_bullets_per_spawn))
-				local angle = start_angle + j * (tau / num_bullets_per_spawn) + rng:randf_range(-ang_offset, ang_offset)
+				local angle = start_angle + j * (tau / num_bullets_per_spawn) + rng:randf(-ang_offset, ang_offset)
                 local _speed = lerp(max_speed, min_speed, (i - 1) / num_spawns)
 				
 				local projectile = self.world:spawn_object(ThrashProjectile(x, y))
@@ -290,7 +290,7 @@ function EvilGreenoidBoss:state_CoilBullets_enter()
 	local s = self.sequencer
 	s:start(function()
         s:wait(20)
-		local num_bursts = rng:randi_range(2, 6)
+		local num_bursts = rng:randi(2, 6)
         self:spawn_coil_bullets(num_bursts)
 		s:wait(floor(45 / 3) * num_bursts)
 		self:change_state("Idle")
@@ -501,7 +501,7 @@ end
 function EvilGreenoidBoss:draw_greenoid(greenoid)
 	local x, y = self:get_greenoid_pos(greenoid)
     graphics.drawp_centered(
-        idivmod_eq_zero(greenoid.tick, 2, 2) and textures.enemy_evil_greenoid1 or textures.enemy_evil_greenoid2, nil, idiv(greenoid.tick + greenoid.palette_offset, 3), x, y)
+        iflicker(greenoid.tick, 2, 2) and textures.enemy_evil_greenoid1 or textures.enemy_evil_greenoid2, nil, idiv(greenoid.tick + greenoid.palette_offset, 3), x, y)
 end
 
 
@@ -537,7 +537,7 @@ function ThrashProjectile:new(x, y)
 end
 
 function ThrashProjectile:get_sprite()
-    return idivmod_eq_zero(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_thrash_bullet1 or
+    return iflicker(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_thrash_bullet1 or
         textures.enemy_yolk_thrash_bullet2
 end
 
@@ -568,7 +568,7 @@ function TargetedBullet:new(x, y)
 end
 
 function TargetedBullet:get_sprite()
-    return idivmod_eq_zero(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_targeted_bullet1 or
+    return iflicker(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_targeted_bullet1 or
         textures.enemy_yolk_targeted_bullet2
 end
 
@@ -609,7 +609,7 @@ function CoilBullet:update(dt)
 	self:move_to(self.start_x + end_x + wiggle_x, self.start_y + end_y + wiggle_y)
 end
 function CoilBullet:get_sprite()
-    return idivmod_eq_zero(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_coil_bullet1 or
+    return iflicker(self.tick + self.random_offset, 2, 2) and textures.enemy_yolk_coil_bullet1 or
         textures.enemy_yolk_coil_bullet2
 end
 
@@ -631,7 +631,7 @@ function ThrashIndicator:draw(elapsed, tick, t, color)
     local line_width = (1 - t2) * 4
 	graphics.push("all")
 	graphics.set_line_width(line_width)
-	graphics.set_color(color or (idivmod_eq_zero(gametime.tick, 2, 2) and Color.magenta or Color.cyan))
+	graphics.set_color(color or (iflicker(gametime.tick, 2, 2) and Color.magenta or Color.cyan))
 	graphics.line(0, 0, self.thrash_x * t2, self.thrash_y * t2)
     -- graphics.set_line_width(1)
 	graphics.pop()

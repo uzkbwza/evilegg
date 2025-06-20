@@ -235,6 +235,31 @@ function tabley.is_empty(t)
 	return next(t) == nil
 end
 
+function tabley.diff(t1, t2)
+    local diff = {}
+    local keys = {}
+    for k in pairs(t1) do keys[k] = true end
+    for k in pairs(t2) do keys[k] = true end
+
+    for k in pairs(keys) do
+        local v1 = t1[k]
+        local v2 = t2[k]
+        if v1 == nil and v2 ~= nil then
+            diff[k] = { added = v2 }
+        elseif v2 == nil and v1 ~= nil then
+            diff[k] = { removed = v1 }
+        elseif type(v1) == "table" and type(v2) == "table" then
+            local sub_diff = tabley.diff(v1, v2)
+            if next(sub_diff) then
+                diff[k] = sub_diff
+            end
+        elseif v1 ~= v2 then
+            diff[k] = { from = v1, to = v2 }
+        end
+    end
+    return diff
+end
+
 function tabley.get_by_path(t, str)
 	return tabley.get_recursive(t, unpack(string.split(str, ".")))
 end

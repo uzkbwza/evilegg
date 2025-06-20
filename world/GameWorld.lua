@@ -81,6 +81,7 @@ function GameWorld:new(x, y)
 	self.room_clear_fx_t = -1
 	self.player_hurt_fx_t = -1
     self.room_border_fade_in_time = 0
+	self.floor_drawing = true
 	
 	self.floor_canvas_width = FLOOR_CANVAS_WIDTH
 	self.floor_canvas_height = FLOOR_CANVAS_HEIGHT
@@ -271,7 +272,11 @@ function GameWorld:create_room(room_params)
 end
 
 function GameWorld:initialize_room(room)
-	self.draining_bullet_powerup = false
+    self.draining_bullet_powerup = false
+	self.floor_drawing = true
+	if room.draw_floor_canvas == false then
+		self.floor_drawing = false
+	end
 
 	self.enemies_to_kill = {}
 
@@ -302,7 +307,7 @@ function GameWorld:initialize_room(room)
 		end
 	end)
 
-	self:ref("camera_target", GameObject2D(CAMERA_TARGET_OFFSET.x, CAMERA_TARGET_OFFSET.y))
+	self:ref("camera_target", self:add_object(GameObject2D(CAMERA_TARGET_OFFSET.x, CAMERA_TARGET_OFFSET.y))).persist = true
 
 	self.camera:follow(self.camera_target)
 	-- self.camera:set_limits()
@@ -322,11 +327,11 @@ function GameWorld:spawn_rescues(spawns)
 	s:start(function()
 		for _, rescue in pairs(spawns) do
 			-- s:start(function()
-			for _ = 1, rng:randi_range(60, 120) do
+			for _ = 1, rng:randi(60, 120) do
 				
 				if self.state ~= "RoomClear" then
 					-- while self:get_number_of_objects_with_tag("rescue_object") >= max_rescues do
-					-- 	s:wait(rng:randi_range(60, 120))
+					-- 	s:wait(rng:randi(60, 120))
 					-- end
 					-- while self:is_tick_timer_running("rescue_spawn_cooldown") do
 					--     s:wait(1)
@@ -337,7 +342,7 @@ function GameWorld:spawn_rescues(spawns)
 				end
 			end
 			-- if self.state ~= "RoomClear" then
-			-- 	self.timescaled:start_tick_timer("rescue_spawn_cooldown", rng:randi_range(40, 120))
+			-- 	self.timescaled:start_tick_timer("rescue_spawn_cooldown", rng:randi(40, 120))
 			-- end
 
 			if game_state.game_over then return end
@@ -436,9 +441,9 @@ function GameWorld:get_quick_clear_time_left_ratio()
 	elseif self.state == "LevelTransition" then
 		return 0
 	elseif self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
-		return 1 - self.timescaled:tick_timer_time_left_ratio("last_wave_quick_clear")
+		return 1 - self.timescaled:tick_timer_progress("last_wave_quick_clear")
 	elseif self.timescaled:is_tick_timer_running("wave_timer") then
-		return 1 - self.timescaled:tick_timer_time_left_ratio("wave_timer")
+		return 1 - self.timescaled:tick_timer_progress("wave_timer")
 	else
 		return 0
 	end
@@ -592,8 +597,8 @@ end
 function GameWorld:get_random_position_in_room()
 	local room_width = self.room.room_width
 	local room_height = self.room.room_height
-	local x = rng:randf_range(-room_width / 2, room_width / 2)
-	local y = rng:randf_range(-room_height / 2, room_height / 2)
+	local x = rng:randf(-room_width / 2, room_width / 2)
+	local y = rng:randf(-room_height / 2, room_height / 2)
 	return x, y
 end
 
@@ -711,11 +716,13 @@ function GameWorld:create_player(player_id)
         --     return
         -- end
 		
-		self.tutorial_state = nil
+
 		local s = self.timescaled.sequencer
 		self.tutorial_sequence = s:start(function()
 			s:wait(5)
 			self:room_border_fade("in", 3)
+			self.tutorial_state = nil
+            -- s:wait(25)
 			s:wait(45)
             self.tutorial_state = 2
 			s:wait(70)
@@ -1033,6 +1040,18 @@ function GameWorld:on_final_boss_killed()
 	self:on_room_clear()
 end
 
+function GameWorld:can_pause()
+    if self.room_clear_nopause and usersettings.show_hud then
+        return false
+    end
+	
+	-- if self.state ~= "RoomClear" then
+	-- 	return false
+	-- end
+
+	return true
+end
+
 function GameWorld:on_room_clear()
 	if self.room.cleared then
 		return
@@ -1051,6 +1070,8 @@ function GameWorld:on_room_clear()
 	if self.room.is_hard then
 		game_state:level_bonus("hard_room")
 	end
+
+	self.room_clear_nopause = true
 
 	local s = self.timescaled.sequencer
 
@@ -1135,6 +1156,8 @@ function GameWorld:on_room_clear()
         while self.waiting_on_bonus_screen do
             s:wait(1)
         end
+
+		self.room_clear_nopause = false
 		
 		if game_state.final_room_entered then
 			for _, player in pairs(self.players) do
@@ -1208,61 +1231,59 @@ function GameWorld:update(dt)
 	-- self.last_player_body_pos.x = bx
 	-- self.last_player_body_pos.y = by
 
-	-- local average_player_x, average_player_y = 0, 0
-	-- local average_player_aim_direction_x, average_player_aim_direction_y = 0, 0
-	-- local num_positions = 0
-	-- local num_players = 0
+	local average_player_x, average_player_y = 0, 0
+	local average_player_aim_direction_x, average_player_aim_direction_y = 0, 0
+	local num_positions = 0
+	local num_players = 0
 
-	-- for i, pos in pairs(self.last_player_positions) do
-	--     average_player_x = average_player_x + pos.x
-	--     average_player_y = average_player_y + pos.y
-	--     num_positions = num_positions + 1
-	-- end
+	for i, pos in pairs(self.last_player_positions) do
+	    average_player_x = average_player_x + pos.x
+	    average_player_y = average_player_y + pos.y
+	    num_positions = num_positions + 1
+	end
 
-	-- for i, player in pairs(self.players) do
-	--     average_player_aim_direction_x = average_player_aim_direction_x + player.aim_direction.x
-	--     average_player_aim_direction_y = average_player_aim_direction_y + player.aim_direction.y
-	--     num_players = num_players + 1
-	-- end
+	for i, player in pairs(self.players) do
+	    average_player_aim_direction_x = average_player_aim_direction_x + player.aim_direction.x
+	    average_player_aim_direction_y = average_player_aim_direction_y + player.aim_direction.y
+	    num_players = num_players + 1
+	end
 
-	-- average_player_x = average_player_x / num_positions
-	-- average_player_y = average_player_y / num_positions
-	-- average_player_aim_direction_x = average_player_aim_direction_x / num_players
-	-- average_player_aim_direction_y = average_player_aim_direction_y / num_players
-
-	-- end
+	average_player_x = average_player_x / num_positions
+	average_player_y = average_player_y / num_positions
+	average_player_aim_direction_x = average_player_aim_direction_x / num_players
+	average_player_aim_direction_y = average_player_aim_direction_y / num_players
 
 
-	-- if self.state ~= "LevelTransition" then
-	-- if num_players > 0 then
-	-- 	self.camera_target.pos.x, self.camera_target.pos.y =
-	-- 		splerp_vec(
-	-- 			self.camera_target.pos.x, self.camera_target.pos.y,
-	-- 			average_player_x + self.camera_aim_offset.x, average_player_y + self.camera_aim_offset.y,
-	-- 			300.0,
-	-- 			dt
-	-- 		)
+	if self.state ~= "LevelTransition" and self.room.free_camera then
+		if num_players > 0 then
+			self.camera_target.pos.x, self.camera_target.pos.y =
+				splerp_vec(
+					self.camera_target.pos.x, self.camera_target.pos.y,
+					average_player_x + self.camera_aim_offset.x, average_player_y + self.camera_aim_offset.y,
+					300.0,
+					dt
+				)
 
-	-- 	self.camera_aim_offset.x, self.camera_aim_offset.y =
-	-- 		splerp_vec(
-	-- 			self.camera_aim_offset.x, self.camera_aim_offset.y,
-	-- 			average_player_aim_direction_x * CAMERA_OFFSET_AMOUNT,
-	-- 			average_player_aim_direction_y * CAMERA_OFFSET_AMOUNT,
-	-- 			600.0,
-	-- 			dt
-	-- 		)
-	-- end
-	-- if self.camera_target.pos.x < self.room.left then
-	-- 	self.camera_target.pos.x = self.room.left
-	-- elseif self.camera_target.pos.x > self.room.right then
-	-- 	self.camera_target.pos.x = self.room.right
-	-- end
-	-- if self.camera_target.pos.y < self.room.top then
-	-- 	self.camera_target.pos.y = self.room.top
-	-- elseif self.camera_target.pos.y > self.room.bottom then
-	-- 	self.camera_target.pos.y = self.room.bottom
-	-- end
-    -- end
+			self.camera_aim_offset.x, self.camera_aim_offset.y =
+				splerp_vec(
+					self.camera_aim_offset.x, self.camera_aim_offset.y,
+					average_player_aim_direction_x * CAMERA_OFFSET_AMOUNT,
+					average_player_aim_direction_y * CAMERA_OFFSET_AMOUNT,
+					600.0,
+					dt
+				)
+		end
+		if self.camera_target.pos.x < self.room.left then
+			self.camera_target.pos.x = self.room.left
+		elseif self.camera_target.pos.x > self.room.right then
+			self.camera_target.pos.x = self.room.right
+		end
+		if self.camera_target.pos.y < self.room.top then
+			self.camera_target.pos.y = self.room.top
+		elseif self.camera_target.pos.y > self.room.bottom then
+			self.camera_target.pos.y = self.room.bottom
+		end
+    end
 
 	self.border_rainbow_offset = self.border_rainbow_offset + dt / max(20 / self.room.wave, 1)
 
@@ -1342,8 +1363,8 @@ function GameWorld:get_valid_spawn_position(depth)
 	-- 	spawned_on_player = false
 	-- end
 	-- while vec2_distance(x, y, self.player_position.x, self.player_position.y) < 32 do
-	x = rng:randi_range(-self.room.room_width / 2, self.room.room_width / 2)
-	y = rng:randi_range(-self.room.room_height / 2, self.room.room_height / 2)
+	x = rng:randi(-self.room.room_width / 2, self.room.room_width / 2)
+	y = rng:randi(-self.room.room_height / 2, self.room.room_height / 2)
 	local wave_enemies = self:get_objects_with_tag("wave_enemy")
 	local hazards = self:get_objects_with_tag("hazard")
 	local wave_spawners = self:get_objects_with_tag("enemy_spawner")
@@ -1400,8 +1421,8 @@ function GameWorld:get_valid_spawn_position(depth)
 		if valid then
 			break
 		else
-			x = rng:randi_range(-self.room.room_width / 2, self.room.room_width / 2)
-			y = rng:randi_range(-self.room.room_height / 2, self.room.room_height / 2)
+			x = rng:randi(-self.room.room_width / 2, self.room.room_width / 2)
+			y = rng:randi(-self.room.room_height / 2, self.room.room_height / 2)
 		end
 		-- end
 
@@ -1466,8 +1487,15 @@ end
 
 function GameWorld:get_clear_color()
 
+	if self.room.get_clear_color then
+		local color = self.room:get_clear_color()
+		if color then
+			return color
+		end
+	end
+
 	local flash_length1 = 0.7
-	if self.player_hurt_fx_t < flash_length1 and self.player_hurt_fx_t > 0 and idivmod_eq_zero(self.tick, 2, 2) then
+	if self.player_hurt_fx_t < flash_length1 and self.player_hurt_fx_t > 0 and iflicker(self.tick, 2, 2) then
 		return Color(0.3 * remap(self.player_hurt_fx_t, 0, flash_length1, 1, 0), 0.0, 0.0, 1.0)
 	end
 	
@@ -1534,7 +1562,8 @@ end
 
 local shader_black = {0, 0, 0, 0}
 
-function GameWorld:draw()
+
+function GameWorld:draw_floor_canvas()
 	do
 		graphics.push("all")
 		graphics.set_canvas(self.current_frame_floor_canvas_settings)
@@ -1628,6 +1657,12 @@ function GameWorld:draw()
 
         graphics.pop()
     end
+end
+
+function GameWorld:draw()
+	if self.floor_drawing then
+		self:draw_floor_canvas()
+	end
 
 	local r = self.room
 	local tlx, tly = r.left, r.top
@@ -1643,10 +1678,10 @@ function GameWorld:draw()
 		graphics.push("all")
 		local clear_color = self:get_clear_color()
         graphics.set_color(clear_color.r, clear_color.g, clear_color.b, 0.6)
-		graphics.rectangle("fill", tlx - floor_darken_column_width, tly - floor_darken_row_height, floor_darken_row_width, floor_darken_row_height)
-		graphics.rectangle("fill", blx - floor_darken_column_width, bly, floor_darken_row_width, floor_darken_row_height)
-		graphics.rectangle("fill", tlx - floor_darken_column_width, tly, floor_darken_column_width, floor_darken_column_height)
-		graphics.rectangle("fill", trx, try, floor_darken_column_width, floor_darken_column_height)
+		-- graphics.rectangle("fill", tlx - floor_darken_column_width, tly - floor_darken_row_height, floor_darken_row_width, floor_darken_row_height)
+		-- graphics.rectangle("fill", blx - floor_darken_column_width, bly, floor_darken_row_width, floor_darken_row_height)
+		-- graphics.rectangle("fill", tlx - floor_darken_column_width, tly, floor_darken_column_width, floor_darken_column_height)
+		-- graphics.rectangle("fill", trx, try, floor_darken_column_width, floor_darken_column_height)
 		graphics.pop()
     end
 	
@@ -1665,10 +1700,11 @@ function GameWorld:draw()
         graphics.set_font(font)
 
 		if self.tutorial_state == 1 then
+			-- graphics.print_centered(tr.tutorial_boost2, font, 0, 28)
 			graphics.print_centered(tr.tutorial_boost:format(input.last_input_device == "gamepad" and control_glyphs.lt or control_glyphs.space), font, 0, 16)
 		elseif self.tutorial_state == 2 then
-			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and control_glyphs.l or tr.control_wasd), font, 0, -16)
-			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and control_glyphs.r or control_glyphs.lmb), font, 0, 16)
+			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and control_glyphs.l or tr.control_wasd), font, 0, -6)
+			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and control_glyphs.r or control_glyphs.lmb), font, 0, 9)
 		end
 	end
 
@@ -1683,7 +1719,7 @@ function GameWorld:draw()
 		end
 		local border_color = self:get_border_rainbow()
 		local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
-		if quick_clear_ratio < (3 / 10) and idivmod_eq_zero(self.tick, 5, 2) and self.state == "Normal" then
+		if quick_clear_ratio < (3 / 10) and iflicker(self.tick, 5, 2) and self.state == "Normal" then
 			colormod = 0.0
 		end
 		graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
@@ -1718,7 +1754,7 @@ function GameWorld:get_border_color()
     end
 
     if self.player_hurt_fx_t > 0 then
-        return idivmod_eq_zero(self.tick, 2, 2) and Color.black or Color.red
+        return iflicker(self.tick, 2, 2) and Color.black or Color.red
     end
 
     if self.state == "RoomClear" then
@@ -1745,7 +1781,7 @@ function GameWorld:get_border_rainbow()
 end
 
 function GameWorld:is_border_dash_swapped()
-	if idivmod_eq_zero(self.tick, 4, 2) then
+	if iflicker(self.tick, 4, 2) then
 		return false
 	end
 
@@ -1820,7 +1856,7 @@ function GameWorld:draw_room_bounds()
 	-- graphics.dashrect(tlx + 1, tly + 1, r.right - r.left - 1, r.bottom - r.top - 1, 2, 2)
 
 	if self.room_clear_fx_t >= 0 then
-		if idivmod_eq_zero(self.tick, 1, 2) and self.room_clear_fx_t > 0.75 then
+		if iflicker(self.tick, 1, 2) and self.room_clear_fx_t > 0.75 then
 			return
 		end
 		local t_eased = ease("inOutCirc")(clamp(self.room_clear_fx_t, 0, 1.0))
@@ -1841,7 +1877,7 @@ function GameWorld:draw_room_bounds()
 		graphics.set_color(Palette.rainbow:tick_color(self.tick + 9, 0, 3))
 		graphics.rectangle_centered("line", 0, 0, r.room_width + rect_offset4, r.room_height + rect_offset4 + 1)
 		-- graphics.set_line_width(1)
-		-- if idivmod_eq_zero(self.tick, 2, ceil(10 - t_eased * 10)) then
+		-- if iflicker(self.tick, 2, ceil(10 - t_eased * 10)) then
 		-- return
 		-- end
 		graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 3))
@@ -2043,6 +2079,10 @@ function GameWorld:state_LevelTransition_draw()
 	graphics.set_line_width(1)
 	-- graphics.rectangle("line", tlx, tly, r.right - r.left + 1, r.bottom - r.top + 1)
 	graphics.pop()
+end
+
+function GameWorld:destroy()
+	GameWorld.super.destroy(self)
 end
 
 AutoStateMachine(GameWorld, "Normal")

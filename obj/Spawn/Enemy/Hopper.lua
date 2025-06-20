@@ -31,7 +31,7 @@ end
 
 function Hopper:get_palette()
     local offset = 0
-	if idivmod_eq_zero(self.random_offset + self.world.tick, 15, 3) then
+	if iflicker(self.random_offset + self.world.tick, 15, 3) then
 		offset = self.random_offset + self.world.tick / 3
 	end
 	return nil, offset
@@ -44,14 +44,14 @@ function Hopper:state_Waiting_enter()
     self.sprite = textures.enemy_hopper1
 	local s = self.sequencer
 	s:start(function()
-		s:wait(rng:randi_range(self.min_wait_time, (not self.started) and self.max_start_time or self.max_wait_time))
+		s:wait(rng:randi(self.min_wait_time, (not self.started) and self.max_start_time or self.max_wait_time))
 		self.started = true
         self:change_state("Hopping")
 	end)
 end
 
 function Hopper:state_Waiting_update(dt)
-	self.sprite = idivmod_eq_zero(self.state_tick, 10, 2) and textures.enemy_hopper1 or textures.enemy_hopper2
+	self.sprite = iflicker(self.state_tick, 10, 2) and textures.enemy_hopper1 or textures.enemy_hopper2
 end
 
 function Hopper:state_Hopping_enter()

@@ -455,7 +455,7 @@ function TitleScreen:draw()
 
         local flicker_mod = 5 + round((star.distance) * 2)
 		
-        if idivmod_eq_zero(star.flicker_offset + self.tick, 2, flicker_mod) then
+        if iflicker(star.flicker_offset + self.tick, 2, flicker_mod) then
 			goto continue
 		end
 
@@ -550,7 +550,7 @@ function TitleScreen:draw()
 		graphics.set_color(lightest_color)
 		graphics.translate(flare_center_x, flare_center_y)
 		local flare_scale = 6 * self.lens_flare2_scale
-        -- if idivmod_eq_zero(gametime.tick, 1, 2) then
+        -- if iflicker(gametime.tick, 1, 2) then
 			-- local scale1 = 0.618 * (1 + (3 * self.lens_flare2_scale) + sin(self.elapsed * 0.02) * 1)
 		local scale2 = (3 + (4 * self.lens_flare2_scale) + sin(self.elapsed * 0.02) * 2)
 			-- local scale3 = 0.618 * (1 + (3 * self.lens_flare2_scale) + sin(self.elapsed * 0.02) * 1)
@@ -567,7 +567,7 @@ function TitleScreen:draw()
 			
             local mod_tick = (max(floor((1 - (line.opacity)) * 10), 1))
 			-- print(mod_tick)
-			if SCREENSHOT_MODE or idivmod_eq_zero(line.random_offset + self.tick, 2, mod_tick) then
+			if SCREENSHOT_MODE or iflicker(line.random_offset + self.tick, 2, mod_tick) then
 				local line_scale = flare_scale * 2 * (1 + sin(line.random_offset * 2.5 + self.tick * 0.025 * line.speed) * 0.1) * remap01(line.opacity, 0.5, 1.0)
 
 				local start_x, start_y = 0, 0
@@ -613,7 +613,7 @@ function TitleScreen:draw()
 		end
 	end
 
-	if not SCREENSHOT_MODE and self.show_press_start and not idivmod_eq_zero(self.tick, 16, 3) then
+	if not SCREENSHOT_MODE and self.show_press_start and not iflicker(self.tick, 16, 3) then
 	-- if not SCREENSHOT_MODE and self.show_press_start then
         graphics.set_color(press_start_color)
         -- graphics.set_color(Palette.title_screen_press_start_flash:tick_color(self.tick, 0, 2))

@@ -11,9 +11,11 @@ local RoyalRoamer = require("obj.Spawn.Enemy.Roamer")[3]
 local Explosion = require("obj.Explosion")
 local Rook = require("obj.Spawn.Enemy.Rook")
 local EggShadow = BaseEnemy:extend("EggShadow")
+local LandingCrack = GameObject2D:extend("LandingCrack")
+local GlassShardsEffect = Effect:extend("GlassShardsEffect")
+local UnderEggFlash = GameObject2D:extend("UnderEggFlash")
 
-
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, false, false, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -28,6 +30,11 @@ local BASE_HP = 500
 local NUM_SHELL_CRACKS = 27
 local SHELL_DAMAGE_PER_CRACK = SHELL_HP / NUM_SHELL_CRACKS
 local START_Y = 35
+
+local SHARD_DISTANCE = 20
+local NUM_SHARDS_PER_CIRCLE = 18
+local MAX_SHARD_CIRCLE_RADIUS = 400
+local NUM_CIRCLES = 8
 
 local LAND_EXPLOSION_SIZE = 30
 
@@ -47,7 +54,7 @@ for i=1, #DIALOGUE do
 	local c = DIALOGUE:sub(i, i)
     _new = _new .. c
     if rng:percent(5) then
-		local j = rng:randi_range(1, 26)
+		local j = rng:randi(1, 26)
 		_new = _new .. string.sub("abcdefghijklmnopqrstuvwxyz", j, j)
 	end
 end
@@ -57,129 +64,134 @@ DIALOGUE = _new
 print(DIALOGUE)
 
 local function get_random_speech()
-    local size = floor(pow(clamp01(abs(rng:randfn(0.5, 0.7))), 2) * rng:randi_range(1, 15)) + 1
-	local start_index = rng:randi_range(1, #DIALOGUE - size)
+    local size = floor(pow(clamp01(abs(rng:randfn(0.5, 0.7))), 2) * rng:randi(1, 15)) + 1
+	local start_index = rng:randi(1, #DIALOGUE - size)
 	return DIALOGUE:sub(start_index, start_index + size)
 end
 
 -- print(DIALOGUE)
 
 function EggBoss:new()
-	self:add_signal("cracked")
-	self.body_height = 80
-	self.z_index = 0
-	self.base_body_height = self.body_height
+    self:add_signal("cracked")
+    self:add_signal("phase2_landing")
+    self:add_signal("phase4_landing")
+    self.body_height = 80
+    self.z_index = 0
+    self.base_body_height = self.body_height
     self.terrain_collision_radius = 40
     self.egg_blood_palette = Palette.egg_blood
-	-- self.hurt_bubble_radius = 60
-	-- self.hit_bubble_radius = 55
+    -- self.hurt_bubble_radius = 60
+    -- self.hit_bubble_radius = 55
 
-	self.shell_hp = SHELL_HP
-	self.max_hp = BASE_HP
-	self.shell_fragment_locations = {}
+    self.shell_hp = SHELL_HP
+    self.max_hp = BASE_HP
+    self.shell_fragment_locations = {}
 
-	self.walk_speed = 0.15
+    self.walk_speed = 0.15
     self.walk_timer = 180
 
-	self.shadow_darkness = 0.0
+    self.shadow_darkness = 0.0
 
     self.crack_centers = {}
-	
-	self.bullet_push_modifier = 0.05
 
-	
-	EggBoss.super.new(self, 0, START_Y)
+    self.bullet_push_modifier = 0.05
 
-	self:lazy_mixin(Mixins.Behavior.Roamer)
-	self:lazy_mixin(Mixins.Behavior.AllyFinder)
 
-	self.roaming = false
+    EggBoss.super.new(self, 0, START_Y)
 
-	self.melee_attacking = false
+    self:lazy_mixin(Mixins.Behavior.Roamer)
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
 
-	self.crack_points = {}
+    self.roaming = false
 
-	for i = 1, NUM_SHELL_CRACKS do
-		-- Distribute crack points with better balance between high and low HP
-		local max_hp = SHELL_HP - 10
-		local normalized = (NUM_SHELL_CRACKS - i + 1) / NUM_SHELL_CRACKS
-		
-		-- Use a power function with lower exponent to create more cracks at higher HP
-		-- while still maintaining higher density at lower HP
-		local power = 0.7 -- Less than 1 gives more cracks at high HP compared to sqrt (0.5)
-		local base_value = max_hp * (1 - normalized^power)
-		
-		-- Add randomness within a controlled range
-		local variance = max_hp * 0.08 * normalized -- variance decreases as HP gets lower
-		self.crack_points[i] = base_value + rng:randf_range(-variance, variance)
-	end
-	
-	table.insert(self.crack_points, SHELL_HP - 10)
+    self.melee_attacking = false
 
-	-- table.remove(self.crack_points)
+    self.crack_points = {}
 
-	table.insert(self.crack_points, 0)
+    for i = 1, NUM_SHELL_CRACKS do
+        -- Distribute crack points with better balance between high and low HP
+        local max_hp = SHELL_HP - 10
+        local normalized = (NUM_SHELL_CRACKS - i + 1) / NUM_SHELL_CRACKS
 
-	table.sort(self.crack_points, function(a, b) return a > b end)
+        -- Use a power function with lower exponent to create more cracks at higher HP
+        -- while still maintaining higher density at lower HP
+        local power = 0.7 -- Less than 1 gives more cracks at high HP compared to sqrt (0.5)
+        local base_value = max_hp * (1 - normalized ^ power)
 
-	local image_data = graphics.texture_data[textures.enemy_egg_boss1]
-	local width, height = image_data:getWidth(), image_data:getHeight()
-	self.num_shell_fragments = 0
+        -- Add randomness within a controlled range
+        local variance = max_hp * 0.08 * normalized -- variance decreases as HP gets lower
+        self.crack_points[i] = base_value + rng:randf(-variance, variance)
+    end
 
-	local x_fragments = floor(width-1 / QUAD_SIZE)
-	local y_fragments = floor(height-1 / QUAD_SIZE)
+    table.insert(self.crack_points, SHELL_HP - 10)
 
-	for qx = 0, x_fragments do
-		for qy = 0, y_fragments do
-			-- Check if coordinates are within image bounds before getting pixel
-			local a1 = 0
-			if qx * QUAD_SIZE < width and qy * QUAD_SIZE < height then
-				local _, _, _, alpha = image_data:getPixel(qx * QUAD_SIZE, qy * QUAD_SIZE)
-				a1 = alpha
-			end
+    -- table.remove(self.crack_points)
 
-			-- Check if all four corners of the quad are transparent
-			local x1, y1 = qx * QUAD_SIZE, qy * QUAD_SIZE
-			local x2, y2 = qx * QUAD_SIZE + QUAD_SIZE, qy * QUAD_SIZE + QUAD_SIZE
+    table.insert(self.crack_points, 0)
 
-			-- Check if coordinates are within image bounds
-			local in_bounds1 = x1 >= 0 and x1 < width and y1 >= 0 and y1 < height
-			local in_bounds2 = x2 >= 0 and x2 < width and y1 >= 0 and y1 < height
-			local in_bounds3 = x1 >= 0 and x1 < width and y2 >= 0 and y2 < height
-			local in_bounds4 = x2 >= 0 and x2 < width and y2 >= 0 and y2 < height
+    table.sort(self.crack_points, function(a, b) return a > b end)
 
-			local a1 = in_bounds1 and select(4, image_data:getPixel(x1, y1)) or 0
-			local a2 = in_bounds2 and select(4, image_data:getPixel(x2, y1)) or 0
-			local a3 = in_bounds3 and select(4, image_data:getPixel(x1, y2)) or 0
-			local a4 = in_bounds4 and select(4, image_data:getPixel(x2, y2)) or 0
+    local image_data = graphics.texture_data[textures.enemy_egg_boss1]
+    local width, height = image_data:getWidth(), image_data:getHeight()
+    self.num_shell_fragments = 0
 
-			if a1 == 0 and a2 == 0 and a3 == 0 and a4 == 0 then
-				goto continue
-			end
+    local x_fragments = floor(width - 1 / QUAD_SIZE)
+    local y_fragments = floor(height - 1 / QUAD_SIZE)
 
-			local id = xy_to_id(qx, qy, x_fragments)
+    for qx = 0, x_fragments do
+        for qy = 0, y_fragments do
+            -- Check if coordinates are within image bounds before getting pixel
+            local a1 = 0
+            if qx * QUAD_SIZE < width and qy * QUAD_SIZE < height then
+                local _, _, _, alpha = image_data:getPixel(qx * QUAD_SIZE, qy * QUAD_SIZE)
+                a1 = alpha
+            end
 
-			local fragment = {
-				x = qx * QUAD_SIZE - width * 0.5,
-				y = qy * QUAD_SIZE - height * 0.5,
-				width = QUAD_SIZE,
-				height = QUAD_SIZE,
-				id = xy_to_id(qx, qy, x_fragments)
-			}
-			local quad = graphics.new_quad(qx * QUAD_SIZE, qy * QUAD_SIZE, QUAD_SIZE, QUAD_SIZE, width, height)
-			local quad_table = graphics.get_quad_table(textures.enemy_egg_boss1, quad, QUAD_SIZE, QUAD_SIZE)
+            -- Check if all four corners of the quad are transparent
+            local x1, y1 = qx * QUAD_SIZE, qy * QUAD_SIZE
+            local x2, y2 = qx * QUAD_SIZE + QUAD_SIZE, qy * QUAD_SIZE + QUAD_SIZE
 
-			fragment.quad = quad
-			fragment.quad_table = quad_table
-			if self.shell_fragment_locations[id] == nil then
-				self.shell_fragment_locations[id] = fragment
-				self.num_shell_fragments = self.num_shell_fragments + 1
-			else
-				print("duplicate fragment")
-			end
-			::continue::
-		end
-	end
+            -- Check if coordinates are within image bounds
+            local in_bounds1 = x1 >= 0 and x1 < width and y1 >= 0 and y1 < height
+            local in_bounds2 = x2 >= 0 and x2 < width and y1 >= 0 and y1 < height
+            local in_bounds3 = x1 >= 0 and x1 < width and y2 >= 0 and y2 < height
+            local in_bounds4 = x2 >= 0 and x2 < width and y2 >= 0 and y2 < height
+
+            local a1 = in_bounds1 and select(4, image_data:getPixel(x1, y1)) or 0
+            local a2 = in_bounds2 and select(4, image_data:getPixel(x2, y1)) or 0
+            local a3 = in_bounds3 and select(4, image_data:getPixel(x1, y2)) or 0
+            local a4 = in_bounds4 and select(4, image_data:getPixel(x2, y2)) or 0
+
+            if a1 == 0 and a2 == 0 and a3 == 0 and a4 == 0 then
+                goto continue
+            end
+
+            local id = xy_to_id(qx, qy, x_fragments)
+
+            local fragment = {
+                x = qx * QUAD_SIZE - width * 0.5,
+                y = qy * QUAD_SIZE - height * 0.5,
+                width = QUAD_SIZE,
+                height = QUAD_SIZE,
+                id = xy_to_id(qx, qy, x_fragments)
+            }
+            local quad = graphics.new_quad(qx * QUAD_SIZE, qy * QUAD_SIZE, QUAD_SIZE, QUAD_SIZE, width, height)
+            local quad_table = graphics.get_quad_table(textures.enemy_egg_boss1, quad, QUAD_SIZE, QUAD_SIZE)
+
+            fragment.quad = quad
+            fragment.quad_table = quad_table
+            if self.shell_fragment_locations[id] == nil then
+                self.shell_fragment_locations[id] = fragment
+                self.num_shell_fragments = self.num_shell_fragments + 1
+            else
+                print("duplicate fragment")
+            end
+            ::continue::
+        end
+    end
+end
+
+function EggBoss:floor_draw()
 
 end
 
@@ -229,7 +241,11 @@ end
 
 
 function EggBoss:get_hover_body_height()
-    return round(self.base_body_height + 5 * sin(self.elapsed * 0.02))
+    local target = round(self.base_body_height + 5 * sin(self.elapsed * 0.02))
+	if self.start_body_height and self:is_timer_running("smooth_hover") then
+		return lerp(self.start_body_height, target, 1 - self:timer_progress("smooth_hover"))
+	end
+    return target
 end
 
 function EggBoss:get_hover_body_height2()
@@ -310,7 +326,7 @@ function EggBoss:spawn_blood(crack_center, initial)
         local fragment_distances = {}
         for id, fragment in pairs(self.shell_fragment_locations) do
             local dist = vec2_distance(fragment.x, fragment.y, crack_center.x, crack_center.y)
-            dist = dist + rng:randf_range(-2, 2)
+            dist = dist + rng:randf(-2, 2)
 
             table.insert(fragment_distances, {
                 id = id,
@@ -333,7 +349,7 @@ function EggBoss:spawn_blood(crack_center, initial)
             local screen_y = fragment.y + by
             local dx, dy = vec2_direction_to(bx, by, fragment.x + bx, fragment.y + by)
             if dx ~= 0 or dy ~= 0 then
-				local z_force = remap(dy, -1, 1, -1, rng:randf_range(-1, 5))
+				local z_force = remap(dy, -1, 1, -1, rng:randf(-1, 5))
                 self:spawn_object(CrackFragment(bx + fragment.x, real_y,  -(screen_y - real_y), dx, dy, z_force, fragment))
             end
             self:remove_shell_fragment(fragment)
@@ -437,8 +453,16 @@ end
 
 function EggBoss:get_palette()
     if self:is_timer_running("shadow_hurt_flash") then
-		return Palette.dark_egg_flash, idiv(self.tick, 3)
+        return Palette.dark_egg_flash, idiv(self.tick, 3)
+    end
+
+	if self.phase5 then
+        if self.phase5_landed then
+            return Palette.bothways, idiv(self.tick, 1)
+		end
+		return Palette.dark_egg_flash, idiv(self.tick, 2)
 	end
+	
 	return nil, idiv(self.tick, 4)
 end
 
@@ -468,79 +492,6 @@ function EggBoss:get_palette_shared()
 	return palette, offset
 end
 
-function EggBoss:draw()
-	-- if true then return end
-	graphics.set_color(Color.darkergrey)
-	if idivmod_eq_zero(gametime.tick, 1.0, ceil(3 - floor(max(self.shadow_darkness - 0.5, 0) * 2))) then
-		local scale = max(inverse_lerp(self.base_body_height + 5, self.base_body_height - 5, self.body_height) * 0.125 + 1, 0)
-        if self.land_warning then
-            scale = clamp01(self:get_stopwatch("land_warning").elapsed / 80) + 0.1
-            graphics.set_color(Palette.fire:tick_color(self.tick, 0, 3))
-        end
-		
-        -- scale = scale * (1 - self.shadow_darkness)
-		
-		local color_mod = 1 - self.shadow_darkness
-
-		if self.shadow_darkness > 0 and not self.land_warning then
-			graphics.set_color(Color.darkergrey.r * color_mod, Color.darkergrey.g * color_mod, Color.darkergrey.b * color_mod)
-		end
-
-		-- graphics.ellipse("fill", 0, 35, 40 * scale, 20 * scale)
-		graphics.push("all")
-		do
-			graphics.translate(0, 0)
-            graphics.scale(1, 0.5)
-            graphics.rotate(tau / 8)
-            if self.land_warning then
-                graphics.rotate(self.elapsed * 0.1)
-            end
-			graphics.set_line_width(4)
-            graphics.rectangle_centered(self.land_warning and "line" or "fill", 0, 0, 60 * scale, 60 * scale)
-			if self.land_warning then
-				graphics.rectangle_centered("line", 0, 0, 80 * scale, 80 * scale)
-			end
-		end
-		graphics.pop()
-	end
-	self:body_translate()
-	graphics.set_color(Color.white)
-
-	graphics.translate((ease("inCubic")(self:timer_time_left_ratio("crack_swell2"))) * 4 * (self.tick % 2 == 0 and 1 or -1), 0)
-
-	local palette, palette_index = self:get_palette()
-	local h_flip, v_flip = self:get_sprite_flip()
-
-
-	-- if idivmod_eq_zero(self.tick, 1, 2)  then
-	-- 	local any_player = self:get_any_ally()
-	-- 	if any_player.pos.y < self.pos.y then
-	-- 		return
-	-- 	end
-	-- end
-
-	-- if self.tick % 27 ~= 0 then
-		graphics.drawp_centered(textures.enemy_egg_boss2, palette or self.egg_blood_palette, palette_index, 0, 0, 0, h_flip, v_flip)
-	-- end
-
-	for _, fragment in pairs(self.shell_fragment_locations) do
-		local fragment_x, fragment_y = fragment.x, fragment.y
-
-		local swell = 1
-		if self.shell_cracked and self:is_timer_running("crack_swell") then
-			swell = 1 - 0.05 * (ease("inExpo")(self:timer_time_left_ratio("crack_swell")))
-		end
-		fragment_x = fragment_x * swell
-		fragment_y = fragment_y * swell
-
-		-- graphics.set_color(Color.black)
-		graphics.draw_quad_table(fragment.quad_table, fragment_x, fragment_y)
-
-		if debug.can_draw_bounds() then
-			graphics.rectangle("line", fragment_x, fragment_y, QUAD_SIZE, QUAD_SIZE)
-		end
-	end
-end
 
 local SPEECH_PERIOD = 10
 
@@ -570,7 +521,7 @@ function EggBoss:spawn_speech(front, can_make_sound)
 	local bx, by = self:get_body_center()
 	local height = 60
 	-- local width = 65
-	-- local x_offset = rng:randf_range(-width / 2, width / 2)
+	-- local x_offset = rng:randf(-width / 2, width / 2)
 	-- if not front then
 	-- 	if abs(x_offset) < 50 then
 	-- 		x_offset = 50 * sign(x_offset)
@@ -581,7 +532,7 @@ function EggBoss:spawn_speech(front, can_make_sound)
 
 	local font_height = SPEECH_FONT:getHeight()
 	
-	local y_offset =  rng:randf_range(-height / 2, height / 2)
+	local y_offset =  rng:randf(-height / 2, height / 2)
 
     local y = by + y_offset
 
@@ -597,7 +548,7 @@ function EggBoss:spawn_speech(front, can_make_sound)
 
 	orbit_width_ratio = remap_clamp(orbit_width_ratio, 0, 1, 0.5, 1)
 
-	orbit_width_ratio = rng:randf_range(orbit_width_ratio, orbit_width_ratio + 0.15)
+	orbit_width_ratio = rng:randf(orbit_width_ratio, orbit_width_ratio + 0.15)
 
 	local speech = self:spawn_object(FloatingSpeech(x, y, get_random_speech(), rng:rand_sign(), front, can_make_sound, orbit_width_ratio))
 	speech:ref("parent", self)
@@ -626,13 +577,14 @@ function EggBoss:state_Phase2_enter()
 	self.phase2_finished = false
 	self.can_take_damage = false
 	self.roaming = false
+	
 	local s = self.sequencer
 	s:start(function()
         local start_height = self.body_height
 		local start_x = self.pos.x
 		local start_y = self.pos.y
 		s:tween(function(t)
-            self:set_body_height(lerp(start_height, 600, t))
+            self:set_body_height(lerp(start_height, 900, t))
 			self:move_to(vec2_lerp(start_x, start_y, 0, START_Y, t))
 		end, 0, 1, 120, "inCubic")
         self:hide()
@@ -643,10 +595,19 @@ function EggBoss:state_Phase2_enter()
         local num_seconds = 40
         local num_greenoids = 16
 
-        local heart_spawn = rng:randi_range(1, num_greenoids)
-        -- local upgrade_spawn = rng:randi_range(1, num_greenoids)
+        local heart_spawn = rng:randi(1, num_greenoids)
+        local ammo_spawn = rng:randi(1, num_greenoids)
+        local ammo_spawn2 = rng:randi(1, num_greenoids)
+		while heart_spawn == ammo_spawn do
+			ammo_spawn = rng:randi(1, num_greenoids)
+		end
+
+		while heart_spawn == ammo_spawn2 or ammo_spawn == ammo_spawn2 do
+			ammo_spawn2 = rng:randi(1, num_greenoids)
+		end
+        -- local upgrade_spawn = rng:randi(1, num_greenoids)
 		-- while heart_spawn == upgrade_spawn do
-			-- upgrade_spawn = rng:randi_range(1, num_greenoids)
+			-- upgrade_spawn = rng:randi(1, num_greenoids)
 		-- end
 
         local skip = false
@@ -660,30 +621,42 @@ function EggBoss:state_Phase2_enter()
             local wait_time = floor(seconds_to_frames(num_seconds / num_greenoids))
             for i = 1, num_greenoids do
                 s:wait(wait_time)
-                local pickup = i == heart_spawn and PickupTable.hearts.NormalHeart or
-                    (not game_state:is_fully_upgraded() and game_state:get_random_available_upgrade(false))
+                local pickup = nil
+                if i == heart_spawn then
+                    pickup = PickupTable.hearts.NormalHeart
+                elseif i == ammo_spawn and game_state.artefacts.transmitter then
+                    pickup = PickupTable.powerups.AmmoPowerup
+                elseif i == ammo_spawn2 and game_state.artefacts.transmitter then
+                    pickup = PickupTable.powerups.AmmoPowerup
+                elseif not game_state:is_fully_upgraded() then
+                    pickup = game_state:get_random_available_upgrade(false)
+                end
 				
-				if i ~= heart_spawn then
+                if i ~= heart_spawn and (not game_state.artefacts.transmitter or i ~= ammo_spawn and i ~= ammo_spawn2) then
                     for _, object in self.world:get_objects_with_tag("rescue_object"):ipairs() do
-						if object.holding_pickup == pickup then
-							pickup = nil
-						end
-					end
-				end
+                        if object.holding_pickup == pickup then
+                            pickup = nil
+                        end
+                    end
+                end
 
                 self:spawn_greenoid(pickup)
-                for j = 1, (self.phase2_started_twice and rng:randi_range(2, 3) or 2) do
+                -- for j = 1, (self.phase2_started_twice and rng:randi(1, 2) or 2) do
+                for j = 1, (self.phase2_started_twice and 2 or (1 + i % 2)) do
                 -- for j = 1, (2) do
-                    self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
-                        self:spawn_wave_enemy(object)
-                    end)
-                end
+
+				if self.phase2_started_twice or i >= num_greenoids / 2 then
+					self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
+							self:spawn_wave_enemy(object)
+						end)
+					end
+				end
 				if self.phase2_started_twice and i % 3 == 0 and i > num_greenoids * 0.33 and self.world:get_number_of_objects_with_tag("rook") < 2 then
 					local x, y = nil, nil
 					-- local random_shadow = self.world:get_random_object_with_tag("egg_shadow")
 					-- if random_shadow then
 					-- 	x, y = random_shadow:get_body_center()
-					-- 	x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf_range(0, random_shadow.radius)))
+					-- 	x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf(0, random_shadow.radius)))
 					-- end
 					self.world:spawn_something(Rook, x, y, nil, nil, function(object)
 						self:spawn_wave_enemy(object)
@@ -695,9 +668,11 @@ function EggBoss:state_Phase2_enter()
             s:wait(120)
         end
 		
-		while self.world:get_number_of_objects_with_tag("royalguard") > 0 or self.world:get_number_of_objects_with_tag("rook") > 0 do
-			s:wait(1)
-		end
+		-- while self.world:get_number_of_objects_with_tag("royalguard") > 0 or self.world:get_number_of_objects_with_tag("rook") > 0 do
+		-- 	s:wait(1)
+		-- end
+
+		s:wait(15)
 
         self.land_warning = true
 		self:start_stopwatch("land_warning")
@@ -705,16 +680,21 @@ function EggBoss:state_Phase2_enter()
 		
 		self:show()
 
-        local land_height = self.base_body_height - 20
-		self.phase2_finished = true
+        local land_height = self.base_body_height - 16
+        self.phase2_finished = true
+		
+		if self.phase2_started_twice then
+			self.phase5 = true
+			self.applying_physics = false
+		end
 
 		s:tween(function(t)
-            self:set_body_height(lerp(600, land_height, t))
+            self:set_body_height(lerp(self.phase2_started_twice and 900 or 1200, land_height, t))
         end, 0, 1, 80, "inCubic")
 
         self:phase2_landing()
         if not self.phase2_started_twice then
-			audio.play_music("music_egg_boss1", 1.0)
+			-- audio.play_music("music_egg_boss1", 1.0)
 		end
 		
 		self:stop_sfx("enemy_evil_egg_phase2_fall")
@@ -722,41 +702,127 @@ function EggBoss:state_Phase2_enter()
 		self:stop_stopwatch("land_warning")
 		
 		local old_z_index = self.z_index
-		self.z_index = 100
+		-- self.z_index = 100
 
 
 		s:wait(20)
 
-		s:tween(function(t)
-			self:set_body_height(lerp(land_height, self:get_hover_body_height(), t))
-		end, 0, 1, 90, "inOutCubic")
+        s:wait(90)
 
 		self.z_index = old_z_index
 
         if self.phase2_started_twice then
 			self:change_state("Phase5")
+
 		else
 			self:change_state("Phase3")
+			self:smooth_hover(300)
+
 		end
-		
-		
-		
 
 	end)
 end
 
+function EggBoss:smooth_hover(time)
+	self.start_body_height = self.body_height
+	self:start_timer("smooth_hover", time)
+end
+
 function EggBoss:phase2_landing()
     -- self:play_sfx("enemy_evil_egg_phase2_landing", 0.8)
-    self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
-    self:spawn_object(Explosion(self.pos.x, self.pos.y, {
-        size = LAND_EXPLOSION_SIZE,
-		draw_scale = 2.0,
-    }))
-    for _, object in self.world.objects:ipairs() do
-		if object ~= self and Object.is(object, BaseEnemy) then
-			object:die(self)
-		end
+    if not (self.phase2_started_twice) then
+		self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
+		self:spawn_object(Explosion(self.pos.x, self.pos.y, {
+			size = LAND_EXPLOSION_SIZE,
+			draw_scale = 2.0,
+			explode_sfx_volume = 0.0,
+			no_effect = true
+		}))
+        self:play_sfx("enemy_evil_egg_ground_crack", 1.0)
+        self:play_sfx("enemy_evil_egg_ground_crack2", 0.8)
+        -- self:start_stopwatch("draw_crack")
+        self:emit_signal("phase2_landing")
+        self.world:clear_floor_canvas()
+
+        self:spawn_object(LandingCrack(0, 0)):ref("parent", self)
+        for i = 1, NUM_CIRCLES * NUM_SHARDS_PER_CIRCLE do
+            local circle = floor(i / NUM_SHARDS_PER_CIRCLE)
+            local dist = pow(circle / NUM_CIRCLES, 2.0) * MAX_SHARD_CIRCLE_RADIUS
+            local x, y = vec2_from_polar(dist + 64 + rng:randf(-24, 24),
+                floor(i % NUM_SHARDS_PER_CIRCLE) * tau / NUM_SHARDS_PER_CIRCLE)
+            y = y * 0.6
+            self:spawn_object(GlassShardsEffect(x + self.pos.x, y + self.pos.y - 32, dist))
+        end
+			
+        for _, object in self.world.objects:ipairs() do
+            if object ~= self and (Object.is(object, BaseEnemy) or object.is_rescue) then
+                object:die(self)
+            end
+        end
+		
+		local s = self.sequencer
+        s:start(function()
+			self.world.room.nofungus = true
+            s:wait(1)
+			for _, object in self.world.objects:ipairs() do
+				if object.is_death_flash then
+					object:queue_destroy()
+				end
+			end
+
+
+			s:wait(30)
+			self.world.room.nofungus = false
+		end)
+    else
+		-- self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
+
+        self.world.floor_drawing = false
+
+		game_state.cutscene_no_pause = true
+		
+		
+		self.phase5_landed = true
+        self.world:clear_floor_canvas()
+        self.world.room.nofungus = true
+        self:defer(function()
+            for _, object in self.world.objects:ipairs() do
+                if object ~= self and not object.persist and not object.is_egg_director then
+                    object:queue_destroy()
+                end
+            end
+        end)
+        local closest_player = self:get_closest_player()
+        if closest_player then
+            closest_player:change_state("Cutscene")
+			
+        end
+        self:emit_signal("phase4_landing")
+		
+        self.world.object_time_scale = 1.0
+		
+		-- audio.stop_music()
+		audio.play_music("music_egg_boss3", 1.0)
+		
+		local s = self.sequencer
+		s:start(function()
+			s:wait(1)
+            self:spawn_object(UnderEggFlash(0, self.pos.y)):ref("parent", self)
+            s:wait(163)
+			
+			-- audio.play_music("music_egg_boss3", 1.0)
+
+            self:hide()
+			local closest_player = self:get_closest_player()
+            while not closest_player do
+				s:wait(1)
+				closest_player = self:get_closest_player()
+			end
+			closest_player:hide()
+
+		end)
     end
+
 end
 
 function EggBoss:state_Phase2_update(dt)
@@ -872,10 +938,10 @@ function EggBoss:state_Phase3_update(dt)
             local random_shadow = self.world:get_random_object_with_tag("egg_shadow")
             if random_shadow then
                 x, y = random_shadow:get_body_center()
-                x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf_range(0, random_shadow.radius)))
+                x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf(0, random_shadow.radius)))
             end
-            -- local dist = rng:randf_range(32, 90)
-            -- local angle = rng:randf_range(0, tau)
+            -- local dist = rng:randf(32, 90)
+            -- local angle = rng:randf(0, tau)
             -- local x, y = vec2_from_polar(dist, angle)
             -- x, y = pbx + x, pby + y
             self.world:spawn_something(RoyalRoamer, x, y, nil, nil, function(object)
@@ -888,11 +954,94 @@ function EggBoss:state_Phase3_update(dt)
 	end
 end
 
+
 function EggBoss:state_Phase5_enter()
 	self.spawning_stalkers = false
     self.roaming = false
 	self.can_take_damage = true
 end
+
+function EggBoss:draw()
+    graphics.set_color(Color.darkergrey)
+    if iflicker(gametime.tick, 1.0, ceil(3 - floor(max(self.shadow_darkness - 0.5, 0) * 2))) then
+        local scale = max(
+        inverse_lerp(self.base_body_height + 5, self.base_body_height - 5, self.body_height) * 0.125 + 1, 0)
+        if self.land_warning then
+            scale = clamp01(self:get_stopwatch("land_warning").elapsed / 80) + 0.1
+            graphics.set_color(Palette.fire:tick_color(self.tick, 0, 3))
+        end
+
+        local color_mod = 1 - self.shadow_darkness
+
+        if self.shadow_darkness > 0 and not self.land_warning then
+            graphics.set_color(Color.darkergrey.r * color_mod, Color.darkergrey.g * color_mod,
+                Color.darkergrey.b * color_mod)
+        end
+
+        graphics.push("all")
+        if not self.phase5_landed then
+            -- graphics.translate(0, 0)
+            graphics.scale(1, 0.5)
+            graphics.rotate(tau / 8)
+            if self.land_warning then
+                graphics.rotate(self.elapsed * 0.1)
+            end
+            graphics.set_line_width(4)
+            graphics.rectangle_centered(self.land_warning and "line" or "fill", 0, 0, 60 * scale, 60 * scale)
+            if self.land_warning then
+                graphics.rectangle_centered("line", 0, 0, 80 * scale, 80 * scale)
+            end
+        end
+        graphics.pop()
+    end
+    self:body_translate()
+    graphics.set_color(Color.white)
+
+    graphics.translate((ease("inCubic")(self:timer_progress("crack_swell2"))) * 4 * (self.tick % 2 == 0 and 1 or -1), 0)
+
+    local palette, palette_index = self:get_palette()
+    local h_flip, v_flip = self:get_sprite_flip()
+
+    graphics.drawp_centered(textures.enemy_egg_boss2, palette or self.egg_blood_palette, palette_index, 0, 0, 0, h_flip,
+        v_flip)
+
+    for _, fragment in pairs(self.shell_fragment_locations) do
+        local fragment_x, fragment_y = fragment.x, fragment.y
+
+        local swell = 1
+        if self.shell_cracked and self:is_timer_running("crack_swell") then
+            swell = 1 - 0.05 * (ease("inExpo")(self:timer_progress("crack_swell")))
+        end
+        fragment_x = fragment_x * swell
+        fragment_y = fragment_y * swell
+
+        -- graphics.set_color(Color.black)
+        graphics.draw_quad_table(fragment.quad_table, fragment_x, fragment_y)
+
+        if debug.can_draw_bounds() then
+            graphics.rectangle("line", fragment_x, fragment_y, QUAD_SIZE, QUAD_SIZE)
+        end
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function BloodSpawner:new(x, y, body_height, dx, dy)
@@ -900,14 +1049,14 @@ function BloodSpawner:new(x, y, body_height, dx, dy)
 	BloodSpawner.super.new(self, x, y)
 	self.z_index = 1000
 	self.melee_attacking = false
-	self.rotation = rng:randf_range(0, tau)
+	self.rotation = rng:randf(0, tau)
 
     self.gravity = 0.0
 	self.intangible = true
 	self.drag = 0.001
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
-	self:apply_impulse(vec2_mul_scalar(dx, dy, rng:randf_range(0.5, 2.55)))
+	self:apply_impulse(vec2_mul_scalar(dx, dy, rng:randf(0.5, 2.55)))
 	if dy < 0 then
 		self.z_index = 0
 	end
@@ -928,7 +1077,7 @@ function BloodSpawner:enter()
 	local s = self.sequencer
 	s:start(function()
 		local start_height = self.body_height
-		local tween_time = max(start_height * 0.4 + rng:randf_range(-10, 10), 5)
+		local tween_time = max(start_height * 0.4 + rng:randf(-10, 10), 5)
 
 		s:tween(function(t)
 			self:set_body_height(lerp(start_height, 0, t))
@@ -1116,13 +1265,13 @@ function BloodSpawner:draw()
 		graphics.set_color(self:get_color())
         graphics.set_line_width(lerp(1, 6, ease("inOutCubic")(self.zap_startup)))
         if self.zap_startup > 0.75 then
-			graphics.set_color(idivmod_eq_zero(gametime.tick, 2, 2) and Color.cyan or Color.skyblue)
+			graphics.set_color(iflicker(gametime.tick, 2, 2) and Color.cyan or Color.skyblue)
 		end
 		graphics.line(end_x, end_y, vec2_lerp(end_x, end_y, start_x, start_y, ease("inOutCubic")(remap_clamp(self.zap_startup, 0, 0.5, 0, 1))))
 		graphics.pop()
     end
 	
-    if not (self.stained and not self.melee_attacking) or idivmod_eq_zero(gametime.tick, 1, 2) then
+    if not (self.stained and not self.melee_attacking) or iflicker(gametime.tick, 1, 2) then
         local position_history = self.position_history
         for i = 1, #position_history do
             local pos = position_history[i]
@@ -1140,7 +1289,7 @@ function BloodSpawner:draw()
 
 	if self.zap_end_x and self.zap_end_y and self:is_timer_running("zap_effect") then
 		local start_x, start_y = self:get_body_center_local()
-        local ratio = ease("linear")(self:timer_time_left_ratio("zap_effect"))
+        local ratio = ease("linear")(self:timer_progress("zap_effect"))
 		graphics.set_color(Color.white)
         graphics.push("all")
 		graphics.set_line_width(lerp(1, 10, ratio))
@@ -1230,7 +1379,7 @@ function BloodShadow:new(x, y)
 end
 
 function BloodShadow:draw()
-	if idivmod_eq_zero(self.tick, 1.01, 2) then
+	if iflicker(self.tick, 1.01, 2) then
 		graphics.set_color(Color.darkgrey)
 		graphics.scale(1, 0.5)
 		-- graphics.rotate(tau / 8)
@@ -1241,7 +1390,7 @@ end
 
 
 function CrackFragment:new(x, y, height, dx, dy, z_force, fragment)
-	self.speed = rng:randf_range(0.4, 2)
+	self.speed = rng:randf(0.4, 2)
 	CrackFragment.super.new(self, x, y)
     self.dx = dx
     if dy < 0 then
@@ -1252,7 +1401,7 @@ function CrackFragment:new(x, y, height, dx, dy, z_force, fragment)
     self.z = height
     self.z_vel = -z_force
 	self.z_acc = 0.0
-	self.gravity = rng:randf_range(0.05, 0.15)
+	self.gravity = rng:randf(0.05, 0.15)
 	self.fragment = fragment
     self:add_elapsed_time()
 	self.random_offset = rng:randi()
@@ -1320,7 +1469,7 @@ function FloatingSpeech:new(x, y, text, dir, front, can_make_sound, orbit_width_
     -- self.duration = 12 * #self.text
 	self.duration = 100
 
-	self.phase_offset = rng:randf_range(-1, 1)
+	self.phase_offset = rng:randf(-1, 1)
 
 	self:add_elapsed_time()
     self:add_elapsed_ticks()
@@ -1343,14 +1492,14 @@ end
 
 
 function FloatingSpeech:get_foreground_color()
-    local ratio = 1 - self:timer_time_left_ratio("fade")
+    local ratio = 1 - self:timer_progress("fade")
 
     return table.interpolate(self.front and FRONT_FG_COLORS or BACK_FG_COLORS, clamp01(self.elapsed * 0.02))
 end
 
 
 function FloatingSpeech:draw()
-    local ratio = 1 - self:timer_time_left_ratio("fade")
+    local ratio = 1 - self:timer_progress("fade")
     local bump = math.tent(ratio)
     local t_offset = lerp(-1, 1, ratio) * self.dir
     local text = string.interpolate(self.text, clamp01(bump * 2))
@@ -1431,10 +1580,10 @@ function EggShadow:new(x, y, angle, distance, speed, swell_amount)
     self.melee_attacking = false
 	self.center_x, self.center_y = 0, 0
 	self.oscillation = SHADOW_ACTIVATION_THRESHOLD
-	self.oscillation_frequency = rng:randf_range(0.5, 1.5)
+	self.oscillation_frequency = rng:randf(0.5, 1.5)
     self.oscillation_dir = 1
     self.oscillation_scale = clamp(abs(rng:randfn(1, 0.25)), 0.25, 1.25)
-    self.oscillation_swell = rng:randf_range(0.25, 1)
+    self.oscillation_swell = rng:randf(0.25, 1)
 	self.square_rotation = 0.0
     self.oscillation_rotation_speed = clamp(rng:randfn(0.125, 0.1) * rng:rand_sign(), -0.2, 0.2)
 	self.swell_elapsed = 0
@@ -1546,11 +1695,11 @@ function EggShadow:floor_draw()
     graphics.set_color(Color.black)
 	-- local stopwatch = self:get_stopwatch("move_stopwatch")
 
-	-- if not stopwatch and idivmod_eq_zero(self.tick, 1, 3) then
+	-- if not stopwatch and iflicker(self.tick, 1, 3) then
 		-- graphics.set_color(Color.red)
 	-- end
 	for i=1, self.radius * 5 do
-		graphics.points(rng:random_vec2_times(rng:randf_range(0, self.radius)))
+		graphics.points(rng:random_vec2_times(rng:randf(0, self.radius)))
 	end
 end
 
@@ -1566,7 +1715,7 @@ function EggShadow:draw()
 		-- print("not drawing")
         return
     elseif self.oscillation < SHADOW_ACTIVATION_THRESHOLD then
-        if idivmod_eq_zero(gametime.tick, 1, 2) then
+        if iflicker(gametime.tick, 1, 2) then
 			activating = true
 		else
 			return
@@ -1581,7 +1730,7 @@ function EggShadow:draw()
 		color_mod = 0.25
 	end
 
-	if not idivmod_eq_zero(gametime.tick, 1, 3) then
+	if not iflicker(gametime.tick, 1, 3) then
 		graphics.set_color(Color.black)
 		graphics.circle("fill", 0, 0, self.radius)
 	end
@@ -1591,13 +1740,13 @@ function EggShadow:draw()
     for i = 1, num_points do
 		local angle = (i / num_points) * tau
 		local x, y = vec2_from_polar(self.radius, angle + self.elapsed * 0.025)
-        local r, g, b = (idivmod_eq_zero(self.tick + i * 7, 1, 5) and Color.darkpurple or Color.nearblack):unpack()
+        local r, g, b = (iflicker(self.tick + i * 7, 1, 5) and Color.darkpurple or Color.nearblack):unpack()
 		
 		graphics.set_color(Color.adjust_lightness_unpacked(r, g, b, color_mod))
 		graphics.rectangle_centered("line", x, y, 2, 2)
 	end
 
-    -- graphics.set_color(idivmod_eq_zero(self.tick + self.random_offset * 7, 1, 5) and Color.darkpurple or Color.nearblack)
+    -- graphics.set_color(iflicker(self.tick + self.random_offset * 7, 1, 5) and Color.darkpurple or Color.nearblack)
 	local width = max(self.radius - 8, 1) * 2
 	graphics.rotate(self.square_rotation)
 	-- graphics.rectangle_centered("line", 0, 0, width, width)
@@ -1611,6 +1760,188 @@ end
 
 function EggShadow:die()
 	self:queue_destroy()
+end
+
+function LandingCrack:new(x, y)
+    LandingCrack.super.new(self, x, y)
+	self.z_index = -math.huge
+	self:add_time_stuff()
+    self:start_stopwatch("draw_crack")
+	self.duration = 1000
+	self:start_destroy_timer(self.duration)
+end
+
+function LandingCrack:draw()
+	
+end
+
+function LandingCrack:floor_draw()
+	if self.tick < 4 then return end
+	local crack_stopwatch = self:get_stopwatch("draw_crack")
+    if crack_stopwatch then
+        -- graphics.origin()
+		local mod = (1 - clamp01(inverse_lerp(0, self.duration, crack_stopwatch.elapsed))) * 0.3
+		graphics.set_color(mod, mod, mod)
+		graphics.draw_centered(textures.fx_glassbreak, 0, 0)
+	end
+end
+
+function GlassShardsEffect:new(x, y, dist_from_center)
+    GlassShardsEffect.super.new(self, x, y)
+    
+	self.duration = rng:randf(150, 350)
+	self.z_index = 0
+
+	local dist_ratio = dist_from_center / MAX_SHARD_CIRCLE_RADIUS
+	-- print(dist_ratio)
+
+
+	self.dist_ratio = dist_ratio
+	local shards = {}
+
+    for i = 1, rng:randi(1, 7 + 4 * dist_ratio) do
+        local x_, y_ = rng:randf(-SHARD_DISTANCE, SHARD_DISTANCE), rng:randf(-SHARD_DISTANCE, SHARD_DISTANCE)
+        local shard = {
+            x = x_,
+            y = y_,
+            points = {},
+            rotation_speed = rng:randf(-0.1, 0.1),
+            -- fill = rng:percent(6),
+            random_offset = rng:randi(),
+			shine_speed = rng:randf_pow(0.01, 0.2, 3.0)
+        }
+
+        local num_points = rng:randi(3 + 2 * pow(1 - dist_ratio, 10), 5)
+
+        local scale = abs(rng:randf_pow(2.0, 8.0 * ( 0.5 + 2 * pow(1 - dist_ratio, 10)), 2.0))
+
+        local rotation = rng:randf(0, tau)
+
+        local width_ratio = rng:randf(0.15, 1.5)
+
+        for i = 1, num_points do
+            local px, py = vec2_from_polar(rng:randf(0.2, 1.0) * scale, (i / num_points) * tau)
+            px = px * width_ratio
+            px, py = vec2_rotated(px, py, rotation)
+			py = py + scale * 0.5
+            table.insert(shard.points, px)
+            table.insert(shard.points, py)
+        end
+
+        shard.scale = scale
+
+        table.insert(shards, shard)
+    end
+	
+	self.shards = shards
+
+end
+
+function GlassShardsEffect:draw()
+    -- graphics.set_color(Color.green)
+    -- graphics.circle("line", 0, 0, 10)
+
+    graphics.set_color(Color.white)
+
+    if self.elapsed >= self.duration - 10 then
+        graphics.set_color(Color.nearblack)
+    elseif self.elapsed >= self.duration - 20 then
+        graphics.set_color(Color.darkergrey)
+    elseif self.elapsed >= self.duration - 30 then
+        graphics.set_color(Color.darkgrey)
+    elseif self.elapsed >= self.duration - 40 then
+        graphics.set_color(Color.grey)
+    elseif self.elapsed >= self.duration - 50 then
+        graphics.set_color(Color.lightgrey)
+    elseif self.elapsed >= self.duration - 60 then
+        graphics.set_color(Color.lightergrey)
+    end
+    for _, shard in ipairs(self.shards) do
+        graphics.push("all")
+        local ascend_speed = 10 / pow(shard.scale, 0.5) * 0.4
+        graphics.translate(shard.x, shard.y - logb(self.elapsed, 1.6) * ascend_speed - self.elapsed * 0.02)
+        graphics.rotate(self.elapsed * shard.rotation_speed / pow(shard.scale, 1.35))
+        local fill = sin(self.elapsed * shard.shine_speed + shard.random_offset) > 0.9 and iflicker(self.tick, 1, 2)
+        graphics.polygon(fill and "fill" or "line", shard.points)
+        graphics.pop()
+    end
+end
+
+function UnderEggFlash:new(x, y)
+    UnderEggFlash.super.new(self, x, y)
+	self.z_index = -math.huge
+    self:add_time_stuff()
+	
+	self:interpolate_property("start_flash_scale", 1, 0, 10, true)
+
+    self:interpolate_property("start_rect_scale", 0, 1, 150)
+	self.start_rect_scale2 = 0
+    self:interpolate_property_at_time("start_rect_scale2", 0, 1, 20, 150)
+
+	self.line_length_scale = 0
+	self:interpolate_property_at_time("line_length_scale", 0, 1, 10, 400)
+    self.spin_speed = 0
+
+
+	self.line_width_scale = 1
+    self:interpolate_property_at_time("line_width_scale", 1, 0, 20, 80)
+	
+	self:set_at_tick(20, "line_rect", true)
+	
+	self.rot = 0
+	self:interpolate_property_at_time("spin_speed", 0, 1, 10, 100)
+
+	-- self:do_at_tick(200, function()
+	-- end)
+	
+	-- self:interpolate_property_at_time("start_rect_scale", 1, 0.5, 60, 10, true)
+end
+
+function UnderEggFlash:update(dt)
+    if self.parent then
+		self:set_visibility(self.parent.visible)
+        -- self:move_to(self.parent.pos.x, self.parent.pos.y)
+    else
+        self:queue_destroy()
+    end
+
+	self.rot = self.rot + ease("inOutCubic")(self.spin_speed) * 0.05 * dt
+	
+
+end
+
+function UnderEggFlash:draw()
+    graphics.set_color(Color.white)
+	
+	
+    graphics.push("all")
+    if self.start_flash_scale then
+		local scale = 1000 * (ease("inExpo")(self.start_flash_scale))
+		graphics.rectangle_centered("fill", 0, 0, scale, scale)
+	end
+
+	if self.start_rect_scale then
+
+        graphics.scale(1, 0.5)
+		
+		graphics.rotate(tau / 8)
+		
+		local scale = 2000 * (ease("outExpo")(self.line_length_scale))
+		local width = lerp(1, 32, ease("linear")(self.start_rect_scale)) * self.line_width_scale
+
+		graphics.rotate(self.rot)
+
+		graphics.rectangle_centered("fill", 0, 0, scale, width)
+		graphics.rectangle_centered("fill", 0, 0, width, scale)
+
+		
+		graphics.rotate(tau / 8)
+        scale = 100 * (ease("outExpo")(self.start_rect_scale))
+		scale = scale + 800 * (ease("inExpo")(self.start_rect_scale2))
+		graphics.set_line_width(3)
+		graphics.rectangle_centered(self.line_rect and "line" or "fill", 0, 0, scale, scale)
+	end
+	graphics.pop()
 end
 
 AutoStateMachine(EggBoss, "Idle")

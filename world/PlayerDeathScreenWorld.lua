@@ -69,7 +69,7 @@ function PlayerDeathScreenWorld:enter()
 		self:play_sfx("ui_death_background_grow2", 1.0)
 		for _, object in self:get_objects_with_tag("game_over_letter"):ipairs() do
 			s:start(function()
-				-- s:wait(rng:randi_range(1, 30))
+				-- s:wait(rng:randi(1, 30))
 				s:tween(function(t) object:move_to(object.pos.x, t * -100) end, 0, 1, 30, "linear")
 			end)
 		end
@@ -199,7 +199,7 @@ function YouDiedLetter:enter()
 
 	s:start(function()
 		self:play_sfx("ui_game_over_letter_beam")
-		-- s:wait(rng:randi_range(1, 30))
+		-- s:wait(rng:randi(1, 30))
 		
 		-- s:start(function()
 		self.beaming_in = true
@@ -250,7 +250,7 @@ function YouDiedLetter:draw()
 
 	if self.drawing_letter then
 		graphics.set_font(font)
-		graphics.set_color(idivmod_eq_zero(self.world.tick + self.char_offset, 8, 4) and Color.purple or Color.magenta)
+		graphics.set_color(iflicker(self.world.tick + self.char_offset, 8, 4) and Color.purple or Color.magenta)
 		graphics.print(self.char, 0, 0)
 	end
 end
@@ -382,7 +382,7 @@ function ScoreGraph:draw()
 	graphics.translate(-self.width / 2, -self.height / 2)
 	-- graphics.line(0, 0, 0, self.height + 1)
 	-- graphics.line(0, self.height + 1, self.width, self.height + 1)
-	graphics.set_color(idivmod_eq_zero(self.tick, 1, 2) and Color.darkblue or Color.darkergrey)
+	graphics.set_color(iflicker(self.tick, 1, 2) and Color.darkblue or Color.darkergrey)
 
 	local len = #self.values
 

@@ -132,7 +132,7 @@ function LeaderboardWorld:enter()
 end
 
 function LeaderboardWorld:death_count_update_loop()
-	self:start_timer("death_count_update_loop", rng:randi_range(30, 120), function()
+	self:start_timer("death_count_update_loop", rng:randi(30, 120), function()
 		leaderboard.get_deaths(function(ok, res)
             if ok then
                 if self.death_count == 0 then
@@ -270,7 +270,7 @@ function LeaderboardWorld:draw()
         if self.death_count > 0 then
             local color = Color.white
             if self:is_timer_running("death_count_flash") then
-                color = idivmod_eq_zero(self.tick, 5, 2) and Color.red or Color.darkred
+                color = iflicker(self.tick, 5, 2) and Color.red or Color.darkred
             end
             graphics.set_color(color)
             graphics.print_centered(tr.leaderboard_deaths:upper() .. ": " .. comma_sep(self.death_count), font2,
@@ -330,7 +330,7 @@ function LeaderboardWorld:draw_leaderboard()
             -- graphics.set_color(r, g, b)
             graphics.set_color(line_color)
 
-            -- if idivmod_eq_zero(self.tick, 1, 2) then
+            -- if iflicker(self.tick, 1, 2) then
 			if not (dont_draw_next_top_line and not is_self) then
                 graphics.line(center_x - LINE_WIDTH / 2, LINE_Y - RANKING_LINE_HEIGHT, center_x + LINE_WIDTH / 2,
                     LINE_Y - RANKING_LINE_HEIGHT)

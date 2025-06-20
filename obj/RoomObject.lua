@@ -333,7 +333,7 @@ function RoomObject:draw()
 
 	local line_length = 32 * clamp(self.tick / 10, 0, 1)
 
-    if idivmod_eq_zero(self.tick, 3, 2) then
+    if iflicker(self.tick, 3, 2) then
         if self.direction.x ~= 0 then
 			local start_x, start_y = 0, line_length * self.direction.x * 0.5
             start_y = start_y - sign(start_y) * 2

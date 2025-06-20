@@ -109,24 +109,34 @@ function ArtefactSpawn:state_Idle_enter()
 end
 
 function ArtefactSpawn:hit_by(other)
-	if self:is_tick_timer_running("hit_cooldown") then return end
+    if self:is_tick_timer_running("hit_cooldown") then return end
     self:start_tick_timer("hit_cooldown", 2)
     local was_above_1 = self.hp > 1
     self.hp = self.hp - (other.damage or 1)
-	if was_above_1 then self.hp = max(self.hp, 1) end
+    if was_above_1 then self.hp = max(self.hp, 1) end
     local s = self.sequencer
-	
-	self:start_timer("damage_flash", 10)
-	
+
+    self:start_timer("damage_flash", 10)
+
     if self.hp <= 0 then
-		
         self:queue_destroy()
-        self:spawn_object(XpPickup(self.pos.x, self.pos.y, ARTEFACT_XP))
+
+        self.world:add_score_object(self.pos.x, self.pos.y, self:get_destroy_score(), "artefact_destruction")
+
+        self:spawn_object(XpPickup(self.pos.x, self.pos.y, self:get_destroy_xp()))
         self:play_sfx("pickup_artefact_explode", 0.8)
-		game_state:on_artefact_destroyed(self.artefact)
+        game_state:on_artefact_destroyed(self.artefact)
     else
-		self:play_sfx("pickup_artefact_hurt", 0.6)
-	end
+        self:play_sfx("pickup_artefact_hurt", 0.6)
+    end
+end
+
+function ArtefactSpawn:get_destroy_xp()
+    return self.artefact.destroy_xp or (self.artefact.is_secondary_weapon and 1800 or ARTEFACT_XP)
+end
+
+function ArtefactSpawn:get_destroy_score()
+    return self.artefact.destroy_score or (self.artefact.is_secondary_weapon and 7500 or 5000)
 end
 
 function ArtefactSpawn:get_palette()
@@ -147,19 +157,34 @@ function ArtefactSpawn:state_Idle_draw()
     -- graphics.rectangle_centered("line", self.pos.x, self.pos.y, 20 + sin(elapsed / 17) * 4, 16 + sin(elapsed / 19) * 2)
 	
 	local num_rects = 12
-	local r = ease("outCubic")(clamp(elapsed / 40, 0, 1)) * 16 + sin(elapsed / 21) * 2
-    for i = 1, num_rects do
-		local x, y = vec2_from_polar(r, tau * (i / num_rects) + elapsed / 100)
-		graphics.set_color(Palette.artefact_title_border:tick_color(tick / 5))
-		graphics.rectangle_centered("line", x, y + 1, 5, 5)
-		graphics.set_color(Palette.cmy:tick_color(tick / 7))
-		graphics.rectangle_centered("line", x, y, 5, 5)
+    local r = ease("outCubic")(clamp(elapsed / 40, 0, 1)) * 16 + sin(elapsed / 21) * 2
+	
+	local pickup_stopwatch = self:get_stopwatch("pickup_time")
+	
+    if pickup_stopwatch then
+		-- local old_r = r
+        r = r + pickup_stopwatch.elapsed * 10.0
+		-- num_rects = round(lerp(num_rects, ceil(num_rects * (r / old_r)), 0.1))
 	end
-	
+
+	if r < 2000 then
+
+		for i = 1, num_rects do
+			local x, y = vec2_from_polar(r, tau * (i / num_rects) + elapsed / 100)
+			graphics.set_color(Palette.artefact_title_border:tick_color(tick / 5))
+			graphics.rectangle_centered("line", x, y + 1, 5, 5)
+			graphics.set_color(Palette.cmy:tick_color(tick / 7))
+			graphics.rectangle_centered("line", x, y, 5, 5)
+		end
+
+	end
+
     graphics.set_color(Color.white)
-	local palette, offset = self:get_palette()
-	graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, 0, sin(elapsed / 20) * 1)
+    local palette, offset = self:get_palette()
 	
+	if not self.picked_up then
+		graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, 0, sin(elapsed / 20) * 1)
+	end
 	graphics.set_color(Color.black)
 	
 	local name = tr[self.artefact.name]
@@ -209,8 +234,14 @@ function ArtefactSpawn:state_Idle_update(dt)
 end
 
 function ArtefactSpawn:on_pickup(player)
+    if self.picked_up then return end
+	self:start_stopwatch("pickup_time")
     game_state:gain_artefact(self.artefact)
-	self:queue_destroy()
+    self.picked_up = true
+    self.intangible = true
+	self.z_index = -2
+	self:remove_tag("artefact")
+	-- self:queue_destroy()
 end
 
 function ArtefactSpawner:new(x, y)

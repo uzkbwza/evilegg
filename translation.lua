@@ -11,8 +11,12 @@ local translations = {
 		control_wasd = "WASD",
 
 		tutorial_boost = "PRESS %s TO BOOST",
+		-- tutorial_boost2 = "YOU CAN BOOST FOREVER",
 		tutorial_move = "MOVE WITH %s",
 		tutorial_shoot = "SHOOT WITH %s",
+
+        bonus_screen_total = "TOTAL",
+		bonus_screen_continue = "PRESS %s TO CONTINUE",
 
 		room_has_max_points = "HI SCORE",
 		room_is_bonus = "BONUS",
@@ -97,7 +101,7 @@ local translations = {
 		artefact_transmitter_name                    = "BEGGAR'S BOWL",
 
 		weapon_sword_name                            = "EXECUTIONER'S SWORD",
-        weapon_big_laser_name          				 = "LASER CANNON",
+        weapon_big_laser_name          				 = "PLASMA CANNON",
         weapon_railgun_name           				 = "RAIL GUN",
 		weapon_repulsion_field_name				     = "REPULSION FIELD",
 
@@ -197,7 +201,7 @@ local translations = {
 		codex_desc_roamer           = "A frenetic urchin more violent than curious.",
 
 		codex_name_roamsploder      = "Splode Roamer",
-		codex_desc_roamsploder      = "Some cope with hurt by pre-empting their anger.",
+		codex_desc_roamsploder      = "Some pre-empt hurt with anger.",
 
 		codex_name_hopper           = "Hopper",
 		codex_desc_hopper           = "An invasive species.",
@@ -295,7 +299,7 @@ local translations = {
 		codex_desc_royalguard       = "On her majesty's secret service.",
 
 		codex_name_royalroamer      = "Stalker",
-		codex_desc_royalroamer      = "Weaponised obsession.",
+		codex_desc_royalroamer      = "Weaponised obsessor.",
 
 		codex_name_rook             = "Rook",
 		codex_desc_rook             = "Castle and castellan in one.",
@@ -334,7 +338,7 @@ local translations = {
 
 		score_reset_warning_title = "ATTENTION",
 		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
-		score_reset_warning_text2 = "To view those rankings, please use the appropriate version of the game.",
+		score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
 
 	},
 }

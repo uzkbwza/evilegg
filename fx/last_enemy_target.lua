@@ -65,7 +65,7 @@ function LastEnemyTarget:draw(elapsed, tick, t)
         if i >= 5 then
             texture = textures.fx_last_enemy_target_line
         end
-		if self.elapsed > ZOOM_TIME and idivmod_eq_zero(tick, 5, 2) then
+		if self.elapsed > ZOOM_TIME and iflicker(tick, 5, 2) then
 			return
 		end
 

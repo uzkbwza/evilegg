@@ -90,7 +90,7 @@ function BaseRescue:get_rescue_rect()
 end
 
 function BaseRescue:spawn_particle()
-	local x, y = rng:random_vec2_times(rng:randf_range(0.5, self.hurt_bubble_radius * 3))
+	local x, y = rng:random_vec2_times(rng:randf(0.5, self.hurt_bubble_radius * 3))
 	self:spawn_object_relative(BaseRescueSpawnParticle(), x, y)
 end
 
@@ -176,7 +176,7 @@ function HurtFlashFx:draw_particle(is_floor, elapsed, tick, t)
 	local bx, by = self.parent and self.parent:get_body_center_local() or 0, 0
 
     if tick > self.duration - 10 then
-		if idivmod_eq_zero(gametime.tick, 2, 2) then
+		if iflicker(gametime.tick, 2, 2) then
             return	
 		end
 	end
@@ -199,7 +199,7 @@ function BaseRescue:register_pickup(pickup)
 end
 
 function BaseRescue:get_sprite()
-    return idivmod_eq_zero(self.tick, 10, 2) and textures.ally_rescue1 or textures.ally_rescue2
+    return iflicker(self.tick, 10, 2) and textures.ally_rescue1 or textures.ally_rescue2
 end
 
 function BaseRescue:get_default_palette()
@@ -275,7 +275,7 @@ function BaseRescue:get_palette_shared()
 		offset = idiv(self.tick, 2)
 	end
 
-	if self:is_timer_running("quick_save_time") and idivmod_eq_zero(self.tick, 3, 3) then
+	if self:is_timer_running("quick_save_time") and iflicker(self.tick, 3, 3) then
 		offset = idiv(self.tick, 1)
 	end
 
@@ -438,7 +438,7 @@ function BaseRescueArrowParticle:draw(elapsed, tick, t)
 	if self.target then
 		almost_dead = self.target.hp <= 1 and self.target.max_hp > 1
 	end
-    if not idivmod_eq_zero(gametime.tick + self.random_offset, 4, 2) then        
+    if not iflicker(gametime.tick + self.random_offset, 4, 2) then        
 	
 		graphics.set_color(Color.white)
 		local palette_offset = almost_dead and idiv(gametime.tick + self.random_offset, 3) or 0
@@ -470,7 +470,7 @@ function BaseRescueArrowParticle:draw(elapsed, tick, t)
 				self.arrow_points = self.arrow_points or {}
 				graphics.set_line_width(3 + (almost_dead and 1 or 0))
 				if almost_dead then
-                    graphics.set_color(idivmod_eq_zero(gametime.tick, 3, 2) and Color.green or Color.blue)
+                    graphics.set_color(iflicker(gametime.tick, 3, 2) and Color.green or Color.blue)
 				else
 					graphics.set_color(Color.black)
 				end
@@ -541,17 +541,17 @@ local FLOOR_PARTICLE_ARROW_LENGTH = 5
 function BaseRescueFloorParticle:draw(elapsed)
     local almost_dead = false
 	if not self.target then
-        if idivmod_eq_zero(self.random_offset + gametime.tick, 2, 2) then
+        if iflicker(self.random_offset + gametime.tick, 2, 2) then
             return
         end
-    elseif idivmod_eq_zero(self.random_offset + gametime.tick, 1, 3) then
+    elseif iflicker(self.random_offset + gametime.tick, 1, 3) then
 		return
     else
-		almost_dead = self.target.hp <= 1 and self.target.max_hp > 1 and idivmod_eq_zero(gametime.tick, 5, 2)
+		almost_dead = self.target.hp <= 1 and self.target.max_hp > 1 and iflicker(gametime.tick, 5, 2)
 	end
 	
 
-    local color = self.dead and Color.red or (idivmod_eq_zero(gametime.tick, 4, 2) and (almost_dead and Color.red or Color.white) or (almost_dead and Color.yellow or Color.green))
+    local color = self.dead and Color.red or (iflicker(gametime.tick, 4, 2) and (almost_dead and Color.red or Color.white) or (almost_dead and Color.yellow or Color.green))
     local size = max(self.size + sin(elapsed * 0.05) * (self.size * (self.target and 0.2 or 0)), self.size + 80 - elapsed * 7)
     graphics.set_color(color)
 	graphics.set_line_width(2)
@@ -592,7 +592,7 @@ end
 
 function BaseRescueSpawnParticle:new(x, y)
     BaseRescueSpawnParticle.super.new(self, x, y)
-    self.duration = rng:randf_range(30, 45)
+    self.duration = rng:randf(30, 45)
 	self.size = clamp(rng:randfn(4, 0.25), 1, 8)
 end
 
@@ -601,7 +601,7 @@ function BaseRescueSpawnParticle:update(dt)
 end
 
 function BaseRescueSpawnParticle:draw(elapsed, tick, t)
-    local color = idivmod_eq_zero(gametime.tick, 2, 2) and Color.white or Color.green
+    local color = iflicker(gametime.tick, 2, 2) and Color.white or Color.green
     local size = self.size * (1 - t)
     graphics.set_color(color)
     graphics.rectangle("fill", -size / 2, -size / 2, size, size)
@@ -706,7 +706,7 @@ function BaseRescuePickupParticle:draw(elapsed, tick, t)
 				graphics.rectangle("line", p1[1], p1[2], p2[1] - p1[1], p2[2] - p1[2])
 			end
 
-			if t2 >= 0.9 and idivmod_eq_zero(gametime.tick + line.id, 2, 2) then
+			if t2 >= 0.9 and iflicker(gametime.tick + line.id, 2, 2) then
 				local size = rect_size + sin((line.id + elapsed) * 0.05) * rect_size * 0.2 + rect_size * 0.2
 				graphics.set_color(line.rect_color)
 				graphics.rectangle("line", -size * 0.5, -size * 0.5, size, size)
@@ -720,7 +720,7 @@ function BaseRescuePickupParticle:draw(elapsed, tick, t)
 	graphics.set_color(Color.white)
 
 	
-	if not idivmod_eq_zero(gametime.tick, 2, 3) then
+	if not iflicker(gametime.tick, 2, 3) then
 		local textures = self.pickup.textures
 		local index = idivmod(gametime.tick, 8, #textures) + 1
 		local texture = textures[index]

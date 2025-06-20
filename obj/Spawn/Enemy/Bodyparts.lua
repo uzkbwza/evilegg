@@ -141,7 +141,7 @@ function EyeballLaser:draw()
 
     self:body_translate()
 	
-	graphics.set_color(idivmod_eq_zero(self.tick, 4, 2) and Color.black or Color.darkgrey)
+	graphics.set_color(iflicker(self.tick, 4, 2) and Color.black or Color.darkgrey)
     graphics.set_line_width(rad + 2)
 	graphics.rectangle_centered("fill", start_x, start_y, rad + 2, rad + 2)
 	graphics.line(start_x, start_y, 0, 0)
@@ -387,7 +387,7 @@ end
 
 function Foot:draw()
 
-    if self.intangible and idivmod_eq_zero(self.tick, 1, 2) then
+    if self.intangible and iflicker(self.tick, 1, 2) then
 		return
 	end
 	Foot.super.draw(self)
@@ -519,7 +519,7 @@ end
 function SniffParticle:spawn_particle(radius_mod)
 	local s = self.sequencer
 	s:start(function()
-        local rand_x, rand_y = rng:random_vec2_times(rng:randf_range(Nose.sniff_radius / 4, Nose.sniff_radius) * (radius_mod or 1))
+        local rand_x, rand_y = rng:random_vec2_times(rng:randf(Nose.sniff_radius / 4, Nose.sniff_radius) * (radius_mod or 1))
         local dx, dy = vec2_normalized(rand_x, rand_y)
 		
 		local size = max(abs(rng:randfn(2, 1.5)), 0.5)
@@ -585,7 +585,7 @@ function Nose:sniff_anim(time_on, time_off)
 	self.sprite = textures.enemy_nose2
     self:play_sfx("enemy_nose_sniff", 0.85)
 	if self.sniff_particle then
-		for i = 1, rng:randi_range(10, 20) do
+		for i = 1, rng:randi(10, 20) do
 			self.sniff_particle:spawn_particle(0.5)
 		end
 	end
@@ -599,7 +599,7 @@ function Nose:state_Sniff_enter()
     s:start(function()
 		self.sprite = textures.enemy_nose1
         while self.world:get_number_of_objects_with_tag("sniffing_noses") > 0 do
-            s:wait(rng:randi_range(120, 240))
+            s:wait(rng:randi(120, 240))
         end
         self:add_tag("sniffing_noses")
 		self:sniff_anim(5, 3)
@@ -641,7 +641,7 @@ function Nose:state_Sniff_update(dt)
         self.world.game_object_grid:each_self(rx, ry + SNIFF_OFFSET, rw, rh, self.do_sniff, self, dt)
         if self.sniff_particle then
 			if self.is_new_tick and rng:percent(90) then
-				for _=1, rng:randi_range(1, 3) do
+				for _=1, rng:randi(1, 3) do
                     self.sniff_particle:spawn_particle()
 				end
 			end
@@ -702,7 +702,7 @@ function Mouth:update(dt)
 end
 
 function Mouth:get_sprite()
-	return idivmod_eq_zero(self.tick, (self.pause_walking_toward_player and 10 or 3), 2) and textures.enemy_mouth1 or textures.enemy_mouth2
+	return iflicker(self.tick, (self.pause_walking_toward_player and 10 or 3), 2) and textures.enemy_mouth1 or textures.enemy_mouth2
 end
 
 

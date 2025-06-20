@@ -116,14 +116,14 @@ function Artefact:remove_artefact()
 end
 
 function Artefact:draw()
-    local selection_flash = idivmod_eq_zero(self.tick, 3, 2) and self.selection_flashing
+    local selection_flash = iflicker(self.tick, 3, 2) and self.selection_flashing
 	
 	if not selection_flash then
 	local texture1 = (self.selected) and (textures.hud_artefact_slot2) or textures.hud_artefact_slot1
 		graphics.drawp_centered(texture1, nil, 0, 0, 0)
 	end
 
-	if self.flashing and idivmod_eq_zero(self.tick, 3, 2) then
+	if self.flashing and iflicker(self.tick, 3, 2) then
 		return
 	end
 

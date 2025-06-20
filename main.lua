@@ -2,7 +2,7 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "101100.435.50"
+GAME_VERSION = "0.0e.0"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -29,8 +29,9 @@ require "lib.vector"         ; require "lib.rect"
 require "lib.random_crap"    ; require "lib.sequencer"
 require "physics_layers"     ; require "lib.anim"
 require "lib.collision"      ; require "datastructure.bst"
-require "datastructure.bst2" ; require "lib.func"
-require "lib.bench"
+require "datastructure.bst2"; require "lib.func"
+
+bench            = require "lib.bench"
 
 bonglewunch      = require "datastructure.bonglewunch"
 makelist         = require "datastructure.smart_array"
@@ -212,7 +213,7 @@ function love.run()
             end
         else debug_printed_peak = false end
 
-        if conf.manual_gc then manual_gc(0.0001, math.huge, false) end
+        if conf.manual_gc then manual_gc(0.001, math.huge, false) end
         frame_length = step_length
         if cap_fps and not usersettings.vsync and not debug_ffwd then
             local min_frame_time = 1 / conf.max_fps
@@ -223,17 +224,27 @@ function love.run()
 end
 
 function love.load(...)
-    if table.list_has(arg, "build_assets") then love.window.minimize() end
-    graphics.load(); debug.load()
-    if table.list_has(arg, "build_assets") then require("tools.palletizer")(); love.event.quit(); return end
-    Palette.load(); audio.load(); tilesets.load(); input.load()
-    game = filesystem.get_modules("game").MainGame(); game:load()
+    local build_assets = table.list_has(arg, "build_assets") and not IS_EXPORT
+	if build_assets then love.window.minimize() end
+    graphics.load()
+	debug.load()
+    if build_assets then
+        require("tools.palletizer")()
+        love.event.quit()
+        return
+	end
+    Palette.load()
+    audio.load()
+    tilesets.load()
+	input.load()
+    game = filesystem.get_modules("game").MainGame()
+	game:load()
 end
 
 local averaged_frame_length = 0
 function love.update(dt)
     leaderboard.poll()
-    if debug.enabled then
+    if debug.enabled and debug.can_draw() then
         local flen = step_length*1000
         averaged_frame_length = (flen>averaged_frame_length) and flen or splerp(averaged_frame_length, flen, 1000.0, dt)
         dbg("fps", love.timer.getFPS(), Color.pink)
@@ -242,7 +253,12 @@ function love.update(dt)
         dbg("step length (ms)", string.format("%.3f", flen), Color.pink)
         dbg("step peak (ms)", string.format("%.3f", averaged_frame_length), Color.pink)
         dbg("frame len (ms)", string.format("%.3f", frame_length * 1000), Color.pink)
-
+        dbg("signal emitters", table.length(signal.emitters), Color.green)
+        dbg("signal listeners", table.length(signal.listeners), Color.green)
+		local stats = signal.debug_get_pool_stats()
+        for name, s in pairs(stats) do
+            dbg("pool: "..name, string.format("%d/%d", s.used, s.total), Color.green)
+        end
     end
     dt = dt * gametime.scale
     input.update(dt)

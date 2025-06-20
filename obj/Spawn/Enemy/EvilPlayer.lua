@@ -27,7 +27,7 @@ function EvilPlayer:new(x, y)
 	self.target_angle = 0
 	self.melee_attacking = false
     self.intangible = true
-	-- self.sfx_offset = rng:randi_range(-25, 25)
+	-- self.sfx_offset = rng:randi(-25, 25)
 	self.sfx_offset = 0
 end
 
@@ -165,7 +165,7 @@ function EvilPlayer:draw()
 
 	local rect_size = min(19 + sin(self.elapsed * 0.08) * 2, self.elapsed * 0.5)
     graphics.push()
-    local color = idivmod_eq_zero(self.tick, 2, 2) and Color.white or Color.magenta
+    local color = iflicker(self.tick, 2, 2) and Color.white or Color.magenta
     local palette = self:get_palette_shared()
 	if palette then
 		color = palette:tick_color(self.elapsed, 0, 2)

@@ -65,11 +65,11 @@ function RailGunProjectile:draw_ring(start, elapsed, angle, back)
 		local e6 = max(0 + elapsed - start - diff_amount * 2, 0)
 		local irng = self.irng
         irng:set_seed(i + self.random_offset)
-		local outer_smoke_time = irng:randf_range(15, 20)
+		local outer_smoke_time = irng:randf(15, 20)
 		local t2 = clamp(e3/outer_smoke_time, 0, 1)
 		
 		local t3 = t2
-		t3 = t2 * irng:randf_range(0.9, 1.1)
+		t3 = t2 * irng:randf(0.9, 1.1)
 			
 		graphics.push("all")
 

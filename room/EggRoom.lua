@@ -4,6 +4,8 @@ local EggRoomDirector = GameObject:extend("EggRoomDirector")
 
 EggRoom.can_highlight_enemies = false
 
+EggRoomDirector.is_egg_director = true
+
 local EvilPlayer = require("obj.Spawn.Enemy.EvilPlayer")
 local EvilGreenoidBoss = require("obj.Spawn.Enemy.EvilGreenoidBoss")
 local EggBoss = require("obj.Spawn.Enemy.EggBoss")
@@ -40,6 +42,10 @@ function EggRoom:initialize(world)
 	end)
 end
 
+function EggRoom:get_clear_color()
+	return self.director and self.director:get_clear_color() or nil
+end
+
 function EggRoom:get_border_color()
 	return self.director and self.director:get_border_color() or nil
 end
@@ -50,7 +56,19 @@ function EggRoomDirector:new()
 	self:add_time_stuff()
 end
 
+function EggRoomDirector:get_clear_color()
+	if self:is_timer_running("phase2_landing_fade") then
+		-- local t = self:timer_progress("phase2_landing_fade")
+        local color = Color.grey
+		return color
+	end
+	return nil
+end
+
 function EggRoomDirector:get_border_color()
+	if self.phase4_landing then
+		return Color.transparent
+	end
 	if self.world.state == "RoomClear" then return nil end
     local stopwatch = self:get_stopwatch("time_since_killed_elevator")
     if stopwatch then
@@ -65,7 +83,7 @@ function EggRoomDirector:get_border_color()
     end
 	local stopwatch2 = self:get_stopwatch("time_since_cracked_egg")
 	if stopwatch2 then
-        local color = Color.nearblack
+        local color = Color.darkergrey
         self.elevator_kill_color = self.elevator_kill_color or Color(color.r, color.g, color.b, 1)
         local mod = clamp01(stopwatch2.elapsed / 180) * 0.6
 		-- print(mod)
@@ -78,18 +96,19 @@ function EggRoomDirector:get_border_color()
 end
 
 function EggRoomDirector:enter()
+	-- game_state.cutscene_hide_hud = true
+
     local world = self.world
     local s = self.sequencer
-	s:start(function()
-		s:wait(15)
-		-- world:on_room_clear()
-		self:ref("egg_elevator", world:spawn_object(EggElevator(world, 0, 0)))
-		signal.connect(self.egg_elevator, "player_choice_made", self, "on_player_choice_made")
-	end)
-	world.draining_bullet_powerup = true
-
-	
+    s:start(function()
+        s:wait(15)
+        -- world:on_room_clear()
+        self:ref("egg_elevator", world:spawn_object(EggElevator(world, 0, 0)))
+        signal.connect(self.egg_elevator, "player_choice_made", self, "on_player_choice_made")
+    end)
+    world.draining_bullet_powerup = true
 end
+
 
 function EggRoomDirector:on_player_choice_made(choice, player)
     local world = self.world
@@ -97,6 +116,8 @@ function EggRoomDirector:on_player_choice_made(choice, player)
     s:start(function()
         local elevator = self.egg_elevator
         if choice == "kill_elevator" then
+			game_state.cutscene_hide_hud = false
+
 			audio.play_music_if_stopped("music_evil_player_theme")
 
 			local boss = rng:choose(bosses)
@@ -128,7 +149,27 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 			
             signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
 				self:start_stopwatch("time_since_cracked_egg")
+				game_state.cutscene_hide_hud = false
+            end, true)
+			
+			signal.connect(self.egg_boss, "phase2_landing", self, "on_egg_boss_phase2_landing", function()
+				self:start_timer("phase2_landing_fade", 5, function()
+				end)
+				audio.play_music("music_egg_boss2", 1.0)
+			end, true)
+
+			signal.connect(self.egg_boss, "phase4_landing", self, "on_egg_boss_phase4_landing", function()
+                self.phase4_landing = true
+                self.world.room:set_bounds(1200, 1200)
+                -- self.world.room.free_camera = true
+                audio.stop_all_object_sfx(self.world.canvas_layer)
+                audio.stop_music()
+                self:start_timer("phase4_landing_music", 30, function()
+					-- audio.play_music("music_egg_boss3", 1.0)
+				end)
 				-- audio.play_music("music_egg_boss1", 1.0)
+
+				game_state.cutscene_hide_hud = true
 			end, true)
 			
             while self.egg_boss do

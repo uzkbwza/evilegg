@@ -25,12 +25,12 @@ function rng:percent(chance)
 	return (self() * 100) < chance
 end
 
-function rng:randf_range(min_, max_)
-	return self:randf(min_, max_)
+function rng:one_in(n)
+    return self(1, n) == 1
 end
 
-function rng:randi_range(min_, max_)
-	return self(min_, max_)
+function rng:randf_pow(min_, max_, power)
+	return remap01(pow(self(), power), min_, max_)
 end
 
 function rng:rand_sign()
@@ -67,6 +67,17 @@ function rng:random_vec2_times(radius)
 	return x * radius, y * radius
 end
 
+function rng:random_point_in_rect(x, y, w, h)
+    return self:randf(x, x + w), self:randf(y, y + h)
+end
+
+function rng:random_point_in_circle(radius)
+    if radius == 0 then return 0, 0 end
+    local r = radius * math.sqrt(self())
+    -- We get a random vector on the unit circle and scale it by r
+    return self:random_vec2_times(r)
+end
+
 function rng:choose(...)
     local args = { ... }
     if #args == 1 and type(args[1]) == "table" then
@@ -76,9 +87,23 @@ function rng:choose(...)
     end
 end
 
+function rng:shuffle(t)
+    for i = #t, 2, -1 do
+        local j = self(1, i)
+        t[i], t[j] = t[j], t[i]
+    end
+    return t
+end
+
+function rng:pick(t)
+	local len = #t
+    if len == 0 then return nil end
+    return table.remove(t, self(1, len))
+end
+
 local weight_table = {}
 
-function rng:weighted_randi_range(start, finish, weight_function)
+function rng:weighted_randi(start, finish, weight_function)
     if start == finish then
         return start
     end
@@ -98,7 +123,7 @@ function rng:weighted_randi_range(start, finish, weight_function)
 
 	local cursor = 0
 	
-	local target = self:randi_range(0, sum)
+	local target = self:randi(0, sum)
 	
 	for i=start, finish do
 		cursor = cursor + weight_table[i - start]
@@ -135,7 +160,7 @@ function rng:weighted_choice(values, weights)
 		error("parameter 'weights' must be a table, function, or string key pointing to a weight value in each item of the table")
 	end
 	_temp_weight_table = weights
-	local i = self:weighted_randi_range(1, #values, _array_index)
+	local i = self:weighted_randi(1, #values, _array_index)
 	_temp_weight_table = nil
 	return values[i]
 end

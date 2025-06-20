@@ -14,7 +14,7 @@ debuggy.disable_music = false
 debuggy.lines = {}
 debuggy.memory_used = 0
 debuggy.skip_tutorial_sequence = false
-debuggy.no_hatch_sound = true
+debuggy.no_hatch_sound = false
 debuggy.can_frame_advance = true
 debuggy.slow_motion = false
 
@@ -39,7 +39,8 @@ function debuggy.can_draw_bounds()
 end
 
 function debuggy.load()
-	if not debuggy.enabled then return end
+    if not debuggy.enabled then return end
+	if IS_EXPORT then return end
 	if debuggy.build_assets then
 		require("tools.palletizer")()
 		graphics.load()
@@ -107,7 +108,7 @@ function debuggy.printlines(x, y)
 		local v, color = table.fast_unpack(tab)
 		local string = string.format("%s: %s", k, v)
 		local width = font:getWidth(string)
-		graphics.set_color(0, 0, 0, 0.5)
+		graphics.set_color(0, 0, 0, 0.15)
 		graphics.rectangle("fill", x, counter * line_height, width, line_height)
 		counter = counter + 1
 	end
@@ -117,7 +118,7 @@ function debuggy.printlines(x, y)
 		local k, tab = line[1], line[2]
 		local v, color = table.fast_unpack(tab)
 
-		graphics.set_color(color or Color.white)
+		graphics.set_color((color or Color.white), 0.75)
 		if v == "" then
 			graphics.print_outline(Color.black, k, x, counter * line_height)
 			v = "nil"
@@ -316,6 +317,10 @@ function debuggy.update(dt)
 		debuggy.fast_forward = false
 	end
 
+	if input.debug_signal_snapshot_pressed then
+		debuggy.snapshot_signals()
+	end
+
 	table.insert(debuggy.dt_history, {
 		time = gametime.love_time,
 		dt = gametime.love_delta,
@@ -324,17 +329,10 @@ function debuggy.update(dt)
 
 	local min_time = gametime.love_time - debuggy.dt_history_seconds
 	local number_of_old_times_to_remove = 0
-	-- local interpolated_dt = nil
 
 	if #debuggy.dt_history > 1 then
 		for i = #debuggy.dt_history, 2, -1 do
 			if debuggy.dt_history[i].time >= min_time and debuggy.dt_history[i - 1].time < min_time then
-				-- local this_time = debuggy.dt_history[i].time
-				-- local last_time = debuggy.dt_history[i - 1].time
-				-- local this_dt = debuggy.dt_history[i].dt
-				-- local last_dt = debuggy.dt_history[i - 1].dt
-
-				-- interpolated_dt = {time = min_time, dt = lerp(last_dt, this_dt, inverse_lerp(last_time, this_time, min_time))}
 				number_of_old_times_to_remove = i - 1
 				break
 			end
@@ -344,10 +342,6 @@ function debuggy.update(dt)
 	for i = number_of_old_times_to_remove, 1, -1 do
 		table.remove(debuggy.dt_history, i)
 	end
-
-	-- if interpolated_dt then
-	-- 	table.insert(debuggy.dt_history, 1, interpolated_dt)
-	-- end
 end
 
 function debuggy.toggle_console()
@@ -387,14 +381,24 @@ function debuggy.type_name(o)
 	return global_type_table[getmetatable(o) or 0] or "Unknown"
 end
 
-function debuggy.type_count()
-	local counts = {}
-	local enumerate = function(o)
-		local t = debuggy.type_name(o)
-		counts[t] = (counts[t] or 0) + 1
+function debuggy.type_count(t, counted)
+	counted = counted or {}
+	local types = {}
+	local biggest_guys = {}
+	for k, v in pairs(t) do
+		local type_name = type(v)
+		types[type_name] = (types[type_name] or 0) + 1
+		if type_name == "table" then
+			if not counted[v] then
+				counted[v] = true
+				local sub_types = debuggy.type_count(v, counted)
+				for sub_type_name, count in pairs(sub_types) do
+					types[sub_type_name] = (types[sub_type_name] or 0) + count
+				end
+			end
+		end
 	end
-	debuggy.count_all(enumerate)
-	return counts
+	return types
 end
 
 function dbg(k, v, color)
@@ -412,6 +416,89 @@ function dbg(k, v, color)
 	debuggy.lines[k] = debuggy.lines[k] or { v, color }
 	debuggy.lines[k][1] = v
 	debuggy.lines[k][2] = color
+end
+
+local signal_snapshot = nil
+
+local function tostring_with_hash(val)
+    if type(val) ~= "table" then
+        return tostring(val)
+    end
+
+    local name = tostring(val)
+    local success, mt = pcall(getmetatable, val)
+
+    if success and mt and mt.__tostring then
+        local original_tostring = mt.__tostring
+        mt.__tostring = nil
+        local hash = tostring(val)
+        mt.__tostring = original_tostring
+        if string.find(name, hash, 1, true) then
+            return name
+        end
+        return string.format('%s (%s)', name, hash)
+    else
+        return name
+    end
+end
+
+local function get_top_level_keys_as_set(t)
+    local set = {}
+    for k, _ in pairs(t) do
+        set[tostring_with_hash(k)] = true
+    end
+    return set
+end
+
+local function print_sorted_diff(title, diff_table)
+    local keys = {}
+    for k in pairs(diff_table) do
+        table.insert(keys, k)
+    end
+    table.sort(keys)
+
+    if #keys > 0 then
+        print(title)
+        for _, k in ipairs(keys) do
+            local v = diff_table[k]
+            if v.added then
+                print("  + " .. k)
+            elseif v.removed then
+                print("  - " .. k)
+            end
+        end
+    end
+end
+
+function debuggy.snapshot_signals()
+    if not signal_snapshot then
+        print("Taking initial signal snapshot...")
+        signal_snapshot = {
+            emitters = get_top_level_keys_as_set(signal.emitters),
+            listeners = get_top_level_keys_as_set(signal.listeners)
+        }
+        print("Snapshot taken.")
+        return
+    end
+
+    print("Comparing with previous signal snapshot...")
+    local new_snapshot = {
+        emitters = get_top_level_keys_as_set(signal.emitters),
+        listeners = get_top_level_keys_as_set(signal.listeners)
+    }
+
+    local emitters_diff = table.diff(signal_snapshot.emitters, new_snapshot.emitters)
+    local listeners_diff = table.diff(signal_snapshot.listeners, new_snapshot.listeners)
+
+    if not next(emitters_diff) and not next(listeners_diff) then
+        print("No changes in signals.")
+    else
+        print_sorted_diff("--- Emitters Diff ---", emitters_diff)
+        print_sorted_diff("--- Listeners Diff ---", listeners_diff)
+    end
+
+    signal_snapshot = new_snapshot
+    print("New snapshot taken.")
 end
 
 return debuggy

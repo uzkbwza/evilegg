@@ -56,7 +56,7 @@ end
 function FastBouncer:new(x, y)
     FastBouncer.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
-    self.walk_speed = 0.6
+    self.walk_speed = 0.9
     self.drag = 0.025
     self.walk_toward_player_chance = 99
     self.bullet_push_modifier = 2.5
@@ -73,7 +73,7 @@ function FastBouncer:get_sprite()
 end
 
 function FastBouncer:get_palette()
-	if idivmod_eq_zero(self.tick, 6, 5) then
+	if iflicker(self.tick, 6, 5) then
 		return nil, idiv(self.tick, 3)
 	end
 	return nil, nil

@@ -31,7 +31,7 @@ function Charger:new(x, y)
 end
 
 function Charger:enter()
-	self:charge(rng:randi_range(30, 60))
+	self:charge(rng:randi(30, 60))
 end
 
 function Charger:hit_by(object)
@@ -81,7 +81,7 @@ function Charger:charge(time)
     self:stop_tick_timer("waiting")
 	self:stop_tick_timer("effect")
 
-	local wait_time = time or rng:randi_range(25, 120)
+	local wait_time = time or rng:randi(25, 120)
 	self:start_tick_timer("effect", wait_time - 5, function()
         self.pdx, self.pdy = self:get_body_direction_to_player()
 
@@ -225,7 +225,7 @@ function ChargerIndicator:enter()
 	end)
 end
 function ChargerIndicator:draw(elapsed, tick, t)
-	-- if idivmod_eq_zero(gametime.tick, 2, 2) then
+	-- if iflicker(gametime.tick, 2, 2) then
 	-- 	return
 	-- end
 
@@ -238,7 +238,7 @@ function ChargerIndicator:draw(elapsed, tick, t)
 	end
 	for i=1, NUM_INDICATORS do
 		local size = 2
-		graphics.set_color(idivmod_eq_zero(gametime.tick, 3, 2) and Color.red or Color.yellow)
+		graphics.set_color(iflicker(gametime.tick, 3, 2) and Color.red or Color.yellow)
 		graphics.rectangle("fill", -size / 2 + (i * self.dx) * INDICATOR_SEPARATION, -size / 2 + (i * self.dy) * INDICATOR_SEPARATION, size, size)
 	end
 end

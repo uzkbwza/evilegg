@@ -289,6 +289,7 @@ function CodexWorld:_open_page(page_category, page_number)
 	end
 end
 
+
 local unknown_entry = {
 	icon = textures.ui_codex_unknown,
 	sprite = textures.ui_codex_unknown_sprite,
@@ -299,16 +300,19 @@ local unknown_entry = {
 
 function CodexWorld:add_spawn_button(spawn, index)
 
+	
 	if not savedata:check_codex_item(spawn.codex_save_name) then
-	-- if not savedata:check_codex_item(spawn.codex_save_name) and not debug.enabled then
+		-- if not savedata:check_codex_item(spawn.codex_save_name) and not debug.enabled then
 		spawn = unknown_entry
 	end
-
+	
 	local x = MENU_ITEM_H_PADDING + ((index - 1) % NUM_OBJECT_COLUMNS) * (ICON_SIZE)
 	local y = MENU_ITEM_V_PADDING + floor((index - 1) / NUM_OBJECT_COLUMNS) * (ICON_SIZE) + 25
+	local icon = spawn.icon
 
+	-- if graphics.depalettized[icon] == nil then icon = unknown_entry.icon end
 
-    local button = self.menu_root:add_child(self:add_object(O.CodexMenu.CodexEntryButton(x, y, spawn.icon, spawn)))
+    local button = self.menu_root:add_child(self:add_object(O.CodexMenu.CodexEntryButton(x, y, icon, spawn)))
 
 	signal.connect(button, "focused", self, "open_spawn_description", function()
 		self:defer(function() self:open_spawn_description(spawn) end)

@@ -46,7 +46,7 @@ function DogRescue:state_Roaming_update(dt)
         self:change_state("Fleeing")
 		return
     end
-    self.sprite = idivmod_eq_zero(self.tick, 4, 2) and textures.ally_rescue_dog1 or textures.ally_rescue_dog2
+    self.sprite = iflicker(self.tick, 4, 2) and textures.ally_rescue_dog1 or textures.ally_rescue_dog2
 
 
 
@@ -95,7 +95,7 @@ function DogRescue:draw()
     DogRescue.super.draw(self)
 	if self.state == "Fleeing" and self.state_tick < 40 then
 		-- graphics.set_color(Color.white)
-		if idivmod_eq_zero(gametime.tick, 4, 2) then
+		if iflicker(gametime.tick, 4, 2) then
 			graphics.drawp_centered(textures.ally_rescue_dog_exclamation_mark, nil, 0, 0, -12, 0, 1, 1)
 		end
 	end
@@ -111,7 +111,7 @@ function DogRescue:state_Fleeing_update(dt)
     else
         self:apply_force(dx * FLEE_SPEED, dy * FLEE_SPEED)
     end
-    self.sprite = idivmod_eq_zero(self.tick, 3, 2) and textures.ally_rescue_dog1 or textures.ally_rescue_dog3
+    self.sprite = iflicker(self.tick, 3, 2) and textures.ally_rescue_dog1 or textures.ally_rescue_dog3
     if self.vel.x ~= 0 then
         self:set_flip(self.vel.x < 0 and -1 or 1)
     end
@@ -125,7 +125,7 @@ end
 
 -- function DogScaredParticle:draw(elapsed, tick, t)
 --     graphics.set_color(Color.white)
--- 	if idivmod_eq_zero(gametime.tick, 2, 2) then
+-- 	if iflicker(gametime.tick, 2, 2) then
 -- 		graphics.drawp_centered(textures.ally_rescue_dog_exclamation_mark, nil, 0, 0, -t * 2, 0, 1, 1)
 -- 	end
 -- end

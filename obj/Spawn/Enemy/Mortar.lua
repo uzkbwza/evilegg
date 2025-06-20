@@ -182,7 +182,7 @@ end
 
 function MortarProjectile:update(dt)
     if self.shadow then
-        if self.go_time < self.descend_time - 45 or idivmod_eq_zero(gametime.tick, 3, 2) then
+        if self.go_time < self.descend_time - 45 or iflicker(gametime.tick, 3, 2) then
             self.shadow.radius = ease("outSine")(1 - abs(self.sprite_y / self.max_height)) * 35
         else
             self.shadow.radius = 0
@@ -221,14 +221,14 @@ function MortarProjectileRing:new(x, y, sprite_y)
 end
 
 function MortarProjectileRing:draw(elapsed, tick, t)
-    if not idivmod_eq_zero(self.tick, 3, 3) then
+    if not iflicker(self.tick, 3, 3) then
 		return
 	end
 	local size = t * 15 + 5
     graphics.set_color(Color.black)
 	graphics.set_line_width(4)
 	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
-    graphics.set_color(idivmod_eq_zero(gametime.tick, 4, 2) and Color.red or Color.yellow)
+    graphics.set_color(iflicker(gametime.tick, 4, 2) and Color.red or Color.yellow)
 	graphics.set_line_width(2)
 	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
 end
@@ -242,22 +242,22 @@ end
 function MortarProjectile:draw()
     local sprite
     if self.state == "Up" then
-        sprite = idivmod_eq_zero(self.tick, 4, 2) and textures.enemy_mortar_missile1 or textures.enemy_mortar_missile2
+        sprite = iflicker(self.tick, 4, 2) and textures.enemy_mortar_missile1 or textures.enemy_mortar_missile2
     elseif self.state == "Down" then
-        sprite = idivmod_eq_zero(self.tick, 4, 2) and textures.enemy_mortar_missile3 or textures.enemy_mortar_missile4
+        sprite = iflicker(self.tick, 4, 2) and textures.enemy_mortar_missile3 or textures.enemy_mortar_missile4
 		local rad = remap((abs(self.sprite_y / self.max_height)), 0, 1, 20, 60)
         local line_length = (1 - abs(self.sprite_y / self.max_height)) * 40
 
 		graphics.push()
         graphics.scale(1, 1)
-		if self.go_time < self.descend_time - 45 or idivmod_eq_zero(gametime.tick, 3, 2) then
+		if self.go_time < self.descend_time - 45 or iflicker(gametime.tick, 3, 2) then
 			for i = 1, 4 do
 				graphics.push()
                 graphics.rotate(-self.elapsed * 0.15 + (self.random_offset * tau) + (tau / 4) * i)
 				graphics.set_color(Color.black)
 				graphics.set_line_width(4)
 				graphics.line(rad * -0.5, 0, rad * -0.5-line_length, 0)
-				graphics.set_color(idivmod_eq_zero(gametime.tick, 4, 2) and Color.red or Color.yellow)
+				graphics.set_color(iflicker(gametime.tick, 4, 2) and Color.red or Color.yellow)
 
 				graphics.set_line_width(2)
 				graphics.line(rad * -0.5, 0, rad * -0.5-line_length, 0)
@@ -297,7 +297,7 @@ function MortarShadow:draw_circ(radius, thickness)
     graphics.set_color(Color.black)
 	graphics.ellipse("line", 0, 0, radius, radius * 1, 10)
 	graphics.set_line_width(thickness)
-    graphics.set_color(idivmod_eq_zero(gametime.tick, 4, 2) and Color.red or Color.yellow)
+    graphics.set_color(iflicker(gametime.tick, 4, 2) and Color.red or Color.yellow)
 	graphics.ellipse("line", 0, 0, radius, radius * 1, 10)
 end
 

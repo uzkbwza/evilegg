@@ -55,6 +55,7 @@ function graphics.load_textures(texture_atlas)
     local texture_data = {}
     local texture_names = {}
     local texture_paths = {}
+	print("loading textures")
     local palettized = {}
 	local depalettized = {}
 	local sprite_paths = filesystem.get_files_of_type("assets/sprite", "png", true)
@@ -72,8 +73,6 @@ function graphics.load_textures(texture_atlas)
 		if textures[name] then
 			asset_collision_error(name, path, texture_paths[name])
 		end
-
-
 
         texture_names[name] = name
 		texture_names[tex] = name
@@ -94,6 +93,7 @@ function graphics.load_textures(texture_atlas)
         texture_data[data] = data
         texture_data[path] = data
         texture_data[name] = data
+
 		texture_count = texture_count + 1
 	end
 

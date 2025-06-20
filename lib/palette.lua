@@ -152,7 +152,7 @@ function Palette:get_color_index_unpacked(r, g, b)
 end
 
 function Palette:random_color()
-    return self.colors[rng:randi_range(1, self.length)]
+    return self.colors[rng:randi(1, self.length)]
 end
 
 function Palette:interpolate(t)
@@ -235,7 +235,10 @@ end
 
 function Palette:get_swapped_color_unpacked(r, g, b, other_palette, offset)
 	offset = offset or 0
-	local color_index = self:get_color_index_unpacked(r, g, b)
+    local color_index = self:get_color_index_unpacked(r, g, b)
+	if color_index == nil then
+		return Color(r, g, b, 1)
+	end
 	return other_palette:get_color(color_index + offset)
 end
 
@@ -248,7 +251,7 @@ function Palette:new_mapped(mapping)
 end
 
 function Palette:get_random_color()
-	return self.colors[rng:randi_range(1, self.length)]
+	return self.colors[rng:randi(1, self.length)]
 end
 
 function Palette:sub_cycle()

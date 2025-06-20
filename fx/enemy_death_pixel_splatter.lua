@@ -10,6 +10,8 @@ local DRAG = 0.15
 
 local DeathSplatter = Effect:extend("DeathSplatter")
 
+DeathSplatter.is_death_flash = true
+
 -- TODO: use quads instead of pixels
 function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_length, vel_x, vel_y, hit_point_x, hit_point_y, center_speed_modifier)
 	DeathSplatter.super.new(self, x, y)
@@ -52,7 +54,7 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     dy = dy + height / 2
 
 
-	self.random_start_tick = rng:randi_range(0, 999)
+	self.random_start_tick = rng:randi(0, 999)
 
 	local diagonal_size = vec2_magnitude(width, height)
 	self.hit_angle = vec2_angle(vel_dir_x, vel_dir_y)

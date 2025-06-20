@@ -31,7 +31,7 @@ function bonglewunch:length()
 end
 
 function bonglewunch:random()
-    return self.__array[rng:randi_range(1, self.__length)]
+    return self.__array[rng:randi(1, self.__length)]
 end
 
 function bonglewunch:ipairs()
@@ -174,7 +174,7 @@ local function benchmark_bonglewunch(n)
 
 	start = love.timer.getTime()
 	for i = 1, 1 do
-		b:remove(rng:randi_range(1, n))
+		b:remove(rng:randi(1, n))
 	end
 	local remove_time = love.timer.getTime() - start
 
@@ -200,7 +200,7 @@ local function benchmark_plain_table(n)
 	-- Removal
 	start = love.timer.getTime()
 	for i = 1, 1 do
-		table.erase(t, rng:randi_range(1, n))
+		table.erase(t, rng:randi(1, n))
 	end
 
 	local remove_time = love.timer.getTime() - start

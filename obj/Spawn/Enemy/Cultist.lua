@@ -173,7 +173,7 @@ function Cultist:update(dt)
             local dx, dy = self:body_direction_to(rescue)
             rescue:apply_force(-dx * PULL_FORCE, -dy * PULL_FORCE)
             if self.is_new_tick and rng:percent(80) then
-                for i = 1, rng:randi_range(1, 2) do
+                for i = 1, rng:randi(1, 2) do
                     self.pull_particle:add_particle(rescue:get_body_center())
                 end
             end
@@ -259,9 +259,9 @@ function Cultist:spawn_rescue_projectile()
     -- projectile.target = self:get_closest_player()
 
     local s = self.sequencer
-    local num_projectiles = rng:randi_range(2, 5)
+    local num_projectiles = rng:randi(2, 5)
     if rng:percent(10) then
-		num_projectiles = num_projectiles + rng:randi_range(1, 3)
+		num_projectiles = num_projectiles + rng:randi(1, 3)
 	end
 	s:start(function()
         for i = 1, num_projectiles do
@@ -272,7 +272,7 @@ function Cultist:spawn_rescue_projectile()
 			s:wait(15)
 		end
     end)
-	self:start_tick_timer("spawn_projectile", rng:randi_range(20, 50) * num_projectiles, function()
+	self:start_tick_timer("spawn_projectile", rng:randi(20, 50) * num_projectiles, function()
         if self.powered_up then
 			self:spawn_rescue_projectile()
 		end
@@ -370,7 +370,7 @@ function PullParticle:add_particle(start_x, start_y)
 	particle.end_y = by
     particle.t = 0
 	particle.elapsed = 0
-    particle.size = rng:randf_range(0.25, 1) * 4
+    particle.size = rng:randf(0.25, 1) * 4
 	self.particles[particle] = true
 
 	local s = self.sequencer
@@ -386,19 +386,19 @@ function PullParticle:draw()
         particle.t))
 		
 		local color = Color.red
-        if idivmod_eq_zero(particle.elapsed, 6, 2) then
+        if iflicker(particle.elapsed, 6, 2) then
             color = Color.blue
         end
-		if idivmod_eq_zero(particle.elapsed, 1, 3) then
+		if iflicker(particle.elapsed, 1, 3) then
             color = Color.black
 		end
-		if idivmod_eq_zero(particle.elapsed, 1, 7) then
+		if iflicker(particle.elapsed, 1, 7) then
             color = Color.white
 		end
         graphics.set_color(color)
         local size = particle.size * remap01_lower(particle.t, 0.5)
 		local fill_ = "fill"
-		if idivmod_eq_zero(particle.elapsed, 3, 2) then
+		if iflicker(particle.elapsed, 3, 2) then
             size = size * 1.3
 			fill_ = "line"
 		end
@@ -425,8 +425,8 @@ function FloorParticle:update(dt)
 	if self.parent ~= nil then
 		if self.is_new_tick and not self.done and rng:percent(40 * (1 + (self.parent.hp - 4) / 3)) then
 			local particle = {}
-			particle.dist = rng:randf_range(12, 64) * (1 + (self.parent.hp - 4) / 6)
-			particle.start_angle = rng:randf_range(0, tau)
+			particle.dist = rng:randf(12, 64) * (1 + (self.parent.hp - 4) / 6)
+			particle.start_angle = rng:randf(0, tau)
 			particle.t = 0
 			particle.visible = rng:percent(25)
 			particle.angle_offset = 0
@@ -434,7 +434,7 @@ function FloorParticle:update(dt)
 			particle.outward_offset = 0
 			particle.outward_speed = 0
 			particle.final_offset = rng:randf(-1, 1) * tau
-			particle.size = rng:randf_range(0.25, 1) * 4 * (1 + (self.parent.hp - 4) / 8)
+			particle.size = rng:randf(0.25, 1) * 4 * (1 + (self.parent.hp - 4) / 8)
 			particle.offset = rng:randf(0, tau)
 			self.particles[particle] = true
 		end
@@ -474,13 +474,13 @@ function FloorParticle:draw()
 
 		local vx, vy = self:get_particle_position(particle)
 		local color = Color.red
-		if idivmod_eq_zero(particle.elapsed, 6, 2) then
+		if iflicker(particle.elapsed, 6, 2) then
 			color = Color.blue
 		end
         graphics.set_color(color)
 		-- if size >= 0.1 then
 		graphics.rectangle_centered("fill", vx, vy, size, size)
-        -- elseif idivmod_eq_zero(particle.elapsed, 1, max(1, floor(10 - particle.elapsed / 4))) then
+        -- elseif iflicker(particle.elapsed, 1, max(1, floor(10 - particle.elapsed / 4))) then
 			-- graphics.points(vx, vy)
 		-- end
 		::continue::
@@ -495,8 +495,8 @@ function FloorParticle:floor_draw()
 	if not self.done then
 		graphics.set_color(0, 0, 0, 1)
 		
-		for i = 1, rng:randi_range(1, 3) do
-			local size = rng:randf_range(2, 5)
+		for i = 1, rng:randi(1, 3) do
+			local size = rng:randf(2, 5)
 			local vx, vy = rng:random_vec2_times(rng:randfn(0, 3))
 			graphics.rectangle_centered("fill", vx, vy, size, size)
 		end

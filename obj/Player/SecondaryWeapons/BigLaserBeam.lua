@@ -39,7 +39,7 @@ function BigLaserBeam:new(x, y, dx, dy)
 	self.real_turn_endpoint_x = x + dx * BEAM_TARGET_LENGTH
     self.real_turn_endpoint_y = y + dy * BEAM_TARGET_LENGTH
 
-	self.persist = true
+	-- self.persist = true
 	-- self.turn_diff_x = 0
 	-- self.turn_diff_y = 0
 
@@ -80,14 +80,14 @@ function BigLaserBeam:create_beam_dust(x, y, dx, dy, speed, spread, spread_width
     spread_width = spread_width or 20
     local perp_x, perp_y = vec2_perpendicular(self.dx, self.dy)
     dx, dy = dx or self.dx, dy or self.dy
-    dx, dy = vec2_rotated(dx, dy, rng:randf_range(-spread, spread))
+    dx, dy = vec2_rotated(dx, dy, rng:randf(-spread, spread))
     x, y = x or self.pos.x + dx * 10, y or self.pos.y + dy * 10
-    local spread_width_amount = rng:rand_sign() * rng:randf_range(spread_width - 10, spread_width + 10)
+    local spread_width_amount = rng:rand_sign() * rng:randf(spread_width - 10, spread_width + 10)
 
     local spread_x, spread_y = vec2_mul_scalar(perp_x, perp_y, spread_width_amount)
     x, y = vec2_add(x, y, spread_x, spread_y)
 
-    x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf_range(0, 5)))
+    x, y = vec2_add(x, y, rng:random_vec2_times(rng:randf(0, 5)))
     speed = speed or rng:randf(0, 20)
     self.floor:create_dust_particle(x, y, dx, dy, speed)
 end
@@ -117,7 +117,7 @@ function BeamParticle:get_death_particle_hit_velocity()
 end
 
 function BigLaserBeam:update(dt)
-    self:update_points(dt)
+    -- self:update_points(dt)
 
 	if not self.floor then
         self:ref("floor", self:spawn_object(BigLaserBeamFloor(self.pos.x, self.pos.y))):ref("parent", self)
@@ -154,7 +154,7 @@ function BigLaserBeam:update(dt)
     if self.is_new_tick and not self.finished then
 
 		if rng:percent(10) then
-			for i = 1, rng:randi_range(1, 5) do
+			for i = 1, rng:randi(1, 5) do
 				self:create_beam_dust()
 			end
 		end
@@ -167,7 +167,7 @@ function BigLaserBeam:update(dt)
             beam_particle.pos.x, beam_particle.pos.y = vec2_add(beam_particle.pos.x, beam_particle.pos.y,
             vec2_mul_scalar(self.dx, self.dy, 5))
             beam_particle.pos.x, beam_particle.pos.y = vec2_add(beam_particle.pos.x, beam_particle.pos.y,
-            rng:random_vec2_times(rng:randf_range(0, 10)))
+            rng:random_vec2_times(rng:randf(0, 10)))
 			beam_particle.radius = beam_particle.size / 2
 			-- beam_particle.dx, beam_particle.dy = vec2_direction_to(beam_particle.pos.x, beam_particle.pos.y, self.target_endpoint_x, self.target_endpoint_y)
 
@@ -192,10 +192,10 @@ function BigLaserBeam:spawn_beam_end_particle(particle)
 	local beam_end_particle = {
         pos = Vec2(particle.pos.x, particle.pos.y),
         elapsed = 0,
-		size = rng:randf_range(32, 40),
-        duration = rng:randf_range(20, 50),
+		size = rng:randf(32, 40),
+        duration = rng:randf(20, 50),
         random_offset = rng:randi(),
-		num_particles = max(rng:randi_range(-1, 3), 1),
+		num_particles = max(rng:randi(-1, 3), 1),
     }
 	
 	(particle.dy < 0 and self.beam_end_under_particles or self.beam_end_particles):push(beam_end_particle)
@@ -212,7 +212,7 @@ function BigLaserBeam:draw_beam_start()
 	graphics.push("all")
 	local start_x, start_y = self.dx * 18, self.dy * 18
 	self.instance_rng:set_seed(self.random_offset + self.tick)
-	local size = self.instance_rng:randf_range(10, 30)
+	local size = self.instance_rng:randf(10, 30)
 	size = size * (1 + (1 - ease("outSine")(clamp01(self.elapsed / 25))) * 1.05)
     graphics.set_color(Palette.big_laser:tick_color(self.elapsed))
 	graphics.rectangle_centered("fill", start_x, start_y, size + 4, size + 4)
@@ -233,17 +233,17 @@ function BigLaserBeam:draw_beam_end_particle(particle, layer)
     for i = 1, num_particles do
         irng:set_seed(particle.random_offset + i)
 		local center = i == 1
-		local t2 = remap01(t, 0, irng:randf_range(center and 0.8 or 0.1, 1))
+		local t2 = remap01(t, 0, irng:randf(center and 0.8 or 0.1, 1))
         local x, y = particle.pos.x, particle.pos.y
 		local size = particle.size
 		
-		local travel_distance = irng:randf_range(2, 32)
+		local travel_distance = irng:randf(2, 32)
         
         if center then
             travel_distance = travel_distance * 0.25
         else
-            size = irng:randf_range(particle.size * 0.05, particle.size * 0.25)
-            x, y = vec2_add(x, y, irng:random_vec2_times(irng:randf_range(0, 16)))
+            size = irng:randf(particle.size * 0.05, particle.size * 0.25)
+            x, y = vec2_add(x, y, irng:random_vec2_times(irng:randf(0, 16)))
         end
 
 		size = size * (1 - ease("outExpo")(t2))
@@ -260,8 +260,8 @@ function BigLaserBeam:draw_beam_end_particle(particle, layer)
             graphics.set_line_width(line_width)
             size = size + line_width * 2
             if center and t2 < 0.5 then
-                local center_scale = 1 + (ease("linear")(t2)) * irng:randf_range(5, 24)
-				graphics.set_line_width(irng:randf_range(1, 3))
+                local center_scale = 1 + (ease("linear")(t2)) * irng:randf(5, 24)
+				graphics.set_line_width(irng:randf(1, 3))
 				graphics.set_color(Palette.big_laser_beam_end_particle_outline:interpolate_clamped(t2 * 3))
 				graphics.rectangle_centered("line", x, y, size * center_scale, size * center_scale)
 			end
@@ -350,9 +350,9 @@ function BigLaserBeam:update_beam_particle(particle, dt)
     if self.is_new_tick and rng:percent(5) then
 		local dir = rng:rand_sign()
         local outside_x, outside_y = vec2_perpendicular_normalized_times(particle.dx, particle.dy,
-            dir * rng:randf_range(particle.radius - 10, particle.radius + 10))
-		local dx, dy = vec2_rotated(particle.dx, particle.dy, -dir * rng:randf_range(deg2rad(1), deg2rad(30)))
-		self.floor:create_dust_particle(particle.pos.x + outside_x, particle.pos.y + outside_y, dx, dy, rng:randf_range(BEAM_PARTICLE_SPEED - 10, BEAM_PARTICLE_SPEED + 10) / 3)
+            dir * rng:randf(particle.radius - 10, particle.radius + 10))
+		local dx, dy = vec2_rotated(particle.dx, particle.dy, -dir * rng:randf(deg2rad(1), deg2rad(30)))
+		self.floor:create_dust_particle(particle.pos.x + outside_x, particle.pos.y + outside_y, dx, dy, rng:randf(BEAM_PARTICLE_SPEED - 10, BEAM_PARTICLE_SPEED + 10) / 3)
 	end
 end
 
@@ -443,7 +443,7 @@ function BigLaserBeam:draw_beam_particle(particle, layer)
     if particle.random_offset1 % 3 == 0 then
 		local irng = self.instance_rng
 		irng:set_seed(particle.random_offset2)
-		local angle = stepify(irng:randf_range(0, tau), tau / 16)
+		local angle = stepify(irng:randf(0, tau), tau / 16)
 		graphics.rotate(angle)
 	end
     local size = particle.size * scale
@@ -458,24 +458,24 @@ function BigLaserBeam:draw_beam_particle(particle, layer)
         graphics.rectangle_centered("line", 0, 0, size + 5, size + 5)
 	elseif layer == 0 then
 
-        for i = 1, rng:randi_range(-1, 1) do
-			graphics.set_line_width(rng:percent(40) and rng:randi_range(1, 3) or 1)
+        for i = 1, rng:randi(-1, 1) do
+			graphics.set_line_width(rng:percent(40) and rng:randi(1, 3) or 1)
             graphics.set_color(rng:percent(50) and (rng:percent(10) and Color.grey or Color.darkgrey) or Color
             .darkergrey)
             if rng:percent(10) then
 				graphics.set_color(Color.black)
 			end
 			local outside_x, outside_y = vec2_perpendicular_normalized_times(particle.dx, particle.dy, rng:randfn(size * 0.75, size * 0.25) * rng:rand_sign())
-            local length = rng:randf_range(size * 0.1, size * 0.60)
-            local offset = rng:randf_range(-length / 2, length / 2)
+            local length = rng:randf(size * 0.1, size * 0.60)
+            local offset = rng:randf(-length / 2, length / 2)
 			local start_x, start_y = vec2_add(outside_x, outside_y, vec2_mul_scalar(particle.dx, particle.dy, offset))
 			local end_x, end_y = vec2_add(outside_x, outside_y, vec2_mul_scalar(particle.dx, particle.dy, length))
 			graphics.line(start_x, start_y, end_x, end_y)
 		end
         graphics.set_color(Color.black)
-        local square_scale = rng:randf_range(0.125, 0.175)
+        local square_scale = rng:randf(0.125, 0.175)
 		for i=1, 5 do
-        	local x,y = rng:random_vec2_times(rng:randf_range(0, size * 0.2))
+        	local x,y = rng:random_vec2_times(rng:randf(0, size * 0.2))
 			graphics.rectangle_centered("fill", 0, 0, size * square_scale, size * square_scale)
 		end
 
@@ -703,13 +703,13 @@ function BigLaserBeamFloor:create_dust_particle(x, y, dx, dy, speed)
 		dy = dy,
 		vel_x = dx * speed,
 		vel_y = dy * speed,
-        drag = rng:randf_range(0.1, 0.5),
+        drag = rng:randf(0.1, 0.5),
         elapsed = 0,
         color = rng:choose(DUST_PARTICLE_COLORS),
 		floor_color = rng:percent(15) and rng:choose(DUST_PARTICLE_FLOOR_COLORS),
 	}
 
-	particle.gravity_x, particle.gravity_y = rng:random_vec2_times(rng:randf_range(0, 0.05))
+	particle.gravity_x, particle.gravity_y = rng:random_vec2_times(rng:randf(0, 0.05))
 
 	self.dust_particles:push(particle)
 end
@@ -804,7 +804,7 @@ function BigLaserBeamAimingLaser:draw(elapsed, tick, t)
     end_x2, end_y2 = self:to_local(end_x2, end_y2)
 
 
-	if t < 0.35 or idivmod_eq_zero(tick, 2, 2) then 
+	if t < 0.35 or iflicker(tick, 2, 2) then 
 		graphics.line(start_x, start_y, end_x2, end_y2)
 	end
 	

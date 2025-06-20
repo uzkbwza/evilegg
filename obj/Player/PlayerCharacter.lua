@@ -558,7 +558,7 @@ function PlayerCharacter:on_secondary_weapon_released()
 	if self[method] then
 		self[method](self)
 	end
-    self:stop_stopwatch("secondary_weapon_held") 
+    self:stop_stopwatch("secondary_weapon_held")
     if secondary_weapon.cooldown > 0 then
         self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown)
     end
@@ -714,7 +714,7 @@ function PlayerCharacter:hit_by(by)
 	local bcx, bcy = self:get_body_center()
 
 	local sprite = self:get_sprite()
-    local particle = self:spawn_object(DeathFlash(bcx, bcy, sprite, self.hp == 0 and 10.0 or 3.0, Palette.player_death, 1))
+    local particle = self:spawn_object(DeathFlash(bcx, bcy, sprite, self.hp == 0 and 10.0 or 3.0, Palette.player_death, 1, nil, false))
 	if self.hp > 0 then
 		particle.z_index = -1
 	end
@@ -1001,20 +1001,32 @@ function PlayerCharacter:exit()
 end
 
 
-function PlayerCharacter:state_Elevator_enter()
+function PlayerCharacter:state_Cutscene_enter()
+	if self:get_stopwatch("secondary_weapon_held") then
+		self:on_secondary_weapon_released()
+	end
+
     if self.aim_draw then
         self.aim_draw:hide()
     end
+
+    if self.drone then
+		self.drone:hide()
+	end
 
     if self.shadow then
         self.shadow:hide()
     end
 end
 
-function PlayerCharacter:state_Elevator_exit()
+function PlayerCharacter:state_Cutscene_exit()
     if self.aim_draw then
         self.aim_draw:show()
     end
+
+    if self.drone then
+		self.drone:show()
+	end
 
     if self.shadow then
         self.shadow:show()
@@ -1268,11 +1280,11 @@ function HoverFireTrail:update(dt)
         for i = 1, rng:randi(2) do
 			if rng:percent(10) then
 				local particle = {}
-				particle.x, particle.y = rng:random_vec2_times(rng:randf_range(0, self:get_bubble("hit", "main").radius * 2))
+				particle.x, particle.y = rng:random_vec2_times(rng:randf(0, self:get_bubble("hit", "main").radius * 2))
 				particle.size = rng:randfn(3, 1)
 				particle.elapsed = 0
-				particle.duration = rng:randf_range(10, 50)
-				particle.speed = rng:randf_range(0.15, 0.4)
+				particle.duration = rng:randf(10, 50)
+				particle.speed = rng:randf(0.15, 0.4)
 				self.particles[particle] = true
 			end
 		end
@@ -1294,7 +1306,7 @@ function HoverFireTrail:draw()
 		if color ~= Color.black then
         	graphics.set_color(color)
         	local size = self:get_bubble("hit", "main").radius * 2 * (1 + sin(self.elapsed * 0.3) * 0.2) * 0.75
-        	graphics.rectangle_centered(idivmod_eq_zero(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
+        	graphics.rectangle_centered(iflicker(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
 		end
     end
 	
@@ -1307,6 +1319,7 @@ function HoverFireTrail:draw()
 end
 
 function HoverFireTrail:exit()
+	self:stop_sfx("player_boost_fire")
 end
 
 
@@ -1317,7 +1330,7 @@ function HoverDashFx:new(x, y, vel_x, vel_y)
 	for i = 1, 20 do
 		local particle = {}
 		particle.pos = Vec2(0, 0)
-		particle.vel_x, particle.vel_y = rng:random_vec2_times(rng:randfn(rng:randf_range(0.2, 2.5), 0.1))
+		particle.vel_x, particle.vel_y = rng:random_vec2_times(rng:randfn(rng:randf(0.2, 2.5), 0.1))
 		local vel_mod = rng:randf(0.25, 3)
 		particle.vel_x = particle.vel_x + vel_x * vel_mod
 		particle.vel_y = particle.vel_y + vel_y * vel_mod
@@ -1384,7 +1397,7 @@ end
 function PlayerDrone:update(dt)
     if self.player then
         self.target.x, self.target.y = self.player.pos.x, self.player.pos.y + self.player.body_height
-		self:set_visibility(self.player.visible)
+		self:set_visibility(self.player.visible and self.player.state ~= "Cutscene")
     else
         self:queue_destroy()
     end
@@ -1431,17 +1444,17 @@ end
 function PlayerShadow:draw(elapsed)
     local almost_dead = false
 	if not self.target then
-        if idivmod_eq_zero(self.random_offset + gametime.tick, 2, 2) then
+        if iflicker(self.random_offset + gametime.tick, 2, 2) then
             return
         end
-    elseif idivmod_eq_zero(self.random_offset + gametime.tick, 1, 3) then
+    elseif iflicker(self.random_offset + gametime.tick, 1, 3) then
 		return
     else
-		almost_dead = game_state.hearts <= 0 and idivmod_eq_zero(gametime.tick, 5, 2)
+		almost_dead = game_state.hearts <= 0 and iflicker(gametime.tick, 5, 2)
 	end
 	
 
-    local color = self.dead and Color.red or (idivmod_eq_zero(gametime.tick, 2, 2) and (almost_dead and Color.red or Color.skyblue) or (almost_dead and Color.yellow or Color.green))
+    local color = self.dead and Color.red or (iflicker(gametime.tick, 2, 2) and (almost_dead and Color.red or Color.skyblue) or (almost_dead and Color.yellow or Color.green))
     local size = max(self.size + min(-self.size + self.elapsed * 0.2, 0), 1)
     graphics.set_color(color)
 	graphics.set_line_width(1)
@@ -1451,7 +1464,7 @@ function PlayerShadow:draw(elapsed)
     graphics.rectangle_centered("line", 0, 0, size + 4, size * 0.75 + 4)
 
 		
-    if self.target and game_state.secondary_weapon and game_state.secondary_weapon.is_railgun and not idivmod_eq_zero(gametime.tick, 1, 2) then
+    if self.target and game_state.secondary_weapon and game_state.secondary_weapon.is_railgun and not iflicker(gametime.tick, 1, 2) then
 
 		local oscillation = (sin01(self.elapsed * 0.02) + sin01(self.elapsed * 0.1655) * 0.5 + sin01(self.elapsed * 0.923) * 0.25 + sin01(self.elapsed * 0.03) * 0.125) / 4
 
@@ -1467,9 +1480,9 @@ function PlayerShadow:draw(elapsed)
         local tick1 = stepify(self.tick + self.random_offset, period)
 		local tick2 = stepify(self.tick + self.random_offset + period, period)
 		irng:set_seed(tick1)
-		local offsx1, offsy1 = irng:random_vec2_times(irng:randf_range(0, 4))
+		local offsx1, offsy1 = irng:random_vec2_times(irng:randf(0, 4))
 		irng:set_seed(tick2)
-        local offsx2, offsy2 = irng:random_vec2_times(irng:randf_range(0, 4))
+        local offsx2, offsy2 = irng:random_vec2_times(irng:randf(0, 4))
 		
 		local t = inverse_lerp(tick1, tick2, self.elapsed + self.random_offset)
 
@@ -1502,16 +1515,16 @@ function PlayerShadow:draw(elapsed)
 		graphics.line(x3, y3, x4, y4)
 		-- graphics.line(x4, y4, x5, y5)
 		graphics.line(x5, y5, x6, y6)
-		local color = (idivmod_eq_zero(gametime.tick, 2, 2) and (Color.orange) or (Color.yellow))
+		local color = (iflicker(gametime.tick, 2, 2) and (Color.orange) or (Color.yellow))
 
 		local cooldown = self.target and self.target:is_tick_timer_running("secondary_weapon_cooldown")
 
 		if cooldown then
-			color = (idivmod_eq_zero(gametime.tick, 2, 2) and (Color.darkpurple) or (Color.purple))
+			color = (iflicker(gametime.tick, 2, 2) and (Color.darkpurple) or (Color.purple))
 		end
 
 		graphics.set_color(color)
-		if idivmod_eq_zero(gametime.tick + 2, 1, 17) then
+		if iflicker(gametime.tick + 2, 1, 17) then
             graphics.set_color(Color.white)
 			if cooldown then
 				graphics.set_color(Color.darkgrey)

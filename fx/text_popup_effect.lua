@@ -12,7 +12,7 @@ function TextPopupEffect:new(x, y, text, palette_stack, duration)
 	self.duration = duration or 120
     self.z_index = 2
 	self.palette_stack = palette_stack
-    self.random_offset = rng:randi_range(0, 1000)
+    self.random_offset = rng:randi(0, 1000)
     self.width = fonts.image_font1:getWidth(text)
     self.height = fonts.image_font1:getHeight(text)
 	if palette_stack == nil then

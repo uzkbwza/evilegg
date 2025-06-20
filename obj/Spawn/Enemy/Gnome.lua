@@ -77,7 +77,7 @@ function Gnome:state_Normal_enter()
 end
 
 function Gnome:state_Normal_update(dt)
-    self.sprite = idivmod_eq_zero(self.tick, 6, 2) and textures.enemy_gnome2 or textures.enemy_gnome1
+    self.sprite = iflicker(self.tick, 6, 2) and textures.enemy_gnome2 or textures.enemy_gnome1
     local closest_player_x, closest_player_y = self:closest_last_player_body_pos()
 	
     if closest_player_x then
@@ -115,10 +115,10 @@ function Gnome:state_Normal_update(dt)
 				self:start_tick_timer("preparing_to_shoot", 20, function()
                     self.preparing_to_shoot = false
 					self.shooting = true
-					self:start_tick_timer("shooting", rng:randf_range(15, 30), function()
+					self:start_tick_timer("shooting", rng:randf(15, 30), function()
 						self.shooting = false
 						self:remove_tag("gnome_shooting")
-						self:start_tick_timer("shooting_cooldown", rng:randf_range(30, 60))
+						self:start_tick_timer("shooting_cooldown", rng:randf(30, 60))
 						self.roaming = true
 					end)
 				end)
@@ -199,8 +199,8 @@ function Gnome:state_Respawning_update(dt)
     if self.is_new_tick and self.tick % 3 == 0 then
         local particle = {}
         particle.elapsed = 0
-		particle.x = rng:randf_range(-6, 6)
-        particle.y = rng:randf_range(-2, 2)
+		particle.x = rng:randf(-6, 6)
+        particle.y = rng:randf(-2, 2)
 		particle.t = 0
 		self.respawn_particles[particle] = true
 	end
@@ -225,7 +225,7 @@ end
 
 function Gnome:state_Respawning_draw()
 
-    if idivmod_eq_zero(gametime.tick, 2, 2) then
+    if iflicker(gametime.tick, 2, 2) then
         Gnome.super.draw(self)
     else
         self:body_translate()
@@ -325,7 +325,7 @@ end
 
 function GnomeFloorParticle:draw()
 	graphics.set_line_width(2)
-	graphics.set_color(idivmod_eq_zero(self.tick, 2, 3) and Color.transparent or (idivmod_eq_zero(self.tick, 2, 2) and Color.magenta or Color.white))
+	graphics.set_color(iflicker(self.tick, 2, 3) and Color.transparent or (iflicker(self.tick, 2, 2) and Color.magenta or Color.white))
 	graphics.rectangle_centered("line", 0, 0, 16, 10)
 end
 

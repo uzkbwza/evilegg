@@ -154,7 +154,7 @@ end
 
 function Blinker:state_Blinking_draw()
     self:body_translate()
-    -- if idivmod_eq_zero(self.tick, 1, 2) then
+    -- if iflicker(self.tick, 1, 2) then
         graphics.set_color(Color.black)
 		graphics.set_line_width(2)
 		graphics.rectangle_centered("line", 0, 0, 12, 12)

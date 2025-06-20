@@ -187,7 +187,7 @@ function HoopSnake:draw()
             graphics.drawp_centered(i == self.segments_left and self:get_sprite() or textures.enemy_hoop_snake1, palette,
                 offset, x, y)
         end
-        if idivmod_eq_zero(gametime.tick, 3, 2) then
+        if iflicker(gametime.tick, 3, 2) then
 			-- graphics.rotate(self.angle_offset, 0, 0)
 			local radius2 = self.base_radius * self.segment_ratio + 16
 			
@@ -195,7 +195,7 @@ function HoopSnake:draw()
 				graphics.push("all")
                 local x, y = vec2_rotated(vec.x, vec.y, self.bullet_angle)
                 local line_length = 2
-				graphics.set_color(idivmod_eq_zero(gametime.tick, 2, 2) and Color.red or Color.white)
+				graphics.set_color(iflicker(gametime.tick, 2, 2) and Color.red or Color.white)
 				if self.telegraphing_vecs[vec] > 0 then
                     line_length = 80
 					graphics.set_line_width(6)

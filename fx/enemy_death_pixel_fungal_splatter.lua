@@ -1,5 +1,6 @@
 local FungalDeathSplatter = require("fx.enemy_death_pixel_splatter"):extend("FungalDeathSplatter")
 function FungalDeathSplatter:exit()
+	if self.world.room.nofungus then return end
     local class = require("obj.Spawn.Enemy.Hazard.Fungus")
 	local spawned_positions = {}
     for _, pixel in ipairs(self.pixels) do

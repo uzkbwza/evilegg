@@ -70,7 +70,8 @@ return {
 	
 	rescue = {
 		text_key = "bonus_rescue",
-		score = 0,
+        score = 0,
+		-- priority = 2,
 		-- score = function()
 		-- 	if game_state.final_room_entered then
 		-- 		return 100
@@ -80,10 +81,14 @@ return {
 		score_multiplier = 0.00,
 		xp = 10,
         difficulty_modifier = 0.01,
+		custom_color_function = function(bonus, is_flashing, offset)
+			return is_flashing and Color.darkgreen or Color.green
+		end,
     },
 
 	room_clear = {
-		text_key = "bonus_room_clear",
+        text_key = "bonus_room_clear",
+		-- priority = 3,
 		score = function() return game_state.level * 10 end,
 		score_multiplier = 0.01,
         -- xp = function() return 60 + (floor(((game_state.level - 1) / 7) * 10)) end,
@@ -92,7 +97,8 @@ return {
 	
 	all_rescues = {
 		text_key = "bonus_all_rescues",
-		score = 2000,
+        score = 2000,
+		-- priority = 1,
 		score_multiplier = 0.02,
 		xp = 240,
 		difficulty_modifier = 0.05,

@@ -30,7 +30,7 @@ function PauseScreenWorld:enter()
         { name = tr.pause_menu_quit_button,   func = function() self:emit_signal("quit_requested") end },
     }
 
-    self:ref_array("menu_items")
+    -- self:ref_array("menu_items")
 
     local prev = nil
 
@@ -51,13 +51,9 @@ function PauseScreenWorld:enter()
         if i == 1 then
             menu_item:focus()
         end
-        self:ref_array_push("menu_items", menu_item)
+        -- self:ref_array_push("menu_items", menu_item)
     end
 
-    -- if #self.menu_items > 1 then
-    --     self.menu_items[1]:add_neighbor(self.menu_items[#self.menu_items], "up")
-    --     self.menu_items[#self.menu_items]:add_neighbor(self.menu_items[1], "down")
-    -- end
 end
 
 function PauseScreenWorld:draw()

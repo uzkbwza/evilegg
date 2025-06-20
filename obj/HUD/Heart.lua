@@ -11,7 +11,7 @@ function Heart:new(x, y, index)
 end
 
 function Heart:draw()
-	if self.flashing and idivmod_eq_zero(self.tick, 3, 2) then
+	if self.flashing and iflicker(self.tick, 3, 2) then
 		return
 	end
 	local texture = self.filled and textures.pickup_heart_icon2 or textures.pickup_empty_heart_icon

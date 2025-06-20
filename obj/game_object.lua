@@ -16,12 +16,12 @@ function GameObject:new()
     self:add_signal("update_changed")
     self:add_signal("visibility_changed")
 
-    self._update_functions = nil
-    self._draw_functions = nil
+    -- self._update_functions = nil
+    -- self._draw_functions = nil
 
-    self.world = nil
+    -- self.world = nil
 
-    self.draw_cull_dist = nil
+    -- self.draw_cull_dist = nil
 
     self.visible = true
 
@@ -350,6 +350,190 @@ function GameObject:get_mouse_position()
 	return self.world:get_mouse_position()
 end
 
+function GameObject:do_at_tick(tick, func)
+    if not self.do_at_tick_functions then
+        self.do_at_tick_functions = self.do_at_tick_functions or {}
+        self:add_update_function(self._do_at_tick_update_function)
+    end
+	
+	self.do_at_tick_functions[tick] = self.do_at_tick_functions[tick] or {}
+	table.insert(self.do_at_tick_functions[tick], func)
+end
+
+function GameObject:_do_at_tick_update_function(dt)
+    self.do_at_tick_functions_to_remove = self.do_at_tick_functions_to_remove or {}
+
+    local finished_any = false
+
+    if self.do_at_tick_functions[self.tick] then
+        for _, v in ipairs(self.do_at_tick_functions[self.tick]) do
+            v(self)
+            table.insert(self.do_at_tick_functions_to_remove, v)
+            finished_any = true
+        end
+    end
+
+
+    if finished_any then
+        for _, v in ipairs(self.do_at_tick_functions_to_remove) do
+            table.erase(self.do_at_tick_functions, v)
+        end
+        table.clear(self.do_at_tick_functions_to_remove)
+    end
+end
+
+function GameObject:set_at_tick(tick, prop, value) 
+    if not self.set_at_tick_actions then
+        self.set_at_tick_actions = {}
+        self:add_update_function(self._set_at_tick_update_function)
+    end
+    if not self.set_at_tick_actions[tick] then
+        self.set_at_tick_actions[tick] = {}
+    end
+    self.set_at_tick_actions[tick][prop] = value
+end
+
+function GameObject:_set_at_tick_update_function()
+    if self.set_at_tick_actions and self.set_at_tick_actions[self.tick] then
+        self._set_at_tick_temp_actions = self._set_at_tick_temp_actions or {}
+        local temp_actions = self._set_at_tick_temp_actions
+        
+        -- Copy actions to temp table
+        for prop, value in pairs(self.set_at_tick_actions[self.tick]) do
+            temp_actions[prop] = value
+        end
+        self.set_at_tick_actions[self.tick] = nil
+
+        -- Execute actions from temp table
+        for prop, value in pairs(temp_actions) do
+            self[prop] = value
+        end
+        
+        -- Clear temp table for reuse
+        for prop in pairs(temp_actions) do
+            temp_actions[prop] = nil
+        end
+
+        local has_more_actions = false
+        for _ in pairs(self.set_at_tick_actions) do
+            has_more_actions = true
+            break
+        end
+
+        if not has_more_actions then
+            self:remove_update_function(self._set_at_tick_update_function)
+            self.set_at_tick_actions = nil
+        end
+    end
+end
+
+function GameObject:interpolate_property(prop, start, finish, duration, nil_at_end)
+	self[prop] = start
+	self:interpolate_property_at_time(prop, start, finish, self.elapsed, duration, nil_at_end)
+end
+
+function GameObject:interpolate_property_at_time(prop, start, finish, start_time, duration, nil_at_end)
+	self:interpolate_property_between_times(prop, start, finish, start_time, start_time + duration, nil_at_end)
+end
+
+function GameObject:interpolate_property_between_times(prop, start, finish, start_time, finish_time, nil_at_end)
+    if not self.interpolate_properties then
+        self.interpolate_properties = {}
+        self:add_update_function(self._interpolate_properties_update_function)
+    end
+    table.insert(self.interpolate_properties, {
+        prop = prop,
+        start = start,
+        finish = finish,
+        start_time = start_time,
+        finish_time = finish_time,
+		nil_at_end = nil_at_end
+    })
+end
+
+function GameObject:is_interpolating_property(prop)
+    return self.interpolation_counts and self.interpolation_counts[prop]
+end
+
+function GameObject:_increment_interpolation_count(prop)
+    self.interpolation_counts = self.interpolation_counts or {}
+    self.interpolation_counts[prop] = (self.interpolation_counts[prop] or 0) + 1
+end
+
+function GameObject:_decrement_interpolation_count(prop)
+    if not self.interpolation_counts or not self.interpolation_counts[prop] then
+        return
+    end
+    self.interpolation_counts[prop] = self.interpolation_counts[prop] - 1
+    if self.interpolation_counts[prop] == 0 then
+        self.interpolation_counts[prop] = nil
+    end
+end
+
+function GameObject:_interpolate_properties_update_function(dt)
+    if not self.interpolate_properties or #self.interpolate_properties == 0 then return end
+
+    -- Pass 1: Activate newly started interpolations and find the dominant one for each property.
+    self._interpolate_latest_starters = self._interpolate_latest_starters or {}
+    local latest_starters = self._interpolate_latest_starters
+    
+    -- Clear the cached table
+    for prop in pairs(latest_starters) do
+        latest_starters[prop] = nil
+    end
+    
+    for i = 1, #self.interpolate_properties do
+        local v = self.interpolate_properties[i]
+        if self.elapsed >= v.start_time and not v.started then
+            v.started = true
+            self:_increment_interpolation_count(v.prop)
+
+            local current_latest = latest_starters[v.prop]
+            if not current_latest or v.start_time > current_latest.start_time then
+                latest_starters[v.prop] = v
+            end
+        end
+    end
+
+    -- Pass 2: Update values, and remove completed or superseded interpolations.
+    for i = #self.interpolate_properties, 1, -1 do
+        local v = self.interpolate_properties[i]
+
+		if not v.started then
+			goto continue
+		end
+
+        -- Check if it is superseded by a new interpolation that just started
+        local dominant_starter = latest_starters[v.prop]
+        if dominant_starter and dominant_starter ~= v then
+            self:_decrement_interpolation_count(v.prop)
+            table.remove(self.interpolate_properties, i)
+            goto continue
+        end
+
+		local elapsed = self.elapsed - v.start_time
+		local duration = v.finish_time - v.start_time
+		
+		if elapsed >= duration then
+			if v.nil_at_end then
+				self[v.prop] = nil
+			else
+				self[v.prop] = v.finish
+			end
+			self:_decrement_interpolation_count(v.prop)
+			table.remove(self.interpolate_properties, i)
+		else
+			self[v.prop] = lerp(v.start, v.finish, elapsed / duration)
+		end
+        ::continue::
+    end
+
+    if #self.interpolate_properties == 0 then
+        self:remove_update_function(self._interpolate_properties_update_function)
+        self.interpolate_properties = nil
+    end
+end
+
 function GameObject:start_stopwatch(name)
 	self.stopwatches = self.stopwatches or {}
 	if self.stopwatches[name] then
@@ -499,14 +683,14 @@ function GameObject:tick_timer_time_left(name)
 	return (self.tick_timers and self.tick_timers[name] and self.tick_timers[name].duration - self.tick_timers[name].elapsed) or nil
 end
 
-function GameObject:timer_time_left_ratio(name)
+function GameObject:timer_progress(name)
 	if not self:timer_duration(name) then
 		return 0
 	end
 	return ((self:timer_time_left(name) or 1) / (self:timer_duration(name)))
 end
 
-function GameObject:tick_timer_time_left_ratio(name)
+function GameObject:tick_timer_progress(name)
 	if not self:tick_timer_duration(name) then
 		return 0
 	end
@@ -830,21 +1014,21 @@ end
 function GameObject:destroy()
     if self.is_destroyed then return end
 
-    if self.objects_to_destroy then
+    if self.objects_bound_for_destruction then
         -- Create a copy to iterate over, as the table may be modified during iteration
         -- by the "destroyed" signal handlers.
         local to_destroy_copy = {}
-        for obj, _ in pairs(self.objects_to_destroy) do
+        for obj, _ in pairs(self.objects_bound_for_destruction) do
             table.insert(to_destroy_copy, obj)
         end
 
         for _, obj in ipairs(to_destroy_copy) do
-            if not obj.is_destroyed then
-                obj:destroy()
-            end
+			if not obj.is_destroyed then
+				obj:destroy()
+			end
         end
     end
-    self.objects_to_destroy = nil
+    self.objects_bound_for_destruction = nil
 
     if self.sfx then
         for _, t in pairs(self.sfx) do
@@ -859,8 +1043,9 @@ function GameObject:destroy()
         self.sequencer:destroy()
     end
     self:emit_signal("destroyed", self)
-    
 	signal.cleanup(self)
+
+
 
 	-- nuclear debugging
     if debug.enabled then
@@ -869,10 +1054,10 @@ function GameObject:destroy()
 end
 
 function GameObject:bind_destruction(obj)
-    self.objects_to_destroy = self.objects_to_destroy or {}
-    self.objects_to_destroy[obj] = true
+    self.objects_bound_for_destruction = self.objects_bound_for_destruction or {}
+    self.objects_bound_for_destruction[obj] = true
     signal.connect(obj, "destroyed", self, "on_object_to_destroy_destroyed_early", function()
-		self.objects_to_destroy[obj] = nil
+		self.objects_bound_for_destruction[obj] = nil
 	end)
 end
 

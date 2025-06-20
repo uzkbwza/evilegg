@@ -49,7 +49,7 @@ local conf = {
 		"room_padding",
 	},
 	
-	display_scale = IS_EXPORT and 1 or 5,
+	display_scale = IS_EXPORT and 2 or 5,
 
 	-- delta
 	use_fixed_delta = false,
@@ -112,7 +112,7 @@ local conf = {
 				{"lctrl"}, 
 				{"rctrl"},
 			},
-			joystick = {"back"}
+			joystick = {"back", "leftshoulder"}
 		},
 
 		debug_editor_toggle = {
@@ -171,6 +171,14 @@ local conf = {
 				{"rctrl", "m"}
 			}
         },
+
+		debug_signal_snapshot = {
+			debug = true,
+			keyboard = { 
+				{"lctrl", "g"}, 
+				{"rctrl", "g"}
+			}
+		},
 
 		debug_profile = {
 			debug = true,
@@ -318,10 +326,10 @@ function love.conf(t)
 	t.window.icon           = ("assets/icon.png")
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
-    -- if not IS_EXPORT then
+    if not IS_EXPORT then
 		-- t.window.width          = 1920
 		-- t.window.height         = 1080
-	-- end
+	end
 
 
 	t.window.borderless     = false
@@ -329,8 +337,11 @@ function love.conf(t)
 	t.window.minwidth       = conf.viewport_size.x
 	t.window.minheight      = conf.viewport_size.y
 	t.window.fullscreen     = false
-    t.window.fullscreentype = "desktop"
-    -- t.window.fullscreentype = "exclusive"
+	t.window.fullscreentype = "desktop"
+	
+	if IS_EXPORT then
+    	-- t.window.fullscreentype = "exclusive"
+	end
     t.window.vsync          = 0
 	
 	-- t.window.vsync

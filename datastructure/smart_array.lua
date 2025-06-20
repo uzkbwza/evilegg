@@ -109,7 +109,7 @@ local function benchmark_smart_array(n)
 	
     start = love.timer.getTime()
     for i = 1, n do
-        b:remove(rng:randi_range(1, n))
+        b:remove(rng:randi(1, n))
     end
 	local remove_time = love.timer.getTime() - start
 
@@ -138,7 +138,7 @@ local function benchmark_plain_table(n)
     -- Removal
     start = love.timer.getTime()
     for i = 1, n do
-        table.erase(t, rng:randi_range(1, n))
+        table.erase(t, rng:randi(1, n))
     end
 	
     local remove_time = love.timer.getTime() - start

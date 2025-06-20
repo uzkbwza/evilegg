@@ -118,7 +118,9 @@ function GlobalGameState:new()
 
 	self.num_queued_upgrades = 0
 	self.num_queued_artefacts = 0
-	self.num_queued_hearts = 0
+    self.num_queued_hearts = 0
+	self.cutscene_hide_hud = false
+	self.cutscene_no_pause = false
 
 	self.egg_rooms_cleared = 0
 
@@ -199,15 +201,21 @@ function GlobalGameState:new()
 	if savedata.first_time_playing then self.skip_tutorial = false end
 
 	if debug.enabled then
-		local cheat = true
+		local cheat = false
 		
 		if cheat then
 			
+			-- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
+			
 			-- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
 			-- self:gain_artefact(PickupTable.artefacts.SwordSecondaryWeapon)
-			-- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
-			self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
-			self:gain_secondary_weapon_ammo(math.huge)
+            -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
+			
+            self:gain_artefact(rng:choose {
+				PickupTable.artefacts.BigLaserSecondaryWeapon,
+				PickupTable.artefacts.SwordSecondaryWeapon,
+				PickupTable.artefacts.RailGunSecondaryWeapon,
+			})
 
 			-- self.num_queued_artefacts = 5
 			self.rescue_chain = 20
@@ -216,14 +224,18 @@ function GlobalGameState:new()
 			self.level = 30
 			self.hearts = self.max_hearts
 
-			for i = 1, 9 do
+			for i = 1, 10 do
 				self:gain_artefact(self:get_random_available_artefact())
 			end
 
-			for i = 1, 3 do
-				self:upgrade(self:get_random_available_upgrade(false))
+            for i = 1, 3 do
+                self:upgrade(self:get_random_available_upgrade(false))
+            end
 
-			end 
+			if self.secondary_weapon then
+				self:gain_secondary_weapon_ammo(math.huge)
+			end
+
 		end
 
 		-- self.upgrades.fire_rate = self.max_upgrades.fire_rate
@@ -248,9 +260,10 @@ function GlobalGameState:update(dt)
 		dbg("aggression_bonus", self.aggression_bonus)
 	end
 
-	if not self.game_over then
-		self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
-	end
+    if not self.game_over then
+        self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
+    end
+	
 end
 
 function GlobalGameState:on_hatched()
@@ -945,7 +958,7 @@ function GlobalGameState:get_random_available_artefact()
 				goto continue
 			end
 
-			if self.last_spawned_artefacts[v.key] then
+			if self.last_spawned_artefacts[v.key] and not v.repeats_allowed then
 				goto continue
 			end
 
@@ -981,16 +994,26 @@ function GlobalGameState:get_random_available_artefact()
 
 			if self.secondary_weapon == v then
 				goto continue
-			elseif self.already_selected_secondary_weapon_this_level and v.is_secondary_weapon and not self.num_spawned_artefacts == 1 then
-				goto continue
-			elseif v.is_secondary_weapon then
-                if self.num_spawned_artefacts < 1 then
+            elseif v.is_secondary_weapon then
+				
+				-- print("here") 
+                -- if self.num_spawned_artefacts < 1 then
+                    -- goto continue
+                -- end
+				-- print("num spawned artefacts is " .. self.num_spawned_artefacts)
+				
+                if self.secondary_weapon then
                     goto continue
                 end
 				
-				if self.secondary_weapon then
-					goto continue
-				end
+				-- print("no secondary weapon")
+
+                if self.already_selected_secondary_weapon_this_level and self.num_spawned_artefacts ~= 0 then
+                    goto continue
+                end
+				-- print("did not already selected secondary weapon this level or num spawned artefacts is 1")
+
+				-- print("adding to weapon pool: " .. v.key)
 
 				table.insert(random_secondary_weapon_pool, v)
 				goto continue
@@ -1053,13 +1076,13 @@ function GlobalGameState:get_random_available_artefact()
             if self.secondary_weapon then
                 weight = min(weight, 300)
             else
-                if self.num_spawned_artefacts >= 1 and not self.secondary_weapon then
+                if self.num_spawned_artefacts == 0 and not self.secondary_weapon then
                     weight = 1000000000000
                 else
-                    weight = 5000
+                    weight = 10000
                 end
 				if self.weapons_picked and self.weapons_picked[artefact.key] then
-					weight = weight / 100
+					-- weight = weight / 2
 				end
             end
 			

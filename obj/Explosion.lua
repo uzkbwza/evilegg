@@ -14,6 +14,7 @@ local DEFAULT_PARAMS = {
     explode_vfx = nil,
 	force_modifier = 1.0,
 	ignore_explosion_force = {},
+	no_effect = false,
 }
 
 function Explosion:new(x, y, params)
@@ -32,6 +33,7 @@ function Explosion:new(x, y, params)
 	self.explode_vfx = params.explode_vfx or DEFAULT_PARAMS.explode_vfx
 	self.explode_sfx = params.explode_sfx or DEFAULT_PARAMS.explode_sfx
     self.explode_sfx_volume = params.explode_sfx_volume or DEFAULT_PARAMS.explode_sfx_volume
+	self.no_effect = params.no_effect or DEFAULT_PARAMS.no_effect
 	self.force_modifier = params.force_modifier or DEFAULT_PARAMS.force_modifier
     self:ref_bongle("ignore_explosion_force")
 	for _, obj in ipairs(params.ignore_explosion_force or DEFAULT_PARAMS.ignore_explosion_force) do
@@ -76,6 +78,10 @@ function Explosion:enter()
 	end)
 
 	self:play_sfx(self.explode_sfx, self.explode_sfx_volume)
+
+	if self.no_effect then
+		return
+	end
 
     if self.explode_vfx then
         self:spawn_object(self.explode_vfx)
@@ -134,9 +140,13 @@ function Explosion:enter()
 end
 
 function Explosion:draw()
-	if self.explode_vfx then
+    if self.explode_vfx then
+        return
+    end
+	if self.no_effect then
 		return
 	end
+
     if self.tick < 5 then
 		graphics.set_color(Palette.explosion:get_color_clamped(idiv(self.tick, 3)))
 		local size = min(max(self.size - self.tick * 0.25, 2), self.tick * 20) * 2 * self.draw_scale
@@ -261,7 +271,7 @@ function ExplosionSmokeTrail:update(dt)
 
 end
 function ExplosionSmokeTrail:draw()
-	if self.tick > 20 and idivmod_eq_zero(gametime.tick, 1, 2) then
+	if self.tick > 20 and iflicker(gametime.tick, 1, 2) then
         return
 	end
 
@@ -286,7 +296,7 @@ end
 function ExplosionSmokeTrail:floor_draw()
     if not self.is_new_tick then return end
 	if self.y_offset < -4 then return end
-	-- if not idivmod_eq_zero(self.tick, 1, 3) then return end
+	-- if not iflicker(self.tick, 1, 3) then return end
     local size = self.size * 0.64
 	size = max(size + self.y_offset * 0.02, 1)
     -- if self.outline then

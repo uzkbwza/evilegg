@@ -61,4 +61,4 @@ function Pool:get_stats()
     }
 end
 
-return Pool 
+return Pool.new

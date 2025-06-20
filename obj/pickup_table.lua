@@ -173,12 +173,12 @@ local Artefacts = {
         
 		can_spawn = function()
 			if not game_state then return true end
-			return game_state.num_spawned_artefacts >= 2
+			return game_state.num_spawned_artefacts >= 1
 		end,
 
         spawn_weight = function()
 			if not game_state then return 1000 end
-			if game_state.num_spawned_artefacts ~= 2 then return 1000 end
+			if game_state.num_spawned_artefacts ~= 1 then return 1000 end
             return 1000000000000000
         end,
 
@@ -281,6 +281,9 @@ local Artefacts = {
 		spawn_when_full = true,
 		no_pickup = true,
 		infinite_spawns = true,
+		repeats_allowed = true,
+        destroy_score = 7500,
+		destroy_xp = 600,
 	},
 	
 	-- Secondary Weapons
@@ -324,13 +327,13 @@ local Artefacts = {
 
 		is_secondary_weapon = true,
 		ammo = 500,
-		ammo_gain_per_level = 60,
+		ammo_gain_per_level = 70,
         ammo_needed_per_use = 150,
         minimum_ammo_needed_to_use = 150,
 		held_ammo_consumption_rate = 1.5,
 		low_ammo_threshold = 299,
 		starting_ammo = 100,
-		ammo_powerup_gain = 40,
+		ammo_powerup_gain = 50,
 		ammo_color = Color.cyan,
 
         cooldown = 0,

@@ -22,6 +22,11 @@ local MIN_PLAYER_DISTANCE_FOR_GROWTH = 64
 local PROPOGATE_RADIUS = 16
 local MAX_FUNGI = 60
 
+local _current_propagator
+local function _propagation_checker(other)
+	_current_propagator:_is_valid_propagation_spot(other)
+end
+
 Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
 Fungus.cannot_hit_egg = true
@@ -153,48 +158,56 @@ function Fungus:on_healed()
 	end
 end
 
+function Fungus:_is_valid_propagation_spot(other)
+	if not self._propagate_valid then return end
+
+	local real_x, real_y = self.pos.x + self._propagate_test_x, self.pos.y + self._propagate_test_y
+	if real_x < self.world.room.left or real_x > self.world.room.right or real_y < self.world.room.top or real_y > self.world.room.bottom then
+		self._propagate_valid = false
+		return
+	end
+
+	if other == self then return end
+	if not Object.is(other, Fungus) then return end
+	if vec2_distance(other.pos.x, other.pos.y, real_x, real_y) > PROPOGATE_RADIUS then return end
+
+	self._propagate_valid = false
+end
+
 function Fungus:propagate()
+    if self.world.room.nofungus then return end
+
+	local closest_player = self:get_closest_player()
+	if closest_player then
+		local closest_player_distance = vec2_distance(self.pos.x, self.pos.y, closest_player.pos.x, closest_player.pos.y)
+		if closest_player_distance < MIN_PLAYER_DISTANCE_FOR_GROWTH then
+			return
+		end
+	end
+	
 	local x = self.pos.x
 	local y = self.pos.y
     local radius = PROPOGATE_RADIUS
     local rect_x, rect_y, rect_w, rect_h = x - radius, y - radius, radius * 2, radius * 2
 
-	local valid = true
-
-	local test_x, test_y = rng:random_vec2_times(radius)
-
-	local f = function(other)
-		local real_x, real_y = self.pos.x + test_x, self.pos.y + test_y
-        if real_x < self.world.room.left or real_x > self.world.room.right or real_y < self.world.room.top or real_y > self.world.room.bottom then
-			valid = false
-			return
-		end
-        if other == self then return end
-        if not Object.is(other, Fungus) then return end
-		if vec2_distance(other.pos.x, other.pos.y, real_x, real_y) > radius then return end
-        valid = false
-		
-		local closest_player = self:get_closest_player()
-		if closest_player then
-			local closest_player_distance = vec2_distance(self.pos.x, self.pos.y, closest_player.pos.x, closest_player.pos.y)
-			if closest_player_distance < MIN_PLAYER_DISTANCE_FOR_GROWTH then
-				valid = false
-				return
-			end
-		end
-	end
-
     for i = 1, 10 do
-		valid = true
-        self.world.fungus_grid:each(rect_x, rect_y, rect_w, rect_h, f)
-		if valid then break end
-		test_x, test_y = rng:random_vec2_times(radius)
+		self._propagate_valid = true
+		self._propagate_test_x, self._propagate_test_y = rng:random_vec2_times(radius)
+
+		_current_propagator = self
+        self.world.fungus_grid:each(rect_x, rect_y, rect_w, rect_h, _propagation_checker)
+		_current_propagator = nil
+		
+		if self._propagate_valid then break end
 	end
 
-	if valid then
-		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng:randfn(1, 0.4), 0.1, 1.9)), test_x, test_y)
+	if self._propagate_valid then
+		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng:randfn(1, 0.4), 0.1, 1.9)), self._propagate_test_x, self._propagate_test_y)
 	end
 
+	self._propagate_valid = nil
+	self._propagate_test_x = nil
+	self._propagate_test_y = nil
 end
 
 function Fungus:start_hp_gain_timer()
@@ -214,7 +227,7 @@ function Fungus:get_palette()
 end
 
 function Fungus:draw()
-    -- if (game_state.artefacts.death_cap and idivmod_eq_zero(gametime.tick + self.random_offset, 1, 5)) then
+    -- if (game_state.artefacts.death_cap and iflicker(gametime.tick + self.random_offset, 1, 5)) then
 		-- return
 	-- end
 	Fungus.super.draw(self)
@@ -224,7 +237,7 @@ function Fungus:get_sprite()
     if not (game_state.artefacts.death_cap) then
         return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
     end
-	if idivmod_eq_zero(gametime.tick + self.random_offset, 1, 2) then
+	if iflicker(gametime.tick + self.random_offset, 1, 2) then
 		return self.big and textures.hazard_friendly_mushroom_alt2 or textures.hazard_friendly_mushroom_alt1
 	end
 	return self.big and textures.hazard_friendly_mushroom2 or textures.hazard_friendly_mushroom1

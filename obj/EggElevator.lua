@@ -105,8 +105,8 @@ function EggElevator:update(dt)
 			if rng:percent(90) then
 				self:play_sfx(rng:choose(pillar_spawn_sfx), 0.23)
 			end
-			self:start_tick_timer("pillar_cooldown", rng:randi_range(5, 40))
-			local start_offset_x, start_offset_y = rng:random_vec2_times(rng:randfn(rng:randf_range(-3, 3), 7))
+			self:start_tick_timer("pillar_cooldown", rng:randi(5, 40))
+			local start_offset_x, start_offset_y = rng:random_vec2_times(rng:randfn(rng:randf(-3, 3), 7))
 			start_offset_y = start_offset_y * 0.65
 			local pillar = {
 				start_offset_x = start_offset_x,
@@ -116,7 +116,7 @@ function EggElevator:update(dt)
 				-- shine_angle_offset = rng:randfn(0, 0.1),
 				t = 0.0,
 				elapsed = 0.0,
-				lifetime = rng:randi_range(90, 450),
+				lifetime = rng:randi(90, 450),
 				random_offset = rng:randi(),
 				random_offset2 = rng:randi(),
 			}
@@ -129,9 +129,9 @@ function EggElevator:update(dt)
 		end
 	end
 	
-	-- local force_elevator = debug.enabled and debug.fast_forward
+	local force_elevator = debug.enabled and debug.fast_forward
 	-- local force_elevator = debug.enabled
-	local force_elevator = false
+	-- local force_elevator = false
 
     if (not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator) then
         local closest_player = self:get_closest_player()
@@ -141,7 +141,7 @@ function EggElevator:update(dt)
 			self:start_stopwatch("elevator_started")
 			self.back_object:start_stopwatch("elevator_started")
 			self.elevator_started = true
-            self.elevator_player:change_state("Elevator")
+            self.elevator_player:change_state("Cutscene")
             local s = self.sequencer
             s:start(function()
 				local x, y = self.elevator_player.pos.x, self.elevator_player.pos.y
@@ -381,7 +381,7 @@ function EggElevator:draw()
         end
 
         if self.back and self.accepting_player then
-            if idivmod_eq_zero(self.tick, 1, 2) and self.tick > 5 then
+            if iflicker(self.tick, 1, 2) and self.tick > 5 then
                 graphics.set_color(Color.black)
 
                 -- local bx, by = self:get_body_center_local()

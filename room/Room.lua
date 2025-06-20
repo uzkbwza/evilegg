@@ -6,7 +6,7 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_police"
 
-local debug_enemy_enabled = true
+local debug_enemy_enabled = false
 local debug_enemy = "RoyalRoamer"
 local num_debug_enemies = 1
 local num_debug_waves = 3
@@ -312,34 +312,7 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
     self.elapsed = 0
     self.tick = 0
 
-	-- Calculate room dimensions
-	local room_width = conf.room_size.x
-	local room_height = conf.room_size.y
-
-	-- Calculate room boundaries with padding
-	self.left = -room_width / 2
-	self.right = room_width / 2
-	self.top = -room_height / 2
-	self.bottom = room_height / 2
-	
-	-- Store padded dimensions
-	self.room_width = room_width
-	self.room_height = room_height
-
-	-- print(self.room_width, self.room_height)
-	
-	-- Create boundary rectangles
-	self.bounds = Rect(self.left, self.top, self.room_width, self.room_height)
-	self.bullet_bounds = Rect(
-		-- self.left - Room.bullet_bounds_padding_x, 
-		-- self.room_width + Room.bullet_bounds_padding_x * 2, 
-		-- self.room_height + Room.bullet_bounds_padding_y * 2
-		self.left, 
-		self.top - Room.bullet_bounds_padding_y,
-		-- self.top,
-		self.room_width, 
-		self.room_height + Room.bullet_bounds_padding_y
-	)
+	self:set_bounds(conf.room_size.x, conf.room_size.y)
 	
     -- self.padding = Room.padding
 
@@ -365,6 +338,34 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
     self.level_history = level_history
     table.insert(self.level_history, self)
 
+end
+
+function Room:set_bounds(room_width, room_height)
+
+	-- Calculate room boundaries with padding
+	self.left = -room_width / 2
+	self.right = room_width / 2
+	self.top = -room_height / 2
+	self.bottom = room_height / 2
+	
+	-- Store padded dimensions
+	self.room_width = room_width
+	self.room_height = room_height
+
+	-- print(self.room_width, self.room_height)
+	
+	-- Create boundary rectangles
+	self.bounds = Rect(self.left, self.top, self.room_width, self.room_height)
+	self.bullet_bounds = Rect(
+		-- self.left - Room.bullet_bounds_padding_x, 
+		-- self.room_width + Room.bullet_bounds_padding_x * 2, 
+		-- self.room_height + Room.bullet_bounds_padding_y * 2
+		self.left, 
+		self.top - Room.bullet_bounds_padding_y,
+		-- self.top,
+		self.room_width, 
+		self.room_height + Room.bullet_bounds_padding_y
+	)
 end
 
 function Room:build(params)

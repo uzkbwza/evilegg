@@ -50,7 +50,7 @@ function Enforcer:state_Spawning_update(dt)
     if player and not self.player then
 		local s = self.sequencer
 		s:start(function()
-			s:wait(rng:randi_range(80, 180))
+			s:wait(rng:randi(80, 180))
 			self:change_state("Normal")
         end)
 		self.player = player
