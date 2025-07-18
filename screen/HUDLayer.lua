@@ -100,17 +100,36 @@ function HUDLayer:start_after_level_bonus_screen()
 			return true
 		end
 
-		if try_function(a.bonus.xp) * a.count == try_function(b.bonus.xp) * b.count then
-			return try_function(a.bonus.score) * a.count > try_function(b.bonus.score) * b.count
+		local a_score_multiplier = try_function(a.bonus.score_multiplier) or 0
+		local b_score_multiplier = try_function(b.bonus.score_multiplier) or 0
+
+		if a_score_multiplier ~= 0 and b_score_multiplier == 0 then
+			return true
 		end
-		return try_function(a.bonus.xp) * a.count > try_function(b.bonus.xp) * b.count
+		if a_score_multiplier == 0 and b_score_multiplier ~= 0 then
+			return false
+		end
+
+		
+		local a_negative = a.bonus.negative and -1 or 1
+		local b_negative = b.bonus.negative and -1 or 1
+
+
+		if try_function(a.bonus.xp) * a.count * a_negative == try_function(b.bonus.xp) * b.count * b_negative then
+			return try_function(a.bonus.score) * a.count * a_negative > try_function(b.bonus.score) * b.count * b_negative
+		end
+		return try_function(a.bonus.xp) * a.count * a_negative > try_function(b.bonus.xp) * b.count * b_negative
 	end)
 
     self.game_layer.world.waiting_on_bonus_screen = true
 	
     local function update_bonus_info(bonus, b, count)
-		b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or game_state:determine_score(try_function(bonus.score))
-		if bonus.negative then
+		b.score = stepify_floor(try_function(bonus.score), 10)
+		
+		-- b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or stepify_floor((try_function(bonus.score)) * 20, 10)
+		-- b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or game_state:determine_score(try_function(bonus.score))
+		-- b.score = bonus.ignore_score_multiplier and b.score or game_state:determine_score(b.score / 20)
+        if bonus.negative then
 			b.score = -abs(b.score)
 		end
 		b.xp = try_function(bonus.xp)
@@ -194,7 +213,7 @@ function HUDLayer:start_after_level_bonus_screen()
 
 				-- for getting score and xp to add to the game state
 				local one_b = {
-					name = b.name,
+					name = try_function(b.name),
 					count = 1,
 					bonus = b.bonus,
                 }
@@ -439,6 +458,7 @@ function HUDLayer:pre_world_draw()
 	local category_high = savedata:get_category_highs(game_state.leaderboard_category)
 	local high_score = category_high and category_high.score or 0
 
+	local beat_high = false
 	if self.score_display < high_score then
 		graphics.set_color(Color.darkgrey)
 		local i = 1
@@ -454,7 +474,9 @@ function HUDLayer:pre_world_draw()
 		high_score = high_score - (high_score % tens) + self.score_display
 		local best_score = comma_sep(high_score)
 		graphics.set_color(Color.darkergrey)
-		graphics.print_right_aligned(best_score, font, 0, 0)
+        graphics.print_right_aligned(best_score, font, 0, 0)
+    else
+		beat_high = true
 	end
 
 
@@ -463,15 +485,17 @@ function HUDLayer:pre_world_draw()
 	-- graphics.print(score_without_zeroes, score_width, 0)
 	-- graphics.print(score_without_zeroes, score_width + 9, 0)
 
-	graphics.set_color(border_color)
+	graphics.set_color(beat_high and Palette.high_score_ingame:tick_color(self.tick, 0, 7) or border_color)
 	graphics.print_right_aligned(score_without_zeroes, font, 0, 0)
 	graphics.set_color(Color.grey)
 	
 	local scoremult1 = "×["
+	-- local scoremult6 = "["
 	local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
-	local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
+	local scoremult3 = string.format("×%02d", max(1, game_state:get_rescue_chain_multiplier()))
+	-- local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
 	local scoremult4 = "   "
-	local scoremult5 = "]"
+    local scoremult5 = "]"
 
 	local greenoid_color = Color.green
 	if self:is_timer_running("greenoid_harmed_flash") then
@@ -619,7 +643,7 @@ function HUDLayer:pre_world_draw()
 
             local y = (i - (bonus_count + 1) / 2) * 10
             -- local text = string.format("%-20s %8d [+%3dXP] [X%2d]", tr[bonus.name], bonus.score, bonus.xp, bonus.count) 
-			graphics.print(tr[bonus.name], -12, y)
+			graphics.print(type(bonus.name) == "function" and bonus.name() or tr[bonus.name], -12, y)
 			
 			local has_score = ALWAYS_SHOW_BONUS_DETAILS or bonus.score ~= 0 or bonus.score_multiplier ~= 0
 			local has_multiplier = ALWAYS_SHOW_BONUS_DETAILS or bonus.score_multiplier ~= 0
@@ -641,8 +665,10 @@ function HUDLayer:pre_world_draw()
 				graphics.set_color(xp_color)
 				graphics.print(string.format("+%-2dXP", floor(bonus.xp * bonus.count)), 150, y)
 			end
-			graphics.set_color(count_color)
-            graphics.print(string.format("×%d", bonus.count), 210, y)
+            graphics.set_color(count_color)
+			if bonus.bonus.always_show_count or bonus.count > 1 then
+				graphics.print(string.format("×%d", bonus.count), 210, y)
+			end
             graphics.pop()
         end
         local y = (bonus_count + 1) / 2 * 10

@@ -30,8 +30,11 @@ def walk_and_convert(base_dir):
                 full_path = os.path.join(root, filename)
                 convert_wav_to_ogg(full_path)
 
-if __name__ == "__main__":
+def go():
     if not shutil.which("ffmpeg"):
         print("ERROR: ffmpeg not found on PATH. Please install it and try again.")
         sys.exit(1)
     walk_and_convert(SOURCE_DIR)
+
+if __name__ == "__main__":
+    go()

@@ -6,7 +6,7 @@ local PILLAR_HEIGHT = 400
 
 function EggElevator:new(x, y)
 	-- self.max_hp = debug.enabled and 3 or 20
-	self.max_hp = 30
+	self.max_hp = 60
 	self.body_height = 3
     EggElevator.super.new(self, x, y)
 	self.team = "enemy"
@@ -131,9 +131,13 @@ function EggElevator:update(dt)
 	
 	local force_elevator = debug.enabled and debug.fast_forward
 	-- local force_elevator = debug.enabled
-	-- local force_elevator = false
+    -- local force_elevator = false
 
-    if (not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator) then
+	-- local force_no_elevator = not debug.enabled
+	-- local force_no_elevator = true
+	local force_no_elevator = false
+
+    if not (force_no_elevator) and ((not self.back and not self.elevator_started) and ((not self.dead and self.tick > 20 and self.accepting_player) or force_elevator)) then
         local closest_player = self:get_closest_player()
         if closest_player and self.pos:distance_to(closest_player.pos) < 16 or force_elevator then
 			self:ref("elevator_player", closest_player)
@@ -413,7 +417,7 @@ end
 function EggElevator:on_damaged(amount)
     self:start_timer("hurt_flash", 10)
 	self:play_sfx("object_egg_elevator_hurt", 0.7)
-	if self.hp <= 20 then
+	if self.hp <= self.max_hp - 10 then
 		if not self.accepting_player then
 			self:on_door_opened()
 		end

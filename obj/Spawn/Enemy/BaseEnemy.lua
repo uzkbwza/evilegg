@@ -15,6 +15,7 @@ function BaseEnemy:new(x, y)
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
 	self.hit_bubble_damage = self.hit_bubble_damage or 1
     self.max_hp = self.max_hp or 1
+
 	-- self.difficulty_shield = min(floor(game_state.level / 10), 4)
 	-- self.difficulty_shield = floor(10)
 	self:lazy_mixin(Mixins.Behavior.Flippable)
@@ -52,7 +53,7 @@ function BaseEnemy:get_xp()
     if score > 0 then
         -- local real_score = game_state:determine_score(score)
         -- return max(real_score * 0.0005, score * 0.005)
-		return score * 0.005
+		return score * 0.05
 	end
 	return 0
 end
@@ -201,7 +202,7 @@ function BaseEnemy:normal_death_effect(hit_by)
 		bx, by = self:get_body_center()
 	end
 
-    self:spawn_object(DeathFlash(bx, by, sprite, self.death_flash_size_mod or 1))
+	self:spawn_object(DeathFlash(bx, by, sprite, self.death_flash_size_mod or 1, nil, nil, nil, nil, hit_vel_x, hit_vel_y))
 	if not self.no_death_splatter then
 		local class = DeathSplatter
 		-- if game_state.artefacts.death_cap and self:has_tag("wave_enemy") then

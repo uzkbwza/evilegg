@@ -29,6 +29,12 @@ local eyeball_limits = {
 	max_speed = 3,
 }
 
+Eyeball.max_hp = 3
+Hand.max_hp = 10
+Foot.max_hp = 5
+Nose.max_hp = 4
+Mouth.max_hp = 8
+
 function Eyeball:new(x, y)
     self.body_height = 4
     self.max_hp = 3
@@ -217,7 +223,6 @@ end
 
 function Hand:new(x, y)
     self.body_height = 8
-    self.max_hp = 10
 	self.hurt_bubble_radius = 12
     Hand.super.new(self, x, y)
 	self.hit_bubble_radius = nil
@@ -334,7 +339,6 @@ end
 
 function Foot:new(x, y)
     self.body_height = 4
-    self.max_hp = 5
 
 	self.drag = 0.036
     Foot.super.new(self, x, y)
@@ -489,7 +493,6 @@ end
 
 function Nose:new(x, y)
     self.body_height = 5
-    self.max_hp = 4
 
     self.hit_bubble_radius = 5
 

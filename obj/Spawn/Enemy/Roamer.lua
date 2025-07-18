@@ -8,6 +8,10 @@ Roamsploder:implement(Mixins.Behavior.ExploderEnemy)
 
 -- local ROAMER_SHEET = SpriteSheet(textures.enemy_roamer, 10, 14)
 
+Roamer.max_hp = 1
+Roamsploder.max_hp = 2
+RoyalRoamer.max_hp = 2
+
 Roamer.palette = Palette[textures.enemy_roamer1]:clone()
 
 -- Roamer.spawn_cry = "enemy_roamer_spawn"
@@ -16,7 +20,6 @@ Roamer.palette = Palette[textures.enemy_roamer1]:clone()
 -- Roamer.death_cry_volume = 0.9
 
 function Roamer:new(x, y)
-	self.max_hp = self.max_hp or 1
     Roamer.super.new(self, x, y)
 	-- self.drag = 0.6
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
@@ -85,7 +88,6 @@ end
 local EXPLOSION_RADIUS = 20
 
 function Roamsploder:new(x, y)
-    self.max_hp = 2
 	self.hit_bubble_damage = 10
     -- self.bullet_push_modifier = 3.5
     self.walk_speed = 0.75
@@ -133,7 +135,6 @@ end
 RoyalRoamer.palette = Palette[textures.enemy_royalroamer1]:clone()
 
 function RoyalRoamer:new(x, y)
-    self.max_hp = 2
     RoyalRoamer.super.new(self, x, y)
     self.base_walk_speed = 1.25
 	self.roaming = false

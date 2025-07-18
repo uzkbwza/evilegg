@@ -3,7 +3,7 @@ local Explosion = require("obj.Explosion")
 
 local HIT_RADIUS = 15
 local DURATION = 30
-local DAMAGE = 20
+local DAMAGE = 10
 local HIT_TEAMS = {
 	"enemy",
 	"neutral",
@@ -17,6 +17,9 @@ RailGunProjectile.center_out_velocity_multiplier = 6
 function RailGunProjectile:new(x, y, dx, dy)
 	dx, dy = vec2_normalized(dx, dy)
     RailGunProjectile.super.new(self, x, y)
+    
+	self.damage = RailGunProjectile.damage + 3 * game_state.upgrades.damage
+
     self:lazy_mixin(Mixins.Behavior.SimpleCustomHit)
     self.dx = dx
     self.dy = dy

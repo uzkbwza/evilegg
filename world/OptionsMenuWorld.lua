@@ -54,7 +54,7 @@ function OptionsMenuWorld:enter()
 		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
 		
 		{ "header", text = tr.options_header_display },
-		{ "fullscreen", item_type = "toggle"},
+		{ "fullscreen", item_type = "toggle", skip=conf.platform_force_fullscreen},
         -- { "use_screen_shader", item_type = "toggle" },
 		
 		{ "show_hud", item_type = "toggle", inverse = true},
@@ -119,9 +119,9 @@ function OptionsMenuWorld:enter()
 		-- { "invert_colors", item_type = "toggle" },
 	
 		{ "header", text = tr.options_header_audio },
-		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
-		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
-		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
+		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
 		
 		{ "header", text = tr.options_header_other },
 		{ "skip_tutorial", item_type = "toggle" },
@@ -134,6 +134,10 @@ function OptionsMenuWorld:enter()
 
 		if item[1] == "header" then
 			self:add_menu_item(item)
+			goto continue
+		end
+
+		if item.skip then
 			goto continue
 		end
         

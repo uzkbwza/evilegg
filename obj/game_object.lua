@@ -551,6 +551,18 @@ function GameObject:start_stopwatch(name)
 	self:add_update_function(self.stopwatches[name].func)
 end
 
+function GameObject:pause_stopwatch(name)
+	if self.stopwatches[name].paused then return end
+	self:remove_update_function(self.stopwatches[name].func)
+	self.stopwatches[name].paused = true
+end
+
+function GameObject:resume_stopwatch(name)
+	if not self.stopwatches[name].paused then return end
+	self:add_update_function(self.stopwatches[name].func)
+	self.stopwatches[name].paused = false
+end
+
 function GameObject:_update_stopwatch(name, dt)
 	self.stopwatches[name].elapsed = self.stopwatches[name].elapsed + dt
     self.stopwatches[name].tick = floor(self.stopwatches[name].elapsed)

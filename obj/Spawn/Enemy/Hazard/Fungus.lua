@@ -31,6 +31,8 @@ Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
 Fungus.cannot_hit_egg = true
 Fungus.is_fungus = true
+Fungus.max_hp = 1
+
 
 function Fungus:new(x, y, propogate_frequency)
     self.team = "neutral"

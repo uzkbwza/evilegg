@@ -28,9 +28,12 @@ function LeaderboardWorld:new()
 	self.death_count = 0
 	-- self.current_page = nil
 	self.current_page_number = 1
+    self.previous_page_number = 1
 	self.target_death_count = 0
- 
 	self.current_category = leaderboard.cat(self.current_category)
+
+    self.sort_by = "score"
+    self.period = "daily"
 
 	self.run_t_values = {}
 	for i=1, PAGE_LENGTH do
@@ -46,6 +49,7 @@ function LeaderboardWorld:new()
             self.error = true
             return
         end
+        
 		self.error = false
 		self:on_page_fetched(res)
 	end
@@ -61,74 +65,158 @@ function LeaderboardWorld:new()
 end
 
 function LeaderboardWorld:enter()
+    self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
-	self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
+    self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(1, 1, 1, 1)))
+    local start_x = 170
 
-	self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(1, 1, 1, 1)))
-	local start_x = 170
-	
-	self:ref("back_button",
+    self:ref("back_button",
         self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING, "⮌",
-			10, 10, false, nil, false, false))):focus()
+            10, 10, false, nil, false, false))):focus()
+    
+    self:ref("period_button",
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 10, 12,
+            tr.leaderboard_period_daily,
+            30, 9, false, Color.green, true, false)))
+    
+    self:ref("sort_button",
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 52, 12,
+            tr.leaderboard_sort_score,
+            30, 9, false, Color.green, true, false)))
+
+    self:ref("me_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 30, 4,
+            tr.leaderboard_me_button,
+            25, 15, false, Color.green, true, true)))
+
+    self:ref("top_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 56, 4,
+            tr.leaderboard_top_button,
+            25, 15, false, Color.green, true, true)))
 
 
-	self:ref("me_button",
-		self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 30, 4, tr.leaderboard_me_button,
-			25, 15, false, Color.white, true, true)))
+    self.sort_button.get_value_func = function()
+        return self.sort_button.text
+    end
 
-	self:ref("top_button",
-		self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 57, 4, tr.leaderboard_top_button,
-            25, 15, false, Color.white, true, true)))
-			
-	self.back_button:add_neighbor(self.me_button, "right")
-	self.back_button:add_neighbor(self.top_button, "left")
-	self.me_button:add_neighbor(self.back_button, "left")
-	self.me_button:add_neighbor(self.top_button, "right")
-    self.top_button:add_neighbor(self.me_button, "left")
-	self.top_button:add_neighbor(self.back_button, "right")
+    self.sort_button:set_options({tr.leaderboard_sort_score, tr.leaderboard_sort_depth})
+
+    self.sort_button.set_value_func = function(value)
+        if value == tr.leaderboard_sort_score then
+            self.sort_by = "score"
+        elseif value == tr.leaderboard_sort_depth then
+            self.sort_by = "depth"
+        end
+        self.sort_button:set_text(value)
+        self:fetch_page(1)
+    end
+
+    self.period_button.get_value_func = function()
+        return self.period_button.text
+    end
+
+    self.period_button:set_options({ tr.leaderboard_period_daily, tr.leaderboard_period_monthly, tr.leaderboard_period_all_time, })
+    
+    self.period_button.set_value_func = function(value)
+        if value == tr.leaderboard_period_all_time then
+            self.period = nil
+        elseif value == tr.leaderboard_period_daily then
+            self.period = "daily"
+        elseif value == tr.leaderboard_period_monthly then
+            self.period = "monthly"
+        end
+        self.period_button:set_text(value)
+        self:fetch_page(1)
+    end
+
+    local page_buttons_y = 22
+
+    local page_buttons_height = 201
+    local page_buttons_width = 12
+
+
+    local start = conf.viewport_size.x / 2 - LINE_WIDTH / 2
+    local dist = 1
+
+    self:ref("page_left_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start - page_buttons_width - dist - 1, page_buttons_y, "←",
+            page_buttons_width, page_buttons_height, false, Color.green, true, false)))
+
+    self:ref("page_right_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start + LINE_WIDTH + dist, page_buttons_y, "→",
+            page_buttons_width, page_buttons_height, false, Color.green, true, false)))
+
+    self.page_left_button.z_index = -1
+    self.page_right_button.z_index = -1
+
+
+    self.page_left_button:add_neighbor(self.page_right_button, "right", true)
+    self.page_left_button:add_neighbor(self.back_button, "up", true)
+    self.page_right_button:add_neighbor(self.top_button, "up", true)
+    self.me_button:add_neighbor(self.page_right_button, "down")
+    self.period_button:add_neighbor(self.page_right_button, "down")
+    self.sort_button:add_neighbor(self.page_right_button, "down")
+
+
+    self.back_button:add_neighbor(self.sort_button, "right", true)
+    self.sort_button:add_neighbor(self.period_button, "right", true)
+    self.period_button:add_neighbor(self.me_button, "right", true)
+    self.me_button:add_neighbor(self.top_button, "right", true)
+    self.top_button:add_neighbor(self.back_button, "right", true)
 
 
     signal.connect(self.back_button, "selected", self, "exit_menu_requested", function()
-		local s = self.sequencer
+        local s = self.sequencer
         s:start(function()
-			self.handling_input = false
-			s:wait(1)
-			self:emit_signal("exit_menu_requested")
-		end)
+            self.handling_input = false
+            s:wait(1)
+            self:emit_signal("exit_menu_requested")
+        end)
     end)
 
-	signal.connect(self.me_button, "selected", self, "fetch_user", function()
-		self:fetch_user(savedata.uid)
-	end)
+    signal.connect(self.me_button, "selected", self, "fetch_user", function()
+        self:fetch_user(savedata:get_uid())
+    end)
 
-	signal.connect(self.top_button, "selected", self, "fetch_page", function()
-		self:fetch_page(1)
-	end)
+    signal.connect(self.top_button, "selected", self, "fetch_page", function()
+        self:fetch_page(1)
+    end)
 
+    signal.connect(self.page_left_button, "selected", self, "fetch_page", function()
+        self.changing_page_number = true
+        self:fetch_page(self.current_page_number - 1)
+    end)
+
+    signal.connect(self.page_right_button, "selected", self, "fetch_page", function()
+        self.changing_page_number = true
+        self:fetch_page(self.current_page_number + 1)
+    end)
+    
+    signal.connect(self.sort_button, "selected", self, "on_sort_selected", function()
+        self.sort_index = self.sort_index + 1
+        if self.sort_index > #self.sort_options then
+            self.sort_index = 1
+        end
+    end)
     -- self:ref("previous_page_button",
     --     self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 12, "←",
-	-- 		15, 10, false)))
-		
-    leaderboard.get_deaths(function(ok, res)
-		if self.is_destroyed then
-			return
-		end
-		if ok then
-			self.death_count = res.deaths or 0
-		end
-		local high_score_run = savedata:get_high_score_run(self.current_category)
-        if high_score_run then
-            leaderboard.submit(high_score_run, self.current_category, false, function(ok, res)
-                if not self.is_destroyed then
-                    self:fetch_user(savedata.uid)
-                end
-			end)
-		else
-			self:fetch_user(savedata.uid)
-        end
-		self:death_count_update_loop()
-	end)
+    --         15, 10, false)))
 
+    leaderboard.get_deaths(function(ok, res)
+        if self.is_destroyed then
+            return
+        end
+        if ok then
+            self.death_count = res.deaths or 0
+        end
+        leaderboard.submit_queued_runs(function(ok, res)
+            if not self.is_destroyed then
+                self:fetch_user(savedata:get_uid())
+            end
+        end)
+
+        self:death_count_update_loop()
+    end)
 end
 
 function LeaderboardWorld:death_count_update_loop()
@@ -150,29 +238,49 @@ end
 
 function LeaderboardWorld:fetch_user(uid)
 	self.waiting = true
-	self.error = false
-    leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, false, function(ok, res)
+    self.error = false
+    
+    leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, self.sort_by, self:get_period(), false, function(ok, res)
 		if self.is_destroyed then
 			return
 		end
 		self.waiting = false
-		if (not ok) or res and res.status == "err" then
-			self:fetch_page(1)
-			self.error = true
-			return
-		end
+        if (not ok) or res and res.status == "err" then
+            self:fetch_page(1)
+            self.error = true
+            return
+        end
+
 		self.error = false
 		self:on_page_fetched(res)
 	end)
 end
 
 function LeaderboardWorld:fetch_page(page)
+    if page < 1 then
+        page = 1
+    end
 	self.waiting = true
 	self.error = false
-	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, false, self.wait_function)
+	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, self.sort_by, self:get_period(), false, self.wait_function)
+end
+
+function LeaderboardWorld:get_period()
+    if self.period == "all_time" then
+        return nil
+    end
+    return self.period
 end
 
 function LeaderboardWorld:on_page_fetched(page)
+    
+    if #page.entries == 0 and self.changing_page_number then
+        self:fetch_page(self.current_page_number)
+        return
+    end
+    
+    self.changing_page_number = false
+
 	self.waiting = false
     self.current_page = page
 	self.current_category = page.category
@@ -243,8 +351,12 @@ function LeaderboardWorld:draw()
     local font2 = fonts.depalettized.image_font2
     graphics.set_font(font)
     graphics.print(tr.main_menu_leaderboard_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
-    LeaderboardWorld.super.draw(self)
     graphics.set_font(font2)
+    graphics.set_color(Color.white)
+    graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 10, 3)
+    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 50, 3)
+    LeaderboardWorld.super.draw(self)
+
 
     -- local hi_score_text = (tr.leaderboard_hi_score .. ": "):upper()
 
@@ -305,7 +417,7 @@ function LeaderboardWorld:draw_leaderboard()
 		end
         local run = self.current_page.entries[i]
         if run then
-			local is_self = run.uid == savedata.uid
+			local is_self = run.uid == savedata:get_uid()
 			local line_color = Color.darkergrey
 			
 			if is_self and self:tick_pulse(5, 1) then
@@ -394,7 +506,7 @@ function LeaderboardWorld:draw_leaderboard()
 		end
 		local run = self.current_page.entries[i]
         if run then
-			local is_self = run.uid == savedata.uid
+			local is_self = run.uid == savedata:get_uid()
 			local name = run.name
             local score = run.score
 
@@ -420,7 +532,6 @@ function LeaderboardWorld:draw_leaderboard()
 			local palette_stack = self.palette_stack
 
 
-
             if is_self then
                 palette_stack:set_color(3, Color.magenta)
                 palette_stack:set_color(2, Color.blue)
@@ -431,8 +542,12 @@ function LeaderboardWorld:draw_leaderboard()
             end
             graphics.set_color(Color.white)
 			
-			local ending_image = run.good_ending and textures.ui_leaderboard_good_ending or textures.ui_leaderboard_bad_ending
-			-- local ending_image = run.score > 40000 and textures.ui_leaderboard_good_ending or textures.ui_leaderboard_bad_ending
+            local ending_image = textures.ui_leaderboard_bad_ending
+			if run.good_ending == 1 then
+                ending_image = textures.ui_leaderboard_good_ending
+			elseif run.good_ending == 2 then
+                ending_image = textures.ui_leaderboard_best_ending
+			end
 
 			graphics.push("all")
 			do

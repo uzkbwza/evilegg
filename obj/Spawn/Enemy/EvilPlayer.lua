@@ -106,7 +106,7 @@ function EvilPlayer:state_Awake_update(dt)
     dx, dy = vec2_normalized_times(dx, dy, 0.045)
 
 
-    self:move_to(splerp_vec(self.pos.x, self.pos.y, target_x, target_y, 800, dt))
+    self:move_to(splerp_vec(self.pos.x, self.pos.y, target_x, target_y, 800 + max(2000 - self.elapsed * 5, 0), dt))
 	
     if self.is_new_tick then
 		

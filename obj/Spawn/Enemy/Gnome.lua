@@ -2,6 +2,8 @@ local Gnome = BaseEnemy:extend("Gnome")
 local GnomeBullet = BaseEnemy:extend("GnomeBullet")
 local GnomeFloorParticle = Effect:extend("GnomeFloorParticle")
 
+Gnome.max_hp = 4
+
 Gnome.spawn_cry = "enemy_gnome_spawn"
 
 Gnome.death_cry = "enemy_gnome_death"
@@ -11,8 +13,6 @@ local SHOOT_SPEED = 6
 local SHOOT_INVERVAL = 5
 
 function Gnome:new(x, y)
-    self.max_hp = 4
-
     self.body_height = 6
 
 	BaseEnemy.new(self, x, y)

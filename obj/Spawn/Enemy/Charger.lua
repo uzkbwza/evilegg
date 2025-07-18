@@ -2,6 +2,8 @@ local Charger = BaseEnemy:extend("Charger")
 local Chargesploder = Charger:extend("Chargesploder")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 local Explosion = require("obj.Explosion")
+local AcidCharger = Charger:extend("AcidCharger")
+local AcidPuddle = BaseEnemy:extend("AcidPuddle")
 
 Chargesploder:implement(Mixins.Behavior.ExploderEnemy)
 
@@ -9,11 +11,17 @@ local CHARGE_SPEED = 0.12
 
 local ChargerIndicator = Effect:extend("ChargerIndicator")
 
+Charger.max_hp = 10
+AcidCharger.max_hp = 12
+
+AcidCharger.floor_color = Color.darkpurple
+Charger.floor_color = Color.darkred
+Chargesploder.floor_color = Color.darkorange
+
 Charger.is_charger = true
 Charger.death_cry = "enemy_charger_death"
 
 function Charger:new(x, y)
-    self.max_hp = 10
 	self.hit_bubble_damage = 2
     self.hurt_bubble_radius = 6
     self.hit_bubble_radius = 4
@@ -185,13 +193,71 @@ function Charger:get_sprite()
 	return self.state == "Waiting" and textures.enemy_charger1 or textures.enemy_charger2
 end
 
+function AcidCharger:get_sprite()
+	return Charger.get_sprite(self) == textures.enemy_charger1 and textures.enemy_acidcharger1 or textures.enemy_acidcharger2
+end
+
+
+function AcidCharger:update(dt)
+    local bx, by = self:get_body_center()
+    if self.is_new_tick and self.tick % 5 == 0 then
+		self:spawn_object(AcidPuddle(bx, by))
+	end
+end
+
+local ACID_PUDDLE_RADIUS = 6
+
+function AcidPuddle:new(x, y)
+	AcidPuddle.super.new(self, x, y)
+    self.z_index = -0.1
+    self.intangible = true
+    self.duration = rng:randi(30, 120)
+	self:start_timer("decay", self.duration, function()
+		self:queue_destroy()
+    end)
+	self.base_radius = ACID_PUDDLE_RADIUS
+	-- self.base_radius = rng:randfn(ACID_PUDDLE_RADIUS, 2)
+    self.hit_bubble_radius = self.base_radius
+	self.rotation = tau / 8
+	-- self.rotation = rng:randfn(0, tau)
+end
+
+function AcidPuddle:update(dt)
+    local progress = self:timer_progress("decay")
+    self.hit_bubble_radius = self.base_radius * (1 - pow(1 - progress, 3))
+	self.hit_bubble_radius = min(self.hit_bubble_radius, self.elapsed * 2)
+	self:set_hit_bubble_radius("main", self.hit_bubble_radius)
+end
+
+function AcidPuddle:die()
+	self:queue_destroy()
+end
+
+function AcidPuddle:draw()
+    local radius = self.hit_bubble_radius
+    graphics.rotate(self.rotation + self.elapsed * 0.1)
+    graphics.set_color(iflicker(self.tick, 3, 2) and Color.magenta or Color.purple)
+    graphics.rectangle_centered("fill", 0, 0, radius * 2 - 2, radius * 2 - 2)
+    graphics.set_color(iflicker(self.tick, 3, 2) and Color.purple or Color.magenta)
+	graphics.rectangle_centered("line", 0, 0, radius * 2 + 1, radius * 2 + 1)
+end
+
+function AcidPuddle:floor_draw()
+	local radius = self.hit_bubble_radius
+	if self.is_new_tick and rng:percent(50) then
+        local x, y = rng:random_vec2_times(rng:randfn(0, radius * 1.2))
+		graphics.set_color(rng:percent(50) and Color.darkpurple or Color.darkmagenta)
+		graphics.rectangle_centered("fill", x, y, rng:randi(1, 3), rng:randi(1, 3))
+	end
+end
+
 function Charger:floor_draw()
     local prev_x, prev_y = self.prev_pos.x, self.prev_pos.y
 	local SIZE = 8
     for x, y in bresenham_line_iter(prev_x, prev_y, self.pos.x, self.pos.y) do
         local bx, by = self:get_body_center_local()
 		local px, py = self:to_local(bx + x, by + y)
-		graphics.set_color(Color.darkred)
+		graphics.set_color(self.floor_color)
 		graphics.rectangle("line", px - SIZE / 2, py - SIZE / 2, SIZE, SIZE)
 		graphics.set_color(Color.black)
 		graphics.rectangle("fill", px - SIZE / 2 - self.pdx, py - SIZE / 2 - self.pdy, SIZE, SIZE)
@@ -263,6 +329,8 @@ function Chargesploder:get_sprite()
 	return self.state == "Waiting" and textures.enemy_chargesploder1 or textures.enemy_chargesploder2
 end
 
+
+
 -- function Chargesploder:on_landed_melee_attack()
 	-- self:die()
 -- end
@@ -290,5 +358,7 @@ function Chargesploder:die(...)
 end
 
 AutoStateMachine(Charger, "Waiting")
+AutoStateMachine(Chargesploder, "Waiting")
+AutoStateMachine(AcidCharger, "Waiting")
 
-return { Charger, Chargesploder }
+return { Charger, Chargesploder, AcidCharger }

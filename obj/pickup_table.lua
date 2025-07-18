@@ -220,7 +220,16 @@ local Artefacts = {
 		key = "stone_trinket",
 		name = "artefact_stone_trinket_name",
 		description = "artefact_stone_trinket_desc",
-        spawn_weight = 1000,
+		can_spawn = function()
+			if not game_state then return true end
+			return game_state.num_spawned_artefacts >= 2
+		end,
+
+        spawn_weight = function()
+			if not game_state then return 1000 end
+			if game_state.num_spawned_artefacts ~= 2 then return 1000 end
+            return 1000000000000000
+        end,
     },
 	
 	CrownOfFrenzyArtefact = {
@@ -282,7 +291,7 @@ local Artefacts = {
 		no_pickup = true,
 		infinite_spawns = true,
 		repeats_allowed = true,
-        destroy_score = 7500,
+        destroy_score = 750,
 		destroy_xp = 600,
 	},
 	
@@ -303,7 +312,7 @@ local Artefacts = {
         ammo_gain_per_level = 3,
 		ammo_needed_per_use = 1,
 		low_ammo_threshold = 3,
-        starting_ammo = 4,
+        starting_ammo = 3,
 		ammo_powerup_gain = 2,
 		ammo_color = Color.magenta,
 
@@ -313,7 +322,7 @@ local Artefacts = {
   
 		holdable = false,
 		rapid_fire = false,
-	},
+	}, 
 
 	BigLaserSecondaryWeapon = {
 		sprite = textures.pickup_weapon_big_laser,
@@ -326,8 +335,8 @@ local Artefacts = {
         -- debug_spawn_weight = 1000000000,
 
 		is_secondary_weapon = true,
-		ammo = 500,
-		ammo_gain_per_level = 70,
+		ammo = 750,
+		ammo_gain_per_level = 75,
         ammo_needed_per_use = 150,
         minimum_ammo_needed_to_use = 150,
 		held_ammo_consumption_rate = 1.5,
@@ -341,8 +350,9 @@ local Artefacts = {
 		
 		holdable = true,
 		rapid_fire = false,
-		-- divide_ammo_to_one = true,
 
+		-- divide_ammo_to_one = true,
+		
 		-- reduce_ammo_counts = true,
     },
 	
@@ -354,6 +364,7 @@ local Artefacts = {
 		name = "weapon_railgun_name",
         description = "weapon_railgun_desc",
 		spawn_weight = 1000,
+		fire_rate_upgrade_cooldown_reduction = 20,
         is_secondary_weapon = true,
 		
 		ammo = 48,

@@ -128,28 +128,70 @@ function LB.submit(run, category, process_name, cb)
 	rpc(_run, cb)   -- here 'name' is the callback
 end
 
-function LB.fetch(page, per, category, process_name, cb)
-	category = process_name and cat(category) or category
-    rpc({cmd="fetch", uid=savedata.uid, page=page, per=per, category=(category)}, cb)
+function LB.submit_many(runs, category, process_name, cb)
+    category = process_name and cat(category) or category
+    local payload = {cmd = "submit_many", category = category, runs = runs}
+    rpc(payload, cb)
 end
 
-function LB.lookup(uid, per, category, process_name, cb)
-	category = process_name and cat(category) or category
-    if type(per) == "function" then cb, per, category = per, nil, category end
-    rpc({cmd="lookup", user=uid, per=per, category=(category)}, cb)
+function LB.fetch(page, per, category, sort_by, period, process_name, cb)
+    category = process_name and cat(category) or category
+    local payload = {cmd="fetch", uid=savedata:get_uid(), page=page, per=per, category=(category), period=period}
+    if sort_by then payload.sort_by = sort_by end
+    rpc(payload, cb)
 end
 
-function LB.page_with_user(uid, per, category, process_name, cb)
+function LB.lookup(uid, per, category, sort_by, period, process_name, cb)
 	category = process_name and cat(category) or category
-	LB.lookup(uid, per, category, function(ok, res)
+    local payload = {cmd="lookup", user=uid, per=per, category=(category), period=period}
+    if sort_by then payload.sort_by = sort_by end
+    rpc(payload, cb)
+end
+
+function LB.page_with_user(uid, per, category, sort_by, period, process_name, cb)
+    category = process_name and cat(category) or category
+	LB.lookup(uid, per, category, sort_by, period, false, function(ok, res)
 		if not ok then
-			cb(false, res)
+			if cb then cb(false, res) end
 		else
-			LB.fetch(res.page, res.per, category, cb)
+			LB.fetch(res.page, res.per, category, sort_by, period, false, cb)
 		end
 	end)
 end
 
+function LB.submit_queued_runs(cb)
+    local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
+    if not run_upload_queue or next(run_upload_queue) == nil then
+        if cb then cb(true, {status="noop"}) end
+        return
+    end
+
+    local runs_by_category = {}
+    for key, run in pairs(run_upload_queue) do
+        local category = run.category or LB.default_category
+        if not runs_by_category[category] then
+            runs_by_category[category] = {}
+        end
+        table.insert(runs_by_category[category], run)
+    end
+
+    local any_runs = false
+    for category, runs in pairs(runs_by_category) do
+        any_runs = true
+        LB.submit_many(runs, category, true, function(ok, res)
+            if ok and res and res.status == "ok" then
+                for _, run in ipairs(runs) do
+                    run_upload_queue[run.run_key] = nil
+                end
+            end
+            if cb then cb(ok, res) end
+        end)
+    end
+
+    if not any_runs then
+        if cb then cb(true, {status="noop"}) end
+    end
+end
 function LB.add_death(cb)
     rpc({cmd="add_death"}, cb)
 end

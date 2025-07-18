@@ -34,6 +34,8 @@ end
 local ANIMATION = Animation.from_lengths(frames)
 local BACKWARD_ANIMATION = Animation.from_lengths(backward_frames)
 
+Cuboid.max_hp = 5
+
 Cuboid.drag = 0.01
 
 Cuboid.spawn_cry = "enemy_cube_spawn"
@@ -42,7 +44,6 @@ Cuboid.spawn_cry_volume = 0.6
 local BODY_HEIGHT = 5
 
 function Cuboid:new(x, y)
-    self.max_hp = 5
     self.hurt_bubble_radius = 9
     self.hit_bubble_radius = 7
     Cuboid.super.new(self, x, y)
@@ -253,7 +254,8 @@ CuboidBullet.is_cuboid_bullet = true
 
 function CuboidBullet:new(x, y)
 	self.max_hp = 9
-	self.team = "neutral"
+    self.team = "neutral"
+	self.melee_both_teams = true
 	CuboidBullet.super.new(self, x, y)
     self.drag = 0.0
     self.hit_bubble_radius = 5

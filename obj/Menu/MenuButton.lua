@@ -18,8 +18,12 @@ function MenuButton:new(x, y, w, h)
 		self.pressed_by_mouse = false
 	end
 
-	if self.selectable == nil then
-		self.selectable = true
+    if self.selectable == nil then
+        self.selectable = true
+    end
+	
+	if self.enabled == nil then
+		self.enabled = true
 	end
 end
 
@@ -35,9 +39,11 @@ function MenuButton:update_shared(dt)
 end
 
 function MenuButton:try_press(input)
+    if not self.enabled then
+        return
+    end
 	
-	local gamepad_nav_only = self.world.gamepad_nav_only and input.last_input_device ~= "gamepad"
-		
+	local gamepad_nav_only = self.world.gamepad_nav_only and input.last_input_device ~= "gamepad"	
 	
 	if self.focused and ((input.ui_confirm_pressed and not gamepad_nav_only) or self.mouse_held.lmb) then
         self.pressed = true
@@ -53,6 +59,10 @@ function MenuButton:try_press(input)
 end
 
 function MenuButton:try_release(input)
+	if not self.enabled then
+		return
+	end
+
     if self.focused and (not input.ui_confirm_held and not self.mouse_held.lmb) then
         self.pressed = false
         self:emit_signal("released")

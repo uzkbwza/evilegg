@@ -17,11 +17,12 @@ local ENEMY_AVOID_DISTANCE = 10
 
 BaseRescue.is_rescue = true
 
+BaseRescue.max_hp = 4
+
 function BaseRescue:new(x, y)
     BaseRescue.super.new(self, x, y)
 	self.team = "player"
     self.body_height = 4
-    self.max_hp = self.max_hp or 4
     self.hurt_bubble_radius = self.hurt_bubble_radius or 3
     -- self.declump_radius = self.declump_radius or 20
 	-- self.self_declump_modifier = self.self_declump_modifier or 0.3

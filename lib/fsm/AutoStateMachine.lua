@@ -91,8 +91,8 @@ function AutoStateMachine:init_state_machine()
 	self.state_elapsed = 1
 	self.state_tick = 1
 
-	local old_update = self.update
-	local old_draw = self.draw
+	local old_update = self.update or dummy_function
+	local old_draw = self.draw or dummy_function
 
 	self.update = function(self, dt)
 		old_update(self, dt)

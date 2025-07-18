@@ -87,8 +87,8 @@ function RoomObject:add_spawn_lines(tab, sort_func)
 		end
 		for i=1, num_entries do
 
-			-- local icon = spawn.icon
-			local icon = graphics.depalettized[spawn.icon]
+			local icon = spawn.icon
+			-- local icon = graphics.depalettized[spawn.icon]
 			-- print(spawn.name)
 			local width, height = graphics.texture_data[icon]:getDimensions()
             local middle_x, middle_y = floor(width / 2), floor(height / 2)

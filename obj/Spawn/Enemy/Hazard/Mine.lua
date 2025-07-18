@@ -3,9 +3,9 @@ local Exploder = Mine:extend("Exploder")
 local Blinker = Mine:extend("Blinker")
 local Explosion = require("obj.Explosion")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
-
+Mine.max_hp = 1
+Exploder.max_hp = 4
 function Mine:new(x, y)
-	self.max_hp = self.max_hp or 1
 	self.hit_bubble_damage = self.hit_bubble_damage or 2
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
 	self.hurt_bubble_radius = self.hurt_bubble_radius or 5
@@ -44,7 +44,6 @@ end
 local EXPLOSION_RADIUS = 28
 
 function Exploder:new(x, y)
-    self.max_hp = 4
     self.hit_bubble_damage = 10
     self.hit_bubble_radius = 4
     self.hurt_bubble_radius = 6

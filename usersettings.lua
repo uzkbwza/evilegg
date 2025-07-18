@@ -92,8 +92,14 @@ end
 
 
 function usersettings:apply_settings()
-	print("applying user settings")
-	love.window.setFullscreen(self.fullscreen)
+    print("applying user settings")
+
+	if conf.platform_force_fullscreen then 
+		self.fullscreen = true
+    else
+		love.window.setFullscreen(self.fullscreen)
+	end
+
 	
     love.window.setVSync(self.vsync and -1 or 0)
     if graphics then

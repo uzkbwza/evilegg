@@ -440,6 +440,7 @@ function PlayerCharacter:handle_input(dt)
 
         cooldown = round(cooldown)
 
+
         -- dbg("cooldown", cooldown)
 
         self:start_tick_timer("shoot_cooldown", cooldown)
@@ -545,7 +546,7 @@ function PlayerCharacter:start_secondary_weapon_cooldown()
 		return
 	end
 	if secondary_weapon.cooldown > 0 then
-		self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown)
+		self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0))
 	end
 end
 
@@ -560,7 +561,7 @@ function PlayerCharacter:on_secondary_weapon_released()
 	end
     self:stop_stopwatch("secondary_weapon_held")
     if secondary_weapon.cooldown > 0 then
-        self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown)
+        self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0))
     end
 end
 
@@ -590,6 +591,8 @@ end
 function PlayerCharacter:fire_current_bullet()
     local class = self.bullet_powerups["BaseBullet"]
 
+	game_state:on_bullet_shot()
+
     
 	local powerup = game_state:get_bullet_powerup()
 	
@@ -600,7 +603,8 @@ function PlayerCharacter:fire_current_bullet()
     local cooldown = class.cooldown
 	local num_bullets = clamp(game_state.upgrades.bullets + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
 
-	self:fire_bullet(class, nil, 0, 0)
+	-- signal.connect(self:fire_bullet(class, nil, 0, 0, false), "bullet_hit", game_state, "on_bullet_hit", nil, true)
+	self:fire_bullet(class, nil, 0, 0, false)
     
 	self:play_sfx(class.shoot_sfx or "player_shoot", class.shoot_sfx_volume or 0.45, 1)
 	
@@ -619,6 +623,7 @@ function PlayerCharacter:fire_current_bullet()
 
 	return cooldown
 end
+
 
 function PlayerCharacter:update_aim_direction()
 end
@@ -1103,11 +1108,13 @@ function PlayerCharacter:secondary_big_laser_pressed()
 
     local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
 	
+	local target_duration = TARGET_DURATION - 8 * game_state.upgrades.fire_rate
+
 	self:ref("big_laser_beam_aiming_laser",
 	self:spawn_object(self.secondary_weapon_objects.BigLaserBeamAimingLaser(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x,
-            self.real_aim_direction.y, TARGET_DURATION + 1)))
+            self.real_aim_direction.y, target_duration + 1)))
 
-	self:start_tick_timer("big_laser_beam_aiming_laser", TARGET_DURATION)
+	self:start_tick_timer("big_laser_beam_aiming_laser", target_duration)
 end
 
 function PlayerCharacter:secondary_big_laser_held(dt)

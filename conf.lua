@@ -2,7 +2,21 @@ local input_presets = require "conf.input_presets"
 
 local lldebuggerPatcher = require("lib.lldebuggerpatcher")
 
+_, steam = pcall(require, "luasteam")
+
+if type(steam) == "table" then
+	if not steam.init then 
+		steam = nil
+	elseif not steam.init() then
+		steam = nil
+	end
+else
+	steam = nil
+end
+
+
 IS_EXPORT = not pcall(require, "tools.is_debug")
+
 
 local IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and arg[2] == "debug"
 if IS_DEBUG then
@@ -13,8 +27,6 @@ if IS_DEBUG then
         error(msg, 2)
     end
 end
-
-string = require "lib.stringy"
 
 local conf = {
 	
@@ -42,13 +54,13 @@ local conf = {
 
 	expand_viewport = true,
 
-	
     to_vec2 = {
 		"room_size",
 		"viewport_size",
 		"room_padding",
 	},
 	
+	-- display_scale = 2,
 	display_scale = IS_EXPORT and 2 or 5,
 
 	-- delta
@@ -276,8 +288,18 @@ local conf = {
 	},
 }
 
+
+string = require "lib.stringy"
+
+
 if IS_EXPORT then
-	conf.input_actions.secondary_weapon.keyboard = { "lshift" }
+    conf.input_actions.secondary_weapon.keyboard = { "lshift" }
+end
+
+-- console stuff
+if steam and steam.utils.isSteamRunningOnSteamDeck() then
+	conf.platform_force_fullscreen = true
+	conf.platform = "steamdeck"
 end
 
 local function load_input_preset(preset)
@@ -300,6 +322,7 @@ if conf.room_size == nil then
 	}
 end
 
+
 conf.room_padding = {
 	x = (conf.viewport_size.x - conf.room_size.x) * 0.5,
 	y = (conf.viewport_size.y - conf.room_size.y) * 0.5,
@@ -307,6 +330,10 @@ conf.room_padding = {
 
 -- https://love2d.org/wiki/Config_Files
 function love.conf(t)
+    -- if true then
+	
+
+
 	-- local headless = false
 
 	t.identity              = conf.folder or conf.name
@@ -327,9 +354,10 @@ function love.conf(t)
 	t.window.width          = conf.viewport_size.x * conf.display_scale
     t.window.height         = conf.viewport_size.y * conf.display_scale
     if not IS_EXPORT then
-		-- t.window.width          = 1920
-		-- t.window.height         = 1080
-	end
+        -- t.window.width          = 1920
+        -- t.window.height         = 1080
+    end
+
 
 
 	t.window.borderless     = false
@@ -339,6 +367,14 @@ function love.conf(t)
 	t.window.fullscreen     = false
 	t.window.fullscreentype = "desktop"
 	
+	
+	if conf.platform_force_fullscreen then
+        t.window.fullscreen = true
+        t.window.width = 0
+		
+		t.window.fullscreentype = "exclusive"
+	end
+
 	if IS_EXPORT then
     	-- t.window.fullscreentype = "exclusive"
 	end

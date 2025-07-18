@@ -14,6 +14,7 @@ local EggShadow = BaseEnemy:extend("EggShadow")
 local LandingCrack = GameObject2D:extend("LandingCrack")
 local GlassShardsEffect = Effect:extend("GlassShardsEffect")
 local UnderEggFlash = GameObject2D:extend("UnderEggFlash")
+local Cutscenes = require("obj.Cutscene")
 
 local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
@@ -25,7 +26,7 @@ SKIP_PHASE_5 = SKIP_PHASE_5 and debug.enabled
 
 local QUAD_SIZE = 10
 
-local SHELL_HP = SKIP_PHASE_1 and 30 or 250
+local SHELL_HP = SKIP_PHASE_1 and 3 or 250
 local BASE_HP = 500
 local NUM_SHELL_CRACKS = 27
 local SHELL_DAMAGE_PER_CRACK = SHELL_HP / NUM_SHELL_CRACKS
@@ -711,7 +712,7 @@ function EggBoss:state_Phase2_enter()
 
 		self.z_index = old_z_index
 
-        if self.phase2_started_twice then
+        if self.phase2_started_twice or (SKIP_PHASE_3 and SKIP_PHASE_4) then
 			self:change_state("Phase5")
 
 		else
@@ -728,9 +729,19 @@ function EggBoss:smooth_hover(time)
 	self:start_timer("smooth_hover", time)
 end
 
+
+local PlaceholderText = GameObject2D:extend("PlaceholderText")
+
+function PlaceholderText:draw()
+	local font = fonts.depalettized.image_font2
+	graphics.set_font(font)
+	graphics.set_color(Color.white)
+	graphics.print_centered("FINAL PHASE COMING SOON LOL", font, 0, 0)
+end
+
 function EggBoss:phase2_landing()
     -- self:play_sfx("enemy_evil_egg_phase2_landing", 0.8)
-    if not (self.phase2_started_twice) then
+    if not (self.phase2_started_twice or (SKIP_PHASE_3 and SKIP_PHASE_4)) then
 		self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
 		self:spawn_object(Explosion(self.pos.x, self.pos.y, {
 			size = LAND_EXPLOSION_SIZE,
@@ -818,7 +829,27 @@ function EggBoss:phase2_landing()
 				s:wait(1)
 				closest_player = self:get_closest_player()
 			end
-			closest_player:hide()
+            closest_player:hide()
+			
+			if true then
+                -- if SKIP_PHASE_5 then
+
+				local cutscene = self:spawn_object(Cutscenes.EndingCutscene1(0, 0))
+                self:ref("cutscene", cutscene)
+				while self.cutscene do
+					s:wait(1)
+				end
+
+                s:wait(45)
+
+				self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+
+                s:wait(180)
+				self.placeholder_text:start_destroy_timer(10)
+
+				self:die()
+				return
+			end
 
 		end)
     end

@@ -7,8 +7,8 @@ local debug_force_enabled = false
 local debug_force = "bonus_police"
 
 local debug_enemy_enabled = false
-local debug_enemy = "RoyalRoamer"
-local num_debug_enemies = 1
+local debug_enemy = "AcidCharger"
+local num_debug_enemies = 6
 local num_debug_waves = 3
 
 Room.can_highlight_enemies = true
@@ -457,7 +457,7 @@ function Room:generate_enemy_pool(narrative)
 		for _, spawn_group in pairs(narrative.enemy_spawn_group) do
 			if SpawnDataTable.data_by_type_then_spawn_group["enemy"][spawn_group] then
 				for _, spawn in pairs(SpawnDataTable.data_by_type_then_spawn_group["enemy"][spawn_group]) do
-					if self:is_valid_spawn(spawn, narrative, 1) then
+					if self:is_valid_spawn(spawn, {spawn_group}, 1) then
 						table.insert(pool, spawn)
 					end
 				end
@@ -490,7 +490,7 @@ function Room:generate_hazard_pool(narrative)
         for _, spawn_group in pairs(narrative.hazard_spawn_group) do
 			if SpawnDataTable.data_by_type_then_spawn_group["hazard"][spawn_group] then
 				for _, spawn in pairs(SpawnDataTable.data_by_type_then_spawn_group["hazard"][spawn_group]) do
-					if self:is_valid_spawn(spawn, narrative, 1) then
+					if self:is_valid_spawn(spawn, {spawn_group}, 1) then
 						table.insert(pool, spawn)
 					end
 				end
@@ -515,13 +515,14 @@ function Room:generate_hazard_pool(narrative)
     return pool
 end
 
-function Room:is_valid_spawn(spawn, narrative, wave)
+function Room:is_valid_spawn(spawn, narrative_spawn_group, wave)
 	wave = wave or 1
 	if not spawn.spawnable then return false end
 	if spawn.min_level and self.level < spawn.min_level then return false end
 	if spawn.max_level and self.level > spawn.max_level then return false end
 	if spawn.level > max((self.level + 1) * 0.75, 2) then return false end
-	if spawn.initial_wave_only and wave ~= 1 then return false end
+    if spawn.initial_wave_only and wave ~= 1 then return false end
+	if table.list_has(narrative_spawn_group or {}, "basic") and spawn.basic_after_level and self.level < spawn.basic_after_level then return false end
 	return true
 end
 
@@ -566,7 +567,7 @@ function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narr
     end
 
     for _, spawn in pairs(spawn_dict) do
-        local valid = self:is_valid_spawn(spawn, narrative, wave)
+        local valid = self:is_valid_spawn(spawn, narrative_spawn_group, wave)
         if not valid then
             goto continue
         end
@@ -1031,7 +1032,10 @@ function Room:generate_waves()
     if game_state.artefacts.transmitter then
 		local num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2 }
 		local rescue = rng:choose(rng:choose(rescue_waves))
-		if self.force_ammo or rng:percent(20) then
+        if self.force_ammo or rng:percent(20) then
+			if self.force_ammo and rng:percent(35) then
+				num_greenoids_with_ammo = 2
+			end
 			for _=1, num_greenoids_with_ammo do
 				for _=1, 100 do
 					if rescue.pickup == nil then

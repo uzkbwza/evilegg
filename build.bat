@@ -1,2 +1,2 @@
-call music.bat
-python3 ./build.py
+@echo off
+python3 ./build.py %*

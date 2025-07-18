@@ -1,7 +1,7 @@
 return {
     elevator_killed = {
 		text_key = "bonus_boss_defeated",
-		score = 10000,
+		score = 100000,
 		score_multiplier = 1,
 		xp = 1500,
 		difficulty_modifier = 0.0,
@@ -14,6 +14,7 @@ return {
 		score_multiplier = 0,
 		xp = 0,
 		difficulty_modifier = 0.0,
+		final_room_allowed = true,
     },
 	
 	twin_saved = {
@@ -23,13 +24,30 @@ return {
 		ignore_score_multiplier = true,
 
 		xp = 0,
+        difficulty_modifier = 0.00,
+		final_room_allowed = true,
+    },
+	
+    overflow = {
+		text_key = "bonus_overflow",
+        score = 1000,
+        xp = 50,
+		score_multiplier = 0.01,
+		difficulty_modifier = 0.00,
+    },
+	
+	ammo_hoarder = {
+		text_key = "bonus_ammo_hoarder",
+		score = 1000,
+		score_multiplier = 0.00,
+		xp = 25,
 		difficulty_modifier = 0.00,
 	},
 
 	aggression_bonus = {
 		text_key = "bonus_aggression",
 		score = function() return 
-			game_state.aggression_bonus * (1 / 5)
+			game_state.aggression_bonus * (2)
 		end,
 		score_multiplier = 0.00,
 		xp = 0,
@@ -38,15 +56,23 @@ return {
 
     hard_room = {
         text_key = "bonus_hard_room",
-        score = 1000,
-        score_multiplier = 0.1,
+        score = 10000,
+        score_multiplier = 0.05,
 		xp = 200,
 		difficulty_modifier = 0.1,
     },
 
+	accuracy = {
+		text_key = function() return string.format(tr.bonus_accuracy, (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level * 10)) end,
+		score = function() return 1000 * (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level) end,
+		score_multiplier = 0.00,
+		xp = 0,
+		difficulty_modifier = 0.00,
+	},
+
 	perfect = {
 		text_key = "bonus_perfect",
-		score = 1000,
+		score = 2000,
 		score_multiplier = 0.02,
 		xp = 0,
 		difficulty_modifier = 0.015,
@@ -54,7 +80,7 @@ return {
 
 	no_damage = {
 		text_key = "bonus_no_damage",
-		score = 2000,
+		score = 4000,
 		score_multiplier = 0.02,
         xp = 0,
 		difficulty_modifier = 0.05,
@@ -62,7 +88,7 @@ return {
 
 	overheal = {
 		text_key = "bonus_overheal",
-		score = 1000,
+		score = 2000,
 		score_multiplier = 0.01,
 		xp = 50,
         difficulty_modifier = 0.025,
@@ -71,7 +97,7 @@ return {
 	rescue = {
 		text_key = "bonus_rescue",
         score = 0,
-		-- priority = 2,
+		priority = 1,
 		-- score = function()
 		-- 	if game_state.final_room_entered then
 		-- 		return 100
@@ -83,13 +109,14 @@ return {
         difficulty_modifier = 0.01,
 		custom_color_function = function(bonus, is_flashing, offset)
 			return is_flashing and Color.darkgreen or Color.green
-		end,
+        end,
+		-- always_show_count = true,
     },
 
 	room_clear = {
         text_key = "bonus_room_clear",
 		-- priority = 3,
-		score = function() return game_state.level * 10 end,
+		score = function() return game_state.level * 100 end,
 		score_multiplier = 0.01,
         -- xp = function() return 60 + (floor(((game_state.level - 1) / 7) * 10)) end,
 		xp = 600,
@@ -97,7 +124,7 @@ return {
 	
 	all_rescues = {
 		text_key = "bonus_all_rescues",
-        score = 2000,
+        score = 200,
 		-- priority = 1,
 		score_multiplier = 0.02,
 		xp = 240,
@@ -106,23 +133,25 @@ return {
 	
 	quick_wave = {
 		text_key = "bonus_quick_wave",
-		score = 300,
+		score = 500,
 		score_multiplier = 0.01,
 		xp = 0,
 		difficulty_modifier = 0.015,
+		-- always_show_count = true,
 	},
 
 	quick_save = {
 		text_key = "bonus_quick_save",
-		score = 100,
+		score = 250,
 		score_multiplier = 0.00,
 		xp = 0,
-		difficulty_modifier = 0.015,
+        difficulty_modifier = 0.015,
+		-- always_show_count = true,
 	},
 	
 	ammo_saver = {
 		text_key = "bonus_ammo_saver",
-		score = 500,
+		score = 1000,
 		score_multiplier = 0.00,
 		xp = 0,
 		difficulty_modifier = 0.015,
@@ -130,7 +159,7 @@ return {
 
 	twin_protected = {
 		text_key = "bonus_twin_protected",
-		score = 500,
+		score = 1000,
 		score_multiplier = 0.01,
 		xp = 0,
 		difficulty_modifier = 0.015,
@@ -138,10 +167,10 @@ return {
 	
 	twin_killed = {
 		text_key = "bonus_twin_killed",
-        score = 20000,
+        score = 30000,
         negative = true,
 		ignore_score_multiplier = true,
-		score_multiplier = 0.40,
+		score_multiplier = 0.15,
 		xp = 0,
 	},
 
@@ -151,15 +180,37 @@ return {
             if game_state.final_room_entered then
                 return 400
             end
-			return 2000
+			return 1000
         end,
 		
 		ignore_score_multiplier = true,
 		
-		score_multiplier = 0.03,
+		score_multiplier = 0.01,
 		negative = true,
 		xp = 0,
-		difficulty_modifier = 0.015,
+		-- always_show_count = true,
+		-- difficulty_modifier = 0.015,
 	},
 
+
+	noid_died = {
+		text_key = "bonus_noid_died",
+        score = function()
+            if game_state.final_room_entered then
+                return 1000
+            end
+			return 10000
+        end,
+		
+        ignore_score_multiplier = true,
+		
+		score_multiplier = 0.05,
+        xp = 0,
+        negative = true,
+		-- always_show_count = true,
+		-- priority = 0,
+		-- difficulty_modifier = 0.015,
+	},
+
+	
 }

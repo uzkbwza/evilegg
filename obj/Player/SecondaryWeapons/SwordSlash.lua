@@ -7,7 +7,7 @@ local OFFSET = 30
 local SPEED = 5
 local DRAG = 0.4
 
-local BASE_DAMAGE = 2.0
+local BASE_DAMAGE = 2.5
 
 local PUSH_IMPULSE = 2.2
 

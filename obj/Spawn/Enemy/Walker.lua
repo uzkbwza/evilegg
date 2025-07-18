@@ -19,9 +19,12 @@ Walksploder:implement(Mixins.Behavior.ExploderEnemy)
 -- Walker.death_cry = "enemy_walker_death"
 -- Walker.death_cry_volume = 0.9
 
-function Walker:new(x, y)
-	self.max_hp = self.max_hp or 1
+Walker.max_hp = 1
+Walksploder.max_hp = 1.5
+FastWalker.max_hp = 2
+BigWalker.max_hp = 3
 
+function Walker:new(x, y)
     self.walk_speed = 0.0525
     self.hurt_bubble_radius = 5
     self.hit_bubble_radius = 3
@@ -44,7 +47,6 @@ end
 local EXPLOSION_RADIUS = 14
 
 function Walksploder:new(x, y)
-    self.max_hp = 1.5
 	self.hit_bubble_damage = 10
 
     -- self.bullet_push_modifier = 2.0
@@ -91,7 +93,6 @@ end
 
 
 function FastWalker:new(x, y)
-	self.max_hp = 2
     FastWalker.super.new(self, x, y)
     self.walk_speed = 0.1
 	self.bullet_push_modifier = 1.5
@@ -102,7 +103,6 @@ function FastWalker:get_sprite()
 end
 
 function BigWalker:new(x, y)
-    self.max_hp = 3
     BigWalker.super.new(self, x, y)
     self.walk_speed = 0.08
     self.bullet_push_modifier = 0.1

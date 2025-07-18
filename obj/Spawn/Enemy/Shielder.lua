@@ -10,7 +10,7 @@ local MIN_SHIELD_HP = 0.5
 
 Shielder.death_cry = "enemy_shielder_die"
 Shielder.death_cry_volume = 0.8
-
+	
 function Shielder:new(x, y)
 	self.max_hp = MIN_SHIELD_HP
 	self.hurt_bubble_radius = 6

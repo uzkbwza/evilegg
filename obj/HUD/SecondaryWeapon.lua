@@ -70,7 +70,7 @@ function SecondaryWeapon:on_secondary_weapon_ammo_gained(amount, old, new)
 
 	
 
-	if old < new and not (game_state.secondary_weapon.minimum_ammo_needed_to_use and new < game_state.secondary_weapon.minimum_ammo_needed_to_use) then
+	if new == game_state.secondary_weapon.ammo or (old <= new and not (game_state.secondary_weapon.minimum_ammo_needed_to_use and new < game_state.secondary_weapon.minimum_ammo_needed_to_use)	) then
 		self:play_sfx("player_gained_ammo", 0.7)
 		self:start_timer("gained_ammo_flash", 10)
     else
@@ -148,9 +148,9 @@ function SecondaryWeapon:draw()
 	
 	if game_state.secondary_weapon.show_individual_ammo then
         for i = 1, max_ammo do
-            local x = ammo_start + (i - 1) * (ammo_width / max_ammo)
+            local x = floor(ammo_start + (i - 1) * (ammo_width / max_ammo))
             local y = self.height - 4
-            local w = (ammo_width / max_ammo) - 1
+            local w = floor((ammo_width / max_ammo) - 1)
             local h = 2
 
             -- graphics.set_color(Color.black)
@@ -209,13 +209,13 @@ function SecondaryWeapon:draw()
 			local num_chunks = ceil(max_ammo / ammo_needed_per_use)
 			local chunk_width = (ammo_width / num_chunks)
 			
-			local w = chunk_width - 1
+			local w = (chunk_width - 1)
             local y = self.height - 4
 			local h = 2
 			
 			for i=1, num_chunks do
 				graphics.set_color(empty_color)
-				local x = ammo_start + (i - 1) * chunk_width
+				local x = (ammo_start + (i - 1) * chunk_width)
 				
                 local unfireable_ratio = inverse_lerp_safe_clamp(ammo_needed_per_use * (i - 1), ammo_needed_per_use * (i),
                 ammo)

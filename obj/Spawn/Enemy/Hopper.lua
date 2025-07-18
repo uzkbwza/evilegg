@@ -3,6 +3,10 @@ local FastHopper = Hopper:extend("FastHopper")
 local BigHopper = Hopper:extend("BigHopper")
 local HopperBullet = BaseEnemy:extend("HopperBullet")
 
+Hopper.max_hp = 1
+FastHopper.max_hp = 2
+BigHopper.max_hp = 9
+
 function Hopper:new(x, y)
     Hopper.super.new(self, x, y)
 	self.drag = self.drag or 0.05
@@ -92,7 +96,6 @@ function Hopper:get_sprite()
 end
 
 function FastHopper:new(x, y)
-	self.max_hp = 2
 	self.drag = 0.325
 	self.hop_speed = 7.5
 	self.number_hop_bullets = floor(rng:randfn(3, 0.15))
@@ -116,8 +119,8 @@ function BigHopper:new(x, y)
     self.default_body_height = 8
     self.number_hop_bullets = 30
     self.hop_speed = 1.0
-    self.max_hp = 9
     self.min_wait_time = 120
+	self.bullet_speed = 1.5
 	self.max_wait_time = 460
 	self.max_start_time = 500
     self.drag = 0.05

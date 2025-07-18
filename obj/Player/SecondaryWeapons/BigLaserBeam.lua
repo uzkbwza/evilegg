@@ -94,7 +94,7 @@ end
 
 BeamParticle.center_out_velocity_multiplier = 5.0
 
-function BeamParticle:new(x, y, dx, dy, damage)
+function BeamParticle:new(x, y, dx, dy, damage, speed)
     self.pos = Vec2(x, y)
     self.dx = dx
     self.dy = dy
@@ -105,7 +105,8 @@ function BeamParticle:new(x, y, dx, dy, damage)
 	self.prev_y = y
 	self.size = BEAM_PARTICLE_SIZE
 	self.elapsed = 0
-	self.damage = damage
+    self.damage = damage
+	self.speed = speed
 	self.random_offset1 = rng:randi()
 	self.random_offset2 = rng:randi()
 	self.hit_objects = {}
@@ -160,7 +161,16 @@ function BigLaserBeam:update(dt)
 		end
 		for i = 1, NUM_BEAM_PARTICLES_PER_FRAME do
 			
-			local beam_particle = BeamParticle(self.pos.x, self.pos.y, self.dx, self.dy, BEAM_PARTICLE_DAMAGE / NUM_BEAM_PARTICLES_PER_FRAME)
+
+            local damage = BEAM_PARTICLE_DAMAGE
+			
+            damage = damage + 0.25 * game_state.upgrades.damage
+			
+            local speed = BEAM_PARTICLE_SPEED
+			
+			speed = speed + 4 * game_state.upgrades.bullet_speed
+
+			local beam_particle = BeamParticle(self.pos.x, self.pos.y, self.dx, self.dy, damage, speed)
 
             self.beam_particle_counter = self.beam_particle_counter + 1
 			
@@ -339,9 +349,12 @@ function BigLaserBeam:update_beam_particle(particle, dt)
 	particle.prev_x = particle.pos.x
     particle.prev_y = particle.pos.y
 	
+	local speed = particle.speed
+
+
 	particle.pos.x, particle.pos.y = bounds:clamp_circle(particle.pos.x, particle.pos.y, particle.radius)
-    particle.pos.x, particle.pos.y = vec2_add(particle.pos.x, particle.pos.y, particle.dx * dt * BEAM_PARTICLE_SPEED,
-        particle.dy * dt * BEAM_PARTICLE_SPEED)
+    particle.pos.x, particle.pos.y = vec2_add(particle.pos.x, particle.pos.y, particle.dx * dt * speed,
+        particle.dy * dt * speed)
 
     particle.elapsed = particle.elapsed + dt
 
@@ -352,7 +365,7 @@ function BigLaserBeam:update_beam_particle(particle, dt)
         local outside_x, outside_y = vec2_perpendicular_normalized_times(particle.dx, particle.dy,
             dir * rng:randf(particle.radius - 10, particle.radius + 10))
 		local dx, dy = vec2_rotated(particle.dx, particle.dy, -dir * rng:randf(deg2rad(1), deg2rad(30)))
-		self.floor:create_dust_particle(particle.pos.x + outside_x, particle.pos.y + outside_y, dx, dy, rng:randf(BEAM_PARTICLE_SPEED - 10, BEAM_PARTICLE_SPEED + 10) / 3)
+		self.floor:create_dust_particle(particle.pos.x + outside_x, particle.pos.y + outside_y, dx, dy, rng:randf(speed - 10, speed + 10) / 3)
 	end
 end
 
@@ -391,12 +404,13 @@ function BigLaserBeam.try_hit(bubble, self, particle, dt)
 
 
 		particle.hit_objects[parent.id] = true
-		if not parent.bullet_passthrough then
+		if not parent.bullet_passthrough and not parent.is_enemy_bullet then
 			particle.hit_something = true
 			self:play_sfx("player_big_laser_beam_hit", 0.55)
 		end
-		if parent.is_simple_physics_object then
-			local force_x, force_y = vec2_normalized_times(particle.dx, particle.dy, BEAM_PUSH_STRENGTH * max(0.05, parent.bullet_push_modifier or 1))
+        if parent.is_simple_physics_object then
+			local beam_push_strength = BEAM_PUSH_STRENGTH + 2 * game_state.upgrades.bullet_speed
+			local force_x, force_y = vec2_normalized_times(particle.dx, particle.dy, beam_push_strength * max(0.05, parent.bullet_push_modifier or 1))
 			-- parent:get_pushed_by_bullet(force_x, force_y)
 			parent:apply_force(force_x, force_y)
 		end
@@ -780,7 +794,8 @@ function BigLaserBeamAimingLaser:set_direction(dx, dy)
 end
 
 function BigLaserBeamAimingLaser:update(dt)
-	if self.is_new_tick and self.tick == floor(self.duration - 16) then
+	if self.is_new_tick and self.elapsed >= max(floor(self.duration - 16), 1) and not self.sfx_played then
+		self.sfx_played = true
 		self:play_sfx("player_big_laser_charge2")
 	end
 end

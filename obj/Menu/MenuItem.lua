@@ -63,7 +63,14 @@ function MenuItem:new(x, y, width, height)
 	end
 end
 
-function MenuItem:add_neighbor(neighbor, direction)
+local _OPPOSITE_DIRECTION = {
+	up = "down",
+	down = "up",
+	left = "right",
+	right = "left",
+}
+
+function MenuItem:add_neighbor(neighbor, direction, bidirectional)
 	if self.neighbors[direction] then
 		self:remove_neighbor(direction)
 	end
@@ -71,6 +78,11 @@ function MenuItem:add_neighbor(neighbor, direction)
 	signal.connect(neighbor, "destroyed", self, "on_neighbor_destroyed_" .. direction, function()
 		self.neighbors[direction] = nil
     end, true)
+
+    if bidirectional then
+        neighbor:add_neighbor(self, _OPPOSITE_DIRECTION[direction], false)
+    end
+
 	return neighbor
 end
 
@@ -234,11 +246,11 @@ function MenuItem:focused_poll(dt)
 		end
 	end
 
-    if input.ui_nav_up_pressed and self.neighbors.up then
+    if input.ui_nav_up_pressed and self.neighbors.up and self.neighbors.up.focusable then
         self:defer(function()
-			if input.ui_nav_left_pressed and self.neighbors.up.neighbors.left then
+			if input.ui_nav_left_pressed and self.neighbors.up.neighbors.left and self.neighbors.up.neighbors.left.focusable then
 				self.neighbors.up.neighbors.left:focus()
-			elseif input.ui_nav_right_pressed and self.neighbors.up.neighbors.right then
+			elseif input.ui_nav_right_pressed and self.neighbors.up.neighbors.right and self.neighbors.up.neighbors.right.focusable then
 				self.neighbors.up.neighbors.right:focus()
 			else
 				self.neighbors.up:focus()
@@ -246,11 +258,11 @@ function MenuItem:focused_poll(dt)
         end)
     end
 
-    if input.ui_nav_down_pressed and self.neighbors.down then
+    if input.ui_nav_down_pressed and self.neighbors.down and self.neighbors.down.focusable then
         self:defer(function()
-			if input.ui_nav_left_pressed and self.neighbors.down.neighbors.left then
+			if input.ui_nav_left_pressed and self.neighbors.down.neighbors.left and self.neighbors.down.neighbors.left.focusable then
 				self.neighbors.down.neighbors.left:focus()
-			elseif input.ui_nav_right_pressed and self.neighbors.down.neighbors.right then
+			elseif input.ui_nav_right_pressed and self.neighbors.down.neighbors.right and self.neighbors.down.neighbors.right.focusable then
 				self.neighbors.down.neighbors.right:focus()
 			else
 				self.neighbors.down:focus()
@@ -258,11 +270,11 @@ function MenuItem:focused_poll(dt)
         end)
     end
 
-    if input.ui_nav_left_pressed and self.neighbors.left then
+    if input.ui_nav_left_pressed and self.neighbors.left and self.neighbors.left.focusable then
         self:defer(function()
-			if input.ui_nav_up_pressed and self.neighbors.left.neighbors.up then
+			if input.ui_nav_up_pressed and self.neighbors.left.neighbors.up and self.neighbors.left.neighbors.up.focusable then
 				self.neighbors.left.neighbors.up:focus()
-			elseif input.ui_nav_down_pressed and self.neighbors.left.neighbors.down then
+			elseif input.ui_nav_down_pressed and self.neighbors.left.neighbors.down and self.neighbors.left.neighbors.down.focusable then
 				self.neighbors.left.neighbors.down:focus()
 			else
 				self.neighbors.left:focus()
@@ -270,11 +282,11 @@ function MenuItem:focused_poll(dt)
         end)
     end
 
-    if input.ui_nav_right_pressed and self.neighbors.right then
+    if input.ui_nav_right_pressed and self.neighbors.right and self.neighbors.right.focusable then
         self:defer(function()
-			if input.ui_nav_up_pressed and self.neighbors.right.neighbors.up then
+			if input.ui_nav_up_pressed and self.neighbors.right.neighbors.up and self.neighbors.right.neighbors.up.focusable then
 				self.neighbors.right.neighbors.up:focus()
-			elseif input.ui_nav_down_pressed and self.neighbors.right.neighbors.down then
+			elseif input.ui_nav_down_pressed and self.neighbors.right.neighbors.down and self.neighbors.right.neighbors.down.focusable then
 				self.neighbors.right.neighbors.down:focus()
 			else
 				self.neighbors.right:focus()

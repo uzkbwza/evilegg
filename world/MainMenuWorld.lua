@@ -27,7 +27,10 @@ function MainMenuWorld:enter()
 	local title_y = self.title_text.pos.y
 	local s = self.sequencer
     s:start(function()
-		s:tween(function(t) self.title_text:move_to(self.title_text.pos.x, lerp(title_y, -conf.viewport_size.y / 2 + 62, t)) end, 0, 1, 15, "linear")
+        s:tween(
+        function(t) self.title_text:move_to(self.title_text.pos.x, lerp(title_y, -conf.viewport_size.y / 2 + 62, t)) end,
+            0, 1, 15, "linear")
+		self.drawing_version = true
     end)
 	
 
@@ -39,6 +42,7 @@ function MainMenuWorld:enter()
 	end
 
 
+	self.clear_color = Color.transparent
 
 end
 
@@ -100,18 +104,29 @@ function MainMenuWorld:create_buttons()
 end
 
 function MainMenuWorld:on_menu_item_selected(menu_item, func)
-	self:emit_signal("menu_item_selected")
-	menu_item:focus()
-	local s = self.sequencer
+    self:emit_signal("menu_item_selected")
+    menu_item:focus()
+    local s = self.sequencer
     s:start(function()
         for _, item in ipairs(self.menu_items) do
             if item ~= menu_item then
                 item:disappear_animation()
             end
         end
-		s:wait(2)
-		func()
-	end)
+        s:wait(2)
+        func()
+    end)
+end
+
+function MainMenuWorld:draw()
+    if self.drawing_version then
+        local font = fonts.depalettized.greenoid
+		graphics.set_font(font)
+        graphics.print_centered(GAME_VERSION, font, 100, -30)
+        -- graphics.print(GAME_VERSION, font, -conf.viewport_size.x / 2, conf.viewport_size.y / 2 - 7)
+    end
+	MainMenuWorld.super.draw(self)
+
 end
 
 function TitleTextObject:new(x, y)

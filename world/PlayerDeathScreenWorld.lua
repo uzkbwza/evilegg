@@ -33,7 +33,25 @@ function PlayerDeathScreenWorld:enter()
 	
 	savedata:add_score(score_table)
 
-    leaderboard.submit(score_table, game_state.leaderboard_category, true, function(ok, res) end)
+    -- if debug.enabled then
+    --     for i = 1, 100 do
+    --         savedata.uid = tostring(i)
+    --         local score_table = game_state:get_run_data_table()
+    --         score_table.score = i * 100
+    --         score_table.level = 1000 - i
+    --         leaderboard.submit(score_table, game_state.leaderboard_category, true, function(ok, res) end)
+    --     end
+    -- end
+
+    savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] or {}
+
+    local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
+
+    run_upload_queue[score_table.run_key] = score_table
+
+
+
+    leaderboard.submit_queued_runs()
 	
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0)))
 

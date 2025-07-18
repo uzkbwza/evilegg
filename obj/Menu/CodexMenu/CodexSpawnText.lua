@@ -1,6 +1,6 @@
 local CodexSpawnText = GameObject2D:extend("CodexSpawnText")
 
-local LINE_WIDTH = 120
+local LINE_WIDTH = 140
 
 function CodexSpawnText:new(x, y, text, centered, color, delay, uppercase)
     CodexSpawnText.super.new(self, x, y)
@@ -24,7 +24,7 @@ function CodexSpawnText:new(x, y, text, centered, color, delay, uppercase)
 	self:hide()
 
 	self.sequencer:start(function()
-		self.sequencer:wait(delay or 0)
+		self.sequencer:wait(delay * 1 or 0)
 		self:show()
 		self:start_timer("show_text", 10)
 	end)

@@ -12,6 +12,8 @@ local GRAB_TIME = 50
 local GRAB_RADIUS = 12
 local HURT_TIME = 49
 
+Cultist.max_hp = 9
+
 Cultist.spawn_cry = "enemy_cultist_spawn"
 Cultist.spawn_cry_volume = 0.8
 Cultist.death_cry = "enemy_cultist_death"
@@ -19,7 +21,6 @@ Cultist.death_cry_volume = 0.8
 
 function Cultist:new(x, y)
     self.body_height = 7
-    self.max_hp = 9
 	self.hit_bubble_radius = 4
     Cultist.super.new(self, x, y)
 	self.walk_speed = 0.0475

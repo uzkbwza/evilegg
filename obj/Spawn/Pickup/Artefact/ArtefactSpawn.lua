@@ -136,7 +136,7 @@ function ArtefactSpawn:get_destroy_xp()
 end
 
 function ArtefactSpawn:get_destroy_score()
-    return self.artefact.destroy_score or (self.artefact.is_secondary_weapon and 7500 or 5000)
+    return self.artefact.destroy_score or (self.artefact.is_secondary_weapon and 750 or 500)
 end
 
 function ArtefactSpawn:get_palette()

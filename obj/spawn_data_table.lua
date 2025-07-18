@@ -17,13 +17,16 @@ local Enemies = {
         icon = textures.enemy_base,
 		
     },
-
+	
 	Walksploder = {
-        -- inherit = { "Walker" },
+		-- inherit = { "Walker" },
 		spawn_points = 15,
 		level = 1,
+        extra_score = 10,
+		basic_after_level = 30,
         icon = textures.enemy_walksploder,
-		spawn_group = { "exploder" },
+		spawn_group = { "exploder", "basic" },
+		basic_select_weight_modifier = 0.2
 	},
 
 	FastWalker = {
@@ -32,7 +35,7 @@ local Enemies = {
 		min_level = 12,
 		-- room_select_weight = 500,
 		spawn_points = 15,
-		extra_score = 0,
+		extra_score = 10,
 		icon = textures.enemy_fastwalker,
 
     },
@@ -43,10 +46,10 @@ local Enemies = {
 		min_level = 16,
 		room_select_weight = 500,
 		spawn_points = 30,
-		extra_score = 100,
+		extra_score = 10,
         icon = textures.enemy_bigwalker,
     },
-		
+	
     Roamer = {
         level = 2,
 		max_level = 15,
@@ -67,7 +70,8 @@ local Enemies = {
 	RoyalRoamer = {
 		-- inherit = { "Roamer" },
         level = 2,
-		min_level = 30,
+        min_level = 30,
+		extra_score = 10,
 		icon = textures.enemy_royalroamer1,
 		spawn_points = 9,
 		room_select_weight = 150,
@@ -86,7 +90,7 @@ local Enemies = {
 		min_level = 14,
 		spawn_points = 35,
         room_select_weight = 1000,
-		extra_score = 50,
+		extra_score = 5,
 		icon = textures.enemy_fasthopper1,
 
 	},
@@ -96,7 +100,7 @@ local Enemies = {
 		level = 4,
         min_level = 5,
 		max_level = 30,
-		extra_score = 0,
+		extra_score = -16,
 		spawn_points = 100,
         spawn_weight_modifier = 0.66,
 		icon = textures.enemy_bighopper1,
@@ -108,20 +112,20 @@ local Enemies = {
 		level = 4,
 		min_level = 17,
 		spawn_points = 150,
-		extra_score = 100,
+		extra_score = 9,
 		icon = textures.enemy_shotgunner1,
 		spawn_group = { "basic", "police" },
 	},
-
+	
     Enforcer = {
-        level = 3,
-        extra_score = 10,
+		level = 3,
+        extra_score = 1,
 		max_level = 70,
 		spawn_points = 45,
 		icon = textures.enemy_enforcer3,
 		spawn_group = { "basic", "police" },
     },
-
+	
 	RoyalGuard = {
 		level = 3,
 		extra_score = 50,
@@ -130,25 +134,27 @@ local Enemies = {
         icon = textures.enemy_royalguard3,
         -- room_select_weight = 500,
 		spawn_group = { "basic", "police" },
-
+		
 		-- spawn_group = { "basic", "police" },
 	},
-
+	
     Sniper = {
-        level = 2,
-		extra_score = 25,
+		level = 2,
+		extra_score = -10,
 		spawn_points = 100,
 		icon = textures.enemy_sniper,
-        spawn_group = { "police" },
+        spawn_group = { "basic", "police" },
+		basic_after_level = 30,
+		basic_select_weight_modifier = 0.2
         -- spawn_group = { "basic", "police" },
-		-- basic_select_weight_modifier = 0.05,
+		-- basic_select_weight_modifier = 0.5,
 	},
 
 	Turret = {
         level = 4,
 		
         -- room_select_weight = 1000000,
-		extra_score = 100,
+		extra_score = 10,
 		min_level = 7,
         spawn_points = 100,
 		-- room_select_weight = 1000,
@@ -162,7 +168,7 @@ local Enemies = {
 		-- room_select_weight = 250,
 		spawn_points = 50,
         spawn_weight_modifier = 0.65,
-		extra_score = 100,
+		extra_score = 20,
 		icon = textures.enemy_cultist,
 	},
 
@@ -172,31 +178,42 @@ local Enemies = {
 		-- room_select_weight = 250,
 		spawn_points = 150,
         spawn_weight_modifier = 1.5,
-		extra_score = 100,
+		extra_score = -20,
         icon = textures.enemy_gnome1,
 		-- max_spawns = 6
 	},
 	
     Charger = {
-		extra_score = 50,
+		extra_score = 0,
         level = 4,
 		spawn_points = 90,
 		icon = textures.enemy_charger1,
     },
-
+	
+	AcidCharger = {
+		extra_score = 10,
+        level = 4,
+        min_level = 14,
+		room_select_weight = 600,
+		spawn_points = 120,
+		icon = textures.enemy_acidcharger1,
+	},
+	
 	Chargesploder = {
 		inherit = { "Charger" },
         level = 4,
 		min_level = 7,
-		extra_score = 100,
+		extra_score = 10,
 		spawn_points = 100,
         icon = textures.enemy_chargesploder1,
-		spawn_group = { "exploder" },
+		spawn_group = { "exploder", "basic" },
+		basic_after_level = 30,
+		basic_select_weight_modifier = 0.1
 	},
 	
 	Mortar = {
         level = 3,
-		extra_score = 20,
+		extra_score = 2,
 		min_level = 8,
 		spawn_points = 90,
 		icon = textures.enemy_mortar5,
@@ -205,7 +222,7 @@ local Enemies = {
     Cuboid = {
         level = 2,
 		min_level = 14,
-		extra_score = 200,
+		extra_score = 20,
 		spawn_points = 120,
 		room_select_weight = 300,
         icon = textures.enemy_cube4,
@@ -225,62 +242,67 @@ local Enemies = {
     Eyeball = {
 		level = 1,
         spawn_points = 35,
-		extra_score = 75,
+		extra_score = 0,
 		min_level = 8,
         icon = textures.enemy_eyeball1,
         spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
-		basic_select_weight_modifier = 0.01
+		basic_select_weight_modifier = 0.1,
     },
 	
     Hand = {
-        level = 2,
-		extra_score = 150,
+		level = 2,
+		extra_score = 20,
         spawn_points = 50,
 		min_level = 8,
 		icon = textures.enemy_hand1,
 		spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
-        basic_select_weight_modifier = 0.01,
+        basic_select_weight_modifier = 0.1,
+		basic_after_level = 15,
     },
 	
     Foot = {
 		level = 2,
 		spawn_points = 50,
-		extra_score = 50,
+		extra_score = 30,
 		icon = textures.enemy_foot1,
 		min_level = 8,
 		spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
-        basic_select_weight_modifier = 0.01,
+        basic_select_weight_modifier = 0.1,
+		basic_after_level = 15,
 	},
 	
 	Nose = {
 		level = 3,
 		spawn_points = 65,
 		min_level = 8,
-		extra_score = 50,
+		extra_score = 10,
 		spawn_weight_modifier = 0.45,
 		icon = textures.enemy_nose1,
 		spawn_group = { "bodypart" },
-		basic_select_weight_modifier = 0.01,
+		basic_select_weight_modifier = 0.1,
+		basic_after_level = 30,
     },
 	
 	Mouth = {
 		level = 4,
-        extra_score = 450,
+        extra_score = 50,
 		min_level = 10,
         spawn_points = 55,
 		spawn_weight_modifier = 0.55,
 		icon = textures.enemy_mouth1,
 		spawn_group = { "bodypart" },
-		basic_select_weight_modifier = 0.01,
+        basic_select_weight_modifier = 0.1,
+		basic_after_level = 30,
     },
 	
 	Rook = {
 		level = 4,
 		min_level = 36,
         spawn_points = 150,
+		extra_score = 10,
 		spawn_weight_modifier = 0.4,
 		room_select_weight = 500,
 		icon = textures.enemy_big_monster1,
@@ -396,7 +418,7 @@ local Rescues = {
         icon = textures.ally_rescue_dog1,
 		level = 2,
 		spawn_weight = 50,
-		score = 1600,
+		score = 160,
 	},
 }
 
@@ -412,7 +434,7 @@ end
 for k, v in pairs(Rescues) do
     v.type = "rescue"
     v.spawn_weight = v.spawn_weight or 1000
-	v.score = v.score or 1000
+	v.score = v.score or 100
 end
 
 for k, v in pairs(Hazards) do

@@ -13,11 +13,14 @@ local DeathFlash = Effect:extend("DeathFlash")
 DeathFlash.is_death_flash = true
 
 -- TODO: use quads instead of pixels
-function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, use_grey_pixels, offset_start)
+function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, use_grey_pixels, offset_start, hit_vel_x, hit_vel_y)
 	DeathFlash.super.new(self, x, y)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
     self.duration = 30
-	self.reversed = false	
+    self.reversed = false
+	
+	hit_vel_x = hit_vel_x or 0
+	hit_vel_y = hit_vel_y or 0
 
 	local width, height = 0, 0
     local offset_x, offset_y = 0, 0
@@ -72,6 +75,8 @@ function DeathFlash:new(x, y, texture, size_mod, palette, palette_tick_length, u
 			vel_x = vel_x * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
 			vel_y = vel_y * SPEED * self.size_mod * rng:randfn(0.5, 0.15)
 			
+			vel_x = vel_x + hit_vel_x * 0.05
+			vel_y = vel_y + hit_vel_y * 0.05
 
 			local darkergrey = Color.darkergrey
 			local alpha = clamp(rng:randfn(darkergrey.r, 0.25), 0.00, darkergrey.r)

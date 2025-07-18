@@ -11,8 +11,9 @@ Turret.spawn_cry_volume = 0.9
 Turret.death_cry = "enemy_turret_death"
 Turret.death_cry_volume = 0.8
 
+Turret.max_hp = 5
+
 function Turret:new(x, y)
-	self.max_hp = 5
 	self.body_height = 6
 	Turret.super.new(self, x, y)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)

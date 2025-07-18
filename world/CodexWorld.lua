@@ -3,6 +3,7 @@ local O = require("obj")
 local SpawnDataTable = require("obj.spawn_data")
 local PickupDataTable = require("obj.pickup_table")
 
+
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 
@@ -19,10 +20,14 @@ local SPAWN_CATEGORY_ORDER = {
 	"rescue",
 	"pickups",
 	"artefact",
-	"secondary_weapon",
+    "secondary_weapon",
 }
 
 local PAGE_CATEGORY_ORDER = table.extend({"all"}, SPAWN_CATEGORY_ORDER)
+local START_PAGE = 1
+
+-- local PAGE_CATEGORY_ORDER = table.extend({"all", "glossary"}, SPAWN_CATEGORY_ORDER)
+-- local START_PAGE = 2
 
 function CodexWorld:new(x, y)
 CodexWorld.super.new(self, x, y)
@@ -32,14 +37,26 @@ CodexWorld.super.new(self, x, y)
     self.category_index_selected = 1
     self.category_selected = PAGE_CATEGORY_ORDER[self.category_index_selected]
     self.spawn_tables = {}
-    for _, page in ipairs(PAGE_CATEGORY_ORDER) do
-        self.spawn_tables[page] = {}
-        for _, spawn in ipairs(self:get_spawns(page)) do
-            table.insert(self.spawn_tables[page], spawn)
+    for _, page_category in ipairs(PAGE_CATEGORY_ORDER) do
+        self.spawn_tables[page_category] = {}
+        for _, spawn in ipairs(self:get_spawns(page_category)) do
+            table.insert(self.spawn_tables[page_category], spawn)
         end
-        self.spawn_tables[page].count = #self.spawn_tables[page]
+        self.spawn_tables[page_category].count = #self.spawn_tables[page_category]
     end
 	self.draw_sort = self.y_sort
+
+		
+	local tab = {}
+	for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
+		table.insert(tab, {name = enemy.name, score = enemy.score})
+	end
+	table.sort(tab, function(a, b) return a.score > b.score end)
+	print("---SCORE VALUES---")
+	for _, enemy in pairs(tab) do
+		print(string.format("%-30s %10d", string.format("%s:", enemy.name), enemy.score))
+	end
+	print("------------------")
 end
 
 function CodexWorld:enter()
@@ -60,10 +77,6 @@ function CodexWorld:enter()
 		end)
     end)
 
-    self:ref("previous_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 14, "←",
-            15, 10, false)))
-
 	self:ref("cycle_category_button",
         self:add_menu_item(O.CodexMenu.CodexMenuCycle(MENU_ITEM_H_PADDING + 17, MENU_ITEM_V_PADDING + 14, "",
             ICON_SIZE * NUM_OBJECT_COLUMNS - 37, 10, false)))
@@ -76,25 +89,10 @@ function CodexWorld:enter()
 	end
 	self.cycle_category_button:set_options(PAGE_CATEGORY_ORDER)
 
-	self:ref("next_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 18, MENU_ITEM_V_PADDING + 14, " →",
-            15, 10, false)))
-
-    self.back_button:add_neighbor(self.cycle_category_button, "down")
-	self.cycle_category_button:add_neighbor(self.next_page_button, "right")
-	self.cycle_category_button:add_neighbor(self.previous_page_button, "left")
-    self.next_page_button:add_neighbor(self.cycle_category_button, "left")
-    self.previous_page_button:add_neighbor(self.cycle_category_button, "right")
-    self.previous_page_button:add_neighbor(self.next_page_button, "left")
-	self.next_page_button:add_neighbor(self.previous_page_button, "right")
-
     self.cycle_category_button:add_neighbor(self.back_button, "up")
-	self.next_page_button:add_neighbor(self.back_button, "up")
-	self.previous_page_button:add_neighbor(self.back_button, "up")
+    self.back_button:add_neighbor(self.cycle_category_button, "down")
 
-    signal.connect(self.previous_page_button, "selected", self, "previous_page", function() self:cycle_page(-1) end)
-    signal.connect(self.next_page_button, "selected", self, "next_page", function() self:cycle_page(1) end)
-	self.cycle_category_button:quiet_cycle(1)
+	self.cycle_category_button:quiet_cycle(START_PAGE)
     -- self:open_page(self.category_selected, self.page_number)
 end
 
@@ -113,15 +111,35 @@ function CodexWorld:update(dt)
 end
 
 
+local hp_categories = {
+	enemy = true,
+	hazard = true,
+	rescue = true,
+}
+
+local score_categories = {
+	enemy = true,
+	rescue = true,
+}
+
+local weapon_categories = {
+	secondary_weapon = true,
+}
+
+local ignore_sprite_categories = {
+	glossary = true,
+}
+
 function CodexWorld:open_spawn_description(spawn)
 
     self:play_sfx("ui_ranking_tick", 0.35)
 	
 	savedata:clear_new_codex_item(spawn.codex_save_name)
-
-	local x = conf.viewport_size.x / 2 + conf.viewport_size.x / 4
-	local y = conf.viewport_size.y / 2
-
+	
+	local x = conf.viewport_size.x / 2 + conf.viewport_size.x / 4 - 2
+    -- local y = conf.viewport_size.y / 2
+	local current_y = MENU_ITEM_V_PADDING + 18
+	
     self:clear_spawn_description()
 
 	-- self:ref("sequence_director", self:spawn_object(GameObject2D())):add_time_stuff()
@@ -132,39 +150,86 @@ function CodexWorld:open_spawn_description(spawn)
 
 	-- s:start(function()
 
-        local title = ""
-		if not spawn.unknown and tr:has_key(spawn.name) then
-            title = tr[spawn.name]
-        elseif spawn.unknown then
-			title = spawn.name
-		else
-			title = "[MISSING NAME]"
-		end
+	local title = ""
+	if not spawn.unknown and tr:has_key(spawn.name) then
+		title = tr[spawn.name]
+	elseif spawn.unknown then
+		title = spawn.name
+	else
+		title = "[MISSING NAME]"
+	end
 
-		local description = ""
-		if not spawn.unknown and tr:has_key(spawn.description) then
-        	description = tr[spawn.description]
-		elseif spawn.unknown then
-			description = spawn.description
-		else
-			description = "[MISSING DESCRIPTION]"
-		end
+	local description = ""
+	if not spawn.unknown and tr:has_key(spawn.description) then
+		description = tr[spawn.description]
+	elseif spawn.unknown then
+		description = spawn.description
+	else
+		description = "[MISSING DESCRIPTION]"
+	end
 
-        local spawn_title = self:add_object(O.CodexMenu.CodexSpawnText(x, y - 5 - sprite_height / 2, title, true, Color.green, 0, true))
-		self:add_tag(spawn_title, "sequence_object")
-		-- s:wait(2)
-    local spawn_sprite = self:add_object(O.CodexMenu.CodexSpawnSprite(x, y, spawn
-    .sprite, 1))
-		spawn_sprite.z_index = -1
+	local spawn_title = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, title, true, Color.green, 0, true))
+    self:add_tag(spawn_title, "sequence_object")
+	current_y = current_y + 5
+	
+	local delay = 1
+	
+	if not ignore_sprite_categories[spawn.page_category] then
+		current_y = current_y + sprite_height / 2
+		local spawn_sprite = self:add_object(O.CodexMenu.CodexSpawnSprite(x, current_y, spawn.sprite, delay))
+        spawn_sprite.z_index = -1
+        delay = delay + 1
+		current_y = current_y + sprite_height / 2
 		self:add_tag(spawn_sprite, "sequence_object")
-		-- s:wait(2)
-        
-        local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, y + sprite_height / 2, description, false, Color.white, 2, true))
+	end
+
+
+	
+	
+	local increment = 12
+
+
+	if hp_categories[spawn.page_category] then
+		local hp_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_hp_text, spawn.class.max_hp or "???"), false, Color.red, delay, true))
+		self:add_tag(hp_text, "sequence_object")
+		current_y = current_y + increment
+		delay = delay + 1
+	end
+
+    if score_categories[spawn.page_category] then
+        local text = spawn.score or (spawn.class and spawn.class.spawn_data and spawn.class.spawn_data.score) or "???"
+        if spawn.class and spawn.class.spawn_data and spawn.class.spawn_data.boss then
+			text = "???"
+		end
+		local score_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_score_text, text), false, Color.green, delay, true))
+		self:add_tag(score_text, "sequence_object")
+		current_y = current_y + increment	
+		delay = delay + 1
+	end
+		
+	if weapon_categories[spawn.page_category] then
+		-- current_y = current_y + increment
+		-- local ammo_count1 = string.fraction(spawn.class.minimum_ammo_needed_to_use_normalized or spawn.class.ammo_needed_per_use_normalized)
+		-- local ammo_count1_text = spawn.class.minimum_ammo_needed_to_use and tr.artefact_guide_min_ammo_requirement or tr.artefact_guide_ammo_requirement
+		-- local tip3 = ammo_count1_text:format(ammo_count1)
+		local tip2 = tr.artefact_guide_ammo_gain:format(string.fraction(spawn.class.ammo_gain_per_level_normalized))
+		local weapon_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tip2, false, Color.green, 2, true))
+		self:add_tag(weapon_text, "sequence_object")
+		current_y = current_y + increment
+		delay = delay + 1
+		
+		-- local weapon_text2 = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tip3, false, Color.orange, delay, true))
+		-- self:add_tag(weapon_text2, "sequence_object")
+		-- current_y = current_y + increment
+		-- delay = delay + 1
+	end
+
+
+
+        local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, true))
 		self:add_tag(spawn_description, "sequence_object")
 		local text_height = spawn_description.text_height
-		-- s:wait(text_height / 60)
-	-- end)
-	
+
 end
 
 
@@ -192,28 +257,101 @@ function CodexWorld:cycle_page(direction)
     self:open_page(self.category_selected, self.page_number)
 end
 function CodexWorld:open_page(page_category, page_number)
+
 	self:defer(function() self:_open_page(page_category, page_number) end)
 end
 
 function CodexWorld:_open_page(page_category, page_number)
+	
+	local previous_focused = self.previous_page_button and self.previous_page_button.focused
+	local next_focused = self.next_page_button and self.next_page_button.focused
+
+	local cycle_category_width = ICON_SIZE * NUM_OBJECT_COLUMNS
+	local cycle_category_x = MENU_ITEM_H_PADDING
+
+	if self.previous_page_button then
+		self.previous_page_button:queue_destroy()
+		self:unref("previous_page_button")
+	end
+	if self.next_page_button then
+		self.next_page_button:queue_destroy()
+		self:unref("next_page_button")
+	end
+	
+
+
+
+
+	-- self.cycle_category_button:add_neighbor(self.next_page_button, "right")
+	-- self.cycle_category_button:add_neighbor(self.previous_page_button, "left")
+    -- self.previous_page_button:add_neighbor(self.next_page_button, "left")
+    -- self.previous_page_button:add_neighbor(self.cycle_category_button, "right")
+    -- self.next_page_button:add_neighbor(self.cycle_category_button, "left")
+	-- self.next_page_button:add_neighbor(self.previous_page_button, "right")
+
+
+
     local spawns = self.spawn_tables[page_category]
 
     self.page_number = page_number
     self.category_selected = page_category
 	self.page_category_index = table.find(PAGE_CATEGORY_ORDER, page_category)
     -- self.cycle_category_button:set_text(page_category:upper())
+	-- self.next_page_button:remove_neighbor("right")
+
+	-- self.previous_page_button:remove_neighbor("right")
+	
+
+	self.cycle_category_button:focus()
+
+
     if page_number == 1 then
-        self.previous_page_button:set_text("-")
+		
     else
-        self.previous_page_button:set_text("←")
+		self:ref("previous_page_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 14, "←", 15, 10, false)))
+		
+		signal.connect(self.previous_page_button, "selected", self, "previous_page", function() self:cycle_page(-1) end)
+		
+		if previous_focused then
+			self.previous_page_button:focus()
+		end
+		
+        self.cycle_category_button:add_neighbor(self.previous_page_button, "left")
+		self.previous_page_button:add_neighbor(self.cycle_category_button, "right")
+		self.previous_page_button:add_neighbor(self.back_button, "up")
+
+		cycle_category_x = cycle_category_x + 17
+		cycle_category_width = cycle_category_width - 37/2
+
     end
 
 
     if page_number == idiv((#self.spawn_tables[self.category_selected] or 0), OBJECTS_PER_PAGE) + 1 then
-        self.next_page_button:set_text(" -")
+
     else
-        self.next_page_button:set_text(" →")
+		self:ref("next_page_button",
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 18, MENU_ITEM_V_PADDING + 14, " →", 15, 10, false)))
+
+		signal.connect(self.next_page_button, "selected", self, "next_page", function() self:cycle_page(1) end)
+
+        self.cycle_category_button:add_neighbor(self.next_page_button, "right")
+        self.next_page_button:add_neighbor(self.cycle_category_button, "left")
+		self.next_page_button:add_neighbor(self.back_button, "up")
+
+        if next_focused then
+            self.next_page_button:focus()
+        end
+		
+		cycle_category_width = cycle_category_width - 37/2
     end
+
+    -- if self.previous_page_button.focusable then
+		-- self.previous
+    -- end
+	
+    self.cycle_category_button:move_to(cycle_category_x, self.cycle_category_button.pos.y)
+	self.cycle_category_button.width = cycle_category_width
 
 	
     local page = {}
@@ -243,9 +381,13 @@ function CodexWorld:_open_page(page_category, page_number)
     end
 	
 	if #self.object_buttons > 0 then
-		self.cycle_category_button:add_neighbor(self.object_buttons[1], "down")
-		self.next_page_button:add_neighbor(self.object_buttons[1], "down")
-		self.previous_page_button:add_neighbor(self.object_buttons[1], "down")
+        self.cycle_category_button:add_neighbor(self.object_buttons[1], "down")
+		if self.next_page_button then
+			self.next_page_button:add_neighbor(self.object_buttons[1], "down")
+		end
+		if self.previous_page_button then
+			self.previous_page_button:add_neighbor(self.object_buttons[1], "down")
+		end
 	end
 
 	for i = 1, #self.object_buttons do
@@ -442,7 +584,10 @@ function CodexWorld:get_spawns(page_category)
 				sprite = spawn.codex_sprite or spawn.icon,
                 name = "codex_name_" .. spawn.name:lower(),
                 description = "codex_desc_" .. spawn.name:lower(),
-				codex_save_name = spawn.name,
+                codex_save_name = spawn.name,
+                class = spawn.class,
+                max_hp = spawn.max_hp,
+				page_category = page_category,
             }
 			
             if page_category == "enemy" or page_category == "hazard" then
@@ -511,6 +656,8 @@ function CodexWorld:get_spawns(page_category)
 				name = t.name,
                 description = t.description,
 				codex_save_name = t.name,
+				page_category = page_category,
+				class = t,
             }
 			
 			if page_category == "secondary_weapon" then
@@ -524,6 +671,12 @@ function CodexWorld:get_spawns(page_category)
 			
 			::continue::
 		end
+	elseif page_category == "glossary" then
+		local tab = {}
+		for _, v in ipairs(SpawnDataTable.data_by_type["enemy"]) do
+			table.insert(tab, v)
+		end
+		table.sort(tab, function(a, b) return a.name < b.name end)
 	end
 
 	return spawns

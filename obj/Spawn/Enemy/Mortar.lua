@@ -6,8 +6,9 @@ local Explosion = require("obj.Explosion")
 local MortarProjectileSmoke = Effect:extend("MortarProjectileSmoke")
 local MortarProjectileRing = Effect:extend("MortarProjectileRing")
 
+Mortar.max_hp = 6
+
 function Mortar:new(x, y)
-	self.max_hp = 6
     Mortar.super.new(self, x, y)
     self.hurt_bubble_radius = 6
 	self.hit_bubble_radius = 4

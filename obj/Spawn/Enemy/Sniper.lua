@@ -2,6 +2,8 @@ local Sniper = BaseEnemy:extend("Sniper")
 local SniperAim = GameObject2D:extend("SniperAim")
 local SniperLaser = BaseEnemy:extend("SniperLaser")
 
+Sniper.max_hp = 3
+
 Sniper.spawn_cry = "enemy_sniper_spawn"
 Sniper.spawn_cry_volume = 0.8
 
@@ -82,7 +84,6 @@ end
 
 function Sniper:new(x, y)
     self.body_height = 4
-    self.max_hp = 3
     self.hurt_bubble_radius = 5
     self.hit_bubble_radius = 2
     -- self.walk_toward_player_chance = 80

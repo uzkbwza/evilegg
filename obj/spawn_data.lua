@@ -155,23 +155,12 @@ for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
     if enemy.score_override then
         enemy.score = enemy.score_override
     else
-        enemy.score = ((enemy.spawn_points)) * 10
+        enemy.score = ((enemy.spawn_points))
         if enemy.extra_score then
             enemy.score = enemy.score + enemy.extra_score
         end
     end
-end
-if debug.enabled then
-    local tab = {}
-	for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
-		table.insert(tab, {name = enemy.name, score = enemy.score})
-	end
-	table.sort(tab, function(a, b) return a.score > b.score end)
-	print("---SCORE VALUES---")
-	for _, enemy in pairs(tab) do
-		print(string.format("%-30s %10d", string.format("%s:", enemy.name), enemy.score))
-	end
-	print("------------------")
+	enemy.score = stepify_floor(enemy.score, 10)
 end
 
 process_enemy_table(enemy_table)

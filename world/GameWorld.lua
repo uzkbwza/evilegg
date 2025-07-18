@@ -145,7 +145,20 @@ function GameWorld:enter()
 			heart_type.notification_palette
 		)
 	end)
-
+	
+	signal.connect(game_state, "player_overhealed", self, "on_player_overhealed", function()
+		self:quick_notify(
+			tr.notif_overhealed,
+			"notif_heart_up"
+		)
+    end)
+	
+	signal.connect(game_state, "player_overflowed", self, "on_player_overflowed", function()
+		self:quick_notify(
+			tr.notif_overflowed
+		)
+    end)
+	
 	signal.connect(game_state, "secondary_weapon_ammo_gained", self, "on_secondary_weapon_ammo_gained", function(amount)
 		self:quick_notify(
 			"+" .. tr.notif_ammo,
@@ -206,7 +219,9 @@ function GameWorld:enter()
 			if not game_state.hatched then
 				self.tutorial_state = 1
 			end
-		end)
+        end)
+	elseif game_state.skip_tutorial then
+		self.tutorial_state = 1
 	end
 end
 
@@ -326,9 +341,10 @@ function GameWorld:spawn_rescues(spawns)
 	-- local max_rescues = 2 + floor(game_state.level / 15)
 	s:start(function()
 		for _, rescue in pairs(spawns) do
-			-- s:start(function()
-			for _ = 1, rng:randi(60, 120) do
-				
+            -- s:start(function()
+            local beginning = true
+			for _ = 1, beginning and 120 or rng:randi(60, 120) do
+				beginning = false
 				if self.state ~= "RoomClear" then
 					-- while self:get_number_of_objects_with_tag("rescue_object") >= max_rescues do
 					-- 	s:wait(rng:randi(60, 120))
@@ -706,9 +722,18 @@ function GameWorld:create_player(player_id)
 			return
 		end
 		
+		local s = self.timescaled.sequencer
         if game_state.skip_tutorial then
 			self:room_border_fade("in")
-			self:soft_room_clear()
+            self:soft_room_clear()
+			s:start(function()
+				self.tutorial_state = nil
+				local level = game_state.level
+                s:wait(45)
+				if game_state.level == level then
+					self.tutorial_state = 2
+				end
+			end)
 			return
 		end
 
@@ -717,7 +742,6 @@ function GameWorld:create_player(player_id)
         -- end
 		
 
-		local s = self.timescaled.sequencer
 		self.tutorial_sequence = s:start(function()
 			s:wait(5)
 			self:room_border_fade("in", 3)
@@ -898,7 +922,7 @@ function GameWorld:create_next_rooms()
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and game_state.level >= EGG_ROOM_START,
-			force_ammo = i == ammo_room and game_state.level % 2 == 0
+			force_ammo = i == ammo_room and game_state.level
 		})
 		table.insert(rooms, room)
 	end

@@ -1,5 +1,6 @@
 makelove-build
 build
+__pycache__
 *.zip
 *.love
 *.exe

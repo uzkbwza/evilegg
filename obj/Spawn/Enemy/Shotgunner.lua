@@ -5,6 +5,8 @@ local ShotgunnerMuzzleFlash = Effect:extend("ShotgunnerMuzzleFlash")
 ShotgunnerBullet.is_shotgun_bullet = true
 ShotgunnerBullet.death_flash_size_mod = 0.15
 
+Shotgunner.max_hp = 9
+
 Shotgunner.spawn_cry = "enemy_shotgunner_spawn"
 Shotgunner.spawn_cry_volume = 0.9
 
@@ -106,7 +108,6 @@ end
 
 function Shotgunner:new(x, y)
 	self.body_height = 6
-	self.max_hp = 9
 	self.hurt_bubble_radius = 6
 	self.hit_bubble_radius = 4
     self.walk_toward_player_chance = 80

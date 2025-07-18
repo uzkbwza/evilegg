@@ -10,7 +10,7 @@ local translations = {
 		control_right_stick = "RIGHT STICK",
 		control_wasd = "WASD",
 
-		tutorial_boost = "PRESS %s TO BOOST",
+		tutorial_boost = "HOLD %s TO BOOST",
 		-- tutorial_boost2 = "YOU CAN BOOST FOREVER",
 		tutorial_move = "MOVE WITH %s",
 		tutorial_shoot = "SHOOT WITH %s",
@@ -31,7 +31,11 @@ local translations = {
 
         notif_heart = "HP",
 		
-		notif_ammo = "AMMO",
+        notif_ammo = "AMMO",
+		
+        notif_overhealed = "OVERHEAL",
+		
+		notif_overflowed = "OVERFLOW",
 
 		notif_upgrade_available = "EARNED UPGRADE",
 		notif_heart_available = "EARNED HEART",
@@ -50,12 +54,16 @@ local translations = {
 		bonus_aggression = "COURAGE",
 		bonus_perfect = "FLAWLESS",
 		bonus_ammo_saver = "AMMO SAVER",
+		bonus_ammo_hoarder = "AMMO HOARDER",
 		bonus_harmed_noid = "NOID INJURY",
 		bonus_final_room_clear = "EGG SLAIN",
 		bonus_twin_saved = "TWIN SAVED",
 		bonus_quick_save = "QUICK SAVE",
 		bonus_twin_protected = "PROTECTOR",
 		bonus_twin_killed = "BETRAYAL",
+		bonus_noid_died = "NOID CASUALTY",
+		bonus_accuracy = "HITRATE: %0.0f%%",
+		bonus_overflow = "OVERFLOW",
 
 		upgrade_name_fire_rate = "+FIRE RATE",
 		upgrade_desc_fire_rate = "Increases how rapidly you can fire bullets and secondary weapons.",
@@ -158,7 +166,7 @@ local translations = {
 		options_use_absolute_aim                     = "Absolute Mouse Aim",
 		options_mouse_sensitivity                    = "Relative Aim Sensitivity",
 		options_relative_mouse_aim_snap_to_max_range = "Rel. Aim Fixed Distance",
-		options_skip_tutorial                        = "Skip Tutorial",
+		options_skip_tutorial                        = "Skip Intro",
 		options_enter_name                           = "Enter Name",
 		options_show_hud                             = "Immersive Mode",
 
@@ -299,10 +307,13 @@ local translations = {
 		codex_desc_royalguard       = "On her majesty's secret service.",
 
 		codex_name_royalroamer      = "Stalker",
-		codex_desc_royalroamer      = "Weaponised obsessor.",
+		codex_desc_royalroamer      = "A weaponised obsessor.",
 
 		codex_name_rook             = "Rook",
 		codex_desc_rook             = "Castle and castellan in one.",
+
+		codex_name_acidcharger      = "Toxic Charger",
+		codex_desc_acidcharger      = "Overflowing with unresolved resentments.",
 
 		codex_key_all               = "ALL",
 		codex_key_enemy             = "ENEMIES",
@@ -311,8 +322,19 @@ local translations = {
 		codex_key_pickups           = "PICKUPS",
 		codex_key_artefact          = "ARTEFACTS",
 		codex_key_secondary_weapon  = "WEAPONS",
+		codex_key_glossary          = "GLOSSARY",
 
+		codex_hp_text               = "HP: %s",
+		codex_score_text            = "SCORE: %s",
 
+        tip_text                    = "Tip:",
+        tip_upgrade_frequency       = "More upgrades will spawn the fewer you have.",
+        tip_destroy_artefact        = "Once you destroy an artefact, it's gone forever.",
+		tip_codex                   = "Check the codex to learn about things you've seen.",
+        tip_dont_quit               = "It ain't over 'til it's over.",
+        tip_choose_wisely           = "Choose wisely.",
+        tip_greenoid1               = "They're depending on you.",
+		
 		game_over_score_display = "Final Score",
 		game_over_rescue_display = "Greenoids Saved",
 		game_over_kill_display = "Enemies Killed",
@@ -326,7 +348,13 @@ local translations = {
 
 		leaderboard_top_button = "TOP",
 		leaderboard_me_button = "ME",
-
+		leaderboard_period_all_time = "ALL TIME",
+		leaderboard_period_daily = "DAILY",
+		leaderboard_period_monthly = "MONTHLY",
+		leaderboard_sort_score = "SCORE",
+		leaderboard_sort_depth = "DEPTH",
+        leaderboard_sort_button     = "SORT",
+        leaderboard_period_button   = "PERIOD",
 
         artefact_guide_use = "USE WITH %s",
         artefact_guide_ammo_requirement = "REQUIRES %s AMMO PER USE",
@@ -339,7 +367,6 @@ local translations = {
 		score_reset_warning_title = "ATTENTION",
 		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
 		score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
-
 	},
 }
 

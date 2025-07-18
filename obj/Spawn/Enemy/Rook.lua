@@ -4,8 +4,9 @@ local Rook = BaseEnemy:extend("Rook")
 
 local RookProjectile = BaseEnemy:extend("RookProjectile")
 
+Rook.max_hp = 18
+
 function Rook:new(x, y)
-	self.max_hp = 18
     BaseEnemy.new(self, x, y)
 	self.roam_diagonals = true
     self:lazy_mixin(Mixins.Behavior.Roamer)

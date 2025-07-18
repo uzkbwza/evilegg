@@ -2,7 +2,7 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.0e.0"
+GAME_VERSION = "0.3.0"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -13,11 +13,15 @@ usersettings = require "usersettings"; usersettings:initial_load()
 
 require "lib.keyprocess"
 function_style_key_process(love)
+if steam then
+    function_style_key_process(steam)
+end
 
 debug          = require "debuggy"          ---@diagnostic disable: lowercase-global
 table          = require "lib.tabley"       ---@diagnostic disable: lowercase-global
 Object         = require "lib.object"       ---@diagnostic disable: lowercase-global
 leaderboard    = require "leaderboard"      ---@diagnostic disable: lowercase-global
+rng            = require "lib.rng"
 savedata       = require "savedata"; savedata:initial_load()
 nativefs       = require "lib.nativefs"
 filesystem     = require "filesystem"
@@ -41,7 +45,6 @@ ease             = require "lib.ease"
 input            = require "input"
 gametime         = require "time"
 graphics         = require "graphics"
-rng              = require "lib.rng"
 translator       = require "translation"
 global_state     = {}
 
@@ -154,7 +157,8 @@ function love.run()
             force_fixed_time_left = approach(force_fixed_time_left, 0, dt)
         end
 
-		local force_fixed = force_fixed_time_left > 0
+        -- local force_fixed = force_fixed_time_left > 0
+		local force_fixed = false
         local debug_ffwd  = debug.enabled and debug.fast_forward
         local fixed_enabled = conf.use_fixed_delta or force_fixed
         local cap_fps     = usersettings.cap_framerate and not debug_ffwd
@@ -162,7 +166,8 @@ function love.run()
 		dbg("force_fixed", force_fixed, Color.cyan)
 		dbg("debug_ffwd", debug_ffwd, Color.cyan)
 		dbg("fixed_enabled", fixed_enabled, Color.cyan)
-		dbg("delta", seconds_to_frames(dt), Color.cyan)
+        dbg("delta", seconds_to_frames(dt), Color.cyan)
+		dbg("dt", (delta_frame), Color.cyan)
         if not fixed_enabled and not cap_fps and not debug_ffwd then
 			dbg("fixed step", false, Color.cyan)
             gametime.delta, gametime.delta_seconds = delta_frame, delta_frame/TICKRATE
@@ -197,8 +202,8 @@ function love.run()
                 accumulated_cap_time = accumulated_cap_time + dt
                 local cap_interval = 1 / usersettings.fps_cap
                 if accumulated_cap_time >= cap_interval then
-                    local capped_seconds = min(accumulated_cap_time, conf.max_delta_seconds)
-                    local capped_frame   = capped_seconds*TICKRATE
+                    local capped_seconds                   = min(accumulated_cap_time, conf.max_delta_seconds)
+                    local capped_frame                     = capped_seconds * TICKRATE
                     gametime.delta, gametime.delta_seconds = capped_frame, capped_seconds
                     _step(capped_frame)
                     accumulated_cap_time = accumulated_cap_time - capped_seconds
@@ -244,6 +249,9 @@ end
 local averaged_frame_length = 0
 function love.update(dt)
     leaderboard.poll()
+	if steam then
+		steam.run_callbacks()
+	end
     if debug.enabled and debug.can_draw() then
         local flen = step_length*1000
         averaged_frame_length = (flen>averaged_frame_length) and flen or splerp(averaged_frame_length, flen, 1000.0, dt)
@@ -293,7 +301,12 @@ function love.draw()
 end
 
 function love.quit()
-    usersettings:save(); savedata:save(); return false
+    usersettings:save()
+    savedata:save()
+	if steam then
+		steam.shutdown()
+	end
+	return false
 end
 
 function love.joystickadded(joystick)   input.joystick_added(joystick); input.last_input_device="gamepad" end

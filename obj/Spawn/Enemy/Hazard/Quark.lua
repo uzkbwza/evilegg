@@ -7,11 +7,12 @@ local physics_limits = {
 	max_speed = MAX_SPEED
 }
 
+Quark.max_hp = 4
+
 Quark.bounce_sfx = "hazard_quark_bounce"
 Quark.bounce_sfx_volume = 0.75
 
 function Quark:new(x, y)
-    self.max_hp = 4
     self.hit_bubble_radius = 3
     self.hurt_bubble_radius = 5
     self.terrain_collision_radius = 5

@@ -212,19 +212,27 @@ function rng:random_diagonal_direction()
 end
 
 function rng:new_instance(seed)
-
     local love_rng_instance = love.math.newRandomGenerator(seed or
-    (self and self:randi() or love.math.random(0xffffffff)))
+        (self and self:randi() or love.math.random(0xffffffff)))
     local instance = {
-		_rng = love_rng_instance
-	}
-	setmetatable(instance, {
-		__call = _meta_call_random,
-		__index = rng
-	})
-	return instance
+        _rng = love_rng_instance
+    }
+    setmetatable(instance, {
+        __call = _meta_call_random,
+        __index = rng
+    })
+    return instance
 end
 
-local global_rng = rng:new_instance(os.time())
+function rng:uuid()
+    local fn = function(x)
+        local r = self:randi(16) - 1
+        r = (x == "x") and (r + 1) or (r % 4) + 9
+        return ("0123456789abcdef"):sub(r, r)
+    end
+    return (("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"):gsub("[xy]", fn))
+end
+
+local global_rng = rng:new_instance(os.time() + love.math.random())
 
 return global_rng

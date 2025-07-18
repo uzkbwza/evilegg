@@ -14,9 +14,11 @@ local WALK_SPEED = 0.075
 local SPAWN_SPEED = 0.0125
 local MAX_DIST = 200
 
+Enforcer.max_hp = 2
+RoyalGuard.max_hp = 5
+
 function Enforcer:new(x, y)
     self.body_height = 4
-	self.max_hp = self.max_hp or 2
 
     Enforcer.super.new(self, x, y)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
@@ -160,7 +162,6 @@ function Enforcer:debug_draw()
 end
 
 function RoyalGuard:new(x, y)
-    self.max_hp = 5
 	self.walk_speed = WALK_SPEED * 0.5
     RoyalGuard.super.new(self, x, y)
 	self.spawn_cry = "enemy_royalguard_emerge"

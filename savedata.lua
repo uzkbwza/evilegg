@@ -1,13 +1,3 @@
-
-local function UUID()
-	local fn = function(x)
-		local r = love.math.random(16) - 1
-		r = (x == "x") and (r + 1) or (r % 4) + 9
-		return ("0123456789abcdef"):sub(r, r)
-	end
-	return (("xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"):gsub("[xy]", fn))
-end
-
 local default_savedata = {
 	name = "",
     scores = {},
@@ -16,6 +6,7 @@ local default_savedata = {
 	death_count = 0,
     codex_items = {},
     new_codex_items = {},
+    run_upload_queue = {},
 	first_time_playing = true,
 	game_version = GAME_VERSION,
 	leaderboard_version = GAME_LEADERBOARD_VERSION,
@@ -44,7 +35,7 @@ function savedata:load()
     end
 
     if self.uid == nil then
-        self.uid = UUID()
+        self.uid = rng:uuid()
     end
 
     if self.scores[GAME_LEADERBOARD_VERSION] == nil then
@@ -57,15 +48,24 @@ function savedata:load()
 
     if self.game_version ~= GAME_VERSION then
         self.was_old_game_version = true
-		self.old_game_version = self.game_version
+        self.old_game_version = self.game_version
         self.game_version = GAME_VERSION
     end
-	
+
     if self.leaderboard_version ~= GAME_LEADERBOARD_VERSION then
         self.was_old_leaderboard_version = true
-		self.old_leaderboard_version = self.leaderboard_version
+        self.old_leaderboard_version = self.leaderboard_version
         self.leaderboard_version = GAME_LEADERBOARD_VERSION
     end
+
+	print("uid: ", self:get_uid())
+end
+
+function savedata:get_uid()
+    -- if steam then
+        -- return tostring(steam.user.get_steam_id())
+    -- end
+    return self.uid
 end
 
 local ignore = {

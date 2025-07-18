@@ -445,11 +445,11 @@ function tabley.extend(t1, t2)
 end
 
 function tabley.merge(t1, t2, overwrite)
-	for k, v in pairs(t2) do
-		if overwrite or t1[k] == nil then
-			t1[k] = v
-		end
-	end
+    for k, v in pairs(t2) do
+        if overwrite or t1[k] == nil then
+            t1[k] = v
+        end
+    end
 end
 
 function tabley.merged(t1, t2, overwrite)
@@ -466,7 +466,7 @@ function tabley.serialize(t, indent, start)
     indent = indent or ""
     local serialized = (start and "return " or "") .. "{\n"
     local next_indent = indent .. "\t"
-    
+
     for key, value in pairs(t) do
         local formatted_key
         if type(key) == "string" then
@@ -474,22 +474,24 @@ function tabley.serialize(t, indent, start)
         else
             formatted_key = "[" .. tostring(key) .. "]"
         end
-        
+
         if type(value) == "table" then
             local format_func = value.__table_format
             if format_func then
-				local output = (format_func(value, next_indent))
-				if type(output) == "string" then
-					serialized = serialized .. next_indent .. formatted_key .. " = " .. (output) .. ",\n"
-				elseif type(output) == "table" then
+                local output = (format_func(value, next_indent))
+                if type(output) == "string" then
+                    serialized = serialized .. next_indent .. formatted_key .. " = " .. (output) .. ",\n"
+                elseif type(output) == "table" then
+                    -- Always serialize the full table, even if repeated
                     serialized = serialized ..
                         next_indent .. formatted_key .. " = " .. tabley.serialize(output, next_indent, false) .. ",\n"
-				else 
+                else 
                     serialized = serialized .. next_indent .. formatted_key .. " = " .. tostring(output) .. ",\n"
-				end
-			else
-				serialized = serialized .. next_indent .. formatted_key .. " = " .. tabley.serialize(value, next_indent, false) .. ",\n"
-			end
+                end
+            else
+                -- Always serialize the full table, even if repeated
+                serialized = serialized .. next_indent .. formatted_key .. " = " .. tabley.serialize(value, next_indent, false) .. ",\n"
+            end
         elseif type(value) == "string" then
             serialized = serialized .. next_indent .. formatted_key .. " = " .. string.format("%q", value) .. ",\n"
         else
