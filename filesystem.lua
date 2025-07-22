@@ -211,6 +211,7 @@ function filesystem.save_file_native(data, path)
 
 	file:open("w")
 	file:write(data)
+	file:close()
 end
 
 function filesystem.remove_file_native(path)

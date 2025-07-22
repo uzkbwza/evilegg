@@ -2,6 +2,7 @@ local CodexWorld = World:extend("CodexWorld")
 local O = require("obj")
 local SpawnDataTable = require("obj.spawn_data")
 local PickupDataTable = require("obj.pickup_table")
+local LevelBonus = require("levelbonus.LevelBonus")
 
 
 local MENU_ITEM_H_PADDING = 12
@@ -11,6 +12,8 @@ local NUM_OBJECT_COLUMNS = 5
 local NUM_OBJECT_ROWS = 8
 
 local ICON_SIZE = 25
+local GLOSSARY_ICON_SIZE = 15
+local GLOSSARY_PAGE_LENGTH = 13
 
 local OBJECTS_PER_PAGE = NUM_OBJECT_ROWS * NUM_OBJECT_COLUMNS
 
@@ -23,14 +26,13 @@ local SPAWN_CATEGORY_ORDER = {
     "secondary_weapon",
 }
 
-local PAGE_CATEGORY_ORDER = table.extend({"all"}, SPAWN_CATEGORY_ORDER)
-local START_PAGE = 1
-
--- local PAGE_CATEGORY_ORDER = table.extend({"all", "glossary"}, SPAWN_CATEGORY_ORDER)
--- local START_PAGE = 2
+-- local PAGE_CATEGORY_ORDER = table.extend({"all"}, SPAWN_CATEGORY_ORDER)
+-- local START_PAGE = 1
+local PAGE_CATEGORY_ORDER = table.extend({"all", "glossary", "levelbonus"}, SPAWN_CATEGORY_ORDER)
+local START_PAGE = 3
 
 function CodexWorld:new(x, y)
-CodexWorld.super.new(self, x, y)
+    CodexWorld.super.new(self, x, y)
     self:add_signal("exit_menu_requested")
     self.object_buttons = {}
     self.page_number = 1
@@ -134,7 +136,9 @@ function CodexWorld:open_spawn_description(spawn)
 
     self:play_sfx("ui_ranking_tick", 0.35)
 	
-	savedata:clear_new_codex_item(spawn.codex_save_name)
+    if spawn.codex_save_name then
+		savedata:clear_new_codex_item(spawn.codex_save_name)
+	end
 	
 	local x = conf.viewport_size.x / 2 + conf.viewport_size.x / 4 - 2
     -- local y = conf.viewport_size.y / 2
@@ -188,7 +192,6 @@ function CodexWorld:open_spawn_description(spawn)
 	
 	local increment = 12
 
-
 	if hp_categories[spawn.page_category] then
 		local hp_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_hp_text, spawn.class.max_hp or "???"), false, Color.red, delay, true))
 		self:add_tag(hp_text, "sequence_object")
@@ -224,11 +227,46 @@ function CodexWorld:open_spawn_description(spawn)
 		-- delay = delay + 1
 	end
 
+    if spawn.level_bonus then
 
+        if (type(spawn.level_bonus.score) == "number" and spawn.level_bonus.score > 0) or type(spawn.level_bonus.score) == "function" then
+            local negative = spawn.level_bonus.negative
+            local score = spawn.level_bonus.score
+            if negative and type(score) == "number" then
+                score = -score
+            end
+            local score_text = type(spawn.level_bonus.score) == "function" and tr.codex_variable_score or comma_sep(score)
+            local level_bonus_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_level_bonus_score:format(score_text), false, negative and Color.red or Color.yellow, delay, true))
+            self:add_tag(level_bonus_text, "sequence_object")
+            current_y = current_y + increment
+            delay = delay + 1
+        end
 
-        local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, true))
-		self:add_tag(spawn_description, "sequence_object")
-		local text_height = spawn_description.text_height
+        if type(spawn.level_bonus.score_multiplier) == "number" and spawn.level_bonus.score_multiplier > 0 then
+            local mul = spawn.level_bonus.score_multiplier
+            local negative = spawn.level_bonus.negative
+            if negative then
+                mul = -mul
+            end
+            local level_bonus_text2 = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_level_bonus_score_multiplier:format(mul), false,  negative and Color.red or Color.green, delay, true))
+            self:add_tag(level_bonus_text2, "sequence_object")
+            current_y = current_y + increment
+            delay = delay + 1
+        end
+
+        if (type(spawn.level_bonus.xp) == "number" and spawn.level_bonus.xp > 0) or type(spawn.level_bonus.xp) == "function" then
+            local xp_text = type(spawn.level_bonus.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.level_bonus.xp)
+            local level_bonus_text3 = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_level_bonus_xp:format(xp_text), false, Color.blue, delay, true))
+            self:add_tag(level_bonus_text3, "sequence_object")
+            current_y = current_y + increment
+            delay = delay + 1
+        end
+
+    end
+
+    local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, true))
+    self:add_tag(spawn_description, "sequence_object")
+    local text_height = spawn_description.text_height
 
 end
 
@@ -240,13 +278,20 @@ function CodexWorld:clear_spawn_description()
 	end
 end
 
+function CodexWorld:get_number_of_objects_per_page()
+	if self.category_selected == "glossary" or self.category_selected == "levelbonus" then
+		return GLOSSARY_PAGE_LENGTH
+	end
+	return OBJECTS_PER_PAGE
+end
+
 function CodexWorld:cycle_page(direction)
 
     if self.page_number + direction < 1 then
         return
 	end
 
-	if self.page_number + direction > idiv((#self.spawn_tables[self.category_selected] or 0), OBJECTS_PER_PAGE) + 1 then
+	if self.page_number + direction > idiv((#self.spawn_tables[self.category_selected] or 0), self:get_number_of_objects_per_page()) + 1 then
 		return
 	end
 
@@ -327,7 +372,7 @@ function CodexWorld:_open_page(page_category, page_number)
     end
 
 
-    if page_number == idiv((#self.spawn_tables[self.category_selected] or 0), OBJECTS_PER_PAGE) + 1 then
+    if page_number == idiv((#self.spawn_tables[self.category_selected] or 0), self:get_number_of_objects_per_page()) + 1 then
 
     else
 		self:ref("next_page_button",
@@ -358,8 +403,8 @@ function CodexWorld:_open_page(page_category, page_number)
 	
 	
 	local len = table.length(spawns)
-	local start = (page_number - 1) * OBJECTS_PER_PAGE + 1
-    local finish = start + OBJECTS_PER_PAGE - 1
+	local start = (page_number - 1) * self:get_number_of_objects_per_page() + 1
+    local finish = start + self:get_number_of_objects_per_page() - 1
 	
 	if finish > len then
 		finish = len
@@ -378,6 +423,19 @@ function CodexWorld:_open_page(page_category, page_number)
 
     for i = 1, #page do
         self.object_buttons[i] = self:add_spawn_button(page[i], i)
+    end
+
+    if self.category_selected == "glossary" or self.category_selected == "levelbonus" then
+        if #self.object_buttons > 0 then
+            self.cycle_category_button:add_neighbor(self.object_buttons[1], "down", true)
+            
+            for i = 1, #self.object_buttons - 1 do
+                self.object_buttons[i]:add_neighbor(self.object_buttons[i + 1], "down", true)
+            end
+
+            self.object_buttons[#self.object_buttons]:add_neighbor(self.object_buttons[1], "down", true)
+        end
+        return
     end
 	
 	if #self.object_buttons > 0 then
@@ -440,21 +498,33 @@ local unknown_entry = {
 	unknown = true,
 }
 
+local unknown_glossary_entry = {
+	-- icon = textures.ui_codex_unknown,
+	sprite = textures.ui_codex_unknown_sprite,
+	name = "???",
+	description = "????????????????????\n????????????????????\n????????????????????",
+	unknown = true,
+    glossary_entry = true,
+    text_color = Color.darkgrey,
+}
+
 function CodexWorld:add_spawn_button(spawn, index)
 
-	
-	if not savedata:check_codex_item(spawn.codex_save_name) then
-		-- if not savedata:check_codex_item(spawn.codex_save_name) and not debug.enabled then
-		spawn = unknown_entry
+	if not savedata:check_codex_item(spawn.codex_save_name) and not spawn.start_unlocked then
+		spawn = spawn.glossary_entry and unknown_glossary_entry or unknown_entry
 	end
 	
-	local x = MENU_ITEM_H_PADDING + ((index - 1) % NUM_OBJECT_COLUMNS) * (ICON_SIZE)
-	local y = MENU_ITEM_V_PADDING + floor((index - 1) / NUM_OBJECT_COLUMNS) * (ICON_SIZE) + 25
-	local icon = spawn.icon
+    local x = MENU_ITEM_H_PADDING + ((index - 1) % NUM_OBJECT_COLUMNS) * (ICON_SIZE)
+    local y = MENU_ITEM_V_PADDING + floor((index - 1) / NUM_OBJECT_COLUMNS) * (ICON_SIZE) + 25
+
+    if spawn.glossary_entry then
+        x = MENU_ITEM_H_PADDING
+        y = MENU_ITEM_V_PADDING + (GLOSSARY_ICON_SIZE) * (index - 1) + 25
+    end
 
 	-- if graphics.depalettized[icon] == nil then icon = unknown_entry.icon end
 
-    local button = self.menu_root:add_child(self:add_object(O.CodexMenu.CodexEntryButton(x, y, icon, spawn)))
+    local button = self.menu_root:add_child(self:add_object(O.CodexMenu.CodexEntryButton(x, y, spawn.icon, spawn, spawn.glossary_entry and (tr:has_key(spawn.name) and tr[spawn.name] or spawn.name):upper(), ICON_SIZE * NUM_OBJECT_COLUMNS - 2, spawn.text_color)))
 
 	signal.connect(button, "focused", self, "open_spawn_description", function()
 		self:defer(function() self:open_spawn_description(spawn) end)
@@ -479,6 +549,66 @@ function CodexWorld:get_spawns(page_category)
         end
 		return spawns
 	end
+
+    if page_category == "glossary" or page_category == "levelbonus" then
+        local tab
+
+        if page_category == "glossary" then
+            tab = {
+                {
+                    name = "room_has_max_points",
+                    description = "codex_glossary_room_has_max_points",
+                    start_unlocked = true,
+                },
+                {
+                    name = "room_is_hard",
+                    description = "codex_glossary_room_is_hard",
+                },
+                {
+                    name = "codex_glossary_name_lvl",
+                    description = "codex_glossary_desc_lvl",
+                    start_unlocked = true,
+                },
+                {
+                    name = "codex_glossary_name_wave",
+                    description = "codex_glossary_desc_wave",
+                    start_unlocked = true,
+                },
+                {
+                    name = "codex_glossary_name_earned_x",
+                    description = "codex_glossary_desc_earned_x",
+                    start_unlocked = true,
+                },
+                {
+                    name = "codex_glossary_name_xp",
+                    description = "codex_glossary_desc_xp",
+                    start_unlocked = true,
+                },
+            }
+        elseif page_category == "levelbonus" then
+            tab = {}
+            for k, v in pairs(LevelBonus) do
+                table.insert(tab, {
+                    name = v.text_key,
+                    description = v.text_key .. "_codex",
+                    level_bonus =  v
+                })
+            end
+        end
+
+        for _, v in ipairs(tab) do
+            v.sprite = textures.ui_codex_unknown_sprite
+            v.glossary_entry = true
+            v.codex_save_name = v.name
+            v.text_color = page_category == "glossary" and Color.orange or Color.cyan
+        end
+
+        table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
+
+        for _, v in ipairs(tab) do
+            table.insert(spawns, v)
+        end
+    end
 
 
     if page_category == "enemy" or page_category == "hazard" or page_category == "rescue" then

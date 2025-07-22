@@ -209,9 +209,10 @@ local function main()
 
         graphics.pop()
 		
+        print("saving " .. "assets/sprite/palettized/" .. localized_path)
 		filesystem.save_file_native(processed_image_data:encode("png"):getString(), "assets/sprite/palettized/" .. localized_path)
 
-		local decoded_image = graphics.new_image(processed_image_data)
+		-- local decoded_image = graphics.new_image(processed_image_data)
 
 		-- custom_palette_object = palette_object
 		

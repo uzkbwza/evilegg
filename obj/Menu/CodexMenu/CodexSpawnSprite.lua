@@ -12,9 +12,7 @@ function CodexSpawnSprite:new(x, y, sprite, delay)
 end
 
 function CodexSpawnSprite:draw()
-    graphics.draw_centered(self.sprite, 0, 0)
+    graphics.draw_centered(self.sprite, -0.01, -0.01)
 end
 
 return CodexSpawnSprite
-
-

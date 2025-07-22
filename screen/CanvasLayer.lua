@@ -106,6 +106,38 @@ function CanvasLayer:create_canvas()
 end
 
 ----------------------------------------------------------------
+-- Viewport and Canvas Management
+----------------------------------------------------------------
+
+---Set the viewport size and recreate the canvas if it changes.
+---Calling this will disable expand_viewport.
+---@param width number
+---@param height number
+function CanvasLayer:set_viewport_size(width, height)
+    if width <= 0 or height <= 0 then return end
+    if self.viewport_size.x ~= width or self.viewport_size.y ~= height then
+        self.expand_viewport = false
+        self.viewport_size = Vec2(width, height)
+        self:create_canvas()
+    end
+end
+
+---Toggle whether the viewport expands to the main window size.
+---@param expand boolean
+function CanvasLayer:set_expand_viewport(expand)
+    if self.expand_viewport == expand then return end
+    self.expand_viewport = expand
+    if self.expand_viewport then
+        local new_size = graphics.main_viewport_size or conf.viewport_size
+        if self.viewport_size.x ~= new_size.x or self.viewport_size.y ~= new_size.y then
+            self.viewport_size = Vec2(new_size.x, new_size.y)
+            self:create_canvas()
+        end
+    end
+end
+
+
+----------------------------------------------------------------
 -- Helper Functions
 ----------------------------------------------------------------
 
@@ -580,25 +612,45 @@ end
 
 function CanvasLayer:print_canvas_tree()
     local function build_tree(layer, indent)
-		indent = indent or 0
-		print(string.rep(" ", indent * 4) .. "- " .. (layer.name or "Root"))
+        indent = indent or 0
+        print(string.rep(" ", indent * 4) .. "- " .. (layer.name or "Root"))
         for _, child in ipairs(layer.children) do
-			build_tree(child, indent + 1)
+            build_tree(child, indent + 1)
         end
-	end
-	build_tree(self)
+    end
+    build_tree(self)
+end
+
+function CanvasLayer:get_absolute_pos()
+    local parent = self
+    local x = 0
+    local y = 0
+    while parent do
+        x = x + parent.pos.x
+        y = y + parent.pos.y
+        parent = parent.parent
+    end
+    return x, y
+end
+
+function CanvasLayer:get_mouse_position()
+    local input = self:get_input_table()
+    -- local offsx, offsy = self.world.canvas_layer:get_absolute_pos()
+    -- print(offsx, offsy)
+    return input.mouse.pos.x - self.pos.x, input.mouse.pos.y - self.pos.y
 end
 
 function CanvasLayer:draw_shared()
-	if self.expand_viewport then
-		self.viewport_size = Vec2(graphics.main_viewport_size.x, graphics.main_viewport_size.y)
-		if graphics.main_viewport_size.x ~= 0 and graphics.main_viewport_size.y ~= 0 then
-			if self.canvas:getWidth() ~= self.viewport_size.x or self.canvas:getHeight() ~= self.viewport_size.y then
+    if self.expand_viewport then
+        local new_size_x = (graphics.main_viewport_size or conf.viewport_size).x
+        local new_size_y = (graphics.main_viewport_size or conf.viewport_size).y
+        if new_size_x > 0 and new_size_y > 0 then
+            if self.viewport_size.x ~= new_size_x or self.viewport_size.y ~= new_size_y then
+                self.viewport_size = Vec2(new_size_x, new_size_y)
                 self:create_canvas()
-				-- print(self.viewport_size.x, self.viewport_size.y)
-			end
-		end
-	end
+            end
+        end
+    end
 
     graphics.push("all")
     graphics.origin()
@@ -613,46 +665,55 @@ function CanvasLayer:draw_shared()
             graphics.clear(clear_color.r, clear_color.g, clear_color.b, clear_color.a)
         end
     end
-	
-	if self.handling_render and self.visible then
 
-		self:pre_world_draw()
+    if self.handling_render and self.visible then
+        self:pre_world_draw()
 
-		graphics.scale(self.zoom, self.zoom)
-		graphics.translate(self.offset.x, self.offset.y)
+        graphics.scale(self.zoom, self.zoom)
+        graphics.translate(self.offset.x, self.offset.y)
 
-		for _, world in ipairs(self.worlds) do
-			world.viewport_size = self.viewport_size
+        for _, world in ipairs(self.worlds) do
+            world.viewport_size = self.viewport_size
 
-			world:draw_shared()
-		end
+            world:draw_shared()
+        end
 
-		self:draw()
-	
-	end
+        self:draw()
+    end
 
     local update_interp = true
 
-	local start_here = 1
+    local start_here = 1
 
-	for i = #self.children, 1, -1 do
-		local layer = self.children[i]
-		if layer.blocks_render then
-			start_here = i
-			break
-		end
-	end
+    for i = #self.children, 1, -1 do
+        local layer = self.children[i]
+        if layer.blocks_render then
+            start_here = i
+            break
+        end
+    end
 
     for i = start_here, #self.children do
         local layer = self.children[i]
-		graphics.push("all")
+        graphics.push("all")
+        -- graphics.translate(layer.pos.x, layer.pos.y)
         layer:draw_shared()
-		graphics.pop()
+        graphics.pop()
         layer.interp_fraction = update_interp and self.interp_fraction or layer.interp_fraction
-
     end
 
     graphics.pop()
+
+
+    -- if self.handling_render and self.visible then
+
+
+        -- graphics.scale(self.zoom, self.zoom)
+        -- graphics.translate(self.offset.x, self.offset.y)
+
+        -- self:post_canvas_draw()
+    -- end
+
     graphics.draw(self.canvas, self.pos.x, self.pos.y)
 end
 
@@ -754,6 +815,7 @@ end
 function CanvasLayer:update(dt) end
 function CanvasLayer:pre_world_draw() end
 function CanvasLayer:draw() end
+-- function CanvasLayer:post_canvas_draw() end
 function CanvasLayer:enter() end
 function CanvasLayer:exit()
 

@@ -172,6 +172,47 @@ function GameWorld:enter()
 		)
 	end)
 
+	signal.connect(game_state, "player_running_out_of_ammo", self, "on_player_running_out_of_ammo", function()
+		self:quick_notify(
+            tr.notif_running_out_of_ammo,
+            "notif_low_ammo",
+            nil,
+            0,
+            60,
+            true
+		)
+    end)
+
+    signal.connect(game_state, "tried_to_use_secondary_weapon_with_no_ammo", self, "on_player_out_of_ammo", function()
+		self:quick_notify(
+			tr.notif_out_of_ammo,
+            "notif_no_ammo",
+            nil,
+            0,
+            30,
+            true
+        )
+    end)
+    
+    signal.connect(game_state, "ran_out_of_ammo", self, "on_ran_out_of_ammo", function()
+        self:quick_notify(
+			tr.notif_out_of_ammo,
+            "notif_no_ammo",
+            nil,
+            0,
+            60,
+            true
+        )
+    end)
+
+    signal.connect(game_state, "player_artefact_removed", self, "on_player_artefact_removed", function(artefact)
+        self:quick_notify(
+            "-" .. tr[artefact.name],
+            "notif_downgrade"
+            -- "notif_artefact_removed"
+        )
+    end)
+
 	-- signal.connect(game_state, "player_powerup_gained", self, "on_player_powerup_gained", function(powerup_type)
 	-- 	self:quick_notify(
 	-- 		"+NOTHING",

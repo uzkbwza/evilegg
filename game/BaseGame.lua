@@ -17,6 +17,7 @@ function BaseGame:load()
 	end
 
     global_state = self:initialize_global_state()
+    global_game = self
 	
     self.layer_tree:transition_to(self.main_screen_class)
 end

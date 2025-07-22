@@ -46,9 +46,11 @@ function SecondaryWeapon:on_secondary_weapon_ammo_used(amount, old, new)
 
 	if old > low_ammo_threshold and new <= low_ammo_threshold then
 		self:play_sfx("player_running_out_of_ammo", 0.7)
+        game_state:on_player_running_out_of_ammo()
 	end
 	if new == 0 and old > 0 then
-		self:play_sfx("player_ran_out_of_ammo", 0.9)
+        self:play_sfx("player_ran_out_of_ammo", 0.9)
+        game_state:on_ran_out_of_ammo()
 	end
 end
 

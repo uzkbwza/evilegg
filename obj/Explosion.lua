@@ -73,7 +73,7 @@ function Explosion:enter()
 			local dist = vec2_distance(self.pos.x, self.pos.y, x, y)
 			local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, x, y)
 			local force = ((self.size / dist) / 2) * self.force_modifier
-			obj:apply_force(dx * force, dy * force)
+			obj:apply_impulse(dx * force, dy * force)
 		end
 	end)
 

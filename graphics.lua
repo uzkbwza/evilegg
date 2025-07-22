@@ -6,6 +6,7 @@ require "lib.color"
 
 local graphics = {
     canvas = nil,
+    pre_adjustment_canvas = nil,
 	scaled_canvas = nil,
     pre_canvas_draw_function = nil,
 	screen_shader_canvases = {},
@@ -243,6 +244,7 @@ function graphics.load()
     graphics.shader.load()
     graphics.set_default_filter("nearest", "nearest", 0)
     graphics.canvas = graphics.new_canvas(conf.viewport_size.x, conf.viewport_size.y)
+    graphics.pre_adjustment_canvas = graphics.new_canvas(conf.viewport_size.x, conf.viewport_size.y)
 
 
     graphics.set_canvas(graphics.canvas)
@@ -426,15 +428,15 @@ function graphics.initialize_screen_shader_presets()
 		invert_colors = usersettings.invert_colors,
 	}
 
-	for i, shader_table in ipairs(graphics.screen_shader_presets) do
+	-- for i, shader_table in ipairs(graphics.screen_shader_presets) do
 		-- if shader_table[1] == "shader_preset_none" then
 			-- graphics.set_screen_shaders(shader_table)
         -- end
-        table.insert(shader_table, 2, {
-			shader = graphics.shader.adjustment,
-			args = graphics.adjustment_shader_options,
-		})
-	end
+        -- table.insert(shader_table, 2, {
+			-- shader = graphics.shader.adjustment,
+			-- args = graphics.adjustment_shader_options,
+		-- })
+	-- end
 end
 
 function graphics.set_screen_shader_from_preset(preset)
@@ -500,6 +502,10 @@ function graphics.set_pre_canvas_draw_function(func)
 	graphics.pre_canvas_draw_function = func
 end
 
+function graphics.set_post_canvas_draw_function(func)
+	graphics.post_canvas_draw_function = func
+end
+
 function graphics.screen_pos_to_canvas_pos(sposx, sposy)
 	return ((sposx - graphics.main_canvas_start_pos.x) / graphics.main_canvas_scale),
 		((sposy - graphics.main_canvas_start_pos.y) / graphics.main_canvas_scale)
@@ -563,11 +569,18 @@ function graphics.draw_loop()
     graphics.window_size.y = wsy
 
 
-    graphics.set_canvas(graphics.canvas)
+    graphics.set_canvas(graphics.pre_adjustment_canvas)
 	
-	graphics.game_draw()
-
+    graphics.game_draw()
+    
 	graphics.set_color(1, 1, 1)
+    graphics.set_canvas(graphics.canvas)
+    graphics.set_shader(graphics.shader.adjustment)
+    for arg, value in pairs(graphics.adjustment_shader_options) do
+        graphics.shader.adjustment:send(arg, value)
+    end
+    graphics.draw(graphics.pre_adjustment_canvas, 0, 0)
+
     graphics.set_canvas()
 	
 
@@ -605,6 +618,8 @@ function graphics.draw_loop()
     if (abs(graphics.canvas:getWidth() - viewport_size.x) >= 1 or abs(graphics.canvas:getHeight() - viewport_size.y) >= 1) then
         graphics.canvas:release()
         graphics.canvas = graphics.new_canvas(viewport_size.x, viewport_size.y)
+        graphics.pre_adjustment_canvas:release()
+        graphics.pre_adjustment_canvas = graphics.new_canvas(viewport_size.x, viewport_size.y)
     end
 
 	if graphics.screen_rumble_intensity > 0 then
@@ -642,8 +657,6 @@ function graphics.draw_loop()
 		if gametime.tick % 10 == 0 then
 			-- pcall(graphics.shader.update)
 		end
-
-
 		
 		for i = 2, #(graphics.screen_shaders or dummy_table) do
 			
@@ -722,6 +735,10 @@ function graphics.draw_loop()
 	graphics.set_shader()
 
 	graphics.set_canvas()
+
+    if graphics.post_canvas_draw_function then
+        graphics.post_canvas_draw_function()
+    end
 
 	debug.printlines(0, 0)
 end
@@ -857,7 +874,7 @@ function graphics.drawp(texture, palette, offset, x, y, r, sx, sy, ox, oy, kx, k
 	if texture == nil then return end
     palette = graphics._auto_palette(texture, palette, offset)
 	if palette == nil then
-		return graphics.draw(graphics.depalettized[texture], x, y, r, sx, sy, ox, oy, kx, ky)
+		return graphics.draw(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 	end
 
 	graphics.set_shader(palette:get_shader(offset))
@@ -870,7 +887,7 @@ function graphics.drawp_centered(texture, palette, offset, x, y, r, sx, sy, ox, 
 	if texture == nil then return end
     palette = graphics._auto_palette(texture, palette, offset)
 	if palette == nil then
-		return graphics.draw_centered(graphics.depalettized[texture], x, y, r, sx, sy, ox, oy, kx, ky)
+		return graphics.draw_centered(texture, x, y, r, sx, sy, ox, oy, kx, ky)
 	end
 	
 	graphics.set_shader(palette:get_shader(offset))

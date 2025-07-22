@@ -139,6 +139,7 @@ function RoomObject:enter()
             -- self:add_line("text", "SCORE+")
         elseif self.points_rating == 3 then
             self:add_line("text", tr.room_has_max_points)
+            savedata:add_item_to_codex("room_has_max_points")
         end
 
         -- if self.stored_room.bonus_room then
@@ -147,6 +148,7 @@ function RoomObject:enter()
 
         if self.stored_room.is_hard then
             self:add_line("text", tr.room_is_hard)
+            savedata:add_item_to_codex("room_is_hard")
         end
 
         self:add_separator()

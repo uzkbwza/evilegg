@@ -47,7 +47,11 @@ function EggRoom:get_clear_color()
 end
 
 function EggRoom:get_border_color()
-	return self.director and self.director:get_border_color() or nil
+    return self.director and self.director:get_border_color() or nil
+end
+
+function EggRoom:get_screen_border_color()
+    return self.director and self.director:get_screen_border_color() or nil
 end
 
 function EggRoomDirector:new()
@@ -57,12 +61,55 @@ function EggRoomDirector:new()
 end
 
 function EggRoomDirector:get_clear_color()
-	if self:is_timer_running("phase2_landing_fade") then
-		-- local t = self:timer_progress("phase2_landing_fade")
+    if self:is_timer_running("phase2_landing_fade") then
+        -- local t = self:timer_progress("phase2_landing_fade")
         local color = Color.grey
-		return color
-	end
+        return color
+    end
+    local cutscene = self.world:get_first_object_with_tag("cutscene")
+    if cutscene and cutscene.get_clear_color then
+        return cutscene:get_clear_color()
+    end
+
+    if self.glow_floor then
+        self.glow_floor_color = self.glow_floor_color or Color.darkpurple:clone()
+        local color = self.glow_floor_color
+        local color2 = Color.darkpurple
+        local stopwatch = self:get_stopwatch("time_since_cracked_egg")
+        if stopwatch then
+            local t = sin01(stopwatch.elapsed / 3)
+
+            local amt = 0.15
+            local mod = 0.5
+            color.r = lerp(color2.r, color2.r * t, amt) * mod       
+            color.g = lerp(color2.g, color2.g * t, amt) * mod
+            color.b = lerp(color2.b, color2.b * t, amt) * mod
+        end
+        return color
+    end
+
 	return nil
+end
+
+function EggRoomDirector:get_screen_border_color()
+    if self.glow_floor then
+        self.glow_border_color = self.glow_border_color or Color.magenta:clone()
+        local color = self.glow_border_color
+        local color2 = Palette.rainbow:tick_color(self.elapsed * 0.5)
+        local stopwatch = self:get_stopwatch("time_since_cracked_egg")
+        if stopwatch then
+            local t = sin01(stopwatch.elapsed / 3)
+
+            local amt = 0.45
+            local mod = 1
+            color.r = lerp(color2.r, color2.r * t, amt) * mod       
+            color.g = lerp(color2.g, color2.g * t, amt) * mod
+            color.b = lerp(color2.b, color2.b * t, amt) * mod
+        end
+        return color
+    end
+    
+    return nil
 end
 
 function EggRoomDirector:get_border_color()
@@ -160,18 +207,34 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 
 			signal.connect(self.egg_boss, "phase4_landing", self, "on_egg_boss_phase4_landing", function()
                 self.phase4_landing = true
-                self.world.room:set_bounds(1200, 1200)
-                -- self.world.room.free_camera = true
+                self.world.room:set_bounds(2048, 2048)
                 audio.stop_all_object_sfx(self.world.canvas_layer)
                 audio.stop_music()
-                self:start_timer("phase4_landing_music", 30, function()
-					-- audio.play_music("music_egg_boss3", 1.0)
-				end)
+                -- self:start_timer("phase4_landing_music", 30, function()
+				-- 	-- audio.play_music("music_egg_boss3", 1.0)
+				-- end)
 				-- audio.play_music("music_egg_boss1", 1.0)
 
-				game_state.cutscene_hide_hud = true
+                game_state.cutscene_hide_hud = true
 			end, true)
 			
+            signal.connect(self.egg_boss, "cutscene1_over", self, "on_egg_boss_cutscene1_over", function()
+                self.world.room.free_camera = true
+                self.world.fog_of_war = true
+                self.glow_floor = true
+                self.phase4_landing = false
+                game_state.cutscene_hide_hud = false
+                game_state.cutscene_no_pause = false
+                local dist = 850  
+                if rng:coin_flip() then
+                    self.world.players[1]:move_to(rng:randf(-dist, dist), dist * rng:rand_sign())
+                else
+                    self.world.players[1]:move_to(dist * rng:rand_sign(), rng:randf(-dist, dist))
+                end
+                self.world.camera_target:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
+                self.world.camera:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
+            end, true)
+
             while self.egg_boss do
                 s:wait(1)
             end

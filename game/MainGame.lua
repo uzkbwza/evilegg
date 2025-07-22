@@ -10,11 +10,25 @@ function MainGame:new()
 	self.main_screen_class = Screens.MainScreen
 	graphics.set_pre_canvas_draw_function(function()
 		local clear_color = self:get_clear_color()
-		if clear_color then
-			graphics.set_clear_color(clear_color)
-			graphics.clear(clear_color)
-		end
-	end)
+        if clear_color then
+            graphics.set_clear_color(clear_color)
+            graphics.clear(clear_color)
+        end
+        -- dbg("clear_color", clear_color, Color.orange)
+    end)
+
+    -- graphics.set_post_canvas_draw_function(function()
+        -- local main_screen = self:get_main_screen()
+
+        -- if main_screen and not main_screen.drawing_cursor then
+        --     return
+        -- end
+
+        -- graphics.set_color(Color.white)
+        -- local mouse_x, mouse_y = love.mouse.get_position()
+        -- graphics.rectangle_centered("fill", mouse_x, mouse_y, 100, 100)
+
+    -- end)
 end
 
 function MainGame:load()
@@ -47,7 +61,8 @@ function MainGame:get_clear_color()
 end
 
 function MainGame:initialize_global_state()
-	game_state = GlobalGameState()
+    game_state = GlobalGameState()
+    
 	return GlobalState()
 end
 
@@ -192,8 +207,10 @@ function GlobalGameState:new()
 	signal.register(self, "player_secondary_weapon_gained")
 	signal.register(self, "player_secondary_weapon_lost")
 	signal.register(self, "tried_to_use_secondary_weapon_with_no_ammo")
+	signal.register(self, "ran_out_of_ammo")
 	signal.register(self, "secondary_weapon_ammo_used")
-	signal.register(self, "secondary_weapon_ammo_gained")
+    signal.register(self, "secondary_weapon_ammo_gained")
+    signal.register(self, "player_running_out_of_ammo")
 	signal.register(self, "used_sacrificial_twin")
 	signal.register(self, "hatched")
 	signal.register(self, "player_overhealed")
@@ -206,9 +223,12 @@ function GlobalGameState:new()
 	if savedata.first_time_playing then self.skip_tutorial = false end
 
     if debug.enabled then
-        local cheat = true
+
+
+        local cheat = false
 
 		-- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
+        -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
 		
         if cheat then
 			-- self:add_score(2500000, "cheat")
@@ -228,11 +248,15 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30   
+            self.level = 1   
             self.hearts = self.max_hearts
 
             for i = 1, 10 do
-                self:gain_artefact(self:get_random_available_artefact())
+                local artefact = self:get_random_available_artefact()
+                while artefact.alternative_gain_function do 
+                    artefact = self:get_random_available_artefact()
+                end
+                self:gain_artefact(artefact)
             end
 
             for i = 1, 3 do
@@ -273,6 +297,14 @@ function GlobalGameState:update(dt)
 	
 end
 
+function GlobalGameState:on_player_running_out_of_ammo()
+    signal.emit(self, "player_running_out_of_ammo")
+end
+
+function GlobalGameState:on_ran_out_of_ammo()
+    signal.emit(self, "ran_out_of_ammo")
+end
+
 function GlobalGameState:on_hatched()
 	self.hatched = true
 	signal.emit(self, "hatched")
@@ -301,12 +333,11 @@ function GlobalGameState:level_bonus(bonus_name)
         return
     end
 
-    if self.final_room_entered then
-		if not LevelBonus[bonus_name].final_room_allowed then
-			return
-		end
-	end
-
+    -- if self.final_room_entered then
+		-- if not LevelBonus[bonus_name].final_room_allowed then
+			-- return
+		-- end
+	-- end
 
 	self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] or 0
 	self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] + 1
@@ -323,6 +354,11 @@ function GlobalGameState:set_selected_artefact_slot(slot)
 end
 
 function GlobalGameState:gain_artefact(artefact)
+
+    if artefact.alternative_gain_function then
+        artefact.alternative_gain_function(self)
+        return
+    end
 
 	if artefact == nil then return end
 	
@@ -718,6 +754,9 @@ function GlobalGameState:get_run_data_table()
 end
 
 function GlobalGameState:gain_heart(heart)
+    if heart == nil then
+        heart = PickupTable.hearts.NormalHeart
+    end
 	self.hearts = self.hearts + 1
 	if self.hearts > GlobalGameState.max_hearts then
         self.hearts = GlobalGameState.max_hearts
@@ -733,7 +772,7 @@ function GlobalGameState:gain_heart(heart)
 				end
 			end
 		end
-        game_state:level_bonus("overheal")
+        self:level_bonus("overheal")
 		signal.emit(self, "player_overhealed")
 	else
 		signal.emit(self, "player_heart_gained", heart)
@@ -1041,7 +1080,7 @@ function GlobalGameState:get_random_available_artefact()
 			end
 
 			if v.can_spawn then
-				if not v.can_spawn() then
+				if not v.can_spawn(self) then
 					goto continue
 				end
 			end
@@ -1081,9 +1120,11 @@ function GlobalGameState:get_random_available_artefact()
 				goto continue
 			end
 
-			if v.spawn_when_full then
-				table.insert(spawn_when_full_pool, v)
-				goto continue
+			if v.spawn_when_full or v.spawn_only_when_full then
+                table.insert(spawn_when_full_pool, v)
+                if v.spawn_only_when_full then
+                    goto continue
+                end
 			end
 
 			if v.must_not_have_artefacts then

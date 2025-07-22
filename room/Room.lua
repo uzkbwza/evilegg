@@ -8,7 +8,7 @@ local debug_force = "bonus_police"
 
 local debug_enemy_enabled = false
 local debug_enemy = "AcidCharger"
-local num_debug_enemies = 6
+local num_debug_enemies = 5
 local num_debug_waves = 3
 
 Room.can_highlight_enemies = true

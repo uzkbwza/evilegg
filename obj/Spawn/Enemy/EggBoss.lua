@@ -15,6 +15,7 @@ local LandingCrack = GameObject2D:extend("LandingCrack")
 local GlassShardsEffect = Effect:extend("GlassShardsEffect")
 local UnderEggFlash = GameObject2D:extend("UnderEggFlash")
 local Cutscenes = require("obj.Cutscene")
+local Penitent = require("obj.Spawn.Enemy.Penitent")
 
 local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
@@ -73,9 +74,11 @@ end
 -- print(DIALOGUE)
 
 function EggBoss:new()
+    self.cutscene_object = Cutscenes.EndingCutscene1(0, 0)
     self:add_signal("cracked")
     self:add_signal("phase2_landing")
     self:add_signal("phase4_landing")
+    self:add_signal("cutscene1_over")
     self.body_height = 80
     self.z_index = 0
     self.base_body_height = self.body_height
@@ -430,6 +433,12 @@ function EggBoss:enter()
 	-- self:add_hit_bubble(0, 18, 52, "main")
 end
 
+function EggBoss:exit()
+    if self.cutscene_object then
+        self.cutscene_object:destroy()
+    end
+end
+
 function EggBoss:update(dt)
     EggBoss.super.update(self, dt)
 end
@@ -690,7 +699,7 @@ function EggBoss:state_Phase2_enter()
 		end
 
 		s:tween(function(t)
-            self:set_body_height(lerp(self.phase2_started_twice and 900 or 1200, land_height, t))
+            self:set_body_height(lerp(self.phase2_started_twice and 900 or 900, land_height, t))
         end, 0, 1, 80, "inCubic")
 
         self:phase2_landing()
@@ -806,17 +815,19 @@ function EggBoss:phase2_landing()
         local closest_player = self:get_closest_player()
         if closest_player then
             closest_player:change_state("Cutscene")
-			
         end
         self:emit_signal("phase4_landing")
 		
         self.world.object_time_scale = 1.0
 		
+        local cutscene = self.cutscene_object
+        self.cutscene_object = nil
+        self.applying_physics = false
 		-- audio.stop_music()
 		audio.play_music("music_egg_boss3", 1.0)
 		
 		local s = self.sequencer
-		s:start(function()
+        s:start(function()
 			s:wait(1)
             self:spawn_object(UnderEggFlash(0, self.pos.y)):ref("parent", self)
             s:wait(163)
@@ -831,30 +842,41 @@ function EggBoss:phase2_landing()
 			end
             closest_player:hide()
 			
-			if true then
-                -- if SKIP_PHASE_5 then
+            -- if SKIP_PHASE_5 then
 
-				local cutscene = self:spawn_object(Cutscenes.EndingCutscene1(0, 0))
-                self:ref("cutscene", cutscene)
-				while self.cutscene do
-					s:wait(1)
-				end
+            local cutscene = self:spawn_object(cutscene)
+            self:ref("cutscene", cutscene)
+            while self.cutscene do
+                s:wait(1)
+            end
 
-                s:wait(45)
+            self:emit_signal("cutscene1_over")
 
-				self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+            self.intangible = true
+            -- self:show()
+            closest_player:show()
+            closest_player:change_state("Walk")
+            self.world.floor_drawing = true
+            -- self.world.room.nofungus = false
 
-                s:wait(180)
-				self.placeholder_text:start_destroy_timer(10)
+            self:change_state("Phase6")
 
-				self:die()
-				return
-			end
+
+            -- s:wait(45)
+
+            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+
+            -- s:wait(180)
+            -- self.placeholder_text:start_destroy_timer(10)
+
+            -- self:die()
+            return
 
 		end)
     end
 
 end
+
 
 function EggBoss:state_Phase2_update(dt)
 	if not self.phase2_finished then
@@ -987,9 +1009,38 @@ end
 
 
 function EggBoss:state_Phase5_enter()
-	self.spawning_stalkers = false
+    self.spawning_stalkers = false
     self.roaming = false
-	self.can_take_damage = true
+    self.can_take_damage = true
+end
+
+function EggBoss:state_Phase6_enter()
+    self.spawning_penitents = true
+end
+
+function EggBoss:state_Phase6_update(dt)
+    if self.spawning_penitents and self.is_new_tick and self.world:get_number_of_objects_with_tag("penitent") < 40 then
+        local x, y = self:get_position_out_of_player_los()
+        local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
+
+        if rng:coin_flip() and vec2_distance(cx, cy, 0, 0) > 260 then
+            -- map center
+            x, y = rng:random_vec2_times(rng:randf(0, 64))
+        end
+        self.world:spawn_object(Penitent(x, y))
+    end
+end
+
+function EggBoss:get_position_out_of_player_los()
+    local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
+    local viewport_size = self.world.canvas_layer.viewport_size
+    local larger_side = max(viewport_size.x, viewport_size.y)
+    local dist = sqrt((larger_side * larger_side) + (larger_side * larger_side)) * 0.5
+    local offs_x, offs_y = rng:random_vec2_times(dist)
+    while not self.world.room.bounds:contains(cx + offs_x, cy + offs_y) do
+        offs_x, offs_y = rng:random_vec2_times(dist)
+    end
+    return cx + offs_x, cy + offs_y
 end
 
 function EggBoss:draw()

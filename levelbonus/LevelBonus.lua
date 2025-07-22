@@ -14,7 +14,7 @@ return {
 		score_multiplier = 0,
 		xp = 0,
 		difficulty_modifier = 0.0,
-		final_room_allowed = true,
+		-- final_room_allowed = true,
     },
 	
 	twin_saved = {
@@ -25,7 +25,7 @@ return {
 
 		xp = 0,
         difficulty_modifier = 0.00,
-		final_room_allowed = true,
+		-- final_room_allowed = true,
     },
 	
     overflow = {
@@ -62,13 +62,13 @@ return {
 		difficulty_modifier = 0.1,
     },
 
-	accuracy = {
-		text_key = function() return string.format(tr.bonus_accuracy, (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level * 10)) end,
-		score = function() return 1000 * (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level) end,
-		score_multiplier = 0.00,
-		xp = 0,
-		difficulty_modifier = 0.00,
-	},
+	-- accuracy = {
+	-- 	text_key = function() return string.format(tr.bonus_accuracy, (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level * 10)) end,
+	-- 	score = function() return 1000 * (game_state.bullets_hit_this_level / game_state.bullets_shot_this_level) end,
+	-- 	score_multiplier = 0.00,
+	-- 	xp = 0,
+	-- 	difficulty_modifier = 0.00,
+	-- },
 
 	perfect = {
 		text_key = "bonus_perfect",

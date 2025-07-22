@@ -179,7 +179,7 @@ local Artefacts = {
         spawn_weight = function()
 			if not game_state then return 1000 end
 			if game_state.num_spawned_artefacts ~= 1 then return 1000 end
-            return 1000000000000000
+            return 100000000000000000
         end,
 
 		remove_function = function(game_state, slot)
@@ -228,7 +228,7 @@ local Artefacts = {
         spawn_weight = function()
 			if not game_state then return 1000 end
 			if game_state.num_spawned_artefacts ~= 2 then return 1000 end
-            return 1000000000000000
+            return 100000000000000000
         end,
     },
 	
@@ -287,13 +287,59 @@ local Artefacts = {
 		name = "artefact_useless_name",
 		description = "artefact_useless_desc",
 		spawn_weight = 1000,
-		spawn_when_full = true,
+		spawn_only_when_full = true,
 		no_pickup = true,
 		infinite_spawns = true,
 		repeats_allowed = true,
         destroy_score = 750,
-		destroy_xp = 600,
-	},
+		destroy_xp = 500,
+    },
+    
+    HeartTradeArtefact = {
+		icon = textures.pickup_artefact_heart_trade,
+		key = "heart_trade",
+		name = "artefact_heart_trade_name",
+		description = "artefact_heart_trade_desc",
+        spawn_weight = 500,
+        -- can_spawn = function()
+        --     return rng:percent(50)
+        -- end,
+        infinite_spawns = true,
+        destroy_score = 250,
+        spawn_when_full = true,
+        destroy_xp = 200,
+        can_spawn = function(game_state)
+            if table.is_empty(game_state.artefacts) then return false end
+            local keys = table.keys(game_state.artefacts)
+            if #keys == 1 and keys[1] == "sacrificial_twin" then return false end
+            return true
+        end,
+        alternative_gain_function = function(game_state)
+            if table.is_empty(game_state.artefacts) then return end
+            local keys = table.keys(game_state.artefacts)
+            if #keys == 1 and keys[1] == "sacrificial_twin" then return end
+
+            local random_key = rng:choose(keys)
+            while random_key == "sacrificial_twin" do
+                random_key = rng:choose(keys)
+            end
+            local artefact = game_state.artefacts[random_key]
+            game_state:set_selected_artefact_slot(artefact.slot)
+            game_state:remove_artefact(artefact.slot)
+            game_state:gain_heart()
+            global_game:get_main_screen():play_sfx("pickup_heart", 0.75)
+        end,
+        -- debug_spawn_weight = 100000000000000000,
+    },
+
+    BlastArmorArtefact = {
+        icon = textures.pickup_artefact_blast_armor,
+		key = "blast_armor",
+		name = "artefact_blast_armor_name",
+		description = "artefact_blast_armor_desc",
+        spawn_weight = 1000,
+    },
+    
 	
 	-- Secondary Weapons
 

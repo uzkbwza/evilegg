@@ -12,7 +12,7 @@ local CHARGE_SPEED = 0.12
 local ChargerIndicator = Effect:extend("ChargerIndicator")
 
 Charger.max_hp = 10
-AcidCharger.max_hp = 12
+AcidCharger.max_hp = 11
 
 AcidCharger.floor_color = Color.darkpurple
 Charger.floor_color = Color.darkred
@@ -200,7 +200,7 @@ end
 
 function AcidCharger:update(dt)
     local bx, by = self:get_body_center()
-    if self.is_new_tick and self.tick % 5 == 0 then
+    if self.state == "Charging" and self.is_new_tick and self.tick % 5 == 0 then
 		self:spawn_object(AcidPuddle(bx, by))
 	end
 end
@@ -209,9 +209,13 @@ local ACID_PUDDLE_RADIUS = 6
 
 function AcidPuddle:new(x, y)
 	AcidPuddle.super.new(self, x, y)
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    self.bullet_push_modifier = 2.0
     self.z_index = -0.1
-    self.intangible = true
+    self.drag = 0.1
+    -- self.intangible = true
     self.duration = rng:randi(30, 120)
+    self.bullet_passthrough = true
 	self:start_timer("decay", self.duration, function()
 		self:queue_destroy()
     end)
@@ -222,11 +226,16 @@ function AcidPuddle:new(x, y)
 	-- self.rotation = rng:randfn(0, tau)
 end
 
+function AcidPuddle:damage(amount)
+
+end
+
 function AcidPuddle:update(dt)
     local progress = self:timer_progress("decay")
     self.hit_bubble_radius = self.base_radius * (1 - pow(1 - progress, 3))
 	self.hit_bubble_radius = min(self.hit_bubble_radius, self.elapsed * 2)
-	self:set_hit_bubble_radius("main", self.hit_bubble_radius)
+    self:set_hit_bubble_radius("main", self.hit_bubble_radius)
+    self.melee_attacking = self.hit_bubble_radius > 4 
 end
 
 function AcidPuddle:die()
@@ -234,11 +243,12 @@ function AcidPuddle:die()
 end
 
 function AcidPuddle:draw()
+    if (self.random_offset + gametime.tick) % 2 == 0 then return end
     local radius = self.hit_bubble_radius
-    graphics.rotate(self.rotation + self.elapsed * 0.1)
-    graphics.set_color(iflicker(self.tick, 3, 2) and Color.magenta or Color.purple)
-    graphics.rectangle_centered("fill", 0, 0, radius * 2 - 2, radius * 2 - 2)
+    graphics.rotate(self.rotation)
     graphics.set_color(iflicker(self.tick, 3, 2) and Color.purple or Color.magenta)
+    graphics.rectangle_centered("fill", 0, 0, radius * 2 - 2, radius * 2 - 2)
+    graphics.set_color(iflicker(self.tick, 3, 2) and Color.magenta or Color.purple)
 	graphics.rectangle_centered("line", 0, 0, radius * 2 + 1, radius * 2 + 1)
 end
 

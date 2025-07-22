@@ -10,7 +10,7 @@ function GameScreen:new(x, y, width, height)
 	GameScreen.super.new(self, x, y, width, height)
     self:add_signal("restart_requested")
 	self:add_signal("quit_requested")
-	self:add_signal("leaderboard_menu_requested")
+    self:add_signal("leaderboard_menu_requested")
 end
 
 function GameScreen:enter()
@@ -49,34 +49,93 @@ end
 function GameScreen:update(dt)
     if input.menu_pressed then
     end
-	if self.game_layer.world then
+    if self.game_layer.world then
         self.game_layer.world.showing_hud = self.hud_layer:should_show()
-		self.game_layer.world:always_update(dt)
+        self.game_layer.world:always_update(dt)
+    end
 
-	end
+    if self.game_layer.world.fog_of_war then
+        local width, height = conf.viewport_size.x - 18, conf.viewport_size.y - 22
+        self.game_layer:set_viewport_size(width, height)
+        -- print(self.viewport_size.x / 2 - width / 2, self.viewport_size.y / 2 - height / 2 - 2)
+        self.game_layer:move_to(self.viewport_size.x / 2 - width / 2, self.viewport_size.y / 2 - height / 2 - 2)
+    else
+        self.game_layer:set_expand_viewport(true)
+        self.game_layer:move_to(0, 0)
+    end
+
+    self.clear_color = self:get_clear_color()
 end
 
 function GameScreen:get_mouse_mode()
-	if self.ui_layer and self.ui_layer.state == "Paused" then
-		return true, false
-	end
+    if self:in_menu() then return true, false end
 
-	if self.game_layer and self.game_layer.world.player_died then
-		return true, false
-	end
 
-	return false, true
+    if usersettings.use_absolute_aim then
+        return true, true
+    end
+
+    return false, true
 end
 
+function GameScreen:in_menu()
+    if self.ui_layer and self.ui_layer.state == "Paused" then
+        return true
+    end
+
+    if self.game_layer and self.game_layer.world.player_died then
+        return true
+    end
+end
+
+
+function GameScreen:draw_cursor(x, y)
+
+    if not usersettings.use_absolute_aim or self:in_menu() then
+        return false
+    end
+
+    local size = 9
+
+    graphics.push()
+    graphics.translate(x, y)
+    
+    graphics.push()
+    graphics.rotate(self.elapsed * 0.1)
+    graphics.set_line_width(3)
+    graphics.set_color(Color.black)
+    graphics.dashrect_centered(0, 0, size, size, 3, 3)
+    graphics.set_line_width(1)
+    graphics.set_color(Color.white)
+    graphics.dashrect_centered(0, 0, size, size, 3, 3)
+    graphics.pop()
+
+    graphics.set_color(Color.black)
+    graphics.rectangle_centered("fill", 0, 0, 4, 4)
+    graphics.set_color(Color.white)
+    graphics.rectangle_centered("fill", 0, 0, 2, 2)
+    graphics.pop()
+    return true
+end
+
+
+
+
 function GameScreen:get_clear_color()
-	if self.game_layer then
-		return self.game_layer:get_clear_color()
+
+    if self.game_layer then
+        local color = self.game_layer:get_clear_color()
+        if color ~= Color.transparent then
+            return color
+        end
 	end
-	return Color.transparent
+	
+    return Color.black
 end
 
 function GameLayer:new()
 	GameLayer.super.new(self)
+    -- self.centered = true
     self:add_signal("restart_requested")
 	self:add_signal("player_death_sequence_finished")
 	self:add_signal("player_died")
@@ -92,17 +151,19 @@ function GameLayer:update(dt)
     -- self.clear_color = Color.black
     -- if self.world then
     self.clear_color = self:get_clear_color()
+
 	-- end
 end
 
 function GameLayer:get_clear_color()
 	-- possible game layer stuff here?
 
-	local world_color = nil
 
-    if self.world then
-        world_color = self.world:get_clear_color()
-    end
+	local world_color = nil
+    
+	if self.world then
+			world_color = self.world:get_clear_color()
+	end
 
 	if world_color then
 		return world_color

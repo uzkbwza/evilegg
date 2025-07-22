@@ -20,6 +20,8 @@ local AimDraw = GameObject2D:extend("AimDraw")
 
 local TwinDeathEffect = Effect:extend("TwinDeathEffect")
 
+local Explosion = require("obj.Explosion")
+
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
 
@@ -216,18 +218,65 @@ function PlayerCharacter:on_artefact_removed(artefact, slot)
 	end
 end
 
+
+local bounce_explosion_params = {
+    damage = 8,
+    size = 20,
+	-- draw_scale = 1.0,
+	team = "player",
+	-- melee_both_teams = false,
+	-- particle_count_modifier = 1,
+	-- explode_sfx = "explosion",
+	-- explode_sfx_volume = 0.9,
+    -- explode_vfx = nil,
+	-- force_modifier = 1.0,
+	-- ignore_explosion_force = {},
+	-- no_effect = false,
+}
+
 function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
 	self.bounce_sfx_horizontal = false
 	self.bounce_sfx_vertical = false
+
+    local bounce_dot = vec2_dot(self.hover_vel.x, self.hover_vel.y, normal_x, normal_y)
+
+
+    local bounce_mul = 1
+
+    local threshold = 1.9
+
+    local different = self.last_bounce_normal_x ~= normal_x or self.last_bounce_normal_y ~= normal_y
+    if game_state.artefacts.blast_armor and bounce_dot <= -threshold and (not self:is_tick_timer_running("bounce_explosion") or different) and self.state_tick > 5 then
+        local bx, by = self:get_body_center()
+        self:spawn_object(Explosion(bx, by, {
+            damage = 8,
+            size = 24 + abs(bounce_dot + threshold) * 8,
+            team = "player",
+            explode_sfx = "player_bounce_explosion",
+            explode_sfx_volume = 0.9,
+        }))
+        bounce_mul = 1.5
+    end
+    self:start_tick_timer("bounce_explosion", 20)
+
+
+    self.last_bounce_normal_x, self.last_bounce_normal_y = normal_x, normal_y
+
 	if normal_x ~= 0 then
-		self.hover_vel.x = self.hover_vel.x * -1
+		self.hover_vel.x = self.hover_vel.x * -bounce_mul
         self.bounce_sfx_horizontal = true
+        
 	end
-	if normal_y ~= 0 then
-		self.hover_vel.y = self.hover_vel.y * -1
-		self.bounce_sfx_vertical = true
-	end
+    if normal_y ~= 0 then
+        self.hover_vel.y = self.hover_vel.y * -bounce_mul
+        self.bounce_sfx_vertical = true
+    end
+    
+
+
+
 end
+
 
 
 function PlayerCharacter:spawn_drone()
@@ -510,7 +559,7 @@ end
 
 function PlayerCharacter:get_aim_max_speed()
 	if self:get_stopwatch("firing_big_laser") then
-		return 0.035
+		return 0.045
 	end
 
 	return nil
@@ -688,6 +737,8 @@ function PlayerCharacter:hit_by(by)
 
     if self:is_invulnerable() then return end
 
+    local dead = false
+
     if by.damage > 0 then
         if game_state.hearts > 0 then
             self:start_invulnerability_timer(90)
@@ -712,9 +763,28 @@ function PlayerCharacter:hit_by(by)
 			end)
 
         else
+            dead = true
             self:damage(1)
         end
     end
+    
+
+    if game_state.artefacts.blast_armor then
+        local bx, by = self:get_body_center()
+        local timescaled = self.world.timescaled
+        timescaled:start_timer("blast_armor_explosion", dead and 5 or 1, function()
+            local explo_radius = dead and 180 or 60
+
+            timescaled:spawn_object(Explosion(bx, by, {
+                damage = 8,
+                size = explo_radius,
+                team = "player",
+                -- explode_sfx = "player_bounce_explosion",
+                explode_sfx_volume = 0.9,
+            }))
+        end)
+    end
+
 	
 	local bcx, bcy = self:get_body_center()
 
@@ -729,7 +799,6 @@ end
 
 function PlayerCharacter:on_health_reached_zero()
     self:die()
-
 end
 
 function PlayerCharacter:die()
@@ -1607,7 +1676,7 @@ function AimDraw:draw()
 		end
 		self:laser_sight_draw(3, Color.black, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
 		self:laser_sight_draw(1, Color.magenta, laser_start_x, laser_start_y, laser_end_x, laser_end_y, true)
-		self:draw_crosshair(mouse_x, mouse_y, true)
+		-- self:draw_crosshair(mouse_x, mouse_y, true)
     else
         local aim_x, aim_y = self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y
         local start_x, start_y = vec2_mul_scalar(aim_x, aim_y, self.player.aim_radius * 0.5)

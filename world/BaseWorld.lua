@@ -336,8 +336,10 @@ function World:sort_visible_objects()
 end
 
 function World:get_mouse_position()
-	local input = self:get_input_table()
-	return input.mouse.pos.x - self.camera_offset.x, input.mouse.pos.y - self.camera_offset.y
+    local input = self:get_input_table()
+    -- local offsx, offsy = self.world.canvas_layer:get_absolute_pos()
+    -- print(offsx, offsy)
+    return input.mouse.pos.x - self.camera_offset.x - self.pos.x - self.canvas_layer.pos.x, input.mouse.pos.y - self.camera_offset.y - self.pos.y - self.canvas_layer.pos.y
 end
 
 function World:get_draw_rect()

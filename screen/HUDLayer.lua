@@ -182,6 +182,7 @@ function HUDLayer:start_after_level_bonus_screen()
                 count = 0,
 				bonus = bonus,
             }
+            savedata:add_item_to_codex(bonus.text_key)
             table.insert(self.after_level_bonus_screen.bonuses, b)
             while b.count < bonus_table.count do
 
@@ -839,6 +840,21 @@ end
 
 function HUDLayer:draw()
     HUDLayer.super.draw(self)
+
+    if self.game_layer.world.fog_of_war then
+        local x = self.game_layer.pos.x
+        local y = self.game_layer.pos.y
+        local width = self.game_layer.viewport_size.x
+        local height = self.game_layer.viewport_size.y
+        local color = Color.white
+        if self.game_layer.world.room.get_screen_border_color then 
+            color = self.game_layer.world.room:get_screen_border_color()
+        end
+        graphics.set_color(color)
+        graphics.set_line_width(2)
+        graphics.rectangle("line", x, y+1, width, height-2)
+    end
+
 	-- graphics.push("all")
 	-- local parent = self.parent
     -- if parent.ui_layer.state == "Paused" and not parent.ui_layer.options_menu then

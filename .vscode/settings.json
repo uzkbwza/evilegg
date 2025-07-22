@@ -67,7 +67,8 @@
 		"savedata",
 		"leaderboard",
 		"utf8",
-		"steam"
+		"steam",
+		"global_game"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

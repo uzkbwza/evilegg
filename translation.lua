@@ -19,7 +19,7 @@ local translations = {
 		bonus_screen_continue = "PRESS %s TO CONTINUE",
 
 		room_has_max_points = "HI SCORE",
-		room_is_bonus = "BONUS",
+		-- room_is_bonus = "BONUS",
 		room_is_hard = "HARD",
 
 		notif_fire_rate = "FIRE RATE",
@@ -28,6 +28,9 @@ local translations = {
 		notif_bullet_speed = "BULLET SPEED",
 		notif_damage = "DAMAGE",
 		notif_boost = "BOOST",
+
+        notif_running_out_of_ammo = "LOW AMMO",
+        notif_out_of_ammo = "NEED AMMO",
 
         notif_heart = "HP",
 		
@@ -42,28 +45,66 @@ local translations = {
 		notif_powerup_available = "EARNED POWERUP",
 		notif_artefact_available = "EARNED ARTEFACT",
 
-		bonus_hard_room = "HARD ROOM",
-		bonus_no_damage = "NO DAMAGE",
+        bonus_hard_room = "HARD ROOM",        
+        bonus_hard_room_codex = "Cleared an extra hard room.",
+        
+        bonus_no_damage = "NO DAMAGE",
+        bonus_no_damage_codex = "Cleared a room without taking damage.",
+
 		bonus_overheal = "OVERHEAL",
+        bonus_overheal_codex = "Picked up a heart while at full health.",
+
 		bonus_rescue = "GREENOIDS",
+        bonus_rescue_codex = "Rescued a greenoid.",
+
 		bonus_all_rescues = "RESCUED ALL",
-		bonus_quick_wave = "QUICK WAVE",
-		bonus_room_clear = "ROOM CLEAR",
-		bonus_kill = "KILLS",
+        bonus_all_rescues_codex = "Rescued all greenoids in a room.",
+
+        bonus_quick_wave = "QUICK WAVE",
+        bonus_quick_wave_codex = "Cleared a wave in under 10 seconds.",
+
+        bonus_room_clear = "ROOM CLEAR",
+        bonus_room_clear_codex = "Cleared a room.",
+
 		bonus_boss_defeated = "BOSS KILLED",
-		bonus_aggression = "COURAGE",
-		bonus_perfect = "FLAWLESS",
+        bonus_boss_defeated_codex = "Defeated the boss.",
+
+        bonus_aggression = "COURAGE",
+        bonus_aggression_codex = "Gained by killing enemies up close.",
+
+        bonus_perfect = "FLAWLESS",
+        bonus_perfect_codex = "Cleared a room without you or any greenoids taking damage.",
+
 		bonus_ammo_saver = "AMMO SAVER",
-		bonus_ammo_hoarder = "AMMO HOARDER",
+        bonus_ammo_saver_codex = "Didn't use any secondary weapon ammo.",
+
+        bonus_ammo_hoarder = "AMMO HOARDER",
+        bonus_ammo_hoarder_codex = "Didn't use any secondary weapon ammo while at full ammo.",
+
 		bonus_harmed_noid = "NOID INJURY",
-		bonus_final_room_clear = "EGG SLAIN",
-		bonus_twin_saved = "TWIN SAVED",
+        bonus_harmed_noid_codex = "Greenoid took damage.",
+    
+        bonus_final_room_clear = "EGG SLAIN",
+        bonus_final_room_clear_codex = "Cleared the final boss.",
+
+        bonus_twin_saved = "TWIN SAVED",
+        bonus_twin_saved_codex = "Rescued the twin egg.",
+
 		bonus_quick_save = "QUICK SAVE",
-		bonus_twin_protected = "PROTECTOR",
+        bonus_quick_save_codex = "Rescued a greenoid soon after spawning.",
+
+        bonus_twin_protected = "PROTECTOR",
+        bonus_twin_protected_codex = "Protected the twin egg.",
+
 		bonus_twin_killed = "BETRAYAL",
+        bonus_twin_killed_codex = "Allowed the twin egg to be killed.",
+
 		bonus_noid_died = "NOID CASUALTY",
-		bonus_accuracy = "HITRATE: %0.0f%%",
-		bonus_overflow = "OVERFLOW",
+        bonus_noid_died_codex = "A greenoid died.",
+
+		-- bonus_accuracy = "HITRATE: %0.0f%%",
+        bonus_overflow = "OVERFLOW",
+        bonus_overflow_codex = "Picked up an upgrade while at max upgrades.",
 
 		upgrade_name_fire_rate = "+FIRE RATE",
 		upgrade_desc_fire_rate = "Increases how rapidly you can fire bullets and secondary weapons.",
@@ -106,7 +147,9 @@ local translations = {
 		artefact_defabricator_name                   = "DEFABRICATOR",
 		artefact_warbell_name                        = "WAR BELL",
 		artefact_useless_name                        = "GIANT GEMSTONE",
-		artefact_transmitter_name                    = "BEGGAR'S BOWL",
+        artefact_transmitter_name                    = "BEGGAR'S BOWL",
+        artefact_heart_trade_name                    = "DISPOSABLE SURGEON",
+        artefact_blast_armor_name                    = "BLAST ARMOR",
 
 		weapon_sword_name                            = "EXECUTIONER'S SWORD",
         weapon_big_laser_name          				 = "PLASMA CANNON",
@@ -128,11 +171,13 @@ local translations = {
 		artefact_warbell_desc                        = "Greenoids will attack nearby enemies.",
 		artefact_useless_desc          				 = "Too heavy to take with you.",
 		artefact_transmitter_desc      				 = "Greenoids will bring extra ammo.",
+		artefact_heart_trade_desc                    = "Trade a random artefact for a heart.",
+		artefact_blast_armor_desc                    = "You are prone to outbursts.",
 
 		weapon_sword_desc                            = "This is the line of division.",
 		weapon_big_laser_desc                        = "Simple problems call for simple solutions.",
 		weapon_railgun_desc						     = "Shoots through anything.",
-		weapon_repulsion_field_desc				     = "Panic button.",
+		-- weapon_repulsion_field_desc				     = "Panic button.",
 
         menu_options_button                          = "OPTIONS",
 		
@@ -315,6 +360,32 @@ local translations = {
 		codex_name_acidcharger      = "Toxic Charger",
 		codex_desc_acidcharger      = "Overflowing with unresolved resentments.",
 
+        codex_name_penitent         = "Penitent",
+        codex_desc_penitent         = "A soldier weeps recounting his crimes.",
+
+        codex_glossary_room_has_max_points = "This room has the most potential points from enemies and greenoids.",
+        codex_glossary_room_is_hard        = "This room is extra difficult.",
+        
+        codex_glossary_name_lvl            = "Lvl",
+        codex_glossary_desc_lvl            = "The current level. The higher the level, the more difficult the room.",
+        
+        codex_glossary_name_wave           = "Wave",
+        codex_glossary_desc_wave           = "The current wave. Most levels have 3 waves, starting easy and getting harder.",
+
+        codex_glossary_name_earned_x       = "Earned X",
+        codex_glossary_desc_earned_x       =
+        "You earned a pickup [upgrade/heart/artefact] by collecting XP. It will appear in the next level.",
+        
+        codex_glossary_name_xp           = "XP",
+        codex_glossary_desc_xp             =
+        "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
+        
+        codex_variable_score = "VARIES",
+
+        codex_level_bonus_score            = "Points: %s",
+        codex_level_bonus_score_multiplier = "Score Multiplier: %-3.2f",
+        codex_level_bonus_xp               = "XP: %s",
+
 		codex_key_all               = "ALL",
 		codex_key_enemy             = "ENEMIES",
 		codex_key_hazard            = "HAZARDS",
@@ -322,7 +393,8 @@ local translations = {
 		codex_key_pickups           = "PICKUPS",
 		codex_key_artefact          = "ARTEFACTS",
 		codex_key_secondary_weapon  = "WEAPONS",
-		codex_key_glossary          = "GLOSSARY",
+        codex_key_glossary          = "GLOSSARY",
+        codex_key_levelbonus        = "BONUSES",
 
 		codex_hp_text               = "HP: %s",
 		codex_score_text            = "SCORE: %s",
@@ -366,7 +438,8 @@ local translations = {
 
 		score_reset_warning_title = "ATTENTION",
 		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
-		score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
+        score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
+        
 	},
 }
 

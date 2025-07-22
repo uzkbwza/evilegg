@@ -18,7 +18,7 @@ function RetroRumble:__mix_init()
 end
 
 function RetroRumble:get_rumble_vec()
-	local dx, dy = self.rumble_amount_x * (floor(self.tick / 2) % 2 == 0 and 1 or -1) * 0.5, self.rumble_amount_y * (floor(self.tick / 2 + 1) % 2 == 0 and 1 or -1) * 0.5
+	local dx, dy = self.rumble_amount_x * (floor(gametime.tick / 2) % 2 == 0 and 1 or -1) * 0.5, self.rumble_amount_y * ((floor((gametime.tick + 1) / 2)) % 2 == 0 and 1 or -1) * 0.5
 	return dx, dy
 end
 

@@ -1,4 +1,5 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
+local CursorLayer = CanvasLayer:extend("CursorLayer")
 
 local debug_start = "game"
 -- local debug_start = "codex_menu"
@@ -17,6 +18,9 @@ function MainScreen:enter()
     else
         self:start_pre_title_screen()
     end
+
+    self:ref("cursor_layer", self:insert_layer(CursorLayer, 1))
+    self.cursor_layer:ref("main_screen", self)
 end
 
 function MainScreen:connect_restart(screen)
@@ -127,7 +131,7 @@ function MainScreen:set_current_screen(screen)
 	if self.current_screen then
 		self.current_screen:destroy()
 	end
-	self:ref("current_screen", self:push(screen))
+	self:ref("current_screen", self:insert_layer(screen, 1))
 end
 
 function MainScreen:get_mouse_mode()
@@ -137,15 +141,40 @@ end
 
 function MainScreen:update(dt)
 	local visible, relative = true, false
-	if self.current_screen and self.current_screen.get_mouse_mode then
-		visible, relative = self.current_screen:get_mouse_mode()
-	end
-	love.mouse.set_visible(visible)
+    if self.current_screen and self.current_screen.get_mouse_mode then
+        visible, relative = self.current_screen:get_mouse_mode()
+    end
+    self.drawing_cursor = visible
+    self.clear_color = self:get_clear_color()
+    -- love.mouse.set_visible(visible)
+    love.mouse.set_visible(false)
+    -- If it goes from relative to non-relative, center the cursor on the screen
+
+    -- Track previous relative mode
+    self._prev_relative = self._prev_relative or false
+
+    if self._prev_relative and not (relative and not usersettings.use_absolute_aim) then
+        -- We are switching from relative to non-relative
+        local w, h = love.graphics.getDimensions()
+        love.mouse.setPosition(w / 2, h / 2)
+    end
+
+    self.cursor_layer:set_visibility(visible)
+
+    self._prev_relative = (relative and not usersettings.use_absolute_aim)
+
     love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
-	love.mouse.set_grabbed(not visible)
+    love.mouse.set_grabbed(not visible)
 end
 
-function MainScreen:draw()
+function CursorLayer:draw()
+    -- if self.drawing_cursor then
+        graphics.set_color(Color.white)
+        local mouse_x, mouse_y = input.mouse.pos.x, input.mouse.pos.y
+    
+        if not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) then
+            graphics.drawp(textures.ui_cursor, nil, 0, mouse_x, mouse_y)
+        end
 end
 
 return MainScreen

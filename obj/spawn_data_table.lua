@@ -322,7 +322,16 @@ local Enemies = {
 		codex_sprite = textures.enemy_evil_greenoid_core,
         boss = true,
 		min_level = 101,
-	},
+    },
+    
+    Penitent = {
+        -- level = 1,
+        min_level = 102,
+        spawn_points = 100,
+        spawnable = false,
+        boss = true,
+        icon = textures.enemy_penitent,
+    },
 
 	EggBoss = {
 		spawnable = false,
