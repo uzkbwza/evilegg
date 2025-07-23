@@ -354,7 +354,7 @@ function LeaderboardWorld:draw()
     graphics.set_font(font2)
     graphics.set_color(Color.white)
     graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 10, 3)
-    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 50, 3)
+    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
     LeaderboardWorld.super.draw(self)
 
 

@@ -227,7 +227,11 @@ function GlobalGameState:new()
 
         local cheat = false
 
-		-- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
+        -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
+        -- for i = 1, 6 do
+        -- self.num_queued_artefacts = 5
+        --     self:upgrade(self:get_random_available_upgrade(false))
+        -- end
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.PrayerKnotArtefact)
 		
@@ -260,7 +264,7 @@ function GlobalGameState:new()
                 self:gain_artefact(artefact)
             end
 
-            for i = 1, 3 do
+            for i = 1, 6 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
 

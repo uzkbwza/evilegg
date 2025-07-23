@@ -244,7 +244,7 @@ function BaseRescue:on_pickup()
 
     if game_state.artefacts.ring_of_loyalty then
 		self:play_sfx("pickup_artefact_ring_of_loyalty_trigger", 0.7)
-		local num_bullets = 12 + (game_state.upgrades.bullets) * 8
+		local num_bullets = 12 + (game_state.upgrades.bullets) * 4
         for i = 1, num_bullets do
 			local bullet = self:spawn_object(RingOfLoyaltyBullet(bx, by, true))
 			bullet.direction = Vec2.from_angle(tau / num_bullets * i)
@@ -369,7 +369,13 @@ function BaseRescue:update(dt)
             if aiming_at then
                 local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
-                self:spawn_object(WarbellProjectile(bx, by)).direction = Vec2(dx, dy)
+                if game_state.upgrades.bullets > 0 then
+                    local offsx, offsy = vec2_perpendicular(dx * 4, dy * 4)
+                    self:spawn_object(WarbellProjectile(bx + offsx, by + offsy)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bx - offsx, by - offsy)).direction = Vec2(dx, dy)
+                else
+                    self:spawn_object(WarbellProjectile(bx, by)).direction = Vec2(dx, dy)
+                end
                 self:play_sfx("ally_rescue_shoot", 0.35)
             end
         end

@@ -428,7 +428,7 @@ local translations = {
 		leaderboard_period_monthly = "MONTHLY",
 		leaderboard_sort_score = "SCORE",
 		leaderboard_sort_depth = "DEPTH",
-        leaderboard_sort_button     = "SORT",
+        leaderboard_sort_button     = "METRIC",
         leaderboard_period_button   = "PERIOD",
 
         artefact_guide_use = "USE WITH %s",

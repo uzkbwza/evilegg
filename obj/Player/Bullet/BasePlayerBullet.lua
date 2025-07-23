@@ -107,8 +107,8 @@ function BasePlayerBullet:draw()
                 break
             end
         end
-        local color = Palette.rainbow:tick_color(self.start_palette_offset + palette_offset + i)
-        local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2) * bullet_scale
+        local color = (self.palette or Palette.rainbow):tick_color(self.start_palette_offset + palette_offset + i)
+        local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2) * bullet_scale * (self.draw_scale_modifier or 1)
 
         -- if self.dead then
         -- 	scale = pow(scale, 2)

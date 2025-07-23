@@ -107,7 +107,7 @@ function PlayerDeathScreenWorld:enter()
 
 		local start_y = -55
 
-		local start_x = 15
+		local start_x = 12
 
 		self:ref("score_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_score_display, game_state.score, prev_high_score)))
 		

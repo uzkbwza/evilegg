@@ -205,12 +205,23 @@ function AcidCharger:update(dt)
 	end
 end
 
+
+function AcidCharger:filter_melee_attack(bubble)
+    if bubble.parent.is_acid_puddle then
+        return false
+    end
+    return AcidCharger.super.filter_melee_attack(self, bubble)
+end
+
 local ACID_PUDDLE_RADIUS = 6
+
+
+AcidPuddle.is_acid_puddle = true
 
 function AcidPuddle:new(x, y)
 	AcidPuddle.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
-    self.bullet_push_modifier = 1.2
+    self.bullet_push_modifier = 0.5
     self.z_index = -0.1
     self.drag = 0.1
     -- self.intangible = true
@@ -223,19 +234,23 @@ function AcidPuddle:new(x, y)
 	-- self.base_radius = rng:randfn(ACID_PUDDLE_RADIUS, 2)
     self.hit_bubble_radius = self.base_radius
 	self.rotation = tau / 8
-	-- self.rotation = rng:randfn(0, tau)
+    -- self.rotation = rng:randfn(0, tau)
+    self.damage_taken = 0
 end
 
 function AcidPuddle:damage(amount)
-
+    self.damage_taken = self.damage_taken + amount
 end
 
 function AcidPuddle:update(dt)
     local progress = self:timer_progress("decay")
-    self.hit_bubble_radius = self.base_radius * (1 - pow(1 - progress, 3))
+    self.hit_bubble_radius = self.base_radius * (1 - pow(1 - progress, 3)) - self.damage_taken * 3
 	self.hit_bubble_radius = min(self.hit_bubble_radius, self.elapsed * 2)
     self:set_hit_bubble_radius("main", self.hit_bubble_radius)
-    self.melee_attacking = self.hit_bubble_radius > 4 
+    self.melee_attacking = self.hit_bubble_radius > 4
+    if self.hit_bubble_radius < 1 then
+        self:die()
+    end
 end
 
 function AcidPuddle:die()

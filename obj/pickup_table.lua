@@ -346,6 +346,7 @@ local Artefacts = {
 		name = "artefact_blast_armor_name",
 		description = "artefact_blast_armor_desc",
         spawn_weight = 1000,
+        explode_on_destroy = true,
     },
     
 	

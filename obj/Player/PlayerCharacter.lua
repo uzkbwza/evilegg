@@ -41,7 +41,7 @@ local MIN_HOVER_TIME = 14
 local PICKUP_RADIUS = 8
 
 local SECONDARY_BUFFER_TIME = 3
-local PRAYER_KNOT_CHARGE_TIME = 55
+local PRAYER_KNOT_CHARGE_TIME = 65
 
 
 
@@ -687,15 +687,19 @@ function PlayerCharacter:fire_current_bullet()
 	game_state:on_bullet_shot()
 
     
-	local powerup = game_state:get_bullet_powerup()
+    local powerup = game_state:get_bullet_powerup()
+    
+    local default = true
 	
     if powerup then
         class = self.bullet_powerups[powerup.name]
+        default = false
     else
         if game_state.artefacts.prayer_knot then
             if self.prayer_knot_charged then
                 class = self.bullet_powerups["PrayerKnotChargeBullet"]
                 self.prayer_knot_charged = false
+                default = false
             else
                 table.clear(self.prayer_knot_particles)
                 self:start_prayer_knot_charge()
@@ -710,6 +714,36 @@ function PlayerCharacter:fire_current_bullet()
 	self:fire_bullet(class, nil, 0, 0, false)
     
 	self:play_sfx(class.shoot_sfx or "player_shoot", class.shoot_sfx_volume or 0.45, 1)
+
+    if default then
+        if game_state.upgrades.damage >= 1 then
+            self:play_sfx("player_damage_upgrade_1", 0.25)
+        end
+
+        if game_state.upgrades.fire_rate >= 1 then
+            self:play_sfx("player_fire_rate_upgrade_1", 0.35)
+        end
+
+        if game_state.upgrades.range == 1 then
+            self:play_sfx("player_range_upgrade_1", 0.25)
+        end
+
+        if game_state.upgrades.range == 2 then
+            self:play_sfx("player_range_upgrade_2", 0.25)
+        end
+
+        if game_state.upgrades.bullet_speed == 1 then
+            self:play_sfx("player_bullet_speed_upgrade_1", 0.25)
+        end
+
+        if game_state.upgrades.bullets == 1 then
+            if game_state.upgrades.fire_rate == 1 then
+                self:play_sfx("player_bullets_upgrade_1_with_fire_rate_1", 0.35)
+            else
+                self:play_sfx("player_bullets_upgrade_1", 0.35)
+            end
+        end
+    end
 	
 	local spread = class.spread
 
@@ -760,7 +794,7 @@ function PlayerCharacter:is_invulnerable()
 	return false
 end
 
-function PlayerCharacter:hit_by(by)
+function PlayerCharacter:hit_by(by, force)
 
 	if debug.enabled then
         if by.parent then
@@ -789,7 +823,7 @@ function PlayerCharacter:hit_by(by)
         end
 	end
 
-    if self:is_invulnerable() then return end
+    if self:is_invulnerable() and not force then return end
 
     local dead = false
 
@@ -1969,6 +2003,7 @@ function PrayerKnotChargeEffect:update(dt)
 
     if self.player then
         self.body_height = self.player.body_height
+        self:set_visibility(self.player.visible)
     end
 
     if self.player and not self.player.prayer_knot_charged then

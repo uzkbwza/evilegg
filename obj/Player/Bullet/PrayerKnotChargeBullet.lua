@@ -9,20 +9,22 @@ PrayerKnotChargeBullet.shoot_sfx_volume = 0.8
 function PrayerKnotChargeBullet:new(x, y, extra_bullet)
     self.use_artefacts = true
     self.use_upgrades = true
-    self.damage = 6
+
     self.radius = 10
     self.hit_vel_multip = 100
     self.push_modifier = 2.35
-    if extra_bullet then
-        self.radius = 5
-        self.damage = 2
-    end
     -- self.die_on_hit = false
     PrayerKnotChargeBullet.super.new(self, x, y)
     -- self.lifetime = self.lifetime * 1.25
     self.speed = self.speed * 1.25
 
-    self.hp = 3 + game_state.upgrades.range
+    self.damage = 6 + game_state.upgrades.damage
+    if extra_bullet then
+        self.radius = 5
+        self.damage = 1.5 + game_state.upgrades.damage * 0.5
+    end
+
+    self.hp = 1 + game_state.upgrades.range
     self.trail_particles = {}
     self.trail_particles_to_remove = {}
 end
@@ -43,7 +45,6 @@ function PrayerKnotChargeBullet:on_hit_blocking_objects_this_frame()
             end)
         end
     end
-
 end
 
 function PrayerKnotChargeBullet:update(dt)

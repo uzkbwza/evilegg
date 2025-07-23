@@ -3,6 +3,8 @@ local ArtefactSpawn = require("obj.Spawn.Pickup.BasePickup"):extend("ArtefactSpa
 local ArtefactSpawner = GameObject2D:extend("ArtefactSpawner")
 -- local ArtefactSpawnerFlashEffect = GameObject2D:extend("ArtefactSpawnerFlashEffect")
 
+local Explosion = require("obj.Explosion")
+
 local Splatter = require("fx.just_the_splatter")
 
 local XpPickup = require("obj.XpPickup")
@@ -126,6 +128,27 @@ function ArtefactSpawn:hit_by(other)
         self:spawn_object(XpPickup(self.pos.x, self.pos.y, self:get_destroy_xp()))
         self:play_sfx("pickup_artefact_explode", 0.8)
         game_state:on_artefact_destroyed(self.artefact)
+        local size = 60
+        if self.artefact.explode_on_destroy then
+                self:spawn_object(Explosion(self.pos.x, self.pos.y, {
+                    size = size,
+                    team = "ally",
+                    -- explode_sfx = "pickup_artefact_explode",
+                    -- explode_sfx_volume = 0.8,
+            }))
+            for _, player in self.world:get_objects_with_tag("player"):ipairs() do
+                local bx, by = player:get_body_center()
+                local diffx, diffy = bx - self.pos.x, by - self.pos.y
+                local force_x, force_y = vec2_normalized_times(diffx, diffy, 10)
+                local dist = vec2_distance(bx, by, self.pos.x, self.pos.y)
+                if dist < size then
+                    player.hover_impulse.x =  player.hover_impulse.x + force_x
+                    player.hover_impulse.y =  player.hover_impulse.y + force_y
+                    self.damage = 1
+                    player:hit_by(self, true)
+                end
+            end
+        end
     else
         self:play_sfx("pickup_artefact_hurt", 0.6)
     end

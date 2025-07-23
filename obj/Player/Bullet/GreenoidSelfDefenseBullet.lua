@@ -3,10 +3,10 @@ local GreenoidSelfDefenseBullet = require("obj.Player.Bullet.BasePlayerBullet"):
 function GreenoidSelfDefenseBullet:new(x, y)
 	self.use_artefacts = true
     self.use_upgrades = true
-	self.damage = 0.1
 	self.hit_vel_multip = 10
 	self.push_modifier = 0.35
     GreenoidSelfDefenseBullet.super.new(self, x, y)
+    self.damage = 0.15 + game_state.upgrades.damage * 0.15
 end
 
 function GreenoidSelfDefenseBullet:update(dt)

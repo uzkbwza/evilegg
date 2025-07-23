@@ -850,28 +850,27 @@ function EggBoss:phase2_landing()
                 s:wait(1)
             end
 
-            self:emit_signal("cutscene1_over")
-
+            
             self.intangible = true
             -- self:show()
-            closest_player:show()
-            closest_player:change_state("Walk")
-            self.world.floor_drawing = true
-            -- self.world.room.nofungus = false
+            
+            
+            -- closest_player:show()
+            -- self:emit_signal("cutscene1_over")
+            -- closest_player:change_state("Walk")
+            -- self.world.floor_drawing = true
+            -- self:change_state("Phase6")
+            
+            s:wait(45)
 
-            self:change_state("Phase6")
+            self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
 
+            s:wait(180)
+            self.placeholder_text:start_destroy_timer(10)
 
-            -- s:wait(45)
+            self:die()
 
-            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
-
-            -- s:wait(180)
-            -- self.placeholder_text:start_destroy_timer(10)
-
-            -- self:die()
             return
-
 		end)
     end
 
