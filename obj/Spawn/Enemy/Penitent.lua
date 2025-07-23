@@ -81,7 +81,7 @@ function Penitent:speak()
         
 
         s:tween_property(self, "text_amount", 0.0, 1.0, 10, "linear")
-        s:wait(60)
+        s:wait(rng:randi(30, 90))
         s:tween_property(self, "text_amount", 1.0, 0.0, 10, "linear")
         s:wait(10)
         self.is_speaking = false
@@ -126,13 +126,15 @@ function Penitent:draw()
 
     graphics.set_color(Color.white)
 
-    if self.text and gametime.tick % 2 == 0 then
+    if self.text then
+        graphics.translate(irng:randf(-2, 2), irng:randf(-2, 2))
         local text = utf8.sub(self.text, 1, math.floor(self.text_amount * #self.text))
         graphics.set_font(SPEECH_FONT)
         graphics.set_color(Color.black)
         graphics.print_centered(text, SPEECH_FONT, 0, -13)
         graphics.set_color(Palette.penitent_speech:tick_color(self.tick, 2))
-        graphics.print_centered(text, SPEECH_FONT, 0, -14)
+        -- graphics.set_color(Color.black)
+        graphics.print_outline_centered(Color.black,text, SPEECH_FONT, 0, -14)
     end
 
 end

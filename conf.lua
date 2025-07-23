@@ -119,6 +119,12 @@ local conf = {
 			}
 		},
 
+        dont_shoot = {
+            joystick = {
+                "rightshoulder",
+            }
+        },
+
 		show_hud = {
 			keyboard = {
 				{"lctrl"}, 

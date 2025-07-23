@@ -30,6 +30,7 @@ local default_usersettings = {
     use_absolute_aim = true,
 	relative_mouse_aim_snap_to_max_range = false,
 	mouse_sensitivity = 0.08,
+    gamepad_with_mouse = false,
 }
 
 local usersettings = {}

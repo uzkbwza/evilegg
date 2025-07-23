@@ -281,6 +281,14 @@ local Artefacts = {
 		requires_secondary_weapon = true
 	},
 
+    PrayerKnotArtefact = {
+        icon = textures.pickup_artefact_prayer_knot,
+		key = "prayer_knot",
+		name = "artefact_prayer_knot_name",
+		description = "artefact_prayer_knot_desc",
+        spawn_weight = 1000,
+    },
+
 	UselessArtefact = {
 		icon = textures.pickup_artefact_gemstone,
 		key = "useless",
@@ -292,7 +300,7 @@ local Artefacts = {
 		infinite_spawns = true,
 		repeats_allowed = true,
         destroy_score = 750,
-		destroy_xp = 500,
+		destroy_xp = 1000,
     },
     
     HeartTradeArtefact = {

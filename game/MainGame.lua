@@ -229,6 +229,7 @@ function GlobalGameState:new()
 
 		-- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
+        -- self:gain_artefact(PickupTable.artefacts.PrayerKnotArtefact)
 		
         if cheat then
 			-- self:add_score(2500000, "cheat")
@@ -248,7 +249,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 1   
+            self.level = 30
             self.hearts = self.max_hearts
 
             for i = 1, 10 do

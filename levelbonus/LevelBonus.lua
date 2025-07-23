@@ -32,7 +32,7 @@ return {
 		text_key = "bonus_overflow",
         score = 1000,
         xp = 50,
-		score_multiplier = 0.01,
+		score_multiplier = 0.03,
 		difficulty_modifier = 0.00,
     },
 	
@@ -89,7 +89,7 @@ return {
 	overheal = {
 		text_key = "bonus_overheal",
 		score = 2000,
-		score_multiplier = 0.01,
+		score_multiplier = 0.03,
 		xp = 50,
         difficulty_modifier = 0.025,
     },

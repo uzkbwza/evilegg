@@ -52,6 +52,7 @@ function OptionsMenuWorld:enter()
 		{ "use_absolute_aim", item_type = "toggle" },
         { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
 		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
+		{ "gamepad_plus_mouse", item_type = "toggle" },
 		
 		{ "header", text = tr.options_header_display },
 		{ "fullscreen", item_type = "toggle", skip=conf.platform_force_fullscreen},

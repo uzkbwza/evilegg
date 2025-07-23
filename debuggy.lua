@@ -19,6 +19,9 @@ debuggy.no_hatch_sound = false
 debuggy.can_frame_advance = true
 debuggy.slow_motion = false
 
+local sorted_lines = {}
+local lines_dirty = true
+
 if IS_EXPORT then
 	debuggy.enabled = false
 end
@@ -58,49 +61,46 @@ function debuggy.printlines(x, y)
 	end
 	local line_height = font:getHeight() * 0.7
 
-	local sorted_lines = {}
-	for k, tab in pairs(debuggy.lines) do
-		table.insert(sorted_lines, {k, tab})
+	if lines_dirty then
+		table.clear(sorted_lines)
+		for k, tab in pairs(debuggy.lines) do
+			table.insert(sorted_lines, { k, tab })
+		end
+		table.sort(sorted_lines, function(a, b)
+			local a_color = a[2][2] or Color.white
+			local b_color = b[2][2] or Color.white
+
+			if a_color == Color.white and b_color ~= Color.white then
+				return false
+			elseif a_color ~= Color.white and b_color == Color.white then
+				return true
+			end
+
+			local a_h, a_s, a_l = a_color:to_hsl()
+			local b_h, b_s, b_l = b_color:to_hsl()
+
+			if a_h < b_h then
+				return true
+			elseif a_h > b_h then
+				return false
+			end
+
+			if a_s < b_s then
+				return true
+			elseif a_s > b_s then
+				return false
+			end
+
+			if a_l < b_l then
+				return true
+			elseif a_l > b_l then
+				return false
+			end
+
+			return a[1] < b[1]
+		end)
+		lines_dirty = false
 	end
-	table.sort(sorted_lines, function(a, b)
-		local a_color = a[2][2] or Color.white
-		local b_color = b[2][2] or Color.white
-
-		if a_color == Color.white and b_color ~= Color.white then
-			return false
-		elseif a_color ~= Color.white and b_color == Color.white then
-			return true
-		end
-
-		local a_h, a_s, a_l = a_color:to_hsl()
-		local b_h, b_s, b_l = b_color:to_hsl()
-
-		if a_h < b_h then
-			return true
-		elseif a_h > b_h then
-			return false
-		end
-
-		if a_s < b_s then
-			return true
-		elseif a_s > b_s then
-			return false
-		end
-
-		if a_l < b_l then
-			return true
-		elseif a_l > b_l then
-			return false
-		end
-
-		if a_color == "num textures loaded" then
-			return true
-		elseif b_color == "num textures loaded" then
-			return false
-		end
-
-		return a[1] < b[1]
-	end)
 	
 	
     local counter = 0
@@ -234,9 +234,11 @@ function debuggy.clear(key)
 	key = key or nil
 	if key then
 		debuggy.lines[key] = nil
+		lines_dirty = true
 		return
 	end
 	debuggy.lines = {}
+	lines_dirty = true
 end
 
 function debuggy.update(dt)
@@ -413,6 +415,9 @@ function dbg(k, v, color)
 	end
 	if v == nil then
 		v = ""
+	end
+	if not debuggy.lines[k] then
+		lines_dirty = true
 	end
 	debuggy.lines[k] = debuggy.lines[k] or { v, color }
 	debuggy.lines[k][1] = v

@@ -1022,8 +1022,6 @@ function graphics.poly_rect(fill, x, y, width, height, rotation, scale_x, scale_
 	local x3, y3 = right_x, bottom_y
 	local x4, y4 = left_x, bottom_y
 
-
-
 	x1, y1 = vec2_rotated(x1, y1, rotation)
 	x2, y2 = vec2_rotated(x2, y2, rotation)
 	x3, y3 = vec2_rotated(x3, y3, rotation)
@@ -1049,6 +1047,25 @@ function graphics.poly_rect(fill, x, y, width, height, rotation, scale_x, scale_
 	y4 = y4 + y
 
 	graphics.polygon(fill, x1, y1, x2, y2, x3, y3, x4, y4)
+end
+
+function graphics.poly_regular(fill, x, y, radius, n, rotation, scale_x, scale_y)
+	-- Defaults
+	rotation = rotation or 0
+	scale_x = scale_x or 1
+	scale_y = scale_y or 1
+	n = math.max(3, math.floor(n or 3)) -- minimum 3 sides
+
+	local points = {}
+	local angle_step = (2 * math.pi) / n
+	for i = 0, n - 1 do
+		local angle = rotation + i * angle_step
+		local px = math.cos(angle) * radius * scale_x + x
+		local py = math.sin(angle) * radius * scale_y + y
+		table.insert(points, px)
+		table.insert(points, py)
+	end
+	graphics.polygon(fill, table.fast_unpack(points))
 end
 
 

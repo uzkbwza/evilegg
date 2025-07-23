@@ -3,6 +3,7 @@ local PlayerCharacter = GameObject2D:extend("PlayerCharacter")
 local PlayerDrone = GameObject2D:extend("PlayerDrone")
 
 local PlayerBullet = require("obj.Player.Bullet.BasePlayerBullet")
+local PrayerKnotChargeBullet = require("obj.Player.Bullet.PrayerKnotChargeBullet")
 
 local HoverFx = Effect:extend("HoverFx")
 local HoverDashFx = Effect:extend("HoverDashFx")
@@ -21,6 +22,7 @@ local AimDraw = GameObject2D:extend("AimDraw")
 local TwinDeathEffect = Effect:extend("TwinDeathEffect")
 
 local Explosion = require("obj.Explosion")
+local PrayerKnotChargeEffect = GameObject2D:extend("PrayerKnotChargeEffect")
 
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
@@ -39,11 +41,14 @@ local MIN_HOVER_TIME = 14
 local PICKUP_RADIUS = 8
 
 local SECONDARY_BUFFER_TIME = 3
+local PRAYER_KNOT_CHARGE_TIME = 55
+
 
 
 PlayerCharacter.bullet_powerups = {
 	["BaseBullet"] = PlayerBullet,
 	["powerup_rocket_name"] = RocketBullet,
+    ["PrayerKnotChargeBullet"] = PrayerKnotChargeBullet,
 }
 
 
@@ -71,7 +76,8 @@ function PlayerCharacter:new(x, y)
     self.hover_accel = Vec2()
     self.hover_impulse = Vec2()
 	self.move_vel = Vec2()
-	self.mouse_pos_x, self.mouse_pos_y = 0, 0
+    self.mouse_pos_x, self.mouse_pos_y = 0, 0
+
 
     self.shoot_held_time = 0
 
@@ -83,6 +89,9 @@ function PlayerCharacter:new(x, y)
     self.hurt_bubble_radius = 2
 
     self.max_hp = 1
+
+    self.prayer_knot_particles = {}
+    self.prayer_knot_particles_to_remove = {}
 
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
     self:lazy_mixin(Mixins.Behavior.Flippable)
@@ -109,6 +118,13 @@ function PlayerCharacter:new(x, y)
     signal.connect(game_state, "player_artefact_removed", self, "on_artefact_removed")
 
 	self.base_body_height = self.body_height
+
+    self.on_prayer_knot_charged = function()
+        self.prayer_knot_charged = true
+        table.clear(self.prayer_knot_particles)
+        table.clear(self.prayer_knot_particles_to_remove)
+        self:prayer_knot_charge_fx()
+    end
 end
 
 function PlayerCharacter:state_GameStart_enter()
@@ -141,7 +157,6 @@ function PlayerCharacter:state_GameStart_draw()
     graphics.drawp_centered(texture, palette, offset, self.egg_offset.x, self.egg_offset.y)
 
 end
-
 function PlayerCharacter:state_GameStart_update(dt)
 	
     if not self.egg_ready then
@@ -151,26 +166,17 @@ function PlayerCharacter:state_GameStart_update(dt)
 	local input = self:get_input_table()
     if input.hover_held then
         self:change_state("Hover")
-		return
+        return
     end
-    -- if not self:is_timer_running("egg_bump") then
+    
 	local ix, iy = input.move_normalized.x, input.move_normalized.y
-	-- self:start_timer("egg_bump", 10)
-	-- local s = self.sequencer
-	-- s:start(function()
-	-- 	s:tween(function(t)
-	--             self.egg_offset.x = ix * 10 * t
-	-- 			self.egg_offset.y = iy * 10 * t
-	-- 	end,
-	-- 	1, 0, 9, "outCubic")
-	-- end)
+
 	self.egg_offset.x, self.egg_offset.y = splerp_vec(self.egg_offset.x, self.egg_offset.y, ix * 2, iy * 2, 30, dt)
 	self.egg_offset.x, self.egg_offset.y = splerp_vec(self.egg_offset.x, self.egg_offset.y, 0, 0, 300, dt)
 
     if input:vector_boolean("move", "pressed") then
 		self:play_sfx("player_egg_bump")
 	end
-	-- end
 end
 
 function PlayerCharacter:state_GameStart_exit()
@@ -204,10 +210,35 @@ function PlayerCharacter:state_GameStart_exit()
     self.egg_offset = nil
 end
 
+function PlayerCharacter:prayer_knot_charge_fx()
+    self:stop_sfx("player_prayer_knot_charge")
+    self:play_sfx("player_prayer_knot_charged", 0.8)
+    local effect = self:spawn_object(PrayerKnotChargeEffect(self.pos.x, self.pos.y))
+    effect:ref("player", self)
+    signal.connect(self, "moved", effect, "on_player_moved", function()
+        effect:move_to(self.pos.x, self.pos.y)
+    end)
+end
+
 function PlayerCharacter:on_artefact_gained(artefact, slot)
-	if artefact.key == "drone" and not self.drone then
-		self:spawn_drone()
-	end
+    if artefact.key == "drone" and not self.drone then
+        self:spawn_drone()
+    end
+    if artefact.key == "prayer_knot" then
+        self:start_prayer_knot_charge()
+    end
+end
+
+function PlayerCharacter:start_prayer_knot_charge()
+    self:stop_sfx("player_prayer_knot_charge")
+    self.prayer_knot_angle = rng:random_angle()
+    self.prayer_knot_angle_speed = rng:randf(0.01, 0.06) * rng:rand_sign()
+    local time = PRAYER_KNOT_CHARGE_TIME - game_state.upgrades.fire_rate * 10
+    self:start_tick_timer("prayer_knot", time, self.on_prayer_knot_charged)
+    self:start_timer("prayer_knot_charge_sfx", time - 36, function()
+        self:play_sfx("player_prayer_knot_charge", 0.5)
+    end)
+
 end
 
 function PlayerCharacter:on_artefact_removed(artefact, slot)
@@ -249,13 +280,14 @@ function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
     if game_state.artefacts.blast_armor and bounce_dot <= -threshold and (not self:is_tick_timer_running("bounce_explosion") or different) and self.state_tick > 5 then
         local bx, by = self:get_body_center()
         self:spawn_object(Explosion(bx, by, {
-            damage = 8,
-            size = 24 + abs(bounce_dot + threshold) * 8,
+            damage = 8, 
+            size = 35 + abs(bounce_dot + threshold) * 8,
             team = "player",
+            force_modifier = 1.8,
             explode_sfx = "player_bounce_explosion",
             explode_sfx_volume = 0.9,
         }))
-        bounce_mul = 1.5
+        -- bounce_mul = 1.5
     end
     self:start_tick_timer("bounce_explosion", 20)
 
@@ -316,6 +348,11 @@ function PlayerCharacter:enter()
 	-- self:start_invulnerability_timer(60)
 end
 
+function PlayerCharacter:on_level_transition()
+    table.clear(self.prayer_knot_particles)
+    table.clear(self.prayer_knot_particles_to_remove)
+end
+
 
 function PlayerCharacter:start_invulnerability_timer(duration)
 	self:start_timer("invulnerability", duration)
@@ -363,6 +400,12 @@ function PlayerCharacter:set_mouse_offset(x, y)
 end
 
 function PlayerCharacter:can_shoot()
+
+    local input = self:get_input_table()
+    if input.dont_shoot_held then
+        return false
+    end
+
 	if self:get_stopwatch("firing_big_laser") then
 		return false
 	end
@@ -615,40 +658,51 @@ function PlayerCharacter:on_secondary_weapon_released()
 end
 
 function PlayerCharacter:can_use_secondary_weapon()
-	if not game_state.secondary_weapon then
-		return false
-	end
+    if not game_state.secondary_weapon then
+        return false
+    end
     if game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
         return false
     end
-	
-	if game_state.secondary_weapon.minimum_ammo_needed_to_use then
-		if game_state.secondary_weapon_ammo < game_state.secondary_weapon.minimum_ammo_needed_to_use then
-			return false
-		end
-	end
 
-	if self:get_stopwatch("secondary_weapon_held") then
-		return false
-	end
-	if self:is_tick_timer_running("secondary_weapon_cooldown") then
-		return false
-	end
-	return true
+    if game_state.secondary_weapon.minimum_ammo_needed_to_use then
+        if game_state.secondary_weapon_ammo < game_state.secondary_weapon.minimum_ammo_needed_to_use then
+            return false
+        end
+    end
+
+    if self:get_stopwatch("secondary_weapon_held") then
+        return false
+    end
+    if self:is_tick_timer_running("secondary_weapon_cooldown") then
+        return false
+    end
+    return true
 end
 
 function PlayerCharacter:fire_current_bullet()
     local class = self.bullet_powerups["BaseBullet"]
+
 
 	game_state:on_bullet_shot()
 
     
 	local powerup = game_state:get_bullet_powerup()
 	
-	if powerup then
+    if powerup then
         class = self.bullet_powerups[powerup.name]
+    else
+        if game_state.artefacts.prayer_knot then
+            if self.prayer_knot_charged then
+                class = self.bullet_powerups["PrayerKnotChargeBullet"]
+                self.prayer_knot_charged = false
+            else
+                table.clear(self.prayer_knot_particles)
+                self:start_prayer_knot_charge()
+            end
+        end
     end
-	
+    
     local cooldown = class.cooldown
 	local num_bullets = clamp(game_state.upgrades.bullets + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
 
@@ -776,7 +830,7 @@ function PlayerCharacter:hit_by(by)
             local explo_radius = dead and 180 or 60
 
             timescaled:spawn_object(Explosion(bx, by, {
-                damage = 8,
+                damage = dead and 100 or 12,
                 size = explo_radius,
                 team = "player",
                 -- explode_sfx = "player_bounce_explosion",
@@ -814,8 +868,59 @@ function PlayerCharacter:die()
 end
 
 function PlayerCharacter:update(dt)
-	self.moving = false
-	-- print(self.pos)
+    self.moving = false
+    if game_state.artefacts.prayer_knot and not self.prayer_knot_charged and not self:is_tick_timer_running("prayer_knot") then
+        self:start_prayer_knot_charge()
+    elseif self:is_tick_timer_running("prayer_knot") then
+        local progress = self:tick_timer_progress("prayer_knot")
+        if self.is_new_tick and progress < 0.75 and progress > 0.25 then
+            for i=1, 4 do
+                local px, py = self.pos.x, self.pos.y
+                local offs_x, offs_y = rng:random_vec2_times(rng:randf(0.1, 80))
+
+                local particle = {
+                    x = offs_x,
+                    y = offs_y,
+                    vel_x = 0.0,
+                    vel_y = 0.0,
+                    accel_x = 0.0,
+                    accel_y = 0.0,
+                    t = 0.0,
+                    size = rng:randf(0.5, 1.5),
+                    speed = rng:randf(0.5, 1.5),
+                }
+                table.insert(self.prayer_knot_particles, particle)
+            end
+        end
+        
+        for i = #self.prayer_knot_particles, 1, -1 do
+            local particle = self.prayer_knot_particles[i]
+            local dx, dy = vec2_direction_to(particle.x, particle.y, 0, 0)
+            local dist2 = vec2_distance_squared(particle.x, particle.y, 0, 0)
+            particle.accel_x = dx * 1
+            particle.accel_y = dy * 1
+            particle.x = particle.x + particle.vel_x * dt
+            particle.y = particle.y + particle.vel_y * dt
+            particle.vel_x = particle.vel_x + particle.accel_x * dt
+            particle.vel_y = particle.vel_y + particle.accel_y * dt
+            particle.vel_x, particle.vel_y = vec2_drag(particle.vel_x, particle.vel_y, 0.1, dt)
+            particle.accel_x = 0
+            particle.accel_y = 0
+            particle.t = particle.t + dt
+            if dist2 < 400 or particle.t > 300 then
+                table.insert(self.prayer_knot_particles_to_remove, particle)
+            end
+        end
+    
+        for i = #self.prayer_knot_particles_to_remove, 1, -1 do
+            table.erase(self.prayer_knot_particles, self.prayer_knot_particles_to_remove[i])
+        end
+
+        table.clear(self.prayer_knot_particles_to_remove)
+
+
+    end
+    
 end
 
 -- function PlayerCharacter:get_palette()
@@ -830,7 +935,67 @@ function PlayerCharacter:get_sprite()
     return self.sprite
 end
 
+function PlayerCharacter:floor_draw()
+    if not self.is_new_tick then
+        return
+    end
+    graphics.push("all")
+    -- graphics.set_color(Color.cyan)
+    for i = #self.prayer_knot_particles, 1, -1 do
+        if rng:percent(0.75) then
+            goto continue
+        end
+        local particle = self.prayer_knot_particles[i]
+        local x, y = particle.x, particle.y
+        local color = Palette.prayer_knot_particle:get_color_clamped(round(particle.t * particle.speed * 2))
+        local mod = 0.15
+        graphics.set_color(color.r * mod, color.g * mod, color.b * mod)
+        local size = max(1.5 * particle.size, 1)
+        graphics.rectangle_centered("fill", x, y, size, size)
+        ::continue::
+    end
+    graphics.pop()
+end
+
 function PlayerCharacter:draw()
+    if self:is_tick_timer_running("prayer_knot") then
+        graphics.push("all")
+        graphics.set_line_width(1)
+        -- graphics.scale(1.0, 6 / 7)
+        local progress = self:tick_timer_progress("prayer_knot")
+        if progress <= 0.75 then
+            progress = remap(progress, 0.0, 0.75, 0.0, 1.0)
+            local size = 48 * pow(ease("outExpo")(progress), 1.24) * 0.5
+            if progress > 0.75 then
+                graphics.set_color(Color.blue)
+            elseif progress > 0.6 then
+                graphics.set_color(Color.skyblue)
+            else
+                graphics.set_color(Color.cyan)
+            end
+            if progress < 0.8 or gametime.tick % 2 == 0 then
+                graphics.poly_regular("line", 0, 0, size * 1 * ease("outCubic")(progress), 4, self.prayer_knot_angle + self.elapsed * self.prayer_knot_angle_speed, 1.0, 5 / 7)
+                -- graphics.poly_regular("line", 0, 0, size * 1.25 * ease("outCubic")(progress), 3, self.prayer_knot_angle, 1.0, 6 / 7)
+                -- graphics.poly_regular("line", 0, 0, size * 1.6 * ease("outCubic")(progress), 3, self.prayer_knot_angle, 1.0, 6 / 7)
+
+
+                -- graphics.poly_regular("line", 0, 0, size, 5, tau/8 + self.elapsed * 0.4, 1.0, 6 / 7)
+            end
+        end
+        graphics.pop()
+    end
+
+    graphics.push("all")
+    -- graphics.set_color(Color.cyan)
+    for i = #self.prayer_knot_particles, 1, -1 do
+        local particle = self.prayer_knot_particles[i]
+        local x, y = particle.x, particle.y
+        graphics.set_color(Palette.prayer_knot_particle:get_color_clamped(round(particle.t * particle.speed * 2)))
+        local size = max(1.5 * particle.size, 1)
+        graphics.rectangle_centered("fill", x, y, size, size)
+    end
+    graphics.pop()
+    
     if self:is_timer_running("invulnerability") and floor(gametime.tick / 2) % 2 == 0 then
         return
     end
@@ -1788,6 +1953,162 @@ function TwinDeathEffect:draw(elapsed, tick, t)
     graphics.rectangle_centered("line", 0, 0, size, size)
 end
 
+function PrayerKnotChargeEffect:new(x, y)
+    PrayerKnotChargeEffect.super.new(self, x, y)
+    self.z_index = -2
+    self:add_elapsed_time()
+    self:add_elapsed_ticks()
+    self.persist = true
+    self.particles = {}
+    self.particles_to_remove = {}
+    self.irng = rng:new_instance()
+    self.body_height = 0
+end
+
+function PrayerKnotChargeEffect:update(dt)
+
+    if self.player then
+        self.body_height = self.player.body_height
+    end
+
+    if self.player and not self.player.prayer_knot_charged then
+        self:unref("player")
+        self:death_anim()
+        return
+    end
+
+    if not self.player and not self.dying then
+        self:death_anim()
+        return
+    end
+
+
+    if not self.dying and self.is_new_tick then
+        for i = 1, rng:randi(0, 2) do
+            if rng:percent(35) then
+                local x, y = rng:random_vec2_times(rng:randf(0, 10))
+                x = x * 0.8
+                y = y - self.body_height
+                local particle = {
+                    x = x, y = y,
+                    start_x = x, start_y = y,
+                    real_x = self.pos.x + x, real_y = self.pos.y + y,
+                    t = 0.0,
+                    angle = rng:randf(0, tau),
+                    random_offset = rng:randi(),
+                    speed = rng:randf(50, 300),
+                    lifetime = rng:randf(20, 200)
+                }
+
+                if rng:percent(5) then
+                    particle.speed = rng:randf(50, 1000)
+                end
+                table.insert(self.particles, particle)
+            end
+        end
+    end
+
+    for i = #self.particles, 1, -1 do
+        local particle = self.particles[i]
+        particle.t = particle.t + dt / particle.lifetime
+        local irng = self.irng
+        irng:set_seed(particle.random_offset + self.tick)
+        particle.angle = particle.angle + irng:randf(-0.7, 0.7) * dt
+        local speed = 0.16
+        if self.dying then
+            speed = 2
+            local angle = vec2_angle(particle.start_x, particle.start_y)
+            particle.x = particle.x + cos(angle) * dt * speed
+            particle.y = particle.y + sin(angle) * dt * speed
+        end
+        particle.x = particle.x + cos(particle.angle) * dt * speed
+        particle.y = particle.y + sin(particle.angle) * dt * speed
+        
+
+        -- if not self.dying then
+        particle.real_x, particle.real_y = splerp_vec(particle.real_x, particle.real_y, self.pos.x, self.pos.y, particle.speed, dt)
+        -- end
+
+        if particle.t >= 1 then
+            table.insert(self.particles_to_remove, particle)
+        end
+    end
+
+    for i = #self.particles_to_remove, 1, -1 do
+        table.erase(self.particles, self.particles_to_remove[i])
+    end
+
+    table.clear(self.particles_to_remove)
+
+end
+
+function PrayerKnotChargeEffect:death_anim()
+    if self.dying then return end
+    self.dying = true
+    self:start_destroy_timer(20)
+    self:start_timer("dissipate", 20)
+end
+
+function PrayerKnotChargeEffect:on_level_transition()
+    table.clear(self.particles)
+end
+
+function PrayerKnotChargeEffect:draw()
+
+    if self.elapsed < 40 then
+        local t = self.elapsed / 40
+        if self.elapsed < 5 and iflicker(self.tick, 2, 2) then
+            graphics.set_color(Color.yellow)
+            local size = 40 - self.elapsed * 4
+            graphics.rectangle_centered("fill", 0, 0, size, size * 5 / 7)
+        end
+    end
+    
+
+    graphics.set_color(iflicker(self.tick, 2, 2) and Color.cyan or Color.yellow)
+
+
+    local size = 16 + 5 * sin(self.elapsed * 0.1)
+
+    if self:is_timer_running("dissipate") then
+        size = size + ((1 - self:timer_progress("dissipate"))) * 50 + 5
+        graphics.set_color(Color.darkskyblue)
+        if self:timer_progress("dissipate") > 0.75 then
+            graphics.rectangle_centered("line", 0, 0, size, size * (5 / 7))
+        end
+    else
+        graphics.rectangle_centered("line", 0, 0, size, size * (5 / 7))
+    end
+
+
+    if not self.dying then
+        graphics.rectangle_centered("fill", 0, -self.body_height, 8 + sin(self.elapsed * 0.1) * 2, 12 + sin(self.elapsed * 0.1) * 2)
+        graphics.set_color(Color.white)
+        graphics.rectangle_centered("fill", 0, -self.body_height, 6 + sin(self.elapsed * 0.1) * 2, 10 + sin(self.elapsed * 0.1) * 2)
+    end
+
+
+
+    local len = #self.particles
+    local particle_size = 1.0
+    if self:is_timer_running("dissipate") then
+        particle_size = self:timer_progress("dissipate")
+    end
+    for i=1, len do
+        local particle = self.particles[i]
+        local x, y = self:to_local(particle.x, particle.y)
+        graphics.set_color(iflicker(particle.random_offset + self.tick, 2, 2) and Color.cyan or Color.yellow)
+        local size = 4 * (1 - particle.t) * particle_size
+        graphics.rectangle_centered("fill", x + particle.real_x, y + particle.real_y, size, size)
+    end
+    for i=1, len do
+        local particle = self.particles[i]
+        local x, y = self:to_local(particle.x, particle.y)
+        graphics.set_color(Color.white)
+        local size = 1 * (1 - particle.t) * particle_size
+        graphics.rectangle_centered("fill", x + particle.real_x, y + particle.real_y, size, size)
+    end
+end
 
 AutoStateMachine(PlayerCharacter, (debug.enabled and debug.skip_tutorial_sequence and "Walk") or "GameStart")
 

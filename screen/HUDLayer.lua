@@ -80,8 +80,20 @@ function HUDLayer:start_after_level_bonus_screen()
             count = count,
         })
     end
+
+    local codex_items = {
+    }
 	
-	table.sort(temp_bonuses, function(a, b)
+
+    for _, bonus in ipairs(temp_bonuses) do
+        if bonus.bonus.text_key then
+            table.insert(codex_items, bonus.bonus.text_key)
+        end
+    end
+
+    savedata:add_items_to_codex(codex_items)
+
+    table.sort(temp_bonuses, function(a, b)
 		if a.bonus.priority and not b.bonus.priority then
 			return true
 		end
@@ -182,7 +194,7 @@ function HUDLayer:start_after_level_bonus_screen()
                 count = 0,
 				bonus = bonus,
             }
-            savedata:add_item_to_codex(bonus.text_key)
+            
             table.insert(self.after_level_bonus_screen.bonuses, b)
             while b.count < bonus_table.count do
 

@@ -177,7 +177,6 @@ function BasePlayerBullet:update(dt)
         -- print(self.extra_damage)
         self:try_hit_nearby_anyone()
     end
-	
 end
 
 local GRAPPLING_HOOK_IMPULSE = 0.95

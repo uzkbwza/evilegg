@@ -72,15 +72,15 @@ function EggRoomDirector:get_clear_color()
     end
 
     if self.glow_floor then
-        self.glow_floor_color = self.glow_floor_color or Color.darkpurple:clone()
+        self.glow_floor_color = self.glow_floor_color or Color.darkblue:clone()
         local color = self.glow_floor_color
-        local color2 = Color.darkpurple
+        local color2 = Color.darkblue
         local stopwatch = self:get_stopwatch("time_since_cracked_egg")
         if stopwatch then
             local t = sin01(stopwatch.elapsed / 3)
 
             local amt = 0.15
-            local mod = 0.5
+            local mod = 0.25
             color.r = lerp(color2.r, color2.r * t, amt) * mod       
             color.g = lerp(color2.g, color2.g * t, amt) * mod
             color.b = lerp(color2.b, color2.b * t, amt) * mod
@@ -100,7 +100,7 @@ function EggRoomDirector:get_screen_border_color()
         if stopwatch then
             local t = sin01(stopwatch.elapsed / 3)
 
-            local amt = 0.45
+            local amt = 0.55
             local mod = 1
             color.r = lerp(color2.r, color2.r * t, amt) * mod       
             color.g = lerp(color2.g, color2.g * t, amt) * mod

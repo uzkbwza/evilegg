@@ -210,7 +210,7 @@ local ACID_PUDDLE_RADIUS = 6
 function AcidPuddle:new(x, y)
 	AcidPuddle.super.new(self, x, y)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
-    self.bullet_push_modifier = 2.0
+    self.bullet_push_modifier = 1.2
     self.z_index = -0.1
     self.drag = 0.1
     -- self.intangible = true
@@ -243,7 +243,7 @@ function AcidPuddle:die()
 end
 
 function AcidPuddle:draw()
-    if (self.random_offset + gametime.tick) % 2 == 0 then return end
+    -- if (self.random_offset + gametime.tick) % 2 == 0 then return end
     local radius = self.hit_bubble_radius
     graphics.rotate(self.rotation)
     graphics.set_color(iflicker(self.tick, 3, 2) and Color.purple or Color.magenta)

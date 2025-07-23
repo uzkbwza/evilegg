@@ -150,6 +150,7 @@ local translations = {
         artefact_transmitter_name                    = "BEGGAR'S BOWL",
         artefact_heart_trade_name                    = "DISPOSABLE SURGEON",
         artefact_blast_armor_name                    = "BLAST ARMOR",
+        artefact_prayer_knot_name                    = "PRAYER KNOT",
 
 		weapon_sword_name                            = "EXECUTIONER'S SWORD",
         weapon_big_laser_name          				 = "PLASMA CANNON",
@@ -172,7 +173,8 @@ local translations = {
 		artefact_useless_desc          				 = "Too heavy to take with you.",
 		artefact_transmitter_desc      				 = "Greenoids will bring extra ammo.",
 		artefact_heart_trade_desc                    = "Trade a random artefact for a heart.",
-		artefact_blast_armor_desc                    = "You are prone to outbursts.",
+        artefact_blast_armor_desc                    = "You are prone to outbursts.",
+        artefact_prayer_knot_desc                    = "Stop shooting to charge a powerful bullet.",
 
 		weapon_sword_desc                            = "This is the line of division.",
 		weapon_big_laser_desc                        = "Simple problems call for simple solutions.",
@@ -214,6 +216,7 @@ local translations = {
 		options_skip_tutorial                        = "Skip Intro",
 		options_enter_name                           = "Enter Name",
 		options_show_hud                             = "Immersive Mode",
+		options_gamepad_plus_mouse                   = "Always Show Cursor",
 
 
 		options_brightness          = "Brightness",

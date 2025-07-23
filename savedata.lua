@@ -218,24 +218,30 @@ function savedata:_add_codex_item(spawn)
 	if not self.codex_items[spawn] then
 		print("adding codex item " .. spawn)
 		self.new_codex_items[spawn] = true
-		self.codex_items[spawn] = true
+        self.codex_items[spawn] = true
+        return true
 	end
 end
 
 function savedata:add_item_to_codex(spawn)
-
-	self:_add_codex_item(spawn)
-	self:save()
-	self:apply_save_data()
+	if self:_add_codex_item(spawn) then
+		self:save()
+		self:apply_save_data()
+	end
 end
 
 function savedata:add_items_to_codex(spawns)
+    local changed = false
     for i, spawn in ipairs(spawns) do
-        self:_add_codex_item(spawn)
+        if self:_add_codex_item(spawn) then
+            changed = true
+        end
     end
 
-    self:save()
-    self:apply_save_data()
+    if changed then
+        self:save()
+        self:apply_save_data()
+    end
 end
 
 function savedata:check_codex_item(spawn)

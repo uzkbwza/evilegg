@@ -172,7 +172,7 @@ function CursorLayer:draw()
         graphics.set_color(Color.white)
         local mouse_x, mouse_y = input.mouse.pos.x, input.mouse.pos.y
     
-        if not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) then
+        if not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) and (input.last_input_device ~= "gamepad" or usersettings.gamepad_plus_mouse) then
             graphics.drawp(textures.ui_cursor, nil, 0, mouse_x, mouse_y)
         end
 end

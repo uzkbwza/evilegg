@@ -818,7 +818,9 @@ function GameWorld:clear_objects()
 	for _, object in self.objects:ipairs() do
 		if not object.persist then
 			object:queue_destroy()
-		end
+        elseif object.on_level_transition then
+            object:on_level_transition()
+        end
 	end
 end
 
