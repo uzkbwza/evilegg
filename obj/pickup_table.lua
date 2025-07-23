@@ -302,7 +302,7 @@ local Artefacts = {
         destroy_score = 750,
 		destroy_xp = 1000,
     },
-    
+
     HeartTradeArtefact = {
 		icon = textures.pickup_artefact_heart_trade,
 		key = "heart_trade",
@@ -317,6 +317,7 @@ local Artefacts = {
         spawn_when_full = true,
         destroy_xp = 200,
         can_spawn = function(game_state)
+            if game_state.num_spawned_artefacts <= 5 then return false end
             if table.is_empty(game_state.artefacts) then return false end
             local keys = table.keys(game_state.artefacts)
             if #keys == 1 and keys[1] == "sacrificial_twin" then return false end

@@ -1,5 +1,7 @@
 local GreenoidSelfDefenseBullet = require("obj.Player.Bullet.BasePlayerBullet"):extend("GreenoidSelfDefenseBullet")
 
+GreenoidSelfDefenseBullet.ignore_grappling_hook = true
+
 function GreenoidSelfDefenseBullet:new(x, y)
 	self.use_artefacts = true
     self.use_upgrades = true

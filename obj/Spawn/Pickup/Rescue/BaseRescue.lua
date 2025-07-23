@@ -369,12 +369,13 @@ function BaseRescue:update(dt)
             if aiming_at then
                 local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
+                local bullet_x, bullet_y = vec2_add(bx, by, dx * 7, dy * 7)
                 if game_state.upgrades.bullets > 0 then
                     local offsx, offsy = vec2_perpendicular(dx * 4, dy * 4)
-                    self:spawn_object(WarbellProjectile(bx + offsx, by + offsy)).direction = Vec2(dx, dy)
-                    self:spawn_object(WarbellProjectile(bx - offsx, by - offsy)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x + offsx, bullet_y + offsy)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x - offsx, bullet_y - offsy)).direction = Vec2(dx, dy)
                 else
-                    self:spawn_object(WarbellProjectile(bx, by)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x, bullet_y)).direction = Vec2(dx, dy)
                 end
                 self:play_sfx("ally_rescue_shoot", 0.35)
             end
@@ -387,6 +388,10 @@ function BaseRescue:update(dt)
 		end
 	end
 end
+
+-- function BaseRescue:apply_impulse(dx, dy)
+    -- Mixins.SimplePhysics2D.apply_impulse(self, dx, dy)
+-- end
 
 
 function BaseRescue.try_avoid_enemy(bubble, self)

@@ -189,7 +189,7 @@ function BasePlayerBullet.try_hit(bubble, self)
 		if self.hit_objects[parent.id] then
 			return
 		end
-		if self.use_artefacts and game_state.artefacts.grappling_hook then
+		if self.use_artefacts and game_state.artefacts.grappling_hook and not self.ignore_grappling_hook then
             local impulse = GRAPPLING_HOOK_IMPULSE
 			if self.extra_bullet then
 				impulse = impulse * 0.5

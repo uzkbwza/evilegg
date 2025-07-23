@@ -721,7 +721,7 @@ function PlayerCharacter:fire_current_bullet()
         end
 
         if game_state.upgrades.fire_rate >= 1 then
-            self:play_sfx("player_fire_rate_upgrade_1", 0.35)
+            self:play_sfx("player_fire_rate_upgrade_1", 0.25)
         end
 
         if game_state.upgrades.range == 1 then
@@ -733,7 +733,7 @@ function PlayerCharacter:fire_current_bullet()
         end
 
         if game_state.upgrades.bullet_speed == 1 then
-            self:play_sfx("player_bullet_speed_upgrade_1", 0.25)
+            self:play_sfx("player_bullet_speed_upgrade_1", 0.2)
         end
 
         if game_state.upgrades.bullets == 1 then
@@ -1997,7 +1997,32 @@ function PrayerKnotChargeEffect:new(x, y)
     self.particles_to_remove = {}
     self.irng = rng:new_instance()
     self.body_height = 0
+    for i = 1, 20 do
+        self:spawn_particle()
+    end
 end
+
+function PrayerKnotChargeEffect:spawn_particle()
+    local x, y = rng:random_vec2_times(rng:randf(0, 10))
+    x = x * 0.8
+    y = y - self.body_height
+    local particle = {
+        x = x, y = y,
+        start_x = x, start_y = y,
+        real_x = self.pos.x + x, real_y = self.pos.y + y,
+        t = 0.0,
+        angle = rng:randf(0, tau),
+        random_offset = rng:randi(),
+        speed = rng:randf(50, 300),
+        lifetime = rng:randf(20, 200)
+    }
+
+    if rng:percent(5) then
+        particle.speed = rng:randf(50, 1000)
+    end
+    table.insert(self.particles, particle)
+end
+
 
 function PrayerKnotChargeEffect:update(dt)
 
@@ -2006,7 +2031,7 @@ function PrayerKnotChargeEffect:update(dt)
         self:set_visibility(self.player.visible)
     end
 
-    if self.player and not self.player.prayer_knot_charged then
+    if self.player and (not self.player.prayer_knot_charged or not game_state.artefacts.prayer_knot) then
         self:unref("player")
         self:death_anim()
         return
@@ -2021,24 +2046,7 @@ function PrayerKnotChargeEffect:update(dt)
     if not self.dying and self.is_new_tick then
         for i = 1, rng:randi(0, 2) do
             if rng:percent(35) then
-                local x, y = rng:random_vec2_times(rng:randf(0, 10))
-                x = x * 0.8
-                y = y - self.body_height
-                local particle = {
-                    x = x, y = y,
-                    start_x = x, start_y = y,
-                    real_x = self.pos.x + x, real_y = self.pos.y + y,
-                    t = 0.0,
-                    angle = rng:randf(0, tau),
-                    random_offset = rng:randi(),
-                    speed = rng:randf(50, 300),
-                    lifetime = rng:randf(20, 200)
-                }
-
-                if rng:percent(5) then
-                    particle.speed = rng:randf(50, 1000)
-                end
-                table.insert(self.particles, particle)
+                self:spawn_particle()
             end
         end
     end
