@@ -211,7 +211,7 @@ function Cuboid:draw()
 
 
 	
-	if self.exploding then
+	if self.exploding and iflicker(gametime.tick, 1, 2) then
 		-- if self:tick_pulse(4) then
 			graphics.push("all")
 			self:body_translate()

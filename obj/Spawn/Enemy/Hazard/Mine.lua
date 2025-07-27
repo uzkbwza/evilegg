@@ -80,6 +80,7 @@ function Blinker:new(x, y)
     self.hurt_bubble_radius = 5
     Blinker.super.new(self, x, y)
 	self:add_time_stuff()
+    self:lazy_mixin(Mixins.Behavior.PositionHistory, 5)
 	self.blinked_yet = false
 end
 
@@ -130,7 +131,7 @@ function Blinker:state_Blinking_enter()
         s:wait(5)
 		
         s:wait(10)
-		s:tween(function(t) self:blink_tween(t) end, 0, 1, 14, "inOutExpo")
+		s:tween(function(t) self:blink_tween(t) end, 0, 1, 14, "inOutCubic")
         s:wait(12)
         -- self:blink_tween(1.0)
 		
@@ -154,15 +155,41 @@ end
 function Blinker:state_Blinking_draw()
     self:body_translate()
     -- if iflicker(self.tick, 1, 2) then
+    local start_x, start_y = self:to_local(self.position_history[1].x, self.position_history[1].y)
+    
+    local num_points = 10
+
+    for i = 0, num_points do
+        local scale = i == num_points and 1 or 0.75
+
+        if i ~= num_points and (gametime.tick + i) % 2 == 0 then
+            goto continue
+        end
+
+        graphics.push("all")
+    
+        local x, y = vec2_lerp(start_x, start_y, 0, 0, i / num_points)
+        graphics.translate(x, y)
         graphics.set_color(Color.black)
 		graphics.set_line_width(2)
-		graphics.rectangle_centered("line", 0, 0, 12, 12)
-		graphics.rectangle_centered("fill", 0, 0, 7, 7)
-        graphics.set_color(Palette[self:get_sprite()]:tick_color(self.tick, 0, 2))
-		graphics.set_line_width(1)
-		graphics.rotate(self.elapsed * 0.5 + self.random_offset)
-		graphics.rectangle_centered("line", 0, 0, 12, 12)
-		graphics.rectangle_centered("fill", 0, 0, 5, 5)
+        if i == num_points then
+            graphics.rectangle_centered("fill", 0, 0, 7, 7)
+        end
+        graphics.rectangle_centered("line", 0, 0, 12 * scale, 12 * scale)
+        graphics.set_color(Palette[self:get_sprite()]:tick_color(self.tick + i, 0, 2))
+        graphics.set_line_width(1)
+        graphics.push("all")
+        graphics.rotate(self.elapsed * 0.5 + self.random_offset)
+        if i == num_points then
+            graphics.rectangle_centered("fill", 0, 0, 5, 5)
+        end
+        graphics.rectangle_centered("line", 0, 0, 12 * scale, 12 * scale)
+        graphics.pop()
+        graphics.pop()
+        ::continue::
+
+    end
+
 	-- end
 end
 

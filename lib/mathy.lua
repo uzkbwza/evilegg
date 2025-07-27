@@ -137,9 +137,10 @@ function inverse_lerp_clamp(a, b, v)
     return clamp01(inverse_lerp(a, b, v))
 end
 
+
 function angle_diff(a, b)
     local diff = a - b
-    return (diff + math.pi) % (2 * math.pi) - math.pi
+    return (diff + pi) % (2 * pi) - pi
 end
 
 
@@ -291,6 +292,19 @@ function approach(a, b, amount)
         if a < b then return b end
     end
     return a
+end
+
+function approach_angle(a, b, amount)
+    local tau = tau
+    a = a % tau
+    b = b % tau
+    local delta = (b - a + pi) % tau - pi
+    if delta > amount then
+        delta = amount
+    elseif delta < -amount then
+        delta = -amount
+    end
+    return (a + delta) % tau
 end
 
 function next_power_of_2(n)

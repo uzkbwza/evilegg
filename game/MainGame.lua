@@ -17,18 +17,9 @@ function MainGame:new()
         -- dbg("clear_color", clear_color, Color.orange)
     end)
 
-    -- graphics.set_post_canvas_draw_function(function()
-        -- local main_screen = self:get_main_screen()
+    graphics.set_post_canvas_draw_function(function()
 
-        -- if main_screen and not main_screen.drawing_cursor then
-        --     return
-        -- end
-
-        -- graphics.set_color(Color.white)
-        -- local mouse_x, mouse_y = love.mouse.get_position()
-        -- graphics.rectangle_centered("fill", mouse_x, mouse_y, 100, 100)
-
-    -- end)
+    end)
 end
 
 function MainGame:load()
@@ -225,29 +216,14 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
-
-        -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
-        -- self.num_queued_artefacts = 5
-        for i = 1, 6 do
-            self:upgrade(self:get_random_available_upgrade(false))
-        end
-
-
-        for i = 1, 10 do
-            local artefact = self:get_random_available_artefact()
-            while artefact.alternative_gain_function do 
-                artefact = self:get_random_available_artefact()
-            end
-            self:gain_artefact(artefact)
-        end
+        local cheat = true
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
-        self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
+        -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
 			-- self:add_score(2500000, "cheat")
-            -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
+            self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
@@ -263,10 +239,10 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30
+            self.level = 31
             self.hearts = self.max_hearts
 
-            for i = 1, 10 do
+            for i = 1, 8 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do 
                     artefact = self:get_random_available_artefact()
@@ -1016,7 +992,7 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
 	end
 
 	local v = rng:weighted_choice(tab, function(upgrade)
-		local weight = try_function(upgrade.spawn_weight)
+		local weight = resolve(upgrade.spawn_weight)
 
 		if table.list_has(self.recently_selected_upgrades, upgrade.upgrade_type) then
 			weight = weight / 100
@@ -1181,7 +1157,7 @@ function GlobalGameState:get_random_available_artefact()
 	-- end
 
 	local v = rng:weighted_choice(tab, function(artefact)
-		local weight = try_function(artefact.spawn_weight)
+		local weight = resolve(artefact.spawn_weight)
 
 		if debug.enabled and artefact.debug_spawn_weight then
 			weight = artefact.debug_spawn_weight

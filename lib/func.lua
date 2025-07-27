@@ -23,13 +23,27 @@ function curry(n, f)
 	return curry_functions[n](f)
 end
 
-local function add(...)
-	local sum = 0
-	for i = 1, select("#", ...) do
-		sum = sum + select(i, ...)
-	end
-	return sum
+function resolve(f, ...)
+    if type(f) == "function" then
+        return f(...)
+    end
+    return f
 end
+
+function resolve_recursive(f, ...)
+    while type(f) == "function" do
+        f = f(...)
+    end
+    return f
+end
+
+-- local function add(...)
+-- 	local sum = 0
+-- 	for i = 1, select("#", ...) do
+-- 		sum = sum + select(i, ...)
+-- 	end
+-- 	return sum
+-- end
 
 
 -- local function add(a, b)

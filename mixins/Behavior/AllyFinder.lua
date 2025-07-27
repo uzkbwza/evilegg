@@ -30,17 +30,17 @@ function AllyFinder:get_any_ally()
     return self:get_first_object_with_tag("ally")
 end
 
-function AllyFinder:ref_closest_player()
-    local player = self:find_closest_player()
+function AllyFinder:ref_closest_player(name)
+    local player = self:get_closest_player()
     if player then
-        self:ref("closest_player", player)
+        self:ref(name or "closest_player", player)
     end
 end
 
-function AllyFinder:ref_closest_ally()
-    local ally = self:find_closest_ally()
+function AllyFinder:ref_closest_ally(name)
+    local ally = self:get_closest_ally()
     if ally then
-        self:ref("closest_ally", ally)
+        self:ref(name or "closest_ally", ally)
     end
 end
 

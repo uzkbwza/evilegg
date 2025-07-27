@@ -22,7 +22,7 @@ end
 
 function Ghost:enter()
 	self:update(1)
-	self:set_visibility(false)
+	self:set_visible(false)
 end
 
 function Ghost:get_texture()
@@ -31,7 +31,7 @@ end
 
 function Ghost:update(dt)
     local target = self.world.scroll_center
-	self:set_visibility(true)
+	self:set_visible(true)
 
     if self.circling then
 		self.aim_direction = self.pos:direction_to(target)

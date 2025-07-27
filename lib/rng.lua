@@ -18,7 +18,8 @@ function rng:randf(min_, max_)
 end
 
 function rng:chance(chance)
-	return (self()) < chance
+    local c = self()
+	return c < chance
 end
 
 function rng:percent(chance)

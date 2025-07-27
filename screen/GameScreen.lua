@@ -96,6 +96,8 @@ function GameScreen:draw_cursor(x, y)
     end
 
     local size = 9
+    x = x or 0
+    y = y or 0
 
     graphics.push()
     graphics.translate(x, y)

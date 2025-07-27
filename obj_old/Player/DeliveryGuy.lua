@@ -214,7 +214,7 @@ end
 function DeliveryGuy:fake_die()
     -- self.dead = true
     self:die_fx()
-	self:set_visibility(false)
+	self:set_visible(false)
 	-- self:emit_signal("died")
 	-- self:queue_destroy()
 	-- self:die_fx()

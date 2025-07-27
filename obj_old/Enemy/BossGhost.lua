@@ -23,7 +23,7 @@ end
 
 function BossGhost:enter()
 	self:update(1)
-	self:set_visibility(false)
+	self:set_visible(false)
 	-- self.invuln = true
 end
 
@@ -33,7 +33,7 @@ end
 
 function BossGhost:update(dt)
     local target = self.boss.pos
-	self:set_visibility(true)
+	self:set_visible(true)
 
     if self.circling then
         self:ref_player()

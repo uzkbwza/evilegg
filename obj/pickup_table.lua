@@ -227,7 +227,7 @@ local Artefacts = {
 
         spawn_weight = function()
 			if not game_state then return 1000 end
-			if game_state.num_spawned_artefacts ~= 2 then return 1000 end
+			if (game_state.num_spawned_artefacts ~= 2) or (not game_state.artefacts.sacrificial_twin) then return 1000 end
             return 100000000000000000
         end,
     },
@@ -300,7 +300,7 @@ local Artefacts = {
 		infinite_spawns = true,
 		repeats_allowed = true,
         destroy_score = 750,
-		destroy_xp = 1000,
+		destroy_xp = 600,
     },
 
     HeartTradeArtefact = {

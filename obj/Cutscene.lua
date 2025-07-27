@@ -295,7 +295,7 @@ function EndingCutscene1:state_Scene2_draw()
 end
 
 function EndingCutscene1:exit()
-    if self.world then
+    if self.world and self.world.camera and self.world.camera.set_rumble_directly then
         self.world.camera:set_rumble_directly(0)
     end
 end

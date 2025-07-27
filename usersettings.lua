@@ -13,7 +13,9 @@ local default_usersettings = {
     saturation = 1.0,
 	hue = 0.0,
     invert_colors = false,
-	show_hud = true,
+    show_hud = true,
+    show_fps = false,
+    shader_quality = 1,
 	
     -- fx
     screen_shake_amount = 1,
@@ -31,6 +33,10 @@ local default_usersettings = {
 	relative_mouse_aim_snap_to_max_range = false,
 	mouse_sensitivity = 0.08,
     gamepad_with_mouse = false,
+
+    -- misc
+    retry_cooldown = false,
+
 }
 
 local usersettings = {}

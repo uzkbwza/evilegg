@@ -56,6 +56,10 @@ function HUDLayer:on_greenoid_harmed()
 	self:start_timer("greenoid_harmed_flash", 30)
 end
 
+function HUDLayer:is_paused()
+    return self.parent.ui_layer.state == "Paused" or self.game_layer.world.paused
+end
+
 function HUDLayer:start_after_level_bonus_screen()
 	self.skipping_bonus_screen = false
 	if not self.game_layer.world then
@@ -112,8 +116,8 @@ function HUDLayer:start_after_level_bonus_screen()
 			return true
 		end
 
-		local a_score_multiplier = try_function(a.bonus.score_multiplier) or 0
-		local b_score_multiplier = try_function(b.bonus.score_multiplier) or 0
+		local a_score_multiplier = resolve(a.bonus.score_multiplier) or 0
+		local b_score_multiplier = resolve(b.bonus.score_multiplier) or 0
 
 		if a_score_multiplier ~= 0 and b_score_multiplier == 0 then
 			return true
@@ -127,28 +131,28 @@ function HUDLayer:start_after_level_bonus_screen()
 		local b_negative = b.bonus.negative and -1 or 1
 
 
-		if try_function(a.bonus.xp) * a.count * a_negative == try_function(b.bonus.xp) * b.count * b_negative then
-			return try_function(a.bonus.score) * a.count * a_negative > try_function(b.bonus.score) * b.count * b_negative
+		if resolve(a.bonus.xp) * a.count * a_negative == resolve(b.bonus.xp) * b.count * b_negative then
+			return resolve(a.bonus.score) * a.count * a_negative > resolve(b.bonus.score) * b.count * b_negative
 		end
-		return try_function(a.bonus.xp) * a.count * a_negative > try_function(b.bonus.xp) * b.count * b_negative
+		return resolve(a.bonus.xp) * a.count * a_negative > resolve(b.bonus.xp) * b.count * b_negative
 	end)
 
     self.game_layer.world.waiting_on_bonus_screen = true
 	
     local function update_bonus_info(bonus, b, count)
-		b.score = stepify_floor(try_function(bonus.score), 10)
+		b.score = stepify_floor(resolve(bonus.score), 10)
 		
-		-- b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or stepify_floor((try_function(bonus.score)) * 20, 10)
-		-- b.score = bonus.ignore_score_multiplier and try_function(bonus.score) or game_state:determine_score(try_function(bonus.score))
+		-- b.score = bonus.ignore_score_multiplier and resolve(bonus.score) or stepify_floor((resolve(bonus.score)) * 20, 10)
+		b.score = bonus.ignore_score_multiplier and resolve(bonus.score) or game_state:determine_score(resolve(bonus.score))
 		-- b.score = bonus.ignore_score_multiplier and b.score or game_state:determine_score(b.score / 20)
         if bonus.negative then
 			b.score = -abs(b.score)
 		end
-		b.xp = try_function(bonus.xp)
+		b.xp = resolve(bonus.xp)
         if game_state.final_room_cleared then
             b.xp = 0
         end
-        b.score_multiplier = try_function(bonus.score_multiplier)
+        b.score_multiplier = resolve(bonus.score_multiplier)
 
         if bonus.negative then
             b.score_multiplier = -abs(b.score_multiplier)
@@ -177,6 +181,7 @@ function HUDLayer:start_after_level_bonus_screen()
     s:start(function()
         local wait = function(time)
             for i = 1, time do
+
 				if not self.skipping_bonus_screen then
                     s:wait(1)
 					if not self:should_show() then
@@ -222,11 +227,12 @@ function HUDLayer:start_after_level_bonus_screen()
 		for i = 1, #self.after_level_bonus_screen.bonuses do
             local b = self.after_level_bonus_screen.bonuses[i]
             for j = 1, b.count do
+
                 -- b.count = b.count - 1
 
 				-- for getting score and xp to add to the game state
 				local one_b = {
-					name = try_function(b.name),
+					name = resolve(b.name),
 					count = 1,
 					bonus = b.bonus,
                 }
@@ -243,7 +249,7 @@ function HUDLayer:start_after_level_bonus_screen()
 
 				total.score = max(total.score, 0)
 				-- total.xp = max(total.xp, 0)
-				-- total.score_multiplier = max(total.score_multiplier, 0)
+                -- total.score_multiplier = max(total.score_multiplier, 0)
 
 				if not game_state.final_room_cleared then
 					local xp = one_b.xp
@@ -281,16 +287,20 @@ function HUDLayer:start_after_level_bonus_screen()
 					s:tween_property(b, "score_apply_highlight_amount", 1, 0, 12, "outCubic")
 				end)
 
-
-                self:play_sfx("ui_bonus_screen_beep2", 0.75)
+                if not self.skipping_bonus_screen then 
+                    self:play_sfx("ui_bonus_screen_beep2", 0.75)
+                end
                 if wait_for_bonus(b) then
                     wait(3)
                 end
+
 			end
 		end
 		
-		wait(5)
-		self.after_level_bonus_screen.start_prompt = true
+        wait(5)
+        
+        self.after_level_bonus_screen.start_prompt = true
+        
 		while not self.skipping_bonus_screen do
 			s:wait(1)
 		end
@@ -299,7 +309,10 @@ function HUDLayer:start_after_level_bonus_screen()
 			local bonus = self.after_level_bonus_screen.bonuses[i]
 			table.remove(self.after_level_bonus_screen.bonuses, i)
             s:wait(2)
+
+            -- if self:should_show() then
 			self:play_sfx("ui_bonus_screen_beep", 0.5)
+			-- end
 			
 		end
 		
@@ -339,9 +352,18 @@ function HUDLayer:update(dt)
 
     local input = self:get_input_table()
 	
-    if (input.skip_bonus_screen_held) and self.after_level_bonus_screen or not usersettings.show_hud then
+    local should_show = self:should_show()
+
+    if ((input.skip_bonus_screen_held) or (not should_show)) and self.after_level_bonus_screen then
         self.skipping_bonus_screen = true
     end
+
+    if should_show and self.after_level_bonus_screen then
+        self.force_show_hud = true
+    elseif not self.after_level_bonus_screen then
+        self.force_show_hud = false
+    end
+    
 
 	if input.show_hud_held then
 		self:start_timer("show_hud_held", 40)
@@ -358,7 +380,7 @@ function HUDLayer:update(dt)
         table.insert(self.xp_bars, first)
     end
 	
-	self.world.showing = self:should_show()
+	self.world.showing = should_show
 	self.world.force_show_time = self:is_timer_running("show_hud_held")
 end
 
@@ -368,17 +390,20 @@ function HUDLayer:should_show()
 
 	if game_state.cutscene_hide_hud then return false end
 
-    if self.parent.ui_layer.state == "Paused" then return true end
+    if self:is_paused() then return true end
 	
 	if game_state.game_over_screen_force_hud then return true end
 
-	if self:is_timer_running("show_hud_held") then return true end
+    if self:is_timer_running("show_hud_held") then return true end
+
+    if self.force_show_hud then return true end
+
 
 	return usersettings.show_hud
 end
 
 function HUDLayer:can_pause()
-	if self.after_level_bonus_screen and usersettings.show_hud then
+	if self.after_level_bonus_screen and self:should_show() then
 		return false
 	end
 	return true
@@ -631,7 +656,7 @@ function HUDLayer:pre_world_draw()
 	graphics.push()
 
 
-    if self.after_level_bonus_screen and usersettings.show_hud then
+    if self.after_level_bonus_screen and self:should_show() and not self:is_paused() then
         local font2 = fonts.depalettized.image_font2
         graphics.set_font(font2)
         local middle_x = self.viewport_size.x / 2

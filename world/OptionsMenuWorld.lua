@@ -1,11 +1,12 @@
 local OptionsMenuWorld = World:extend("OptionsMenuWorld")
 local O = (require "obj")
+local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
 local DISTANCE_BETWEEN_ITEMS = 8
-local HEADER_SPACE = 3
+local HEADER_SPACE = 1
 
 
 function OptionsMenuWorld:new()
@@ -99,7 +100,11 @@ function OptionsMenuWorld:enter()
 				return tr.options_fps_cap_unlimited
 			end
 		end
-	},
+        },
+    {
+        "show_fps",
+        item_type = "toggle",
+    },
 	{ "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
 
 		get_func = function()
@@ -111,7 +116,17 @@ function OptionsMenuWorld:enter()
 			usersettings:set_screen_shader_preset(value)
 		end,
 
-		translate_options = true },
+            translate_options = true },
+
+        { "shader_quality", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1,
+        set_func = function(value)
+            usersettings:set_setting("shader_quality", value)
+        end,
+        get_func = function()
+            return usersettings.shader_quality
+        end,
+        },
+        
 	
 		{ "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
 	-- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
@@ -125,7 +140,13 @@ function OptionsMenuWorld:enter()
 		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
 		
 		{ "header", text = tr.options_header_other },
-		{ "skip_tutorial", item_type = "toggle" },
+        { "skip_tutorial", item_type = "toggle" },
+        { "retry_cooldown", item_type = "toggle", update_function = function(self, dt)
+            self:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
+            if not self.enabled and not self.gamer_health_timer then
+                self:ref("gamer_health_timer", self:spawn_object(GamerHealthTimer(self.pos.x, self.pos.y, self.width, self.height)))
+            end
+        end },
 		{ "enter_name", item_type = "button", select_func = function()
 			self:emit_signal("enter_name_requested")
 		end },
@@ -254,6 +275,10 @@ function OptionsMenuWorld:add_menu_item(menu_table)
 			end
 		end
 	end
+
+    if menu_table.update_function then
+        menu_item:add_update_function(menu_table.update_function)
+    end
 
 	self.menu_root:add_child(menu_item)
 

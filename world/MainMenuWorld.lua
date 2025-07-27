@@ -1,6 +1,7 @@
 local MainMenuWorld = World:extend("MainMenuWorld")
 local TitleTextObject = GameObject2D:extend("TitleTextObject")
 local O = (require "obj")
+local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 12
@@ -101,6 +102,19 @@ function MainMenuWorld:create_buttons()
 		self.menu_items[1]:add_neighbor(self.menu_items[#self.menu_items], "up")
 		self.menu_items[#self.menu_items]:add_neighbor(self.menu_items[1], "down")
 	end
+end
+
+function MainMenuWorld:update(dt)
+    local cooldown = usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0
+    if self.menu_items and self.menu_items[1] then
+        self.menu_items[1]:set_enabled(not cooldown)
+        if cooldown and not self.gamer_health_timer and self.tick > 2 then
+            self:ref("gamer_health_timer", self:spawn_object(GamerHealthTimer(self.menu_items[1].pos.x, self.menu_items[1].pos.y, 150, 18)))
+        end
+        if self.gamer_health_timer then
+            self.gamer_health_timer:move_to(self.menu_items[1].pos.x, self.menu_items[1].pos.y)
+        end
+    end
 end
 
 function MainMenuWorld:on_menu_item_selected(menu_item, func)

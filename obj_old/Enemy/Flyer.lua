@@ -26,7 +26,7 @@ function FlyerEnemy:update(dt)
         if self.fx then
             self.fx:tp_to(self.pos.x, self.pos.y)
 			if self.fx.tick > self.fx.duration - 10 then
-				-- self.fx:set_visibility((not self.waiting) or floor(self.tick / 2) % 2 == 0)
+				-- self.fx:set_visible((not self.waiting) or floor(self.tick / 2) % 2 == 0)
 			end
 		end
 	end
@@ -61,13 +61,13 @@ function FlyerEnemy:enter()
 	fx.duration = 20
 	self:spawn_object(fx)
 	self:set_flip(sign(endx - startx))
-	self:set_visibility(false)
+	self:set_visible(false)
 
 
     s:start(function()
 		self.waiting = true
         s:wait(20)
-        self:set_visibility(true)
+        self:set_visible(true)
         s:wait(15)
 		self.world:play_sfx("enemy_birdswoop")
         local frame = 2

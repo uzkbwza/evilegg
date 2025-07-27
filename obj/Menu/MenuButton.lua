@@ -39,11 +39,8 @@ function MenuButton:update_shared(dt)
 end
 
 function MenuButton:try_press(input)
-    if not self.enabled then
-        return
-    end
 	
-	local gamepad_nav_only = self.world.gamepad_nav_only and input.last_input_device ~= "gamepad"	
+	local gamepad_nav_only = self.world.gamepad_nav_only and input.last_input_device ~= "gamepad"
 	
 	if self.focused and ((input.ui_confirm_pressed and not gamepad_nav_only) or self.mouse_held.lmb) then
         self.pressed = true
@@ -51,32 +48,41 @@ function MenuButton:try_press(input)
 		self.pressed_by_mouse = self.mouse_held.lmb and not input.ui_confirm_pressed
 		
 		self:emit_signal("pressed")
+
         self:on_pressed()
-		if self.press_mode == "press" and self.selectable then
-			self:select()
+		
+        if self.press_mode == "press" and self.selectable then
+            if self.enabled then
+                self:select()
+            else
+                self:on_disabled_selected()
+            end
 		end
 	end
 end
 
 function MenuButton:try_release(input)
-	if not self.enabled then
-		return
-	end
 
     if self.focused and (not input.ui_confirm_held and not self.mouse_held.lmb) then
         self.pressed = false
         self:emit_signal("released")
+
         self:on_released()
+
         if self.press_mode == "release" and self.selectable then
-			self:select()
+            self:select()
         end
     end
 end
 
 function MenuButton:select()
-	self:defer(function()
-	self:on_selected()
-	self:emit_signal("selected")
+    self:defer(function()
+        if self.enabled then
+            self:on_selected()
+        else
+            self:on_disabled_selected()
+        end
+        self:emit_signal("selected")
 	end)
 end
 
@@ -87,6 +93,14 @@ function MenuButton:on_released()
 end
 
 function MenuButton:on_selected()
+end
+
+function MenuButton:on_disabled_selected()
+    self:play_sfx("ui_button_disabled_press", 0.6)
+end
+
+function MenuButton:set_enabled(enabled)
+    self.enabled = enabled
 end
 
 function MenuButton:draw()

@@ -7,8 +7,8 @@ local debug_force_enabled = false
 local debug_force = "bonus_police"
 
 local debug_enemy_enabled = false
-local debug_enemy = "AcidCharger"
-local num_debug_enemies = 5
+local debug_enemy = "HookWorm"
+local num_debug_enemies = 10
 local num_debug_waves = 3
 
 Room.can_highlight_enemies = true
@@ -102,7 +102,7 @@ Room.narrative_types = {
 		sub_narratives = {
 			[1] = {
                 type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand" },
+				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
                 points = 100,
 				disable_hazards = true,
                 max_difficulty = 3,
@@ -110,7 +110,7 @@ Room.narrative_types = {
 			},
 			[2] = {
 				type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand" },
+				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
                 points = 175,
 				disable_hazards = true,
                 max_difficulty = 4,
@@ -118,7 +118,7 @@ Room.narrative_types = {
             },
 			[3] = {
 				type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Cultist", "Hand",  },
+				exclude_enemies = { "Walker", "Roamer", "Shielder", "Cultist", "Hand", "Dancer" },
                 points = 250,
 				random_pool_size = 1,
             },
@@ -208,6 +208,7 @@ Room.narrative_types = {
         -- hazard_spawn_group = { "police" },
         weight = 500,
 		min_level = 9,
+        enemy_use_full_spawn_group = true,
 		sub_narratives = {
 			[1] = {
 				disable_hazards = false,
@@ -517,7 +518,8 @@ end
 
 function Room:is_valid_spawn(spawn, narrative_spawn_group, wave)
 	wave = wave or 1
-	if not spawn.spawnable then return false end
+    if not spawn.spawnable then return false end
+    if spawn.valid_chance and not rng:chance(spawn.valid_chance) then return false end
 	if spawn.min_level and self.level < spawn.min_level then return false end
 	if spawn.max_level and self.level > spawn.max_level then return false end
 	if spawn.level > max((self.level + 1) * 0.75, 2) then return false end
@@ -691,11 +693,18 @@ function Room:generate_waves()
 					table.remove(pool, index)
 					table.remove(weights, index)
 				else
-					if enemy and enemy.level <= max_difficulty then
-						num_points = num_points - enemy.spawn_points
-						table.insert(wave, enemy)
-						counts[enemy.name] = (counts[enemy.name] or 0) + 1
-						inserted = true
+                    if enemy and enemy.level <= max_difficulty then
+                        local loops = 1
+                        if enemy.min_spawns and (counts[enemy.name] or 0) < enemy.min_spawns then
+                            loops = enemy.min_spawns - (counts[enemy.name] or 0)
+                        end
+
+                        for i = 1, loops do
+						    num_points = num_points - enemy.spawn_points
+                            table.insert(wave, enemy)
+                            counts[enemy.name] = (counts[enemy.name] or 0) + 1
+                            inserted = true
+                        end
 					end
 				end
 				if not inserted then

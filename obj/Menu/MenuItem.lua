@@ -302,12 +302,12 @@ end
 -- 	end
 -- end
 
--- function MenuItem:set_visibility(visible)
+-- function MenuItem:set_visible(visible)
 --     if self.parent then
 --         self.menu_visible = visible
--- 		MenuItem.super.set_visibility(self, false)
+-- 		MenuItem.super.set_visible(self, false)
 -- 	else
--- 		MenuItem.super.set_visibility(self, visible)
+-- 		MenuItem.super.set_visible(self, visible)
 -- 	end
 -- end
 

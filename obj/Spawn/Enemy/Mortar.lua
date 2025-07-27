@@ -222,16 +222,16 @@ function MortarProjectileRing:new(x, y, sprite_y)
 end
 
 function MortarProjectileRing:draw(elapsed, tick, t)
-    if not iflicker(self.tick, 3, 3) then
+    if not iflicker(self.tick, 2, 3) then
 		return
 	end
-	local size = t * 15 + 5
+	local size = (t * 15 + 5) * 2
     graphics.set_color(Color.black)
 	graphics.set_line_width(4)
-	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
+	graphics.rectangle_centered("line", 0, self.sprite_y - 7, size, size * 0.66)
     graphics.set_color(iflicker(gametime.tick, 4, 2) and Color.red or Color.yellow)
 	graphics.set_line_width(2)
-	graphics.ellipse("line", 0, self.sprite_y - 7, size, size * 0.66)
+	graphics.rectangle_centered("line", 0, self.sprite_y - 7, size, size * 0.66)
 end
 
 function MortarProjectileSmoke:draw(elapsed, tick, t)

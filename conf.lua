@@ -133,6 +133,14 @@ local conf = {
 			joystick = {"back", "leftshoulder"}
 		},
 
+        debug_kill_player = {
+            debug = true,
+            keyboard = {
+                { "lctrl", "k" },
+                { "rctrl", "k" }
+            }
+        },
+
 		debug_editor_toggle = {
 			debug = true,
 			keyboard = { 

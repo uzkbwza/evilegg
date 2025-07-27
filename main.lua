@@ -2,7 +2,7 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.3.1"
+GAME_VERSION = "0.5.3"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -37,9 +37,10 @@ require "datastructure.bst2"; require "lib.func"
 
 bench            = require "lib.bench"
 
-bonglewunch      = require "datastructure.bonglewunch"
-makelist         = require "datastructure.smart_array"
-circular_buffer  = require "datastructure.circular_buffer"
+bonglewunch       = require "datastructure.bonglewunch"
+makelist          = require "datastructure.smart_array"
+circular_buffer   = require "datastructure.circular_buffer"
+batch_remove_list = require "datastructure.batch_remove_list"
 
 ease             = require "lib.ease"
 input            = require "input"
@@ -265,8 +266,9 @@ function love.update(dt)
         dbg("signal listeners", table.length(signal.listeners), Color.green)
 		local stats = signal.debug_get_pool_stats()
         for name, s in pairs(stats) do
-            dbg("pool: "..name, string.format("%d/%d", s.used, s.total), Color.green)
+            dbg("pool: " .. name, string.format("%d/%d", s.used, s.total), Color.green)
         end
+        dbg("retry_cooldown", savedata:get_seconds_until_retry_cooldown_is_over(), Color.magenta)
     end
     dt = dt * gametime.scale
     input.update(dt)

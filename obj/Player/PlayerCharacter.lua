@@ -97,6 +97,8 @@ function PlayerCharacter:new(x, y)
     self:lazy_mixin(Mixins.Behavior.Flippable)
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
     self:lazy_mixin(Mixins.Behavior.Health)
+    self:lazy_mixin(Mixins.Fx.RetroRumble)
+
 
     -- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 
@@ -417,6 +419,11 @@ end
 
 function PlayerCharacter:handle_input(dt)
     local input = self:get_input_table()
+
+    if debug.enabled and input.debug_kill_player_pressed then
+        self:die()
+    end
+
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
     local aim_x_digital, aim_y_digital = input.aim_digital_clamped.x, input.aim_digital_clamped.y
 
@@ -796,6 +803,8 @@ end
 
 function PlayerCharacter:hit_by(by, force)
 
+    if by.damage <= 0 then return end
+
 	if debug.enabled then
         if by.parent then
 			-- local process_float = function(x)
@@ -827,33 +836,31 @@ function PlayerCharacter:hit_by(by, force)
 
     local dead = false
 
-    if by.damage > 0 then
-        if game_state.hearts > 0 then
-            self:start_invulnerability_timer(90)
-            -- self:play_sfx("old_player_death", 0.85)
-            game_state:lose_heart()
-            -- local percent = game_state.artefacts.stone_trinket and 50 or 100
-			-- if rng:percent(percent) then
-			game_state:random_downgrade()
-            -- end
-			
-            self:emit_signal("got_hurt")
-        elseif game_state.artefacts.sacrificial_twin then
-			game_state:use_sacrificial_twin()
-            self:emit_signal("got_hurt")
-            self:start_invulnerability_timer(90)
-			local s = self.world.sequencer
-            s:start(function()
-                s:wait(15)
-				if not self.is_destroyed then
-					self.world:spawn_object(TwinDeathEffect(self.pos.x, self.pos.y))
-				end
-			end)
+    if game_state.hearts > 0 then
+        self:start_invulnerability_timer(90)
+        -- self:play_sfx("old_player_death", 0.85)
+        game_state:lose_heart()
+        -- local percent = game_state.artefacts.stone_trinket and 50 or 100
+        -- if rng:percent(percent) then
+        game_state:random_downgrade()
+        -- end
+        
+        self:emit_signal("got_hurt")
+    elseif game_state.artefacts.sacrificial_twin then
+        game_state:use_sacrificial_twin()
+        self:emit_signal("got_hurt")
+        self:start_invulnerability_timer(90)
+        local s = self.world.sequencer
+        s:start(function()
+            s:wait(15)
+            if not self.is_destroyed then
+                self.world:spawn_object(TwinDeathEffect(self.pos.x, self.pos.y))
+            end
+        end)
 
-        else
-            dead = true
-            self:damage(1)
-        end
+    else
+        dead = true
+        self:damage(1)
     end
     
 
@@ -1672,7 +1679,7 @@ end
 function PlayerDrone:update(dt)
     if self.player then
         self.target.x, self.target.y = self.player.pos.x, self.player.pos.y + self.player.body_height
-		self:set_visibility(self.player.visible and self.player.state ~= "Cutscene")
+		self:set_visible(self.player.visible and self.player.state ~= "Cutscene")
     else
         self:queue_destroy()
     end
@@ -2028,7 +2035,7 @@ function PrayerKnotChargeEffect:update(dt)
 
     if self.player then
         self.body_height = self.player.body_height
-        self:set_visibility(self.player.visible)
+        self:set_visible(self.player.visible)
     end
 
     if self.player and (not self.player.prayer_knot_charged or not game_state.artefacts.prayer_knot) then

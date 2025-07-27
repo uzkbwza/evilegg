@@ -19,7 +19,7 @@ function OptionsMenuItem:on_selected()
 end
 
 function OptionsMenuItem:draw()
-    graphics.set_color(Color.white)
+    graphics.set_color(self.enabled and Color.white or Color.darkgrey)
 	local x, y, w, h = self:get_rect_local()
 
 	if self.focused then

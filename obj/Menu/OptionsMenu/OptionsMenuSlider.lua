@@ -41,7 +41,7 @@ function OptionsMenuSlider:draw()
 		graphics.set_color(Color.darkergreen)
 	end
     graphics.rectangle("fill", slider_rect_x, slider_rect_y, slider_rect_w, slider_rect_h)
-	graphics.set_color(Color.white)
+	graphics.set_color(self.enabled and Color.white or Color.darkgrey)
 	if self.focused then
 		graphics.set_color(Color.green)
 	end

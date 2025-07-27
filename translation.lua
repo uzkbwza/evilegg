@@ -144,7 +144,7 @@ local translations = {
 		artefact_crown_of_frenzy_name                = "CROWN OF FRENZY",
 		artefact_death_cap_name                      = "DEATH CAP",
 		artefact_clock_name                          = "STOP WATCH",
-		artefact_defabricator_name                   = "DEFABRICATOR",
+		-- artefact_defabricator_name                   = "DEFABRICATOR",
 		artefact_warbell_name                        = "WAR BELL",
 		artefact_useless_name                        = "GIANT GEMSTONE",
         artefact_transmitter_name                    = "BEGGAR'S BOWL",
@@ -168,7 +168,7 @@ local translations = {
 		artefact_crown_of_frenzy_desc                = "+Fire rate when no greenoids on screen.",
 		artefact_death_cap_desc                      = "Fungi are sympathetic to your mission.",
 		artefact_clock_desc                          = "Chain rescues to increasingly slow enemies.",
-		artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
+		-- artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
 		artefact_warbell_desc                        = "Greenoids will attack nearby enemies.",
 		artefact_useless_desc          				 = "Too heavy to take with you.",
 		artefact_transmitter_desc      				 = "Greenoids will bring extra ammo.",
@@ -216,7 +216,10 @@ local translations = {
 		options_skip_tutorial                        = "Skip Intro",
 		options_enter_name                           = "Enter Name",
 		options_show_hud                             = "Immersive Mode",
-		options_gamepad_plus_mouse                   = "Always Show Cursor",
+        options_gamepad_plus_mouse                   = "Always Show Cursor",
+        options_retry_cooldown                       = "Gamer Health Cooldown",
+        options_show_fps                             = "Show FPS",
+        options_shader_quality                       = "Shader Quality",
 
 
 		options_brightness          = "Brightness",
@@ -365,6 +368,12 @@ local translations = {
 
         codex_name_penitent         = "Penitent",
         codex_desc_penitent         = "A soldier weeps recounting his crimes.",
+
+        codex_name_dancer           = "Dancer",
+        codex_desc_dancer           = "Oblivious to all but the rhythm.",
+
+        codex_name_hookworm         = "Hook Worm",
+        codex_desc_hookworm         = "Hungry!",
 
         codex_glossary_room_has_max_points = "This room has the most potential points from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",

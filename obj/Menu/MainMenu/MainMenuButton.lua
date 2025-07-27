@@ -87,6 +87,8 @@ function MainMenuButton:update(dt)
                 letter:unfocus()
             end
         end
+        -- letter:set_visible(self.enabled)
+        letter.enabled = self.enabled
     end
     -- self.width = max(width, WIDTH)
 	-- self.width = width
@@ -94,7 +96,8 @@ end
 
 function MainMenuButtonLetter:new(x, y, text, font, owner)
 	MainMenuButtonLetter.super.new(self, x, y)
-	self.text = text
+    self.text = text
+    self.enabled = true
     self.font = font
 	self.palette_stack = PaletteStack(Color.black)
 	self.palette_stack:push(Color.darkgreen)
@@ -127,16 +130,18 @@ function MainMenuButtonLetter:unfocus()
 end
 
 function MainMenuButtonLetter:draw()
-	graphics.set_color(Color.white)
-    self.palette_stack:set_color(2, self.focused and (self.highlight_outline_color) or Color.darkergrey)
-	if self.owner and (self.owner.select_highlight or self.owner.focus_highlight) then
-        self.palette_stack:set_color(3, Color.green)
+    graphics.set_color(Color.white)
+    local primary = self.enabled and Color.green or Color.darkergrey
+    local highlight = self.enabled and self.highlight_outline_color or Color.darkergrey
+    self.palette_stack:set_color(2, self.focused and highlight or Color.darkergrey)
+    if self.owner and (self.owner.select_highlight or self.owner.focus_highlight) then
+        self.palette_stack:set_color(3, primary)
         -- if iflicker(self.tick, 1, 2) then
-		self.palette_stack:set_color(2, Color.green)
-		-- end
-	else
-		self.palette_stack:set_color(3, self.focused and Color.black or Color.white)
-	end
+        self.palette_stack:set_color(2, primary)
+        -- end
+    else
+        self.palette_stack:set_color(3, self.focused and Color.black or Color.white)
+    end
 	-- self.palette_stack:set_color(3, self.focused and Color.black or Color.white)
     graphics.set_font(self.font)
 	-- local y = 0.7 * sin(self.elapsed * 0.2 + self.random_offset1 * 100)

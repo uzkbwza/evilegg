@@ -162,7 +162,7 @@ end
 function LB.submit_queued_runs(cb)
     local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
     if not run_upload_queue or next(run_upload_queue) == nil then
-        if cb then cb(true, {status="noop"}) end
+        if cb then cb(true, { status = "noop" }) end
         return
     end
 
@@ -189,9 +189,10 @@ function LB.submit_queued_runs(cb)
     end
 
     if not any_runs then
-        if cb then cb(true, {status="noop"}) end
+        if cb then cb(true, { status = "noop" }) end
     end
 end
+
 function LB.add_death(cb)
     rpc({cmd="add_death"}, cb)
 end

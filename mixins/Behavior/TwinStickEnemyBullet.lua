@@ -7,7 +7,7 @@ function TwinStickEnemyBullet:__mix_init()
 
     self.is_enemy_bullet = true
 
-    self.lifetime = self.lifetime or 600
+    self.lifetime = self.lifetime or 6000
     self:add_update_function(function(self, dt)
         if self.elapsed > self.lifetime then
             self:die()

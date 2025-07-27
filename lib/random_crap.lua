@@ -408,6 +408,28 @@ function get_16_way_from_3_base_sprite(angle)
     return index, rotation, y_scale
 end
 
+-- For 16-way asymmetric, we only need 4 base sprites (1,2,3,4).
+local _16_way_asymmetric_temp = {1, 2, 3, 4}
+
+function get_16_way_from_4_base_sprite_no_flip(angle)
+    -- assume texture 1 is pointing right, 2 is 22.5 deg down, 3 is 45 deg down, 4 is 67.5 deg down.
+    -- for 90 deg down, use texture 1 rotated 90 degrees.
+    -- this function is for asymmetrical sprites that can't be flipped.
+
+    angle = fposmod(angle, tau)
+    local step = angle / tau
+    local step_16 = round(step * 16)
+    local step_4 = floor((step_16) / 4)
+
+    local table_index = (step_16) % 4 + 1
+    
+    local texture_index = _16_way_asymmetric_temp[table_index]
+
+    local rotation = quarter_tau * step_4
+
+    return texture_index, rotation
+end
+
 local _32_way_temp = {1, 2, 3, 4, 5, 4, 3, 2}
 
 function get_32_way_from_5_base_sprite(angle)
@@ -454,7 +476,7 @@ function asset_collision_error(name, path, existing_path)
     error(
     "asset with name " ..
     name ..
-    " already exists. file IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" ..
+    " already exists. asset IDs are generated from file paths, with slashes (/) replaced with underscores (_), so it is recommended to treat underscores as category separators. please rename one of the files: \n" ..
     path .. "\n" .. existing_path .. "\n", 2)
 end
 
@@ -470,13 +492,6 @@ function comma_sep(number)
 	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
-function try_function(f, ...)
-    if type(f) == "function" then
-        return f(...)
-    else
-        return f
-    end
-end
 
 function set_true_if_nil(t, key)
 	if t[key] == nil then
@@ -497,5 +512,3 @@ dummy_table = setmetatable({}, {
 		error("attempt to write to dummy table")
 	end
 })
-
-

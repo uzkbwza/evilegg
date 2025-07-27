@@ -139,7 +139,7 @@ local Enemies = {
 	},
 	
     Sniper = {
-		level = 2,
+		level = 3,
 		extra_score = -10,
 		spawn_points = 100,
 		icon = textures.enemy_sniper,
@@ -178,7 +178,8 @@ local Enemies = {
 		-- room_select_weight = 250,
 		spawn_points = 150,
         spawn_weight_modifier = 1.5,
-		extra_score = -20,
+        extra_score = -20,
+        min_spawns = 2,
         icon = textures.enemy_gnome1,
 		-- max_spawns = 6
 	},
@@ -228,6 +229,30 @@ local Enemies = {
         icon = textures.enemy_cube4,
 		-- spawn_group = { "basic" },
     },
+
+    Dancer = {
+        level = 3,
+        min_level = 22,
+        extra_score = 30,
+        spawn_points = 60,
+        spawn_weight_modifier = 0.75,
+        min_spawns = 3,
+        valid_chance = 0.3,
+        -- max_spawns = 20,
+        room_select_weight = 700,
+        icon = textures.enemy_dancer_icon,
+        codex_sprite = textures.enemy_dancer1,
+        codex_icon = textures.enemy_dancer_codex_icon,
+    },
+
+    -- HookWorm = {
+    --     level = 3,
+    --     spawn_points = 50,
+    --     min_level = 11,
+    --     spawn_weight_modifier = 1.0,
+    --     icon = textures.enemy_hookworm1,
+    --     room_select_weight = 300,
+    -- },
 	
 	-- HoopSnake = {
 	-- 	level = 4,

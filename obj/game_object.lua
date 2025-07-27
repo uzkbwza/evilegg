@@ -54,6 +54,12 @@ function GameObject:on_moved()
     self:emit_signal("moved")
 end
 
+function GameObject:follow_movement(other)
+    signal.connect(other, "moved", self, "on_movement_target_moved", function()
+        self:move_to(other.pos.x, other.pos.y)
+    end)
+end
+
 function GameObject.dummy() end
 
 -- safe, "weak" references to other objects, automatically unrefs when object is destroyed
@@ -804,7 +810,7 @@ function GameObject:move(dx, dy, ...)
 	self:move_to(self.pos.x + dx, self.pos.y + dy, ...)
 end
 
-function GameObject:set_visibility(visible)
+function GameObject:set_visible(visible)
 	local different = self.visible ~= visible
 	self.visible = visible
 	if different then

@@ -5,6 +5,8 @@ local FungalDeathSplatter = require("fx.enemy_death_pixel_fungal_splatter")
 local LastEnemyTarget = require("fx.last_enemy_target")
 local LifeFlash = require("fx.enemy_life_flash")
 
+BaseEnemy.is_base_enemy = true
+
 function BaseEnemy:new(x, y)
     BaseEnemy.super.new(self, x, y)
 
@@ -145,8 +147,6 @@ end
 function BaseEnemy:death_sequence(hit_by)
 	self:die(hit_by)
 end
-
-
 
 function BaseEnemy:is_invulnerable()
     if self:is_tick_timer_running("shield_invuln") then

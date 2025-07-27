@@ -1,7 +1,7 @@
 local Shielder = BaseEnemy:extend("Shielder")
 
-local SEARCH_RADIUS = 100
-local PUSH_FORCE = 0.005
+local SEARCH_RADIUS = 120
+local PUSH_FORCE = 0.0076
 local MAX_SHIELD_RADIUS = 48
 local SHIELD_RADIUS_GROWTH = 0.1
 local HEALTH_REGEN = 0.0067

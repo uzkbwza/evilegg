@@ -1,5 +1,5 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
-local CursorLayer = CanvasLayer:extend("CursorLayer")
+local TopLayer = CanvasLayer:extend("TopLayer")
 
 local debug_start = "game"
 -- local debug_start = "codex_menu"
@@ -19,8 +19,8 @@ function MainScreen:enter()
         self:start_pre_title_screen()
     end
 
-    self:ref("cursor_layer", self:insert_layer(CursorLayer, 1))
-    self.cursor_layer:ref("main_screen", self)
+    self:ref("top_layer", self:insert_layer(TopLayer, 1))
+    self.top_layer:ref("main_screen", self)
 end
 
 function MainScreen:connect_restart(screen)
@@ -159,22 +159,51 @@ function MainScreen:update(dt)
         love.mouse.setPosition(w / 2, h / 2)
     end
 
-    self.cursor_layer:set_visibility(visible)
-
+    
+    self.top_layer.show_cursor = (visible)
     self._prev_relative = (relative and not usersettings.use_absolute_aim)
 
     love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
     love.mouse.set_grabbed(not visible)
 end
 
-function CursorLayer:draw()
+function TopLayer:draw()
     -- if self.drawing_cursor then
-        graphics.set_color(Color.white)
-        local mouse_x, mouse_y = input.mouse.pos.x, input.mouse.pos.y
     
-        if not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) and (input.last_input_device ~= "gamepad" or usersettings.gamepad_plus_mouse) then
-            graphics.drawp(textures.ui_cursor, nil, 0, mouse_x, mouse_y)
+    graphics.set_color(Color.white)
+    local mouse_x, mouse_y = input.mouse.pos.x, input.mouse.pos.y
+    if self.show_cursor and not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) and (input.last_input_device ~= "gamepad" or usersettings.gamepad_plus_mouse) then
+        graphics.drawp(textures.ui_cursor, nil, 0, mouse_x, mouse_y)
+    end
+        
+    if usersettings.show_fps then
+        graphics.set_font(fonts.depalettized.image_neutralfont1)
+        local fps = love.timer.getFPS()
+
+        graphics.set_color(Color.darkergrey)
+
+        if fps < 120 then
+            graphics.set_color(Color.yellow)
         end
+
+        if fps < 90 then
+            graphics.set_color(Color.orange)
+        end
+
+        if fps < 60 then
+            graphics.set_color(Color.red)
+        end
+
+        -- if usersettings.cap_framerate then
+        --     fps = min(fps, usersettings.fps_cap)
+        -- end
+
+        if self.viewport_size.x <= conf.viewport_size.x + 14 then
+            graphics.print_outline(Color.black, fps, 9, 0, deg2rad(90), 1, 1)
+        else
+            graphics.print_outline(Color.black, fps, 1, 1, 0, 1, 1)
+        end
+    end
 end
 
 return MainScreen

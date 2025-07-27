@@ -7,7 +7,8 @@ local default_savedata = {
     codex_items = {},
     new_codex_items = {},
     run_upload_queue = {},
-	first_time_playing = true,
+    first_time_playing = true,
+    last_died_at = 0,
 	game_version = GAME_VERSION,
 	leaderboard_version = GAME_LEADERBOARD_VERSION,
 }
@@ -253,16 +254,29 @@ function savedata:is_new_codex_item(spawn)
 end
 
 function savedata:clear_new_codex_item(spawn)
+    if not self.new_codex_items[spawn] then
+        return
+    end
 
-	if not self.new_codex_items[spawn] then
-		return
-	end
-
-	self.new_codex_items[spawn] = nil
-	self:save()
-	self:apply_save_data()
+    self.new_codex_items[spawn] = nil
+    self:save()
+    self:apply_save_data()
 end
 
+function savedata:on_death()
+    if usersettings.retry_cooldown then
+        self:set_save_data("last_died_at", os.time())
+        self:set_save_data("retry_cooldown_seconds", (game_state and game_state.level) or 10)
+    end
+end
 
+function savedata:get_seconds_until_retry_cooldown_is_over()
+    local last_died_at = self.last_died_at
+    if last_died_at == 0 then
+        return 0
+    end
+
+    return last_died_at + self.retry_cooldown_seconds - os.time()
+end
 
 return savedata

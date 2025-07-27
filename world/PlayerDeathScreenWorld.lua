@@ -3,6 +3,7 @@ local YouDiedLetter = GameObject2D:extend("YouDiedLetter")
 local BackgroundObject = GameObject2D:extend("BackgroundObject")
 local StatDisplay = GameObject2D:extend("StatDisplay")
 local ScoreGraph = GameObject2D:extend("ScoreGraph")
+local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 
 local O = require("obj")
 
@@ -29,7 +30,7 @@ function PlayerDeathScreenWorld:enter()
 	local prev_high_level = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).level or 0
 	local prev_high_rescues = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).rescues or 0
 	
-	local score_table = game_state:get_run_data_table()
+    local score_table = game_state:get_run_data_table()
 	
 	savedata:add_score(score_table)
 
@@ -135,37 +136,21 @@ function PlayerDeathScreenWorld:enter()
 
 		self:ref("time_display", self:spawn_object(StatDisplay(start_x, start_y + 87, tr.game_over_time_display, frames_to_seconds(game_state.game_time))))
 		self.time_display.format_function = format_hhmmss
-
-		-- local scores = game_state.level_scores
-		-- if #scores == 0 then
-			-- scores = { 0 }
-		-- end
-		
-		-- table.insert(scores, game_state.score)
-		
-		-- self:ref("score_graph", self:spawn_object(ScoreGraph(0, 0, 200, 200, scores)))
-
-		-- local last_score = 0
-
-		-- for i = 2, #scores do
-			-- local score = scores[i]
-			-- last_score = self.score_display.value or 0
-			-- self.score_graph.start_index = i - 1
-
-			-- s:tween(function(t)
-				-- self.score_display.value = floor(lerp(last_score, score, t))
-				-- self.score_graph.interp_t = t
-			-- end, 0, 1, max(floor(60 / #scores), 1), "linear")
-
-		-- end
-
-
 	end)
 end
 
 function PlayerDeathScreenWorld:add_buttons()
+    savedata:on_death()
+
 	local retry = self:spawn_object(O.PauseScreen.PauseScreenButton(-60, 90, tr.death_screen_retry_button, 50, 14, true, Color.white, true))
     self.menu_root:add_child(retry)
+
+    retry:add_update_function(function(self, dt)
+        self:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
+        if not self.enabled and not self.gamer_health_timer then
+            self:ref("gamer_health_timer", self:spawn_object(GamerHealthTimer(self.pos.x, self.pos.y, self.width, self.height)))
+        end
+    end)
 
 	local leaderboard = self:spawn_object(O.PauseScreen.PauseScreenButton(0, 90, tr.death_screen_leaderboard_button, 50, 14, true, Color.white, true))
 	self.menu_root:add_child(leaderboard)

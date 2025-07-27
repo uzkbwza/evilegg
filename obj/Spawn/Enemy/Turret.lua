@@ -23,8 +23,9 @@ function Turret:new(x, y)
 	self.declump_mass = 1
 	self.hit_bubble_radius = 4
 	self.hurt_bubble_radius = 7
-	self.aim_dir_x, self.aim_dir_y = 0, 0
-	self.gun_angle = 0
+	self.aim_dir_x, self.aim_dir_y = rng:random_vec2()
+	self.gun_angle = vec2_angle(self.aim_dir_x, self.aim_dir_y)
+    self.target_aim_dir_x, self.target_aim_dir_y = 0, 0
 
 	self.highlight_circle = -1
 
@@ -40,7 +41,10 @@ function Turret:start_shoot_timer(time)
             while self.world:get_number_of_objects_with_tag("turret_shooting") >= 3 do
                 s:wait(rng:randi(60, 120))
             end
-			self:add_tag("turret_shooting")
+            while abs(self.angle_diff) > tau / 16 do
+                s:wait(1)
+            end
+            self:add_tag("turret_shooting")
             for i = 1, 3 do
                 self:shoot()
                 s:wait(15)
@@ -78,12 +82,22 @@ function Turret:enter()
 end
 
 function Turret:update(dt)
-	if self.hurts_allies then 
-		self.aim_dir_x, self.aim_dir_y = self:get_body_direction_to_ally()
+	if self.hurts_allies then
+		self.target_aim_dir_x, self.target_aim_dir_y = self:get_body_direction_to_ally()
 	else
-		self.aim_dir_x, self.aim_dir_y = self:get_body_direction_to_player()
+		self.target_aim_dir_x, self.target_aim_dir_y = self:get_body_direction_to_player()
 	end
+
+    local target_angle = vec2_angle(self.target_aim_dir_x, self.target_aim_dir_y)
+
+    local new_angle = approach_angle(self.gun_angle, target_angle, 0.1 * dt)
+    
+    self.aim_dir_x, self.aim_dir_y = vec2_from_angle(new_angle)
+
     self.gun_angle = vec2_angle(self.aim_dir_x, self.aim_dir_y)
+
+    self.angle_diff = angle_diff(self.gun_angle, target_angle)
+    
 	if self.is_new_tick and (self.tick) % 60 == 0 then
 		local s = self.sequencer
         s:start(function()

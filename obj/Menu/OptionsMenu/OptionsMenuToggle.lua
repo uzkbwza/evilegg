@@ -31,9 +31,9 @@ function OptionsMenuToggle:draw()
     local rect_h = size + size_offset + 1
     graphics.set_color(Color.black)
     graphics.rectangle(fill and "fill" or "line", rect_x+1, rect_y+1, rect_w, rect_h)
-    graphics.set_color(Color.white)
+    graphics.set_color(self.enabled and Color.white or Color.darkgrey)
 	if self.focused then
-		graphics.set_color(Color.green)
+		graphics.set_color(self.enabled and Color.green or Color.darkgrey)
 	end
 	graphics.rectangle(fill and "fill" or "line", rect_x, rect_y, rect_w, rect_h)
 end

@@ -57,6 +57,7 @@ function GameWorld:new(x, y)
 	self:add_spatial_grid("bullet_grid", grid_size)
 	self:add_spatial_grid("chargers", grid_size)
 	self:add_spatial_grid("rescue_grid", grid_size)
+	self:add_spatial_grid("dancer_grid", grid_size)
 
 	self.hurt_bubbles = {}
 	self.hurt_bubbles["player"] = shash.new(grid_size)
@@ -861,6 +862,7 @@ function GameWorld:on_player_died()
         self.player_died = true
 		self:end_tick_timer("wave_timer")
 		self:end_tick_timer("last_wave_quick_clear")
+        savedata:on_death()
 		audio.stop_music()
 		game_state:on_game_over()
 		s:wait(60)

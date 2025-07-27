@@ -54,6 +54,7 @@ function BasePlayerBullet:new(x, y, extra_bullet)
         self.push_modifier = self.push_modifier * (1 + (game_state.upgrades.bullet_speed) * 0.4)
         self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
         local base_speed = self.speed
+        self.base_speed = self.speed
         -- self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
         self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.5)
         -- if game_state.upgrades.range == 1 then

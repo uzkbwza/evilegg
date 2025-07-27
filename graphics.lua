@@ -324,100 +324,213 @@ function graphics.load_image_font(name, sprite, glyphs)
 end
 
 function graphics.initialize_screen_shader_presets()
-	graphics.screen_shader_presets = {
-		
+
+    local slider = function(start, stop, should_round)
+        return function()
+            if should_round then
+                return round(lerp(start, stop, usersettings.shader_quality))
+            else
+                return lerp(start, stop, usersettings.shader_quality)
+            end
+        end
+    end
+
+    local threshold = function(threshold, under_value, over_value)
+        return function()
+            return usersettings.shader_quality >= threshold and over_value or under_value
+        end
+    end
+
+    local sblur_threshold = function(t) return threshold(t, graphics.shader.separable_blur, graphics.shader.blur) end
+    local sglow_threshold = function(t) return threshold(t, graphics.shader.separable_glow, graphics.shader.glow) end
+
+    graphics.screen_shader_presets = {
+
         {
             "shader_preset_none",
-			{ shader = graphics.shader.nothing, args = {} },
-			-- graphics.shader.basic
-			-- { shader = graphics.shader.none, args = {} },
-		},
-
-		{
-			
-			"shader_preset_soft",
-			-- graphics.shader.basic
-			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.06, pre_blur_samples = 7 } },
-
-			-- { shader = graphics.shader.screenfilter, args = {} },
-			-- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
-			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.3, aberration_strength = 0.6 }, },
-			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1.5, glow_boost = 0.025 } },
-
-			-- { shader = graphics.shader.blur, args = {} },
-			-- graphics.shader.lcd,
-		},
-		
-		{
-			
-			"shader_preset_glow",
-			-- graphics.shader.basic
-			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.045, pre_blur_samples = 8 } },
-
-			-- { shader = graphics.shader.screenfilter, args = {} },
-			-- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
-			-- { shader = graphics.shader.aberration, args = {aberration_amount = 0.3, aberration_strength = 0.6 }, },
-			-- { shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 16, intensity = 0.5, glow_curve = 1, glow_boost = 0.55 } },
-            { shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.35, glow_curve = 1, glow_boost = 0.0 } },
-            { shader = graphics.shader.glow, args = { pre_blur_size = 0.35, pre_blur_samples = 10, intensity = 0.25, glow_curve = 1, glow_boost = 0.0 } },
-			-- { shader = graphics.shader.blur, args = {} },
-			-- graphics.shader.lcd,
-		},
-
-		{
-			"shader_preset_scanline",
-			-- graphics.shader.basic
-			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
-			-- { shader = graphics.shader.screenfilter, args = {} },
-
-			{ shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture4, effect_strength = 0.6, brightness = 1.4 } },
-			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.1, aberration_strength = 0.6} },
-			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1. , glow_boost = 0.35  } },
-			-- { shader = graphics.shader.blur, args = {} },
-			-- graphics.shader.lcd,
-
-		},
-
-		{
-			"shader_preset_lcd",
-			-- graphics.shader.basic
-			{ shader = graphics.shader.blur, args = { pre_blur_size = 0.08, pre_blur_samples = 7 } },
-			-- { shader = graphics.shader.screenfilter, args = {} },
-			{ shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.6, brightness = 1.2 } },
-			{ shader = graphics.shader.aberration, args = {aberration_amount = 0.4, aberration_strength = 0.6} },
-			-- { shader = graphics.shader.blur, args = {} },
-			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.1, pre_blur_samples = 8, intensity = 0.25, glow_curve = 1. , glow_boost = 0.35 } },
-
-			-- graphics.shader.lcd,
-		},
-		
-		{
-			"shader_preset_ledboard",
-			{
-				shader = graphics.shader.led,
-				args = {
-					pixel_texture = graphics.textures.pixeltexture,
-					effect_strength = 1,
-					brightness = 1.0,
-					min_brightness = 0.025,
-					overlay_power = 0.3,
-					boost = 0.00,
-					luminance_modifier = 1.1,
-					saturation_modifier = 1.00,
-					contrast_modifier = 1.00,
-				},
-			},
-			-- { shader = graphics.shader.led,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 4, min_brightness = 0.00 } },
-			
-			{ shader = graphics.shader.glow, args = { pre_blur_size = 0.2, pre_blur_samples = 16, intensity = 0.5, glow_curve = 1, glow_boost = 0.55 } },
-            { shader = graphics.shader.glow, args = { pre_blur_size = 0.1, pre_blur_samples = 8, intensity = 0.4, glow_curve = 1, glow_boost = 0.35 } },
-			
-			-- { shader = graphics.shader.bloom, args = { } }
-
-			-- { shader = graphics.shader.aberration, args = {} },
-			-- { shader = graphics.shader.lcd,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 2.0 } },
+            {
+                shader = graphics.shader.nothing,
+                args = {},
+            },
+            -- graphics.shader.basic
+            -- { shader = graphics.shader.none, args = {} },
         },
 
+        {
+
+            "shader_preset_soft",
+            -- graphics.shader.basic
+            {
+                shader = sblur_threshold(0.5),
+                args = {
+                    pre_blur_size = 0.06,
+                    pre_blur_samples = 7,
+                },
+            },
+
+            -- { shader = graphics.shader.screenfilter, args = {} },sor
+            -- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
+            {
+                shader = graphics.shader.aberration,
+                args = {
+                    aberration_amount = 0.3, aberration_strength = 0.6, aberration_blur_samples = slider(2, 7, true),
+                },
+            },
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.6, 0.2), pre_blur_samples = slider(2, 8, true), intensity = threshold(0.5, 0.55, 0.25), glow_curve = 1.5, glow_boost = 0.025,
+                },
+            },
+
+            -- { shader = graphics.shader.blur, args = {} },
+            -- graphics.shader.lcd,
+        },
+
+        {
+
+            "shader_preset_glow",
+            -- graphics.shader.basic
+            {
+                shader = sblur_threshold(0.5),
+                args = { pre_blur_size = 0.045, pre_blur_samples = 8 },
+            },
+            {
+                shader = sglow_threshold(0.5),
+                args = { pre_blur_size = slider(0.4, 0.2), pre_blur_samples = slider(2, 8, true), intensity = threshold(0.5, 0.6, 0.35), glow_curve = 1, glow_boost = 0.0 },
+            },
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.5, 0.35),
+                    pre_blur_samples = slider(3, 10, true),
+                    intensity = threshold(0.5, slider(0.75, 0.25), slider(0.4, 0.25)),
+                    glow_curve = 1,
+                    glow_boost = 0.0,
+                },
+            },
+
+        },
+
+        {
+            "shader_preset_scanline",
+            -- graphics.shader.basic
+            {
+                shader = sblur_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.12, 0.08),
+                    pre_blur_samples = slider(2, 7, true),
+                },
+            },
+            -- { shader = graphics.shader.screenfilter, args = {} },
+
+            {
+                shader = graphics.shader.lcd,
+                args = {
+                    pixel_texture = graphics.textures.pixeltexture4,
+                    effect_strength = 0.6,
+                    brightness = 1.4,
+                },
+            },
+
+            { shader = graphics.shader.aberration, args = { aberration_amount = 0.1, aberration_strength = 0.6, aberration_blur_samples = slider(2, 7, true) } },
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = threshold(0.5, slider(0.6, 0.2), slider(0.4, 0.2)),
+                    pre_blur_samples = slider(2, 8, true),
+                    intensity = threshold(0.5, slider(0.6, 0.25), slider(0.4, 0.25)),
+                    glow_curve = 1.,
+                    glow_boost = slider(0.1, 0.35),
+                },
+            },
+        },
+
+        {
+            "shader_preset_lcd",
+            -- graphics.shader.basic
+            {
+                shader = sblur_threshold(0.5),
+                args = {
+                    pre_blur_size = 0.08,
+                    pre_blur_samples = slider(2, 7, true),
+                },
+            },
+            -- { shader = graphics.shader.screenfilter, args = {} },
+            {
+                shader = graphics.shader.lcd,
+                args = {
+                    pixel_texture = graphics.textures.pixeltexture2,
+                    effect_strength = 0.6,
+                    brightness = 1.2,
+                },
+            },
+            {
+                shader = graphics.shader.aberration,
+                args = {
+                    aberration_amount = 0.4,
+                    aberration_strength = 0.6,
+                    aberration_blur_samples = slider(2, 7, true),
+                },
+            },
+            -- { shader = graphics.shader.blur, args = {} },
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.2, 0.1),
+                    pre_blur_samples = slider(2, 8, true),
+                    intensity = 0.25,
+                    glow_curve = 1.,
+                    glow_boost = 0.35,
+                },
+            },
+            -- graphics.shader.lcd,
+        },
+
+        {
+            "shader_preset_ledboard",
+            {
+                shader = graphics.shader.led,
+                args = {
+                    pixel_texture = graphics.textures.pixeltexture,
+                    effect_strength = 1,
+                    brightness = 1.0,
+                    min_brightness = 0.025,
+                    overlay_power = 0.3,
+                    boost = 0.00,
+                    luminance_modifier = 1.1,
+                    saturation_modifier = 1.00,
+                    contrast_modifier = 1.00,
+                },
+            },
+            -- { shader = graphics.shader.led,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 4, min_brightness = 0.00 } },
+
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.8, 0.2),
+                    pre_blur_samples = slider(2, 16, true),
+                    intensity = 0.5,
+                    glow_curve = 1,
+                    glow_boost = 0.55,
+                },
+            },
+            {
+                shader = sglow_threshold(0.5),
+                args = {
+                    pre_blur_size = slider(0.3, 0.1),
+                    pre_blur_samples = slider(2, 8, true),
+                    intensity = 0.4,
+                    glow_curve = 1,
+                    glow_boost = 0.35,
+                },
+            },
+
+            -- { shader = graphics.shader.bloom, args = { } }
+
+            -- { shader = graphics.shader.aberration, args = {} },
+            -- { shader = graphics.shader.lcd,  args = { pixel_texture = graphics.textures.pixeltexture, effect_strength = 0.5, brightness = 2.0 } },
+        },
 
 	}
 
@@ -661,7 +774,7 @@ function graphics.draw_loop()
 		for i = 2, #(graphics.screen_shaders or dummy_table) do
 			
             local shader_table = graphics.screen_shaders[i]
-            local shader = shader_table.shader
+            local shader = resolve_recursive(shader_table.shader)
 			local args = shader_table.args
 			local shader_canvas = graphics.screen_shader_canvases[i]
 
@@ -690,8 +803,8 @@ function graphics.draw_loop()
 
             for arg, value in pairs(args) do
 				if shader:hasUniform(arg) then
-					shader:send(arg, value)
-				end 
+					shader:send(arg, resolve_recursive(value))
+				end
 			end
 				
             

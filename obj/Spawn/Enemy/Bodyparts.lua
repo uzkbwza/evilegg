@@ -329,9 +329,22 @@ end
 
 function FootShadow:draw()
     local radius = remap_clamp(self.radius and self.radius or 1, 0.3, 1, 0.0, 1.0)
+    -- local radius = 1
+    -- if (self.radius or 1) <= 0 then
+        -- radius = 0
+    -- end
+    local fill = "fill"
 	if radius > 0.3 then
-		graphics.set_color(Color.nearblack)
-		graphics.ellipse("fill", 0, 0, 10 * radius, 6 * radius)
+        graphics.set_color(Color.nearblack)
+        if self.parent then
+            if self.parent.state == "Stomp" and self.parent.searching and iflicker(self.parent.tick, 2, 2) then
+                graphics.set_color(iflicker(self.parent.tick, 4, 2) and Color.red or Color.yellow)
+                self.radius = 1
+                fill = "line"
+                graphics.set_line_width(2)
+            end
+        end
+		graphics.rectangle_centered(fill, 0, 0, 10 * radius * 2, 6 * radius * 2)
 		-- graphics.set_color(Color.darkergrey)
 		-- graphics.ellipse("line", 0, 0, 10 * radius, 6 * radius)
 	end
@@ -364,6 +377,7 @@ end
 
 function Foot:enter()
     self:ref("shadow", self:spawn_object(FootShadow(self.pos.x, self.pos.y))).z_index = -1
+    self.shadow:ref("parent", self)
     self:bind_destruction(self.shadow)
 	self:add_hit_bubble(-5, 4, 5, "main", 1)
 	self:add_hit_bubble(5, 4, 5, "main2", 1)

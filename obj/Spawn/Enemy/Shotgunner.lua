@@ -10,6 +10,9 @@ Shotgunner.max_hp = 9
 Shotgunner.spawn_cry = "enemy_shotgunner_spawn"
 Shotgunner.spawn_cry_volume = 0.9
 
+Shotgunner.death_cry = "enemy_shotgunner_die"
+Shotgunner.death_cry_volume = 0.9
+
 local BULLET_SPEED = 4.
 local NUM_BULLETS = 10
 local SPREAD = 50

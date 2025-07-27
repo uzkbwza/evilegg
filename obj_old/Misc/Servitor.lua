@@ -16,12 +16,12 @@ function Servitor:enter()
 	fx.flash = false
 	fx.duration = 60
 	self:spawn_object(fx)
-	self:set_visibility(false)
+	self:set_visible(false)
 	local s = self.sequencer
 	s:start(function()
-		self:set_visibility(false)
+		self:set_visible(false)
 		s:wait(59)
-		self:set_visibility(true)
+		self:set_visible(true)
 	end)
 end
 

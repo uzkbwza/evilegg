@@ -855,20 +855,18 @@ function EggBoss:phase2_landing()
             -- self:show()
             
             
-            -- closest_player:show()
-            -- self:emit_signal("cutscene1_over")
-            -- closest_player:change_state("Walk")
-            -- self.world.floor_drawing = true
-            -- self:change_state("Phase6")
+            closest_player:show()
+            self:emit_signal("cutscene1_over")
+            closest_player:change_state("Walk")
+            self.world.floor_drawing = true
+            self:change_state("Phase6")
             
-            s:wait(45)
-
-            self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
-
-            s:wait(180)
-            self.placeholder_text:start_destroy_timer(10)
-
-            self:die()
+            -- placeholder block
+            -- s:wait(45)
+            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+            -- s:wait(180)
+            -- self.placeholder_text:start_destroy_timer(10)
+            -- self:die()
 
             return
 		end)
@@ -1323,7 +1321,10 @@ function BloodSpawner:zap(target)
 		if target.is_queued_for_destruction then return end
 		local start_x, start_y = self:get_body_center_local()
 		local end_x, end_y = self:to_local(target:get_body_center())
-		self.zap_end_x, self.zap_end_y = end_x - start_x, end_y - start_y
+        self.zap_end_x, self.zap_end_y = end_x - start_x, end_y - start_y
+        if self:get_bubble("hit", "zap") then
+            self:remove_bubble("hit", "zap")
+		end
         self:add_hit_bubble(start_x, start_y, 3, "zap", 1, end_x, end_y)
         self:start_timer("zap_effect", 4, function()
 			self:queue_destroy()
@@ -1980,7 +1981,7 @@ end
 
 function UnderEggFlash:update(dt)
     if self.parent then
-		self:set_visibility(self.parent.visible)
+		self:set_visible(self.parent.visible)
         -- self:move_to(self.parent.pos.x, self.parent.pos.y)
     else
         self:queue_destroy()
