@@ -444,9 +444,7 @@ function GameWorld:spawn_wave()
 
 	game_state.wave = self.room.wave
 
-
 	self:change_state("Spawning")
-
 
 	self.wave_started = true
 
@@ -1633,6 +1631,8 @@ local shader_black = {0, 0, 0, 0}
 
 
 function GameWorld:draw_floor_canvas()
+
+    
 	do
 		graphics.push("all")
 		graphics.set_canvas(self.current_frame_floor_canvas_settings)

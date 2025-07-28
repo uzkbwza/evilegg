@@ -60,8 +60,8 @@ local conf = {
 		"room_padding",
 	},
 	
-	-- display_scale = 2,
-	display_scale = IS_EXPORT and 2 or 5,
+	-- display_scale = 3,
+	display_scale = IS_EXPORT and 3 or 5,
 
 	-- delta
 	use_fixed_delta = false,

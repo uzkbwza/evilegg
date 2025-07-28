@@ -266,7 +266,7 @@ end
 function savedata:on_death()
     if usersettings.retry_cooldown then
         self:set_save_data("last_died_at", os.time())
-        self:set_save_data("retry_cooldown_seconds", (game_state and game_state.level) or 10)
+        self:set_save_data("retry_cooldown_seconds", max(10, (game_state and game_state.level) or 10))
     end
 end
 

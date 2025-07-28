@@ -26,7 +26,8 @@ local Enemies = {
 		basic_after_level = 30,
         icon = textures.enemy_walksploder,
 		spawn_group = { "exploder", "basic" },
-		basic_select_weight_modifier = 0.2
+        basic_select_weight_modifier = 0.2,
+        enemy_spawn_effect = "ExplosiveEnemySpawn",
 	},
 
 	FastWalker = {
@@ -65,6 +66,7 @@ local Enemies = {
 		spawn_points = 25,
         room_select_weight = 500,
 		spawn_group = { "basic", "exploder" },
+        enemy_spawn_effect = "ExplosiveEnemySpawn",
 	},
 	
 	RoyalRoamer = {
@@ -209,7 +211,8 @@ local Enemies = {
         icon = textures.enemy_chargesploder1,
 		spawn_group = { "exploder", "basic" },
 		basic_after_level = 30,
-		basic_select_weight_modifier = 0.1
+		basic_select_weight_modifier = 0.1,
+        enemy_spawn_effect = "ExplosiveEnemySpawn",
 	},
 	
 	Mortar = {
@@ -412,6 +415,8 @@ local Hazards = {
 		room_select_weight = 300,
 		icon = textures.hazard_exploder,
 		spawn_group = { "basic", "exploder" },
+
+        enemy_spawn_effect = "ExplosiveEnemySpawn",
 	},
 
 	Blinker = {

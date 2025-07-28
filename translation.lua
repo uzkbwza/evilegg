@@ -375,7 +375,7 @@ local translations = {
         codex_name_hookworm         = "Hook Worm",
         codex_desc_hookworm         = "Hungry!",
 
-        codex_glossary_room_has_max_points = "This room has the most potential points from enemies and greenoids.",
+        codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",
         
         codex_glossary_name_lvl            = "Lvl",
@@ -391,7 +391,13 @@ local translations = {
         codex_glossary_name_xp           = "XP",
         codex_glossary_desc_xp             =
         "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
+
+        codex_glossary_name_upgrade        = "UPGRADE",
+        codex_glossary_desc_upgrade        = "A temporary upgrade to your firepower, carried to you by a greenoid martyr. A random upgrade is destroyerd when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
         
+        codex_glossary_name_artefact       = "ARTEFACT",
+        codex_glossary_desc_artefact       = "A piece of unique equipment sent to you by thankful greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",
+
         codex_variable_score = "VARIES",
 
         codex_level_bonus_score            = "Points: %s",

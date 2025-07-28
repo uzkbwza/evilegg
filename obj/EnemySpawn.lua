@@ -1,5 +1,6 @@
 local EnemySpawn = GameObject2D:extend("EnemySpawn")
 local BigEnemySpawn = EnemySpawn:extend("BigEnemySpawn")
+local ExplosiveEnemySpawn = EnemySpawn:extend("ExplosiveEnemySpawn")
 
 local TIME = 45
 local SIZE = 15
@@ -100,7 +101,15 @@ function BigEnemySpawn:get_min_size()
 	return 32
 end
 
+function ExplosiveEnemySpawn:draw()
+    ExplosiveEnemySpawn.super.draw(self)
+    if not iflicker(gametime.tick, 2, 2) then return end
+    graphics.set_color(Color.white)
+    graphics.drawp_centered(self.tick < 30 and textures.enemy_explosive1 or textures.enemy_explosive2, nil, idiv(self.tick, 5), 0, 0)
+end
+
 return {
     EnemySpawn = EnemySpawn,
     BigEnemySpawn = BigEnemySpawn,
+    ExplosiveEnemySpawn = ExplosiveEnemySpawn,
 } 

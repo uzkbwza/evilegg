@@ -379,7 +379,7 @@ function graphics.initialize_screen_shader_presets()
             {
                 shader = sglow_threshold(0.5),
                 args = {
-                    pre_blur_size = slider(0.6, 0.2), pre_blur_samples = slider(2, 8, true), intensity = threshold(0.5, 0.55, 0.25), glow_curve = 1.5, glow_boost = 0.025,
+                    pre_blur_size = slider(0.5, 0.2), pre_blur_samples = slider(2, 8, true), intensity = threshold(0.5, 0.55, 0.25), glow_curve = 1.5, glow_boost = 0.025,
                 },
             },
 

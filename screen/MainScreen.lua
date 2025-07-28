@@ -198,7 +198,7 @@ function TopLayer:draw()
         --     fps = min(fps, usersettings.fps_cap)
         -- end
 
-        if self.viewport_size.x <= conf.viewport_size.x + 14 then
+        if self.viewport_size.x <= conf.viewport_size.x + 14 and self.viewport_size.y <= conf.viewport_size.y + 17 then
             graphics.print_outline(Color.black, fps, 9, 0, deg2rad(90), 1, 1)
         else
             graphics.print_outline(Color.black, fps, 1, 1, 0, 1, 1)

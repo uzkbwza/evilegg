@@ -556,15 +556,6 @@ function CodexWorld:get_spawns(page_category)
         if page_category == "glossary" then
             tab = {
                 {
-                    name = "room_has_max_points",
-                    description = "codex_glossary_room_has_max_points",
-                    start_unlocked = true,
-                },
-                {
-                    name = "room_is_hard",
-                    description = "codex_glossary_room_is_hard",
-                },
-                {
                     name = "codex_glossary_name_lvl",
                     description = "codex_glossary_desc_lvl",
                     start_unlocked = true,
@@ -572,6 +563,16 @@ function CodexWorld:get_spawns(page_category)
                 {
                     name = "codex_glossary_name_wave",
                     description = "codex_glossary_desc_wave",
+                    start_unlocked = true,
+                },
+                {
+                    name = "codex_glossary_name_upgrade",
+                    description = "codex_glossary_desc_upgrade",
+                    start_unlocked = true,
+                },
+                {
+                    name = "codex_glossary_name_artefact",
+                    description = "codex_glossary_desc_artefact",
                     start_unlocked = true,
                 },
                 {
@@ -584,6 +585,15 @@ function CodexWorld:get_spawns(page_category)
                     description = "codex_glossary_desc_xp",
                     start_unlocked = true,
                 },
+                {
+                    name = "room_has_max_points",
+                    description = "codex_glossary_room_has_max_points",
+                    start_unlocked = true,
+                },
+                {
+                    name = "room_is_hard",
+                    description = "codex_glossary_room_is_hard",
+                },
             }
         elseif page_category == "levelbonus" then
             tab = {}
@@ -594,6 +604,7 @@ function CodexWorld:get_spawns(page_category)
                     level_bonus =  v
                 })
             end
+            table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
         end
 
         for _, v in ipairs(tab) do
@@ -603,7 +614,6 @@ function CodexWorld:get_spawns(page_category)
             v.text_color = page_category == "glossary" and Color.orange or Color.cyan
         end
 
-        table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
 
         for _, v in ipairs(tab) do
             table.insert(spawns, v)
