@@ -23,6 +23,8 @@ function PlayerDeathScreenWorld:new()
 	self.draw_sort = self.z_sort
 end
 
+local NUM_TRIES = 5
+
 function PlayerDeathScreenWorld:enter()
 	
 	local prev_high_score = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).score or 0
@@ -46,10 +48,17 @@ function PlayerDeathScreenWorld:enter()
 
     savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] or {}
 
+    -- .run_upload_queue_tries[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION] or {}
+
     local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
+
+    -- local run_upload_queue_tries = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION]
 
     run_upload_queue[score_table.run_key] = score_table
 
+    -- run_upload_queue_tries[score_table.run_key] = run_upload_queue_tries[score_table.run_key] or leaderboard.NUM_TRIES
+
+    savedata:save()
 
 
     leaderboard.submit_queued_runs()

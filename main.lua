@@ -2,11 +2,12 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.5.5"
+GAME_VERSION = "0.5.9"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
 print("Leaderboard version: " .. GAME_LEADERBOARD_VERSION)
+print("Love version: " .. love.getVersion())
 
 conf         = require "conf"
 usersettings = require "usersettings"; usersettings:initial_load()
@@ -137,7 +138,8 @@ function love.run()
         end
         if love.timer then dt = love.timer.step() end
 
-        local delta_frame = min(dt*TICKRATE, conf.max_delta_seconds*TICKRATE)
+        local delta_seconds = min(dt, conf.max_delta_seconds)
+        local delta_frame = delta_seconds * TICKRATE
         gametime.love_delta = dt
         gametime.love_time  = gametime.love_time + dt
         gametime.time       = gametime.time + delta_frame
@@ -158,8 +160,8 @@ function love.run()
             force_fixed_time_left = approach(force_fixed_time_left, 0, dt)
         end
 
-        -- local force_fixed = force_fixed_time_left > 0
-		local force_fixed = false
+        local force_fixed = force_fixed_time_left > 0
+		-- local force_fixed = false
         local debug_ffwd  = debug.enabled and debug.fast_forward
         local fixed_enabled = conf.use_fixed_delta or force_fixed
         local cap_fps     = usersettings.cap_framerate and not debug_ffwd
@@ -179,7 +181,7 @@ function love.run()
 
 				local fixed_delta_frame = fixed_frame_time * TICKRATE
 				gametime.delta, gametime.delta_seconds = fixed_delta_frame, fixed_frame_time
-				accumulated_fixed_time = accumulated_fixed_time + dt
+				accumulated_fixed_time = accumulated_fixed_time + delta_seconds
 				local loops = debug_ffwd and conf.max_fixed_ticks_per_frame or 1
 			
 				if force_fixed then
@@ -200,7 +202,9 @@ function love.run()
                 end
             else
 				dbg("fixed step", false, Color.cyan)
-                accumulated_cap_time = accumulated_cap_time + dt
+                accumulated_cap_time = accumulated_cap_time + delta_seconds
+                dbg("accumulated_cap_time", accumulated_cap_time, Color.cyan)
+                
                 local cap_interval = 1 / usersettings.fps_cap
                 if accumulated_cap_time >= cap_interval then
                     local capped_seconds                   = min(accumulated_cap_time, conf.max_delta_seconds)

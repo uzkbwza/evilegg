@@ -140,11 +140,12 @@ function HUDLayer:start_after_level_bonus_screen()
     self.game_layer.world.waiting_on_bonus_screen = true
 	
     local function update_bonus_info(bonus, b, count)
-		b.score = stepify_floor(resolve(bonus.score), 10)
+		-- b.score = stepify_floor(resolve(bonus.score), 10)
 		
 		-- b.score = bonus.ignore_score_multiplier and resolve(bonus.score) or stepify_floor((resolve(bonus.score)) * 20, 10)
 		b.score = bonus.ignore_score_multiplier and resolve(bonus.score) or game_state:determine_score(resolve(bonus.score))
 		-- b.score = bonus.ignore_score_multiplier and b.score or game_state:determine_score(b.score / 20)
+        b.score = stepify_floor(b.score, 10)
         if bonus.negative then
 			b.score = -abs(b.score)
 		end

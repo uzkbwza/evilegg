@@ -216,13 +216,13 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
+        local cheat = true
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
-			-- self:add_score(2500000, "cheat")
+			self:add_score(2500000, "cheat")
             self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
@@ -239,7 +239,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30
+            self.level = 31
             self.hearts = self.max_hearts
 
             for i = 1, 8 do

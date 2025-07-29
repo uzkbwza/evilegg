@@ -1,4 +1,4 @@
-local TILE_SIZE = 8
+local TILE_SIZE = 16
 
 local COLLISION_SOLID = Rect(0, 0, TILE_SIZE, TILE_SIZE)
 
@@ -10,17 +10,17 @@ local COLLISION_RIGHT_1PX = Rect(TILE_SIZE - 1, 0, 1, TILE_SIZE)
 -- formatted this way to retain order
 
 local TILESETS = {
-	-- {
-	-- 	name = "test",
-	-- 	data = {
-	-- 		collision_rect = {
-	-- 			[COLLISION_SOLID] = {
-	-- 				1
-    --             },
-    --         },
+	{
+		name = "test",
+		data = {
+			collision_rect = {
+				[COLLISION_SOLID] = {
+					1
+                },
+            },
 
-    --     },
-    -- },
+        },
+    },
 }
 
 local OBJECT_TILES = {

@@ -9,7 +9,10 @@ local socket = require "socket"
 local json   = require "lib.json"
 local thread = require "love.thread"
 
+
 local LB = {}
+LB.NUM_TRIES        = 5
+
 LB.host, LB.port    = "168.235.104.144", 5000
 
 LB.default_category = (debug.enabled and "debug" or "normal")
@@ -161,10 +164,16 @@ end
 
 function LB.submit_queued_runs(cb)
     local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
+    -- local run_upload_queue_tries = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION]
     if not run_upload_queue or next(run_upload_queue) == nil then
         if cb then cb(true, { status = "noop" }) end
         return
     end
+
+    -- if not run_upload_queue_tries or next(run_upload_queue_tries) == nil then
+    --     if cb then cb(true, { status = "noop" }) end
+    --     return
+    -- end
 
     local runs_by_category = {}
     for key, run in pairs(run_upload_queue) do
@@ -181,9 +190,17 @@ function LB.submit_queued_runs(cb)
         LB.submit_many(runs, category, true, function(ok, res)
             if ok and res and res.status == "ok" then
                 for _, run in ipairs(runs) do
-                    run_upload_queue[run.run_key] = nil
+                    -- if not run_upload_queue_tries[run.run_key] then
+                    --     run_upload_queue_tries[run.run_key] = LB.NUM_TRIES
+                    -- end
+                    -- run_upload_queue_tries[run.run_key] = run_upload_queue_tries[run.run_key] - 1
+                    -- if run_upload_queue_tries[run.run_key] <= 0 then
+                        run_upload_queue[run.run_key] = nil
+                        -- run_upload_queue_tries[run.run_key] = nil
+                    -- end
                 end
             end
+            savedata:save()
             if cb then cb(ok, res) end
         end)
     end
