@@ -14,7 +14,7 @@ def convert_wav_to_ogg(wav_path):
 
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", wav_path, "-q:a", "0", ogg_path],
+            ["ffmpeg", "-y", "-i", wav_path, "-q:a", "9", ogg_path],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             check=True

@@ -27,7 +27,10 @@ function PauseScreenWorld:enter()
         { name = tr.menu_options_button,      func = function() self:emit_signal("options_menu_requested") end },
         -- {name = tr.main_menu_credits_button, func = function() end},
 
-        { name = tr.pause_menu_quit_button,   func = function() self:emit_signal("quit_requested") end },
+        { name = tr.pause_menu_quit_button,   func = function()
+            savedata:on_death()
+            self:emit_signal("quit_requested") 
+        end },
     }
 
     -- self:ref_array("menu_items")

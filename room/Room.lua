@@ -766,7 +766,9 @@ function Room:generate_waves()
         local wave_number = 1
 
         for i = 1, min(#sub_narratives, self.level) do
-            local sub_narrative = sub_narratives[max(max(i, self.level >= 30 and 2 or 1), (self.level >= 50 or self.is_hard) and 3 or 1)]
+            local wave_strength = max(i, self.level >= 30 and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= 50 and (i + 1) or 1))
+            local sub_narrative = sub_narratives[wave_strength]
+            print("wave strength: " .. wave_strength)
             if wave_types[sub_narrative.type] ~= nil then
                 local pool_modification_chance_per_enemy = sub_narrative.pool_modification_chance_per_enemy or 0.1
                 local max_enemy_difficulty = min(sub_narrative.max_difficulty or math.huge,
