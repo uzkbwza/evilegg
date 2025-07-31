@@ -273,14 +273,13 @@ function UILayer:state_Paused_enter()
 
 	signal.connect(self.pause_screen, "codex_menu_requested", self, "on_codex_menu_requested",
         function() self:show_codex_menu() end)
-	
 
 end
 
 function UILayer:show_options_menu()
     self:ref("options_menu", Screens.OptionsMenuScreen()).in_game = true
     self.handling_input = false
-    self:add_sibling_below(self.options_menu)
+    self:push(self.options_menu)
     self.pause_screen.handling_render = false
 
     signal.connect(self.options_menu, "exit_menu_requested", self, "on_exit_menu_requested", function()
@@ -299,7 +298,7 @@ end
 function UILayer:show_codex_menu()
     self:ref("codex_menu", Screens.CodexScreen()).in_game = true
     self.handling_input = false
-    self:add_sibling_below(self.codex_menu)
+    self:push(self.codex_menu)
     self.pause_screen.handling_render = false
 
     signal.connect(self.codex_menu, "exit_menu_requested", self, "on_exit_menu_requested", function()
@@ -332,7 +331,7 @@ function UILayer:state_Paused_update(dt)
 	-- 	if input.menu_pressed then
 	-- 		self.unpausing = true
 	-- 		local s = self.sequencer
-	-- 		self.blocks_render = false
+	-- 		self.blocks_render = false5
 			
 	-- 		s:start(function()
 	-- 			s:wait(2)
