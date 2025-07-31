@@ -2095,8 +2095,8 @@ function GameWorld:draw_room_bounds()
 
 
         if self.room.wave < self.room.last_wave then
-            local offs = remap_clamp(self:get_quick_clear_time_left_ratio(), 0.8, 1, 0, 1)
-            offs = ease("inQuad")(offs) * 10
+            local offs = remap_clamp(self:get_quick_clear_time_left_ratio(), 0.85, 1, 0, 1)
+            offs = ease("inCubic")(offs) * 10
             offs = offs * (self.room.wave % 2 == 0 and 1 or -1)
             border_dash_offset = border_dash_offset + offs
         end
