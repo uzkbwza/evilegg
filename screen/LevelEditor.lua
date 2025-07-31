@@ -2038,12 +2038,12 @@ function LevelEditor:draw_selection()
     graphics.origin()
     graphics.translate(self.offset_stepped.x, self.offset_stepped.y)
     graphics.scale(1, 1)
-    graphics.set_color(floor(self.tick / 5) % 2 == 0 and Color.black or Color.white)
+    graphics.set_color(Color.black)
     local x, y, w, h = min(start_x, end_x) * self.zoom, min(start_y, end_y) * self.zoom, abs(end_x - start_x) * self
     .zoom, abs(end_y - start_y) * self.zoom
     graphics.rectangle("line", x, y, w, h)
-    graphics.set_color(floor(self.tick / 5) % 2 == 0 and Color.white or Color.black)
-    graphics.dashrect(x, y, w, h, 2, 2)
+    graphics.set_color(Color.white)
+    graphics.dashrect(x, y, w, h, 2, 2, -self.elapsed * 0.06)
 
     graphics.pop()
 end
