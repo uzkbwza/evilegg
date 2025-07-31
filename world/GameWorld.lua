@@ -89,11 +89,14 @@ function GameWorld:new(x, y)
 
 	self.border_rainbow_offset = 0
 
+    self.rendering_content = true
+
 	self.notification_queue = {}
 
 	self.draining_bullet_powerup = false
 
 	self.waiting_on_bonus_screen = false
+
 
 	self:init_state_machine()
 end
@@ -115,13 +118,20 @@ function GameWorld:enter()
 	self.camera.persist = true
 
     game_state.level = game_state.level - 1
-	if not (debug.enabled and debug.skip_tutorial_sequence) then
+    if not (debug.enabled and debug.skip_tutorial_sequence) then
 		game_state.level = game_state.level - 1
 	end
 	
 	local start_room = self:create_room((debug.enabled and debug.skip_tutorial_sequence and {}) or {start_room = true})
 
-	self:initialize_room(start_room)
+    self:initialize_room(start_room)
+    
+    if not (debug.enabled and debug.skip_tutorial_sequence) then
+		self.player_hatched = false
+    else
+        self.player_hatched = true
+	end
+
 
 	self:clear_floor_canvas(false)
 
@@ -329,6 +339,10 @@ function GameWorld:create_room(room_params)
 end
 
 function GameWorld:initialize_room(room)
+
+    self.timescaled:stop_tick_timer("wave_timer")
+    self.timescaled:stop_tick_timer("last_wave_quick_clear")
+
     self.draining_bullet_powerup = false
 	self.floor_drawing = true
 	if room.draw_floor_canvas == false then
@@ -371,9 +385,11 @@ function GameWorld:initialize_room(room)
 end
 
 function GameWorld:start_wave_timer(duration)
+    self.timescaled:stop_tick_timer("wave_timer")
 	self.timescaled:start_tick_timer("wave_timer", duration, function()
 		if game_state.game_over then return end
-		self.room.wave = self.room.wave + 1
+        self.room.wave = self.room.wave + 1
+
 		self:spawn_wave()
 	end)
 end
@@ -440,8 +456,9 @@ function GameWorld:on_rescue_picked_up(rescue_object)
 end
 
 function GameWorld:spawn_wave()
-	if self.room.cleared then return end
+    if self.room.cleared then return end
 
+    
 	game_state.wave = self.room.wave
 
 	self:change_state("Spawning")
@@ -482,9 +499,9 @@ function GameWorld:spawn_wave()
 			end
 
 			if self.room.wave < self.room.last_wave then
-				self:start_wave_timer(max(600 - game_state.difficulty * 60, 120))
+				self:start_wave_timer(540)
 			else
-				self.timescaled:start_tick_timer("last_wave_quick_clear", max(600 - game_state.difficulty * 60, 120))
+				self.timescaled:start_tick_timer("last_wave_quick_clear", 540)
 			end
 		end)
 	end
@@ -730,7 +747,7 @@ function GameWorld:closest_last_player_body_pos(x, y)
 end
 
 function GameWorld:create_player(player_id)
-	player_id = player_id or #self.players + 1
+    player_id = player_id or #self.players + 1
 
 	local player = self:spawn_object(O.Player.PlayerCharacter(0, 0))
 	signal.connect(player, "died", self, "on_player_died")
@@ -752,7 +769,9 @@ function GameWorld:create_player(player_id)
 		-- self.last_player_body_positions[player_id] = nil
 	end)
 
-	signal.connect(player, "hatched", self, "on_player_hatched", function()
+    signal.connect(player, "hatched", self, "on_player_hatched", function()
+        self.player_hatched = true
+
         game_state:on_hatched()
 
 		savedata:set_save_data("first_time_playing", false)
@@ -862,10 +881,22 @@ function GameWorld:on_player_died()
 		self:end_tick_timer("last_wave_quick_clear")
         savedata:on_death()
 		audio.stop_music()
-		game_state:on_game_over()
+		if not game_state.artefacts.blast_armor then
+            game_state:on_game_over()
+        end
 		s:wait(60)
-		self.object_time_scale = 1
-		self.player_death_fx = false
+        self.player_death_fx = false
+        if game_state.artefacts.blast_armor then
+		    self.object_time_scale = 1.0
+		    s:wait(5)
+            game_state:on_game_over()
+            s:start(function()
+                s:tween_property(self, "object_time_scale", 1.0, 0.15, 90, "linear")
+            end)
+        end
+        -- else
+        self.object_time_scale = 0.15
+        -- end
 
 		-- s:wait(18)
 		
@@ -1276,12 +1307,19 @@ function GameWorld:always_update(dt)
     if not self.moving_camera_target then
         -- local target_x, target_y = self.showing_hud and CAMERA_TARGET_OFFSET.x or 0,
         -- self.showing_hud and CAMERA_TARGET_OFFSET.y or 0
-		
-		-- self.camera_target:move_to(vec2_approach(self.camera_target.pos.x, self.camera_target.pos.y, target_x, target_y, dt * 0.5))
-	end
+
+        -- self.camera_target:move_to(vec2_approach(self.camera_target.pos.x, self.camera_target.pos.y, target_x, target_y, dt * 0.5))
+    end
+    if debug.enabled then
+        dbg("quick_clear_time_left_ratio", self:get_quick_clear_time_left_ratio(), Color.yellow)
+        dbg("wave_timer", self.timescaled:tick_timer_time_left("wave_timer"), Color.yellow)
+        dbg("last_wave_quick_clear", self.timescaled:tick_timer_time_left("last_wave_quick_clear"), Color.yellow)
+    end
 end
 
 function GameWorld:update(dt)
+
+
 	self.camera_aim_offset = self.camera_aim_offset or Vec2(0, 0)
 
 	self.timescaled.draining_bullet_powerup = self.draining_bullet_powerup
@@ -1757,10 +1795,14 @@ function GameWorld:draw()
 	
 
 	-- Handle room bounds drawing based on clear effect
-	local draw_bounds_over = self.room_clear_fx_t < 0.45 and self.room_clear_fx_t > 0
-	if not draw_bounds_over then
-		self:draw_room_bounds()
-	end
+	-- local draw_bounds_over = self.room_clear_fx_t < 0.45 and self.room_clear_fx_t > 0
+    -- if not draw_bounds_over then
+    self:draw_room_bounds()
+        -- self:draw_top_info()
+    -- end
+    
+    self:draw_top_info()
+
 
 	-- Draw tutorial text if active
 	if self.tutorial_state and not self.paused then
@@ -1777,33 +1819,174 @@ function GameWorld:draw()
 		end
 	end
 
-	if self.showing_hud then
-		-- Draw quick clear progress bar
-		local left = self.room.left + 61
-		local top = self.room.top
 
-		local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
-		if quick_clear_ratio > 0 then
-			quick_clear_ratio = 1 - quick_clear_ratio
-		end
-		local border_color = self:get_border_rainbow()
-		local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
-		if quick_clear_ratio < (3 / 10) and iflicker(self.tick, 5, 2) and self.state == "Normal" then
-			colormod = 0.0
-		end
-		graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
-		local x_scale = 130 * quick_clear_ratio
-		local y_scale = 3
-		graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
-	end
-
-	-- Draw base game world
-	GameWorld.super.draw(self)
+    -- Draw base game world
+    if self.rendering_content then
+        GameWorld.super.draw(self)
+    end
 
 	-- Draw room bounds on top if needed
-	if draw_bounds_over then
-		self:draw_room_bounds()
+	-- if draw_bounds_over then
+        -- self:draw_room_bounds()
+        
+	-- end
+end
+
+local function format_score(n, lead_zeros, font)
+    lead_zeros = math.max(lead_zeros or 0, 0)
+
+    local abs_str = tostring(math.abs(n))
+    local sign    = n < 0 and "-" or ""
+
+    -- how many zeros to pad so total digits ≥ lead_zeros
+    local zero_count = math.max(lead_zeros - #abs_str, 0)
+    local pad_str    = string.rep("0", zero_count) .. abs_str
+
+    local padded_str   = sign .. comma_sep(pad_str)
+    local unpadded_str = sign .. comma_sep(abs_str)
+
+    -- figure out how much of padded_str we'd have to chop off
+    local diff_len  = #padded_str - #unpadded_str
+    local hidden_str = padded_str:sub(1, diff_len)
+
+    -- positive offset: move right by this many chars or pixels
+    local x_offset = font
+        and font:getWidth(hidden_str)
+        or diff_len
+
+    return padded_str, unpadded_str, x_offset
+end
+
+function GameWorld:draw_quick_clear_progress_bar()
+    -- Draw quick clear progress bar
+    local left = self.room.left + 61
+    local top = self.room.top
+
+    local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
+    if quick_clear_ratio > 0 then
+        quick_clear_ratio = 1 - quick_clear_ratio
+    end
+    local border_color = self:get_border_rainbow()
+    local colormod = lerp(1 - quick_clear_ratio, 1, 0.15)
+    if quick_clear_ratio < (3 / 10) and iflicker(self.tick, 5, 2) and self.state == "Normal" then
+        colormod = 0.0
+    end
+    graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
+    local x_scale = 130 * quick_clear_ratio
+    local y_scale = 3
+    graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
+end
+
+function GameWorld:draw_top_info()
+
+    if not self.player_hatched then
+        return
+    end
+
+    local x_start = -conf.viewport_size.x / 2 + self.camera_target.pos.x
+    local y_start = -conf.viewport_size.y / 2 + self.camera_target.pos.y - 2
+    local h_padding = conf.room_padding.x - 2
+    local v_padding = conf.room_padding.y - 9
+
+    local left = x_start + h_padding
+    local top = y_start + v_padding - 1
+    local font = fonts.hud_font
+
+    local border_color = self:get_border_rainbow()
+    local charwidth = fonts.hud_font:getWidth("0")
+
+    local hud_layer = self.canvas_layer.parent.hud_layer
+
+
+	if not self.showing_hud then
+		return
 	end
+
+
+    self:draw_quick_clear_progress_bar()
+
+
+
+	graphics.set_font(font)
+	graphics.set_color(Color.white)
+
+
+	graphics.push()
+	graphics.translate(floor(left), top)
+	-- graphics.set_color(Color.darkergrey)
+	graphics.set_color(Color.grey)
+	-- graphics.print("LVL", 0, 0)
+	local level_with_zeroes, level_without_zeroes, level_x = format_score(game_state.level % 100, 2, font)
+	level_x = level_x
+	local zero_start = font:getWidth("LVL")
+
+	graphics.print("LVL", 0, 0)
+	graphics.set_color(Color.darkergrey)
+	
+	graphics.print(level_with_zeroes, zero_start, 0)
+
+	graphics.set_color(Color.white)
+	-- graphics.set_color(Palette.rainbow:tick_color(gametime.tick, 0, 10))
+	
+	graphics.print(level_without_zeroes, level_x + zero_start, 0)
+	graphics.set_color(Color.grey)
+	graphics.print("WAVE", 32, 0)
+	graphics.set_color(Color.white)
+	graphics.print(string.format("%01d", game_state.wave), font:getWidth("WAVE") + 32, 0)
+	graphics.set_color(Color.darkergrey)
+	
+	
+	graphics.translate(charwidth * 20 + 6, 0)
+	graphics.translate(charwidth * 11 + 3, 0)
+
+
+	local category_high = savedata:get_category_highs(game_state.leaderboard_category)
+	local high_score = category_high and category_high.score or 0
+
+	local beat_high = false
+	if hud_layer.score_display < high_score then
+		graphics.set_color(Color.darkgrey)
+		local i = 1
+		local finished = false
+		local tens = 1
+		while not finished do
+			if idiv(hud_layer.score_display, tens) > 0 then
+				tens = tens * 10
+			else
+				finished = true
+			end
+		end
+		high_score = high_score - (high_score % tens) + hud_layer.score_display
+		local best_score = comma_sep(high_score)
+		graphics.set_color(Color.darkergrey)
+        graphics.print_right_aligned(best_score, font, 0, 0)
+    else
+		beat_high = true
+	end
+
+	local score_without_zeroes = comma_sep(hud_layer.score_display)
+
+	graphics.set_color(beat_high and Palette.high_score_ingame:tick_color(self.tick, 0, 7) or border_color)
+	graphics.print_right_aligned(score_without_zeroes, font, 0, 0)
+	graphics.set_color(Color.grey)
+	
+	local scoremult1 = "×["
+	-- local scoremult6 = "["
+	local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
+	local scoremult3 = string.format("×%02d", max(1, game_state:get_rescue_chain_multiplier()))
+	-- local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
+	local scoremult4 = "   "
+    local scoremult5 = "]"
+
+	local greenoid_color = Color.green
+	if self:is_timer_running("greenoid_harmed_flash") then
+		greenoid_color = iflicker(self.tick, 3, 2) and Color.red or Color.green
+	end
+	graphics.print_multicolor(font, 0, 0, scoremult1, Color.grey, scoremult2, Color.white, scoremult3, greenoid_color,
+		scoremult4, Color.white, scoremult5, Color.grey)
+	graphics.set_color(Color.white)
+	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
+	graphics.pop()
 end
 
 function GameWorld:get_border_color()
@@ -1876,7 +2059,8 @@ function GameWorld:draw_room_bounds()
 
 	
 	local min_t = 1.0
-	local color = self:get_border_color()
+    local color = self:get_border_color()
+
 	if self.room_clear_fx_t > min_t or self.room_clear_fx_t == -1 then
         local dash_swapped = self:is_border_dash_swapped()
 		local solid_color = self.state == "RoomClear" or self.player_hurt_fx_t < 0.5 and self.player_hurt_fx_t > 0
@@ -1899,26 +2083,44 @@ function GameWorld:draw_room_bounds()
 		if self.room_clear_fx_t > min_t then
 			alpha = alpha * (remap_clamp(self.room_clear_fx_t, min_t, 1, 0, 1))
 		end
-		graphics.set_color(red * alpha, green * alpha, blue * alpha)
+
+        local r2,g2,b2 = red * alpha, green * alpha, blue * alpha
+		graphics.set_color(r2, g2, b2)
 
 		graphics.push()
-		graphics.translate(tlx + r.room_width / 2, tly + r.room_height / 2)
-		if not solid_color then
-			if dash_swapped then
-				-- graphics.set_color(red * alpha, green * alpha, blue * alpha)
-				graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
-					r.room_height * scale + 1)
-				graphics.set_color(0, 0, 0, 1)
-			end
-			graphics.dashrect((-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
-				r.room_height * scale + 1, 2, 2)
-        else
-			if self.player_hurt_fx_t < 0.5 and self.player_hurt_fx_t > 0 then
-				graphics.set_line_width(2)
-			end
-			graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
-			r.room_height * scale + 1)
-		end
+        graphics.translate(tlx + r.room_width / 2, tly + r.room_height / 2)
+
+        local border_dash_offset = 0
+        -- local border_dash_offset = ease("outCubic")(inverse_lerp_clamp(0, 600, r.elapsed)) * 100
+
+
+        if self.room.wave < self.room.last_wave then
+            local offs = remap_clamp(self:get_quick_clear_time_left_ratio(), 0.8, 1, 0, 1)
+            offs = ease("inQuad")(offs) * 10
+            offs = offs * (self.room.wave % 2 == 0 and 1 or -1)
+            border_dash_offset = border_dash_offset + offs
+        end
+        
+        if Color.distance_unpacked(r2, g2, b2, 0, 0, 0) > 0.001 then
+
+            if not solid_color then
+                if dash_swapped then
+                    border_dash_offset = border_dash_offset + 0.5
+                    -- graphics.set_color(red * alpha, green * alpha, blue * alpha)
+                    -- graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+                    --     r.room_height * scale + 1)
+                    -- graphics.set_color(0, 0, 0, 1)
+                end
+                graphics.dashrect((-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+                    r.room_height * scale + 1, 2, 2, border_dash_offset)
+            else
+                if self.player_hurt_fx_t < 0.5 and self.player_hurt_fx_t > 0 then
+                    graphics.set_line_width(2)
+                end
+                graphics.rectangle("line", (-r.room_width / 2) * scale, (-r.room_height / 2) * scale, r.room_width * scale + 1,
+                r.room_height * scale + 1)
+            end
+        end
 		graphics.pop()
 	end
 

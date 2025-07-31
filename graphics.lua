@@ -1348,30 +1348,42 @@ function graphics.print_outline_no_diagonals(outline_color, text, x, y, r, sx, s
     graphics.print(text, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
-function graphics.dashline(p1x, p1y, p2x, p2y, dash, gap)
+function graphics.dashline(p1x, p1y, p2x, p2y, dash, gap, time)
+    time = (time or 0) % 1
     local dy, dx = p2y - p1y, p2x - p1x
     local an, st = math.atan2(dy, dx), dash + gap
-    local len    = math.sqrt(dx * dx + dy * dy)
-    local nm     = (len - dash) / st
+    local len = math.sqrt(dx * dx + dy * dy)
+    if len == 0 then return end
+    if st <= 0 then
+        graphics.line(p1x, p1y, p2x, p2y)
+        return
+    end
+
+    local nm = len / st
     graphics.push()
     graphics.translate(p1x, p1y)
     graphics.rotate(an)
-    for i = 0, nm do
-        graphics.line(i * st, 0, i * st + dash, 0)
+    for i = 0, math.ceil(nm) do
+        local s = (i - time) * st
+        local e = s + dash
+        if e > 0 and s < len then
+            s = math.max(0, s)
+            e = math.min(len, e)
+            graphics.line(s, 0, e, 0)
+        end
     end
-    graphics.line(nm * st, 0, nm * st + dash, 0)
     graphics.pop()
 end
  
-function graphics.dashrect(x, y, w, h, dash, gap)
-	graphics.dashline(x, y, x + w, y, dash, gap)
-	graphics.dashline(x + w, y, x + w, y + h, dash, gap)
-	graphics.dashline(x + w, y + h, x, y + h, dash, gap)
-	graphics.dashline(x, y + h, x, y, dash, gap)
+function graphics.dashrect(x, y, w, h, dash, gap, time)
+	graphics.dashline(x, y, x + w, y, dash, gap, time)
+	graphics.dashline(x + w, y, x + w, y + h, dash, gap, time)
+	graphics.dashline(x + w, y + h, x, y + h, dash, gap, time)
+	graphics.dashline(x, y + h, x, y, dash, gap, time)
 end
 
-function graphics.dashrect_centered(x, y, w, h, dash, gap)
-	graphics.dashrect(x - w / 2, y - h / 2, w, h, dash, gap)
+function graphics.dashrect_centered(x, y, w, h, dash, gap, time)
+	graphics.dashrect(x - w / 2, y - h / 2, w, h, dash, gap, time)
 end
 
 function graphics.draw_collision_box(rect, color, alpha)

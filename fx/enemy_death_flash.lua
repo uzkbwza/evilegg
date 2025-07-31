@@ -119,6 +119,12 @@ function DeathFlash:draw(elapsed, tick, t)
         tick = floor(elapsed)
     end
 
+    graphics.set_color(Color.darkergrey)
+    for i = 1, self.pixel_count do
+        local pixel = self.pixels[i]
+        graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
+    end
+
     t = elapsed / (self.duration)
     -- t = clamp01(t - (1 / self.duration) * 6)
 	local t2 = ease("outExpo")(t)
@@ -146,13 +152,6 @@ function DeathFlash:draw(elapsed, tick, t)
 		graphics.pop()
 	end
 
-
-
-    graphics.set_color(Color.darkergrey)
-    for i = 1, self.pixel_count do
-        local pixel = self.pixels[i]
-        graphics.rectangle("fill", pixel.x - pixel.radius, pixel.y - pixel.radius, pixel.radius * 2, pixel.radius * 2)
-    end
 end
 
 function DeathFlash:floor_draw()

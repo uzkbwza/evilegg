@@ -10,7 +10,9 @@ local default_savedata = {
     first_time_playing = true,
     last_died_at = 0,
 	game_version = GAME_VERSION,
-	leaderboard_version = GAME_LEADERBOARD_VERSION,
+    leaderboard_version = GAME_LEADERBOARD_VERSION,
+    leaderboard_sort_index = 1,
+    leaderboard_period = "daily",
 }
 
 local SCORE_COUNT = 100

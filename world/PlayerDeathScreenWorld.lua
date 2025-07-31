@@ -115,9 +115,11 @@ function PlayerDeathScreenWorld:enter()
 
 		s:wait(5)
 
-		local start_y = -55
+        local start_y = -70
+        
+        local increment = 30
 
-		local start_x = 12
+		local start_x = 0
 
 		self:ref("score_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_score_display, game_state.score, prev_high_score)))
 		
@@ -125,26 +127,35 @@ function PlayerDeathScreenWorld:enter()
 			s:wait(1)
 		end
 
-		self:ref("rescue_display", self:spawn_object(StatDisplay(start_x, start_y + 21, tr.game_over_rescue_display, game_state.rescues_saved, prev_high_rescues)))
+        start_y = start_y + increment
+
+		self:ref("rescue_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_rescue_display, game_state.rescues_saved, prev_high_rescues)))
 
 		while not self.rescue_display.finished_yet do
 			s:wait(1)
 		end
 
-		self:ref("kill_display", self:spawn_object(StatDisplay(start_x, start_y + 43, tr.game_over_kill_display, game_state.enemies_killed, prev_high_kills)))
+        start_y = start_y + increment
+
+		self:ref("kill_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_kill_display, game_state.enemies_killed, prev_high_kills)))
 		
 		while not self.kill_display.finished_yet do
 			s:wait(1)
 		end
 
-		self:ref("level_display", self:spawn_object(StatDisplay(start_x, start_y + 65, tr.game_over_level_display, game_state.level, prev_high_level)))
+        start_y = start_y + increment
+
+		self:ref("level_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_level_display, game_state.level, prev_high_level)))
 		
 		while not self.level_display.finished_yet do
 			s:wait(1)
 		end
 
-		self:ref("time_display", self:spawn_object(StatDisplay(start_x, start_y + 87, tr.game_over_time_display, frames_to_seconds(game_state.game_time))))
-		self.time_display.format_function = format_hhmmss
+        start_y = start_y + increment
+
+		self:ref("time_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_time_display, game_state.game_time)))
+		
+        self.time_display.format_function = function(value) return format_hhmmssms(frames_to_seconds(value) * 1000) end
 	end)
 end
 
@@ -298,8 +309,10 @@ function BackgroundObject:draw()
 		graphics.set_color(border_color)
 		graphics.line(0, -self.height / 2 - 2, 0, self.height / 2 - 2)
 	else
-		graphics.set_color(Color.black)
-		graphics.rectangle_centered("fill", 0, -2, self.width, self.height)
+		-- graphics.set_color(Color.black)
+        -- if gametime.tick % 2 == 0 then
+        -- graphics.rectangle_centered("fill", 0, -2, self.width, self.height)
+        -- end
 		graphics.set_color(border_color)
 		graphics.rectangle_centered("line", 0, -2, self.width, self.height)
 	end
@@ -349,11 +362,29 @@ function StatDisplay:format_value(value)
 end
 
 function StatDisplay:draw()
-	local font = fonts.depalettized.image_font2
+    local font = fonts.depalettized.image_font2
+    local padding = 64
+    local left = -conf.viewport_size.x / 2 + padding
+    local right = conf.viewport_size.x / 2 - padding
+    local line_end = lerp_clamp(left, right, self.elapsed / 15)
+
+
+
+    -- if gametime.tick % 2 == 0 then
+        local rect_height = 9
+        graphics.set_color(Color.black)
+        graphics.rectangle("fill", left, 0, line_end - left, rect_height)
+        if self.prev_high_value then
+            graphics.line(left, 21, line_end, 21)
+            graphics.rectangle("fill", left, 11, line_end - left, rect_height)
+        end
+    -- end
+
 	graphics.set_font(font)
-	graphics.translate(font:getWidth(" "), 0)
+	-- graphics.translate(font:getWidth(" "), 0)
 	graphics.set_color(Color.green)
-	graphics.print_right_aligned(self.label:upper() .. ": ", font, 0, 0)
+	graphics.print(self.label:upper() .. ": ", left, 0)
+
 
 	local value_color = Color.white
 	-- if self:is_timer_running("high_score_flash") then
@@ -362,13 +393,24 @@ function StatDisplay:draw()
 	end
 
 	graphics.set_color(value_color)
-	graphics.print(self:format_value(self.print_value), font, 0, 0)
+	graphics.print_right_aligned(self:format_value(self.print_value), font, right, 0)
 
-	if self.prev_high_value then
-		graphics.set_color(Color.darkgrey)
-		graphics.print_right_aligned(tr.stat_display_prev_high:upper() .. ": ", font, 0, 11)
-		graphics.print(self:format_value(max(self.prev_high_value, self.print_value)), font, 0, 11)
-	end
+    
+
+    if self.prev_high_value then
+        graphics.set_color(Color.darkgrey)
+        graphics.print(tr.stat_display_prev_high:upper() .. ": ", left, 11)
+        graphics.print_right_aligned(self:format_value(max(self.prev_high_value, self.print_value)), font, right, 11)
+    end
+
+    local border_color = Palette.game_over_border:tick_color(self.tick, 0, 1)
+    
+    graphics.set_color(border_color)
+    graphics.line(left, 10, line_end, 10)
+    if self.prev_high_value then
+        graphics.set_color(Color.darkgrey)
+        graphics.line(left, 21, line_end, 21)
+    end
 end
 
 function ScoreGraph:new(x, y, width, height, values)

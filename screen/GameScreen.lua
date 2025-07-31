@@ -35,7 +35,8 @@ function GameScreen:enter()
 end
 
 function GameScreen:on_player_died()
-	-- self.hud_layer:hide()
+    -- self.hud_layer:hide()
+    self.ui_layer:exit_all_screens()
 end
 
 function GameScreen:on_leaderboard_requested()
@@ -178,6 +179,17 @@ function GameLayer:exit()
 	self:stop_all_sfx()
 end
 
+function UILayer:exit_all_screens()
+    if self.options_menu then
+        self.options_menu:queue_destroy()
+    end
+    if self.codex_menu then
+        self.codex_menu:queue_destroy()
+    end
+    
+    self:change_state("Playing")
+end
+
 function UILayer:new()
     UILayer.super.new(self)
 	self:init_state_machine()
@@ -203,8 +215,10 @@ function UILayer:state_PlayerDeath_enter()
 		-- self.blocks_render = true
 		-- self.blocks_logic = true
 		-- self.blocks_input = true
-		self.game_layer:hide()
-		self.game_layer.handling_logic = false
+		-- self.game_layer:hide()
+        -- self.game_layer.handling_logic = false
+        self.game_layer.muted = true
+        -- self.game_layer.world.rendering_content = false
 	end)
     signal.chain_connect("restart_requested", self.player_death_screen_world, self)
     signal.chain_connect("quit_requested", self.player_death_screen_world, self)
@@ -240,7 +254,7 @@ function UILayer:state_Paused_enter()
 	self.blocks_input = true
     -- self.blocks_logic = true
 	self.game_layer.world.paused = true
-	self.game_layer.handling_logic = false
+	-- self.game_layer.handling_logic = false
 	
 	self:ref("pause_screen", self:push(Screens.PauseScreen))
 

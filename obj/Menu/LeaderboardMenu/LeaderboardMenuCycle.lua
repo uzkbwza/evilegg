@@ -42,6 +42,15 @@ function LeaderboardMenuCycle:set_options(options)
     end
 end
 
+function LeaderboardMenuCycle:cycle_to_value(value)
+    for i, option in ipairs(self.options) do
+        if option == value then
+            self.current_option = i
+            break
+        end
+    end
+end
+
 function LeaderboardMenuCycle:set_text(text)
     self.text = text
     self.text_width = self.font:getWidth(text)

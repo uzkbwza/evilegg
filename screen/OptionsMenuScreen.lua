@@ -4,7 +4,7 @@ function OptionsMenuScreen:new()
 	OptionsMenuScreen.super.new(self)
     self:add_signal("exit_menu_requested")
 	self.blocks_input = true
-    self.blocks_logic = true
+    -- self.blocks_logic = true
 	-- self.blocks_render = true
 end
 

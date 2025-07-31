@@ -444,6 +444,10 @@ function Color.lerp_hsl_unpacked(h1, s1, l1, h2, s2, l2, t)
     return Color.hsl_to_rgb_unpacked(h1 + (h2 - h1) * t, s1 + (s2 - s1) * t, l1 + (l2 - l1) * t)
 end
 
+function Color.distance_unpacked(r1, g1, b1, r2, g2, b2)
+    return math.sqrt((r1 - r2) ^ 2 + (g1 - g2) ^ 2 + (b1 - b2) ^ 2)
+end
+
 local interval = 1/6
 Color.black = Color.from_hex("000000")
 Color.nearblack = Color.from_hex("101010")

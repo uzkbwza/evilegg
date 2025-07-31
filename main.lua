@@ -2,7 +2,7 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.6.0"
+GAME_VERSION = "0.6.1"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -145,7 +145,7 @@ function love.run()
         gametime.time       = gametime.time + delta_frame
         local prev_tick     = gametime.tick
         gametime.tick       = floor(gametime.time)
-        gametime.frames     = gametime.frames + 1
+        gametime.frame     = gametime.frame + 1
         gametime.is_new_tick= (prev_tick~=gametime.tick)
 
         -- Dynamically enable fixed‑delta when the game slows down (>=2x max fps allowed)

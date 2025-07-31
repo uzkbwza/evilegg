@@ -1,7 +1,7 @@
 local debuggy = setmetatable({}, { __index = debug })
 
--- debuggy.enabled = usersettings.debug_enabled
 debuggy.enabled = usersettings.debug_enabled
+-- debuggy.enabled = true
 debuggy.draw = false
 debuggy.draw_bounds = false
 debuggy.fast_forward = false

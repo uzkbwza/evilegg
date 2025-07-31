@@ -143,8 +143,7 @@ function BasePlayerBullet:on_terrain_collision(normal_x, normal_y)
 		self:play_sfx("player_ricochet", 0.5)
         self.ricochet_count = self.ricochet_count - 1
 		local bounce_x, bounce_y = vec2_bounce(self.direction.x, self.direction.y, normal_x, normal_y)
-		self.direction.x = bounce_x
-		self.direction.y = bounce_y
+		self.direction.x, self.direction.y = vec2_normalized(bounce_x, bounce_y)
         self:move(bounce_x * self.speed, bounce_y * self.speed)
 		self.num_ricochets = self.num_ricochets and self.num_ricochets + 1 or 1
         self.lifetime = self.elapsed + (self.base_lifetime / (self.num_ricochets + 1))

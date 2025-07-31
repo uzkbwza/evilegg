@@ -18,7 +18,15 @@ local LINE_Y = 20
 
 
 local GreenoidTextPalette = Palette{Color.black, Color.black, Color.darkergreen, Color.darkgreen, Color.darkgreen, Color.green}
+local KillsTextPalette = Palette{Color.black, Color.black, Color.red, Color.red, Color.orange, Color.yellow}
 local LevelTextPalette = Palette{Color.black, Color.black, Color.darkblue, Color.darkblue, Color.darkblue, Color.white}
+
+local LEADERBOARD_CATEGORIES = {
+    "score",
+    "depth",
+    "speed",
+    "score30",
+}
 
 function LeaderboardWorld:new()
     LeaderboardWorld.super.new(self)
@@ -32,8 +40,8 @@ function LeaderboardWorld:new()
 	self.target_death_count = 0
 	self.current_category = leaderboard.cat(self.current_category)
 
-    self.sort_by = "score"
-    self.period = "daily"
+    self.sort_by = savedata.leaderboard_sort or "score"
+    self.period = savedata.leaderboard_period or "daily"
 
 	self.run_t_values = {}
 	for i=1, PAGE_LENGTH do
@@ -65,6 +73,20 @@ function LeaderboardWorld:new()
 end
 
 function LeaderboardWorld:enter()
+    local LEADERBOARD_PERIODS = {
+        all_time = tr.leaderboard_period_all_time,
+        daily = tr.leaderboard_period_daily,
+        monthly = tr.leaderboard_period_monthly,
+    }
+
+    local LEADERBOARD_SORT_OPTIONS = {
+        score = tr.leaderboard_sort_score,
+        depth = tr.leaderboard_sort_depth,
+        speed = tr.leaderboard_sort_speed,
+        score30 = tr.leaderboard_sort_score30,
+    }
+
+
     self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(1, 1, 1, 1)))
@@ -73,15 +95,15 @@ function LeaderboardWorld:enter()
     self:ref("back_button",
         self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING, "⮌",
             10, 10, false, nil, false, false))):focus()
-    
+
     self:ref("period_button",
         self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 10, 12,
-            tr.leaderboard_period_daily,
+            LEADERBOARD_PERIODS[self.period],
             30, 9, false, Color.green, true, false)))
-    
+
     self:ref("sort_button",
         self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 52, 12,
-            tr.leaderboard_sort_score,
+            LEADERBOARD_SORT_OPTIONS[self.sort_by],
             30, 9, false, Color.green, true, false)))
 
     self:ref("me_button",
@@ -94,40 +116,35 @@ function LeaderboardWorld:enter()
             tr.leaderboard_top_button,
             25, 15, false, Color.green, true, true)))
 
-
     self.sort_button.get_value_func = function()
         return self.sort_button.text
     end
 
-    self.sort_button:set_options({tr.leaderboard_sort_score, tr.leaderboard_sort_depth})
+    self.sort_button:set_options({ "score", "depth", "speed", "score30" })
+
 
     self.sort_button.set_value_func = function(value)
-        if value == tr.leaderboard_sort_score then
-            self.sort_by = "score"
-        elseif value == tr.leaderboard_sort_depth then
-            self.sort_by = "depth"
-        end
-        self.sort_button:set_text(value)
+        self.sort_button:set_text(LEADERBOARD_SORT_OPTIONS[value])
+
+        self.sort_by = value
         self:fetch_page(1)
     end
+
 
     self.period_button.get_value_func = function()
         return self.period_button.text
     end
 
-    self.period_button:set_options({ tr.leaderboard_period_daily, tr.leaderboard_period_monthly, tr.leaderboard_period_all_time, })
-    
+    self.period_button:set_options({ "all_time", "daily", "monthly" })
+
     self.period_button.set_value_func = function(value)
-        if value == tr.leaderboard_period_all_time then
-            self.period = nil
-        elseif value == tr.leaderboard_period_daily then
-            self.period = "daily"
-        elseif value == tr.leaderboard_period_monthly then
-            self.period = "monthly"
-        end
-        self.period_button:set_text(value)
+        self.period_button:set_text(LEADERBOARD_PERIODS[value])
+        self.period = value
         self:fetch_page(1)
     end
+
+    self.period_button:cycle_to_value(self.period)
+    self.sort_button:cycle_to_value(self.sort_by)
 
     local page_buttons_y = 22
 
@@ -191,7 +208,7 @@ function LeaderboardWorld:enter()
         self.changing_page_number = true
         self:fetch_page(self.current_page_number + 1)
     end)
-    
+
     signal.connect(self.sort_button, "selected", self, "on_sort_selected", function()
         self.sort_index = self.sort_index + 1
         if self.sort_index > #self.sort_options then
@@ -217,6 +234,11 @@ function LeaderboardWorld:enter()
 
         self:death_count_update_loop()
     end)
+end
+
+function LeaderboardWorld:exit()
+    savedata:set_save_data("leaderboard_period", self.period)
+    savedata:set_save_data("leaderboard_sort", self.sort_by)
 end
 
 function LeaderboardWorld:death_count_update_loop()
@@ -353,8 +375,8 @@ function LeaderboardWorld:draw()
     graphics.print(tr.main_menu_leaderboard_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
     graphics.set_font(font2)
     graphics.set_color(Color.white)
-    graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 10, 3)
-    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
+    graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 11, 3)
+    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 52, 3)
     LeaderboardWorld.super.draw(self)
 
 
@@ -407,30 +429,37 @@ function LeaderboardWorld:draw_leaderboard()
     graphics.translate(RANKING_H_PADDING, RANKING_V_PADDING)
 	local width = conf.viewport_size.x - RANKING_H_PADDING * 2
     local center_x = conf.viewport_size.x / 2 - RANKING_H_PADDING
-	
+    local y_tracker = 0
+    local me_y = 0
+    local me_found = false
 	graphics.push("all")
 	local dont_draw_next_top_line = false
     for i = 1, PAGE_LENGTH do
         local t = self.run_t_values[i]
-		if t == 0 then
-			break
-		end
+        if t == 0 then
+            break
+        end
         local run = self.current_page.entries[i]
         if run then
-			local is_self = run.uid == savedata:get_uid()
-			local line_color = Color.darkergrey
-			
-			if is_self and self:tick_pulse(5, 1) then
-				graphics.set_color(Color.nearblack)
-				dont_draw_next_top_line = true
-				-- line_color = Color.darkpurple
+            local is_self = run.uid == savedata:get_uid()
+            local line_color = Color.darkergrey
 
-				local y = LINE_Y - RANKING_LINE_HEIGHT
-				graphics.rectangle("fill", center_x - LINE_WIDTH / 2, y, LINE_WIDTH, RANKING_LINE_HEIGHT - 1)
 
+            if is_self then
+                me_y = y_tracker
+                me_found = true
             end
-			
-			-- local line_color = Palette.rainbow:tick_color(self.tick, i, 13)
+
+            if is_self and self:tick_pulse(5, 1) then
+                graphics.set_color(Color.nearblack)
+                dont_draw_next_top_line = true
+                -- line_color = Color.darkpurple
+
+                local y = LINE_Y - RANKING_LINE_HEIGHT
+                graphics.rectangle("fill", center_x - LINE_WIDTH / 2, y, LINE_WIDTH, RANKING_LINE_HEIGHT - 1)
+            end
+
+            -- local line_color = Palette.rainbow:tick_color(self.tick, i, 13)
             -- local color_mod = 0.5
             -- local r, g, b = line_color.r, line_color.g, line_color.b
             -- r = r * color_mod
@@ -443,78 +472,96 @@ function LeaderboardWorld:draw_leaderboard()
             graphics.set_color(line_color)
 
             -- if iflicker(self.tick, 1, 2) then
-			if not (dont_draw_next_top_line and not is_self) then
+            if not (dont_draw_next_top_line and not is_self) then
                 graphics.line(center_x - LINE_WIDTH / 2, LINE_Y - RANKING_LINE_HEIGHT, center_x + LINE_WIDTH / 2,
                     LINE_Y - RANKING_LINE_HEIGHT)
-			elseif not is_self then
-				dont_draw_next_top_line = false
-			end
+            elseif not is_self then
+                dont_draw_next_top_line = false
+            end
             graphics.line(center_x - LINE_WIDTH / 2, LINE_Y, center_x - LINE_WIDTH / 2, LINE_Y - 6)
             -- if i == PAGE_LENGTH then
-			graphics.line(center_x - LINE_WIDTH / 2, LINE_Y, center_x + LINE_WIDTH / 2, LINE_Y)
+            graphics.line(center_x - LINE_WIDTH / 2, LINE_Y, center_x + LINE_WIDTH / 2, LINE_Y)
             -- end
-		
-						
+
+
             -- local ending_image = run.good_ending and textures.ui_leaderboard_good_ending or textures.ui_leaderboard_bad_ending
 
             graphics.push("all")
-			local line_width = 7
+            local line_width = 7
             graphics.set_line_width(line_width - 2)
-			graphics.set_color(Color.nearblack)
+            graphics.set_color(Color.nearblack)
             graphics.line(center_x - LINE_WIDTH / 2, line_width / 2, LINE_WIDTH - 28, line_width / 2)
             graphics.set_line_width(11)
-			local end_x = LINE_WIDTH - 41 - (GlobalGameState.max_artefacts - 1) * 13
-			graphics.dashline(1 + center_x - LINE_WIDTH / 2, line_width / 2 + 9, end_x, line_width / 2 + 9, 1, 1)
-			
+            local end_x = LINE_WIDTH - 41 - (GlobalGameState.max_artefacts - 1) * 13
+            graphics.dashline(1 + center_x - LINE_WIDTH / 2, line_width / 2 + 9, end_x, line_width / 2 + 9, 1, 1, t * 10)
+
             graphics.pop()
-			
 
-			
+
+
             graphics.set_color(Color.darkergrey)
-			graphics.push("all")
-			graphics.translate(LINE_WIDTH - 18, RANKING_LINE_HEIGHT / 2)
-			graphics.rectangle_centered("line", 0, 0, RANKING_LINE_HEIGHT - 4, RANKING_LINE_HEIGHT - 4)
-			graphics.pop()
+            graphics.push("all")
+            graphics.translate(LINE_WIDTH - 18, RANKING_LINE_HEIGHT / 2)
+            graphics.rectangle_centered("line", 0, 0, RANKING_LINE_HEIGHT - 4, RANKING_LINE_HEIGHT - 4)
+            graphics.pop()
 
-			graphics.set_color(Color.white)
+            graphics.set_color(Color.white)
 
-			
+
             for j = 1, GlobalGameState.max_artefacts do
-				graphics.push("all")
-				graphics.translate(LINE_WIDTH - 41 - (j - 1) * 13, RANKING_LINE_HEIGHT - 14)
-				
-				graphics.draw(textures.hud_artefact_slot1, 0, 0, 0, 1, 1)
-				local artefact = self.artefact_map[run.artefacts[j]]
+                graphics.push("all")
+                graphics.translate(LINE_WIDTH - 41 - (j - 1) * 13, RANKING_LINE_HEIGHT - 14)
+
+                graphics.draw(textures.hud_artefact_slot1, 0, 0, 0, 1, 1)
+                local artefact = self.artefact_map[run.artefacts[j]]
                 if artefact and artefact ~= "none" and j <= t * GlobalGameState.max_artefacts then
                     graphics.drawp(artefact.icon, nil, 0, 0, 0, 0, 1, 1)
-				end
-				graphics.pop()
-			end
-
-
+                end
+                graphics.pop()
+            end
         else
             break
-        end 
-		graphics.translate(0, RANKING_LINE_HEIGHT)
-	end
+        end
+        graphics.translate(0, RANKING_LINE_HEIGHT)
+        y_tracker = y_tracker + RANKING_LINE_HEIGHT
+    end
+    
 	graphics.pop()
 
+    if me_found then
+        graphics.push("all")
+
+        local extra = 1
+        local line_width = 1
+        graphics.set_line_width(line_width)
+        graphics.translate(-10 -extra - 1, me_y - extra)
+        graphics.set_color(Palette.leaderboard_me_rect:tick_color(self.tick, 0, 1))
+        graphics.dashrect(0, 0, LINE_WIDTH + extra * 2 - (line_width - 1) + 2, RANKING_LINE_HEIGHT + extra * 2 - (line_width - 1), 2, 2, -self.elapsed * 0.08)
+        -- graphics.set_color(Color.darkergrey)
+        -- graphics.dashrect(1, 1, LINE_WIDTH + extra, RANKING_LINE_HEIGHT - 2, 4, 4, -self.elapsed * 0.06)
+        graphics.pop()
+    end
+
+    graphics.push()
+
+    graphics.set_color(Color.white)
+
     for i = 1, PAGE_LENGTH do
-		local t = self.run_t_values[i]
-		if t == 0 then
-			break
-		end
-		local run = self.current_page.entries[i]
+        local t = self.run_t_values[i]
+        if t == 0 then
+            break
+        end
+        local run = self.current_page.entries[i]
         if run then
-			local is_self = run.uid == savedata:get_uid()
-			local name = run.name
+            local is_self = run.uid == savedata:get_uid()
+            local name = run.name
             local score = run.score
 
 
-			
+
             local secondary_weapon = run.secondary_weapon
 
-			local secondary_weapon_sprite = nil
+            local secondary_weapon_sprite = nil
 
             if secondary_weapon and self.artefact_map[secondary_weapon] then
                 local artefact = self.artefact_map[secondary_weapon]
@@ -527,95 +574,122 @@ function LeaderboardWorld:draw_leaderboard()
                 graphics.drawp_centered(secondary_weapon_sprite, nil, 0, 0)
                 graphics.pop()
             end
-		
 
-			local palette_stack = self.palette_stack
+
+            local palette_stack = self.palette_stack
 
 
             if is_self then
+
                 palette_stack:set_color(3, Color.magenta)
                 palette_stack:set_color(2, Color.blue)
-
-			else
+            else
                 palette_stack:set_color(3, Color.white)
                 palette_stack:set_color(2, Color.blue)
             end
             graphics.set_color(Color.white)
-			
+
             local ending_image = textures.ui_leaderboard_bad_ending
-			if run.good_ending == 1 then
+            if run.good_ending == 1 then
                 ending_image = textures.ui_leaderboard_good_ending
-			elseif run.good_ending == 2 then
+            elseif run.good_ending == 2 then
                 ending_image = textures.ui_leaderboard_best_ending
-			end
+            end
 
-			graphics.push("all")
-			do
-            	graphics.translate(-18, -6)
-				graphics.draw(ending_image, 0, 0, 0, 1, 1)
-			end
-			graphics.pop()
+            graphics.push("all")
+            do
+                graphics.translate(-18, -6)
+                graphics.draw(ending_image, 0, 0, 0, 1, 1)
+            end
+            graphics.pop()
 
 
-			-- graphics.set_color(Color.green)
+            -- graphics.set_color(Color.green)
             graphics.set_font(font)
-			graphics.push("all")
+            graphics.push("all")
             local rank = i + (self.current_page_number - 1) * PAGE_LENGTH
-			local is_special = false
+            local is_special = false
             if rank == 1 then
-				is_special = true
-				palette_stack:set_color(3, Palette.high_score_rank_1:tick_color(self.tick, i, 1))
+                is_special = true
+                palette_stack:set_color(3, Palette.high_score_rank_1:tick_color(self.tick, i, 1))
                 palette_stack:set_color(2, Palette.high_score_rank_1_border:tick_color(self.tick, i, 1))
-			elseif rank == 2 then
-				is_special = true
-				palette_stack:set_color(3, Palette.high_score_rank_2:tick_color(self.tick, i, 2.1))
+            elseif rank == 2 then
+                is_special = true
+                palette_stack:set_color(3, Palette.high_score_rank_2:tick_color(self.tick, i, 2.1))
                 palette_stack:set_color(2, Palette.high_score_rank_2_border:tick_color(self.tick, i, 1))
-			elseif rank == 3 then
-				is_special = true
-				palette_stack:set_color(3, Palette.high_score_rank_3:tick_color(self.tick, i, 1))
+            elseif rank == 3 then
+                is_special = true
+                palette_stack:set_color(3, Palette.high_score_rank_3:tick_color(self.tick, i, 1))
                 palette_stack:set_color(2, Palette.high_score_rank_3_border:tick_color(self.tick, i, 2.75))
-			end
-			graphics.pop()
-			
-			graphics.printp(spell_out(comma_sep(rank * 1) .. ". " ..name, t, 30), font, palette_stack, 0, -12, 0)
+            end
+            graphics.pop()
+
+            local score_text = ""
+
+            
+            if self.sort_by == "speed" then
+                score_text = format_hhmmssms(run.game_time)
+            else
+                score_text = comma_sep(score)
+            end
+
+            graphics.printp(spell_out(comma_sep(rank * 1) .. ". " .. name, t, 30), font, palette_stack, 0, -12, 0)
             if not is_special then
                 palette_stack:set_color(3, Palette.rainbow:tick_color(self.tick, -i, 2))
                 palette_stack:set_color(2, Color.purple)
             end
-			
-            graphics.push("all")
-			graphics.translate(0, 9)
 
-			graphics.printp(spell_out(comma_sep(score), t, 18), font, palette_stack, 0, -6, 0)
+            graphics.push("all")
+            graphics.translate(0, 9)
+
+            graphics.printp(spell_out(score_text, t, 18), font, palette_stack, 0, -6, 0)
             graphics.pop()
 
-			graphics.push("all")
-			do
-				local greenoid_palette = GreenoidTextPalette
-                local greenoid_end_x = floor(center_x - LINE_WIDTH / 2 + LINE_WIDTH - 18)
+            graphics.push("all")
+            do
+                local greenoid_palette = GreenoidTextPalette
+                local kills_palette = KillsTextPalette
+                local greenoid_end_x = floor(center_x - LINE_WIDTH / 2 + LINE_WIDTH - 18) - 1
                 graphics.set_font(fonts.greenoid)
-				
-				-- dbg("width1", fonts.greenoid:getWidth("G" .. tostring(1)))
-				-- dbg("width2", fonts.greenoid:getWidth("G" .. tostring(10)))
 
-				local greenoid_text = "G" .. tostring((run.rescues or 0))
+                -- dbg("width1", fonts.greenoid:getWidth("G" .. tostring(1)))
+                -- dbg("width2", fonts.greenoid:getWidth("G" .. tostring(10)))
 
-                local level_text = "L" .. tostring(run.level or 0)
+                local greenoid_text = "G" .. tostring(comma_sep(run.rescues or 0))
 
+                local level_text = "L" .. tostring(comma_sep(run.level or 0))
 
+                local kills_text = "K" .. tostring(comma_sep(run.kills or 0))
 
-				local t2 = remap_clamp(t, 0, 0.4, 0, 1)
+                -- local pts_text = tostring(comma_sep(score) or 0) .. "P"
 
-				graphics.printp_right_aligned(greenoid_text, fonts.greenoid, greenoid_palette, 0, greenoid_end_x, 0)
-				graphics.printp_right_aligned(level_text, fonts.greenoid, LevelTextPalette, 0, greenoid_end_x - fonts.greenoid:getWidth(greenoid_text) - 1, 0)
-			end
-			graphics.pop()
+                local t2 = remap_clamp(t, 0, 0.4, 0, 1)
 
+                graphics.push()
+                graphics.translate(greenoid_end_x, 0)
+                if self.sort_by == "depth" then
+                    graphics.printp_right_aligned(kills_text, fonts.greenoid, kills_palette, 0, 0, 0)
+                    graphics.translate(-fonts.greenoid:getWidth(kills_text) - 1, 0)
+                else
+                    graphics.printp_right_aligned(greenoid_text, fonts.greenoid, greenoid_palette, 0, 0, 0)
+                    graphics.translate(-fonts.greenoid:getWidth(greenoid_text) - 1, 0)
+                end
+
+                graphics.printp_right_aligned(level_text, fonts.greenoid, LevelTextPalette, 0, 0, 0)
+                    -- graphics.translate(-fonts.greenoid:getWidth(greenoid_text) - 1, 0)
+                    -- graphics.printp_right_aligned(pts_text, fonts.greenoid, LevelTextPalette, 0, 0, 0)
+                
+                graphics.pop()
+            end
+            graphics.pop()
         else
-			break
-		end
+            break
+        end
         graphics.translate(0, RANKING_LINE_HEIGHT)
-	end
+        y_tracker = y_tracker + RANKING_LINE_HEIGHT
+    end
+    graphics.pop()
+
 end
 
 

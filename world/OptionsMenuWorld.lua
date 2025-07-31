@@ -150,6 +150,14 @@ function OptionsMenuWorld:enter()
 		{ "enter_name", item_type = "button", select_func = function()
 			self:emit_signal("enter_name_requested")
 		end },
+
+        { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
+            debug.enabled = not debug.enabled
+            usersettings:set_setting("debug_enabled", debug.enabled)
+        end,
+        get_func = function()
+            return debug.enabled
+        end },
 		
 		{ "header", text = "" },
     } do
@@ -200,7 +208,11 @@ function OptionsMenuWorld:get_screen_shader_presets()
 end
 
 function OptionsMenuWorld:add_menu_item(menu_table)
-	
+    
+    if menu_table.debug and IS_EXPORT then
+        return
+    end
+
     local classes = {
         button = O.OptionsMenu.OptionsMenuButton,
         toggle = O.OptionsMenu.OptionsMenuToggle,

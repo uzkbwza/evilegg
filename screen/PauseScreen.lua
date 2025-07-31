@@ -11,10 +11,9 @@ end
 
 function PauseScreen:update(dt)
     local input = self:get_input_table()
-    if input.menu_pressed then
+    if self.handling_render and input.menu_pressed then
         self:emit_signal("resume_requested")
     end
-
 end
 
 function PauseScreen:draw()

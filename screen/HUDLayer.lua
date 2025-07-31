@@ -441,16 +441,13 @@ local function format_score(n, lead_zeros, font)
     return padded_str, unpadded_str, x_offset
 end
 
-function HUDLayer:pre_world_draw()
-    local game_area_width = conf.viewport_size.x - conf.room_padding.x * 2
-    local game_area_height = conf.viewport_size.y - conf.room_padding.y * 2
+function HUDLayer:draw_top()
     local x_start = (graphics.main_viewport_size.x - conf.viewport_size.x) / 2
     local y_start = (graphics.main_viewport_size.y - conf.viewport_size.y) / 2 - 2
     local h_padding = conf.room_padding.x - 2
     local v_padding = conf.room_padding.y - 9
     local left = x_start + h_padding
     local top = y_start + v_padding - 1
-    local bottom = y_start + v_padding + game_area_height + 11
     local font = fonts.hud_font
 
     local border_color = self.game_layer.world:get_border_rainbow()
@@ -545,8 +542,27 @@ function HUDLayer:pre_world_draw()
 	graphics.set_color(Color.white)
 	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
 	graphics.pop()
+end
+
+function HUDLayer:pre_world_draw()
+
+    -- self:draw_top()
+
+    local game_area_width = conf.viewport_size.x - conf.room_padding.x * 2
+    local game_area_height = conf.viewport_size.y - conf.room_padding.y * 2
+    local x_start = (graphics.main_viewport_size.x - conf.viewport_size.x) / 2
+    local y_start = (graphics.main_viewport_size.y - conf.viewport_size.y) / 2 - 2
+    local h_padding = conf.room_padding.x - 2
+    local v_padding = conf.room_padding.y - 9
+    local left = x_start + h_padding
+    local bottom = y_start + v_padding + game_area_height + 11
+
+
+    local should_show = self:should_show()
+
 	graphics.push()
-	graphics.translate(left, bottom)
+    graphics.translate(left, bottom)
+
 	graphics.push()
 	-- for i = 1, game_state.max_hearts do
 	--     graphics.draw(i <= game_state.hearts and textures.pickup_heart_icon2 or textures.pickup_empty_heart_icon,
@@ -561,91 +577,93 @@ function HUDLayer:pre_world_draw()
 	--     -- end
 	-- end
 
-	-- local num_xp_bars = #self.xp_bars
-	local xp_bar_width = 4
-	local bar_x = 259
-	local bar_start = 0
-	local bar_end = 11
-	local bar_y = bar_end
-	local bar_height = bar_end - bar_start
+    if should_show then
+        -- local num_xp_bars = #self.xp_bars
+        local xp_bar_width = 4
+        local bar_x = 259
+        local bar_start = 0
+        local bar_end = 11
+        local bar_y = bar_end
+        local bar_height = bar_end - bar_start
 
-	graphics.set_color(Color.darkergrey)
-	graphics.rectangle("fill", bar_x, bar_start, xp_bar_width, bar_height)
+        graphics.set_color(Color.darkergrey)
+        graphics.rectangle("fill", bar_x, bar_start, xp_bar_width, bar_height)
 
 
-	-- self.bar_sort = self.bar_sort or function(a, b)
-	-- 	local xp_start = game_state[a.start]
-	-- 	local xp_end = game_state[a.name]
-	-- 	local a_ratio = remap_clamp(a.xp, xp_start, xp_end, 0, 1)
-	-- 	local xp_start = game_state[b.start]
-	-- 	local xp_end = game_state[b.name]
-	-- 	local b_ratio = remap_clamp(b.xp, xp_start, xp_end, 0, 1)
-	-- 	return a_ratio > b_ratio
-	-- end
-	-- table.sort(self.xp_bars, self.bar_sort)
+        -- self.bar_sort = self.bar_sort or function(a, b)
+        -- 	local xp_start = game_state[a.start]
+        -- 	local xp_end = game_state[a.name]
+        -- 	local a_ratio = remap_clamp(a.xp, xp_start, xp_end, 0, 1)
+        -- 	local xp_start = game_state[b.start]
+        -- 	local xp_end = game_state[b.name]
+        -- 	local b_ratio = remap_clamp(b.xp, xp_start, xp_end, 0, 1)
+        -- 	return a_ratio > b_ratio
+        -- end
+        -- table.sort(self.xp_bars, self.bar_sort)
 
-	for i, bar in ipairs(self.xp_bars) do
-		local xp_start = game_state[bar.start]
-		local xp_end = game_state[bar.name]
-		local ratio = max(remap_clamp(bar.xp, xp_start, xp_end, 0, 1), 1 / (bar_end - bar_start))
-		-- if i == 2 then
-		-- print(xp_start, xp_end, game_state.xp)
-		-- end
+        for i, bar in ipairs(self.xp_bars) do
+            local xp_start = game_state[bar.start]
+            local xp_end = game_state[bar.name]
+            local ratio = max(remap_clamp(bar.xp, xp_start, xp_end, 0, 1), 1 / (bar_end - bar_start))
+            -- if i == 2 then
+            -- print(xp_start, xp_end, game_state.xp)
+            -- end
 
-		graphics.set_color(bar.color)
-		graphics.rectangle("fill", bar_x + 1, bar_y, xp_bar_width - 2, -bar_height * ratio)
-		-- graphics.set_color(bar.color)
-		-- graphics.rectangle("fill", bar_x, bar_y + 1, xp_bar_width, 1)
-	end
+            graphics.set_color(bar.color)
+            graphics.rectangle("fill", bar_x + 1, bar_y, xp_bar_width - 2, -bar_height * ratio)
+            -- graphics.set_color(bar.color)
+            -- graphics.rectangle("fill", bar_x, bar_y + 1, xp_bar_width, 1)
+        end
 
-	-- local num_xp_meters = #self.xp_bars
-	-- local circle_center_x = 40
-	-- local circle_center_y = 6
-	-- local radius = 6
+        -- local num_xp_meters = #self.xp_bars
+        -- local circle_center_x = 40
+        -- local circle_center_y = 6
+        -- local radius = 6
 
-	-- graphics.set_color(Color.darkergrey)
-	-- graphics.line(circle_center_x, circle_center_y, circle_center_x, circle_center_y - radius)
+        -- graphics.set_color(Color.darkergrey)
+        -- graphics.line(circle_center_x, circle_center_y, circle_center_x, circle_center_y - radius)
 
-	-- graphics.push("all")
-	-- for i, meter in ipairs(self.xp_bars) do
+        -- graphics.push("all")
+        -- for i, meter in ipairs(self.xp_bars) do
 
-	-- 	graphics.set_color(meter.color)
-	-- 	graphics.axis_quantized_line(circle_center_x, circle_center_y, circle_center_x + meter.x, circle_center_y + meter.y, 3, 3, false, 1)
-	-- 	print(meter.x, meter.y)
-	-- 	graphics.rectangle_centered("fill", circle_center_x + meter.x, circle_center_y + meter.y, 3, 3)
-	-- end
-	-- graphics.pop()
+        -- 	graphics.set_color(meter.color)
+        -- 	graphics.axis_quantized_line(circle_center_x, circle_center_y, circle_center_x + meter.x, circle_center_y + meter.y, 3, 3, false, 1)
+        -- 	print(meter.x, meter.y)
+        -- 	graphics.rectangle_centered("fill", circle_center_x + meter.x, circle_center_y + meter.y, 3, 3)
+        -- end
+        -- graphics.pop()
 
-	graphics.push("all")
-	local upgrade_base = 224
-	local upgrade_height = 12
-	local upgrade_width = 6
-	local upgrade_separation = 1
-	for i, upgrade in ipairs(self.upgrades) do
-		local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and iflicker(self.tick, 3, 2)
-		local max_level = game_state:get_max_upgrade(upgrade.name)
-		if not flashing then
-			for j = max_level, 1, -1 do
-				local height = upgrade_height / max_level
-				graphics.set_color(Color.darkergrey)
+        graphics.push("all")
+        local upgrade_base = 224
+        local upgrade_height = 12
+        local upgrade_width = 6
+        local upgrade_separation = 1
+        for i, upgrade in ipairs(self.upgrades) do
+            local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and iflicker(self.tick, 3, 2)
+            local max_level = game_state:get_max_upgrade(upgrade.name)
+            if not flashing then
+                for j = max_level, 1, -1 do
+                    local height = upgrade_height / max_level
+                    graphics.set_color(Color.darkergrey)
 
-				local top_height = max((height - (upgrade_separation)) * .6)
-				local bottom_height = height - top_height - upgrade_separation
-				if j <= game_state.upgrades[upgrade.name] then
-					graphics.set_color(upgrade.color1)
-					graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-						(max_level - j) * (height), upgrade_width, top_height)
-					graphics.set_color(upgrade.color2)
-					graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-						(max_level - j) * (height) + top_height, upgrade_width, bottom_height)
-				else
-					graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-						(max_level - j) * (height), upgrade_width, height - upgrade_separation)
-				end
-			end
-		end
-	end
-	graphics.pop()
+                    local top_height = max((height - (upgrade_separation)) * .6)
+                    local bottom_height = height - top_height - upgrade_separation
+                    if j <= game_state.upgrades[upgrade.name] then
+                        graphics.set_color(upgrade.color1)
+                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
+                            (max_level - j) * (height), upgrade_width, top_height)
+                        graphics.set_color(upgrade.color2)
+                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
+                            (max_level - j) * (height) + top_height, upgrade_width, bottom_height)
+                    else
+                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
+                            (max_level - j) * (height), upgrade_width, height - upgrade_separation)
+                    end
+                end
+            end
+        end
+        graphics.pop()
+    end
 
 	-- graphics.print_outline(Color.black, string.format("%dXP", game_state.xp), charwidth * 6, 0)
 	graphics.pop()
@@ -657,7 +675,7 @@ function HUDLayer:pre_world_draw()
 	graphics.push()
 
 
-    if self.after_level_bonus_screen and self:should_show() and not self:is_paused() then
+    if self.after_level_bonus_screen and should_show and not self:is_paused() then
         local font2 = fonts.depalettized.image_font2
         graphics.set_font(font2)
         local middle_x = self.viewport_size.x / 2

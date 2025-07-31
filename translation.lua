@@ -61,7 +61,7 @@ local translations = {
         bonus_all_rescues_codex = "Rescued all greenoids in a room.",
 
         bonus_quick_wave = "QUICK WAVE",
-        bonus_quick_wave_codex = "Cleared a wave in under 10 seconds.",
+        bonus_quick_wave_codex = "Cleared a wave in under 9 seconds.",
 
         bonus_room_clear = "ROOM CLEAR",
         bonus_room_clear_codex = "Cleared a room.",
@@ -443,7 +443,9 @@ local translations = {
 		leaderboard_period_monthly = "MONTHLY",
 		leaderboard_sort_score = "SCORE",
 		leaderboard_sort_depth = "DEPTH",
-        leaderboard_sort_button     = "METRIC",
+		leaderboard_sort_speed = "SPEED",
+		leaderboard_sort_score30 = "LVL30",
+        leaderboard_sort_button     = "BOARD",
         leaderboard_period_button   = "PERIOD",
 
         artefact_guide_use = "USE WITH %s",
@@ -457,7 +459,6 @@ local translations = {
 		score_reset_warning_title = "ATTENTION",
 		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
         score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
-        
 	},
 }
 

@@ -68,7 +68,10 @@
 		"leaderboard",
 		"utf8",
 		"steam",
-		"global_game"
+		"global_game",
+		"format_hhmmss_decimal",
+		"format_hhmmssms",
+		"format_hhmmssms_decimal"
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field"

@@ -151,19 +151,9 @@ function audio.play_sfx_object_if_stopped(object, src_name, volume, pitch, loop,
 end
 
 function audio.play_sfx_object(object, src_name, volume, pitch, loop, screen)
-	local src = audio.get_global_sfx(src_name)
-
-    if not audio.sound_objects[src_name] then
-        audio.sound_objects[src_name] = {}
-    end
-	audio.object_sounds[object] = audio.object_sounds[object] or {}
-    audio.sound_objects[src_name][object] = true
-    audio.object_sounds[object][src_name] = true
-	
-	-- Track that this source was started by an object
-	audio.object_started_sources[src_name] = true
-	
     if screen then
+        if screen.muted then return end
+        
         audio.screen_sounds[screen] = audio.screen_sounds[screen] or {}
         audio.screen_sounds[screen][src_name] = true
 
@@ -176,6 +166,19 @@ function audio.play_sfx_object(object, src_name, volume, pitch, loop, screen)
             end)
         end
     end
+
+    local src = audio.get_global_sfx(src_name)
+
+    if not audio.sound_objects[src_name] then
+        audio.sound_objects[src_name] = {}
+    end
+	audio.object_sounds[object] = audio.object_sounds[object] or {}
+    audio.sound_objects[src_name][object] = true
+    audio.object_sounds[object][src_name] = true
+	
+	-- Track that this source was started by an object
+	audio.object_started_sources[src_name] = true
+
 
     if not signal.is_connected(object, "destroyed", audio, "cleanup_object") then
         signal.connect(object, "destroyed", audio, "cleanup_object", function()

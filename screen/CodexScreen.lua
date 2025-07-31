@@ -3,7 +3,7 @@ local CodexScreen = CanvasLayer:extend("CodexScreen")
 function CodexScreen:new()
     self:add_signal("exit_menu_requested")
 	self.blocks_input = true
-    self.blocks_logic = true
+    -- self.blocks_logic = true
 	
 	CodexScreen.super.new(self)
 	self.clear_color = Color.black

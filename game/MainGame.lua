@@ -216,14 +216,14 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = true
+        local cheat = false
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
-			self:add_score(2500000, "cheat")
-            self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
+			self:add_score(25000000000, "cheat")
+            self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
@@ -239,7 +239,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 31
+            self.level = 30
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -285,7 +285,6 @@ function GlobalGameState:update(dt)
     if not self.game_over then
         self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
     end
-	
 end
 
 function GlobalGameState:on_player_running_out_of_ammo()
