@@ -186,7 +186,7 @@ function UILayer:exit_all_screens()
     if self.codex_menu then
         self.codex_menu:queue_destroy()
     end
-    
+    self.handling_input = true
     self:change_state("Playing")
 end
 
