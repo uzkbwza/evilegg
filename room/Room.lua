@@ -4,7 +4,7 @@ local SpawnDataTable = require("obj.spawn_data")
 local PickupTable = require("obj.pickup_table")
 
 local debug_force_enabled = false
-local debug_force = "bonus_police"
+local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = false
 local debug_enemy = "HookWorm"
@@ -244,6 +244,26 @@ Room.narrative_types = {
 	-- },	
 }
 
+
+Room.curses = {
+    curse_wrath = {
+        weight = 1000,
+        min_level = 30,
+    },
+    curse_penitence = {
+        weight = 1000,
+    },
+    curse_fatigue = {
+        weight = 1000,
+    },
+    curse_hazardous = {
+        weight = 1000,
+    },
+    curse_famine = {
+        weight = 1000,
+    },
+}
+
 if debug_enemy_enabled then
 	debug_force = "debug_enemy"
 	debug_force_enabled = true
@@ -312,6 +332,8 @@ function Room:new(world, level, difficulty, level_history, max_enemies, max_haza
 	self.wave = 1
     self.elapsed = 0
     self.tick = 0
+    self.elapsed_scaled = 0
+    self.tick_scaled = 0
 
 	self:set_bounds(conf.room_size.x, conf.room_size.y)
 	
@@ -370,7 +392,7 @@ function Room:set_bounds(room_width, room_height)
 end
 
 function Room:build(params)
-	params = params or {}
+    params = params or {}
     if params.bonus_room then
         self.bonus_room = true
         -- self.level = floor(self.level * 1.5) + 2
@@ -384,45 +406,76 @@ function Room:build(params)
     if params.needs_heart then
         self.needs_heart = true
     end
-	if params.wants_heart then
-		self.wants_heart = true
-	end
-	if params.start_room then
-		self.start_room = true
-	end
+    if params.wants_heart then
+        self.wants_heart = true
+    end
+    if params.start_room then
+        self.start_room = true
+    end
 
-	if params.hard_room then
-		self.is_hard = true
-	end
+    if params.hard_room then
+        self.is_hard = true
+    end
 
-	if params.force_ammo then
-		self.force_ammo = true
-	end
+    if params.force_ammo then
+        self.force_ammo = true
+    end
+
+    if params.cursed_room then
+        self.curse = self:get_random_curse()
+    end
 
     if self.is_hard then
-		self.level = self.level + clamp(floor(self.level), 3, 50)
-	end
+        self.level = self.level + clamp(floor(self.level), 3, 50)
+    end
 
-	self.level = max(floor(self.level * (1 + game_state:get_difficulty_modifier())), self.level)
+    self.level = max(floor(self.level * (1 + game_state:get_difficulty_modifier())), self.level)
 
-	self.level = max(self.level, 1)
+    self.level = max(self.level, 1)
 
     self.waves, self.rescue_waves = self:generate_waves()
     self.last_wave = #self.waves
-	for _, wave in pairs(self.waves) do
-		for _, enemy in pairs(wave.enemy) do
-			self.total_enemy_score = self.total_enemy_score + enemy.score
-		end
-	end
+    for _, wave in pairs(self.waves) do
+        for _, enemy in pairs(wave.enemy) do
+            self.total_enemy_score = self.total_enemy_score + enemy.score
+        end
+    end
 
-	for _, wave in pairs(self.rescue_waves) do
-		for _, rescue in pairs(wave) do
-			self.total_rescue_score = self.total_rescue_score + rescue.rescue.score
-		end
-	end
+    for _, wave in pairs(self.rescue_waves) do
+        for _, rescue in pairs(wave) do
+            self.total_rescue_score = self.total_rescue_score + rescue.rescue.score
+        end
+    end
 
     self.total_score = self.total_enemy_score + self.total_rescue_score
+end
 
+
+function Room:get_random_curse()
+
+    if rng:chance(1/6) then
+        return "curse_ignorance"
+    end
+
+    local valid_curses = {}
+    for curse_name, curse in pairs(self.curses) do
+        if self.level < (curse.min_level and resolve(curse.min_level) or 0) then
+            goto continue
+        end
+        if not truthy_nil(resolve(curse.can_spawn)) then
+            goto continue
+        end
+
+        valid_curses[curse_name] = resolve(curse.weight)
+
+        ::continue::
+    end
+    return rng:weighted_choice_dict(valid_curses)
+end
+
+function Room:get_random_position_within_room(terrain_collision_radius)
+    terrain_collision_radius = terrain_collision_radius or 0
+    return rng:random_point_in_rect(self.bounds.x + terrain_collision_radius, self.bounds.y + terrain_collision_radius, self.bounds.width - terrain_collision_radius * 2, self.bounds.height - terrain_collision_radius * 2)
 end
 
 function Room:should_spawn_waves()
@@ -733,23 +786,30 @@ function Room:generate_waves()
 			local counts = {}
 
             local num_points = 50 * self:pool_point_modifier()
+            if self.curse == "curse_hazardous" then
+                num_points = num_points * 2.5
+            end
 			local c = 0
             while num_points > 0 and #wave < self.max_hazards do
 				local inserted = false
 
                 local hazard = rng:weighted_choice(pool, weights)
-				if hazard and hazard.max_spawns and hazard.max_spawns <= (counts[hazard.name] or 0) then
-					local index = table.search_list(pool, hazard)
-					table.remove(pool, index)
-					table.remove(weights, index)
-				else
-					if hazard then
-						num_points = num_points - hazard.spawn_points
-						table.insert(wave, hazard)
-						counts[hazard.name] = (counts[hazard.name] or 0) + 1
-						inserted = true
-					end
-				end
+                if hazard then
+                    local max_spawns = hazard.max_spawns or math.huge
+                    if self.curse == "curse_hazardous" then
+                        max_spawns = max_spawns * 2.5
+                    end
+                    if max_spawns <= (counts[hazard.name] or 0) then
+                        local index = table.search_list(pool, hazard)
+                        table.remove(pool, index)
+                        table.remove(weights, index)
+                    else
+                        num_points = num_points - hazard.spawn_points
+                        table.insert(wave, hazard)
+                        counts[hazard.name] = (counts[hazard.name] or 0) + 1
+                        inserted = true
+                    end
+                end
 				if not inserted then
 					c = c + 1
 					if c > 10 then

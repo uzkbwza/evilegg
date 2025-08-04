@@ -361,6 +361,15 @@ local Enemies = {
         icon = textures.enemy_penitent,
     },
 
+    PenitentSoul = {
+        -- level = 1,
+        min_level = 103,
+        spawn_points = 100,
+        spawnable = false,
+        boss=true,
+        icon = textures.enemy_penitent_soul1,
+    },
+
 	EggBoss = {
 		spawnable = false,
         icon = textures.enemy_egg_boss1,

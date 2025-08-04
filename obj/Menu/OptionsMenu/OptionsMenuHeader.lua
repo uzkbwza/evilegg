@@ -6,9 +6,15 @@ function OptionsMenuHeader:new(x, y, text)
 end
 
 function OptionsMenuHeader:draw()
+    if self.text == "" then
+        return
+    end
     graphics.set_color(Color.green)
-	graphics.set_font(fonts.depalettized.image_font2)
-	graphics.print(self.text, self.x, self.y)
+    local font = fonts.depalettized.image_font2
+	graphics.set_font(font)
+    graphics.print(self.text, -1, 0)
+    graphics.set_color(Color.darkgreen)
+    graphics.line(-1, 10, font:getWidth(self.text), 10)
 end
 
 return OptionsMenuHeader

@@ -125,6 +125,10 @@ function SecondaryWeapon:draw()
     local unfireable_color = Color.grey
     local fireable_color = game_state.secondary_weapon.ammo_color
 
+    -- if self.world.room.curse == "curse_famine" then5
+    --     fireable_color = Color.red
+    -- end
+
 	if self:is_timer_running("gained_ammo_flash") and iflicker(self.tick, 2, 2) then
         fireable_color = self.tick % 2 == 0 and Color.white or Color.grey
 		hud_icon_color = self.tick % 2 == 0 and hud_icon_color or Color.grey

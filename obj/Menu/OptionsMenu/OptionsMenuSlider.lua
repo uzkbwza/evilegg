@@ -13,7 +13,7 @@ function OptionsMenuSlider:new(x, y, text, start, stop, granularity)
 	self.mouse_granularity = self.granularity / 100
 
     self.width = self.width + SLIDER_WIDTH - (self.height - GRABBER_WIDTH / 2)
-    self.slider_start = self.width - SLIDER_WIDTH
+    self.slider_start = self.width - SLIDER_WIDTH + 1
 	self.slider_end = self.width
 end
 

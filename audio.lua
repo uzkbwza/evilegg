@@ -309,6 +309,13 @@ function audio.play_music(src, volume, looping)
 	audio.playing_music_volume = volume or 1
 end
 
+function audio.set_music_volume(volume)
+    if audio.playing_music then
+        audio.playing_music:setVolume(volume and (volume * usersettings.music_volume) or usersettings.music_volume)
+    end
+    audio.playing_music_volume = volume or 1
+end
+
 function audio.usersettings_update()
     if audio.playing_music then
         audio.playing_music:setVolume(usersettings.music_volume * audio.playing_music_volume)

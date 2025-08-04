@@ -9,7 +9,7 @@ local PLANET_Y = 25
 local EGG_Y = -35
 local SUN_Y = -60
 
-local SKIP_CUTSCENE1 = false
+local SKIP_CUTSCENE1 = true
 
 SKIP_CUTSCENE1 = SKIP_CUTSCENE1 and debug.enabled
 

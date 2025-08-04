@@ -24,7 +24,7 @@ return {
 		ignore_score_multiplier = true,
 
 		xp = 0,
-        difficulty_modifier = 0.00,
+        difficulty_modifier = 0.15,
 		-- final_room_allowed = true,
     },
 	
@@ -33,7 +33,15 @@ return {
         score = 50,
         xp = 50,
 		score_multiplier = 0.03,
-		difficulty_modifier = 0.00,
+		difficulty_modifier = 0.15,
+    },
+
+    tactful = {
+        text_key = "bonus_tactful",
+        score = 100,
+        score_multiplier = 0.01,
+        xp = 0,
+        difficulty_modifier = 0.1,
     },
 	
 	ammo_hoarder = {
@@ -41,7 +49,7 @@ return {
 		score = 50,
 		score_multiplier = 0.00,
 		xp = 25,
-		difficulty_modifier = 0.00,
+		difficulty_modifier = 0.1,
 	},
 
 	aggression_bonus = {
@@ -210,7 +218,15 @@ return {
 		-- always_show_count = true,
 		-- priority = 0,
 		-- difficulty_modifier = 0.015,
-	},
+    },
+    
+    cursed_room = {
+        text_key = "bonus_cursed_room",
+        score = 50,
+        score_multiplier = 0.01,
+        xp = 100,
+        difficulty_modifier = 0.015,
+    },
 
 	
 }

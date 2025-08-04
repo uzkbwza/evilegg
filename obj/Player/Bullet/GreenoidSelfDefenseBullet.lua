@@ -6,9 +6,9 @@ function GreenoidSelfDefenseBullet:new(x, y)
 	self.use_artefacts = true
     self.use_upgrades = true
 	self.hit_vel_multip = 10
-	self.push_modifier = 0.35
+	self.push_modifier = 0.15
     GreenoidSelfDefenseBullet.super.new(self, x, y)
-    self.damage = 0.15 + game_state.upgrades.damage * 0.15
+    self.damage = 0.15 + game_state.upgrades.damage * 0.05
 end
 
 function GreenoidSelfDefenseBullet:update(dt)

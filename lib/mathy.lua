@@ -18,7 +18,15 @@ function clamp01(x)
 end
 
 function sign(x)
-  return x > 0 and 1 or x < 0 and -1 or 0
+    return x > 0 and 1 or x < 0 and -1 or 0
+end
+
+function sign1(x)
+    return x > 0 and 1 or x < 0 and -1 or 1
+end
+
+function math.cot(n) 
+    return 1 / math.tan(n)
 end
 
 -- 			   a      0       1      0.25    1
@@ -559,4 +567,86 @@ function find_angle_at_distance(target_distance, a, b, start_angle, step)
     end
     
     return current_angle
+end
+
+local _interp_multiline_tab = {}
+
+
+function interpolate_multiline_param(points, value, mode)
+    if #points < 4 then
+        if #points == 2 then return points[1], points[2] end
+        return nil, nil
+    end
+
+    table.clear(_interp_multiline_tab)
+    local accumulated_distances = _interp_multiline_tab
+    local len = #points
+
+    -- Calculate accumulated distances
+    local total_dist = 0
+    accumulated_distances[1] = 0
+    for i = 1, len - 3, 2 do
+        local x1 = points[i]
+        local y1 = points[i + 1]
+        local x2 = points[i + 2]
+        local y2 = points[i + 3]
+        local dist = sqrt(vec2_distance_squared(x1, y1, x2, y2))
+        total_dist = total_dist + dist
+        accumulated_distances[i/2 + 1.5] = total_dist
+    end
+
+    -- Determine the target distance
+    local target_dist
+    if mode == "t" then
+        target_dist = total_dist * value
+    elseif mode == "d" then
+        target_dist = value
+    else
+        error("Unknown mode for interpolate_multiline_param: " .. tostring(mode))
+    end
+
+    -- Handle out-of-bounds cases
+    if target_dist >= total_dist then
+        return points[len-1], points[len], true
+    elseif target_dist <= 0 then
+        return points[1], points[2]
+    end
+
+    -- Find the segment and interpolate
+    for i = 2, #accumulated_distances do
+        local upper_dist = accumulated_distances[i]
+        if upper_dist >= target_dist then
+            local lower_dist = accumulated_distances[i-1]
+            local segment_len = upper_dist - lower_dist
+            
+            local lerp_t = 0
+            if segment_len > 0 then
+                lerp_t = (target_dist - lower_dist) / segment_len
+            end
+            
+            local point_i = (i-2) * 2 + 1
+            local x, y = vec2_lerp(points[point_i], points[point_i + 1], points[point_i + 2], points[point_i + 3], lerp_t)
+            return x, y
+        end
+    end
+
+    -- Fallback, though should not be reached with the logic above
+    return points[len-1], points[len], true
+end
+
+-- For backward compatibility, keep the old function names as wrappers
+function interpolate_multiline(points, t)
+    return interpolate_multiline_param(points, t, "t")
+end
+
+function interpolate_multiline_distance(points, target_dist)
+    return interpolate_multiline_param(points, target_dist, "d")
+end
+
+function inradius(vertex_distance, sides)
+    return vertex_distance * cos(pi / sides)
+end
+
+function circumradius_from_inradius(inradius, sides)
+    return inradius / cos(pi / sides)
 end

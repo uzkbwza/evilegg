@@ -21,6 +21,7 @@ local MIN_PLAYER_DISTANCE_FOR_GROWTH = 64
 
 local PROPOGATE_RADIUS = 16
 local MAX_FUNGI = 60
+local MAX_FUNGI_HAZARDOUS = 90
 
 local _current_propagator
 local function _propagation_checker(other)
@@ -32,7 +33,6 @@ Fungus.spawn_sfx_volume = 0.2
 Fungus.cannot_hit_egg = true
 Fungus.is_fungus = true
 Fungus.max_hp = 1
-
 
 function Fungus:new(x, y, propogate_frequency)
     self.team = "neutral"
@@ -71,6 +71,10 @@ function Fungus:new(x, y, propogate_frequency)
 	self.death_sfx = "hazard_fungus_die"
     self.hit_bubble_radius = nil
     self.palette = nil
+end
+
+function Fungus:max_fungi()
+    return self.world.room.curse == "curse_hazardous" and MAX_FUNGI_HAZARDOUS or MAX_FUNGI
 end
 
 function Fungus:enter()
@@ -112,7 +116,7 @@ end
 
 function Fungus:start_propagate_timer()
 	self:start_tick_timer("propagate", max(rng:randfn(self.propogate_frequency, PROPOGATE_VARIANCE_DEVIATION), 10), function()
-		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and self.big then
+		if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and self.big then
 			self:propagate()
 		end
 		self:start_propagate_timer()
@@ -214,7 +218,7 @@ end
 
 function Fungus:start_hp_gain_timer()
 	self:start_tick_timer("gain_hp", HP_GAIN_FREQUENCY * clamp(rng:randfn(1, 0.1), 0.5, 1.5), function()
-		if self.world:get_number_of_objects_with_tag("fungus") < MAX_FUNGI and not self.big then
+		if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and not self.big then
 			-- self:propagate()
 			self:heal(self.hp_gain_amount, true)
 		end

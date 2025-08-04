@@ -64,6 +64,8 @@ function Walksploder:get_palette()
 end
 
 function Walksploder:enter()
+    local walk_speed = self.walk_speed
+    self:interpolate_property("walk_speed", 0, walk_speed, 30)
 	local bx, by = self:get_body_center()
 	self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
 end

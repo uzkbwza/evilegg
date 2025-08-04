@@ -144,7 +144,10 @@ function line_rect_intersection(x1, y1, x2, y2, rx, ry, rw, rh)
     end
 end
 
-function circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y)
+function circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_width, aabb_height)
+    local aabb_max_x = aabb_min_x + aabb_width
+    local aabb_max_y = aabb_min_y + aabb_height
+
     -- Step 1: Find the closest point on the AABB to the circle's center
     local closest_x = max(aabb_min_x, min(circle_center_x, aabb_max_x))
     local closest_y = max(aabb_min_y, min(circle_center_y, aabb_max_y))
@@ -162,7 +165,53 @@ function circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, 
     return false -- No collision
 end
 
-function circle_aabb_overlap_amount(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y)
+
+function capsule_aabb_collision(capsule_x1, capsule_y1, capsule_x2, capsule_y2, capsule_radius, aabb_min_x, aabb_min_y, aabb_width, aabb_height)
+    local aabb_max_x = aabb_min_x + aabb_width
+    local aabb_max_y = aabb_min_y + aabb_height
+    
+    -- Check if capsule endpoints are inside AABB
+    if capsule_x1 >= aabb_min_x and capsule_x1 <= aabb_max_x and capsule_y1 >= aabb_min_y and capsule_y1 <= aabb_max_y then
+        return true
+    end
+    
+    if capsule_x2 >= aabb_min_x and capsule_x2 <= aabb_max_x and capsule_y2 >= aabb_min_y and capsule_y2 <= aabb_max_y then
+        return true
+    end
+    
+    -- Check if capsule line segment intersects with AABB (with radius consideration)
+    -- First, check if the line segment intersects the AABB
+    local line_intersects = line_rect_intersection(capsule_x1, capsule_y1, capsule_x2, capsule_y2, aabb_min_x, aabb_min_y, aabb_width, aabb_height)
+    if line_intersects then
+        return true
+    end
+
+    local radius_squared = capsule_radius * capsule_radius
+    
+    -- Check if any corner of AABB is within capsule radius
+    if distance_squared_to_line_segment(aabb_min_x, aabb_min_y, capsule_x1, capsule_y1, capsule_x2, capsule_y2) <= radius_squared then
+        return true
+    end
+    
+    if distance_squared_to_line_segment(aabb_max_x, aabb_min_y, capsule_x1, capsule_y1, capsule_x2, capsule_y2) <= radius_squared then
+        return true
+    end
+    
+    if distance_squared_to_line_segment(aabb_max_x, aabb_max_y, capsule_x1, capsule_y1, capsule_x2, capsule_y2) <= radius_squared then
+        return true
+    end
+    
+    if distance_squared_to_line_segment(aabb_min_x, aabb_max_y, capsule_x1, capsule_y1, capsule_x2, capsule_y2) <= radius_squared then
+        return true
+    end
+    
+    return false
+end
+
+function circle_aabb_overlap_amount(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_width, aabb_height)
+    local aabb_max_x = aabb_min_x + aabb_width
+    local aabb_max_y = aabb_min_y + aabb_height
+
     -- Step 1: Find the closest point on the AABB to the circle's center
     local closest_x = max(aabb_min_x, min(circle_center_x, aabb_max_x))
     local closest_y = max(aabb_min_y, min(circle_center_y, aabb_max_y))
@@ -183,7 +232,10 @@ function circle_aabb_overlap_amount(circle_center_x, circle_center_y, circle_rad
     return 0  -- No collision
 end
 
-function resolve_circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y)
+function resolve_circle_aabb_collision(circle_center_x, circle_center_y, circle_radius, aabb_min_x, aabb_min_y, aabb_width, aabb_height)
+    local aabb_max_x = aabb_min_x + aabb_width
+    local aabb_max_y = aabb_min_y + aabb_height
+
     -- Step 1: Find the closest point on the AABB to the circle's center
     local closest_x = max(aabb_min_x, min(circle_center_x, aabb_max_x))
     local closest_y = max(aabb_min_y, min(circle_center_y, aabb_max_y))
@@ -265,4 +317,9 @@ function get_capsule_rect(ax, ay, bx, by, abr)
     
     return start_x - abr, start_y - abr, end_x - start_x + abr * 2, end_y - start_y + abr * 2
 
+end
+
+
+function aabb_aabb_collision(ax, ay, aw, ah, bx, by, bw, bh)
+    return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
 end

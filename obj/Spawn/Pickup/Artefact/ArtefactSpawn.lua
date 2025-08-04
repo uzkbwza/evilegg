@@ -206,7 +206,12 @@ function ArtefactSpawn:state_Idle_draw()
     local palette, offset = self:get_palette()
 	
 	if not self.picked_up then
-		graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, 0, sin(elapsed / 20) * 1)
+        local offsx = 0
+        if self.artefact.key == "heart_trade" then
+            offsx = -8
+            graphics.drawp_centered(game_state.heart_trade_artefact.artefact.icon, Palette.heart_trade_artefact_icon, 0, -offsx, cos(elapsed / 20) * 1, 0, 1, 1)
+        end
+		graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, offsx, sin(elapsed / 20) * 1)
 	end
 	graphics.set_color(Color.black)
 	
@@ -295,7 +300,8 @@ function ArtefactSpawner:new(x, y)
 		s:tween_property(self, "sky_laser_bottom", 0, 1, 7, "linear")
 		self:stop_sfx("pickup_artefact_pre_boom")
 		self:stop_sfx("pickup_artefact_spawn")
-		self:play_sfx("pickup_artefact_boom")
+        self:play_sfx("pickup_artefact_boom")
+        self.world.camera:start_rumble(2, 12, nil, false, true)
         self:spawn_object(Splatter(self.pos.x, self.pos.y, 40, 40, 2)).z_index = -1
 		local flash_size = 100
 		-- self:spawn_object(ArtefactSpawnerFlashEffect(self.pos.x, self.pos.y))

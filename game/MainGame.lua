@@ -116,7 +116,8 @@ function GlobalGameState:new()
 
 	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
 	self.heart_xp_target = self.xp + self.xp_until_heart
-	self.artefact_xp_target = self.xp + self.xp_until_artefact
+    self.artefact_xp_target = self.xp + self.xp_until_artefact
+    
 
 	self.reached_upgrade_xp_at = 0
 	self.reached_heart_xp_at = 0
@@ -216,14 +217,15 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
+        local cheat = true
+        self.cheat = true
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
-			self:add_score(25000000000, "cheat")
-            self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
+			self:add_score(25000000, "cheat")
+            -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
@@ -235,11 +237,11 @@ function GlobalGameState:new()
                 PickupTable.artefacts.RailGunSecondaryWeapon,
             })
 
-            -- self.num_queued_artefacts = 5
+            self.num_queued_artefacts = 10
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30
+            self.level = 1
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -505,10 +507,14 @@ function GlobalGameState:gain_xp(amount)
 	--     self.xp_until_powerup = self.xp_until_powerup + max(GlobalGameState.xp_until_powerup + rng:randi(-1, 1) - (self.level * 0.45), 8)
 	--     self:on_powerup_xp_threshold_reached()
 	-- end
-	if self.xp_until_artefact <= 0 then
-		self.xp_until_artefact = self.xp_until_artefact + GlobalGameState.xp_until_artefact + rng:randi(-100, 100)
-		self:on_artefact_xp_threshold_reached()
-	end
+    if self.xp_until_artefact <= 0 then
+        self.xp_until_artefact = self.xp_until_artefact + GlobalGameState.xp_until_artefact + rng:randi(-100, 100)
+        self:on_artefact_xp_threshold_reached()
+    end
+    
+    if debug.enabled then
+        dbg("xp", self.xp)
+    end
 end
 
 function GlobalGameState:on_damage_taken()
@@ -548,6 +554,7 @@ function GlobalGameState:on_level_start()
 	self.bullets_shot_this_level = 0
 	self.bullets_hit_this_level = 0
 	self.aggression_bonus = 0
+    self.hit_by_egg_wrath = false
 
 	self.harmed_noid = false
 	self.level_bonuses = {}
@@ -1192,6 +1199,10 @@ function GlobalGameState:get_random_available_artefact()
 		self.weapons_picked = self.weapons_picked or {}
 		self.weapons_picked[v.key] = true
 	end
+
+    if v and v.on_chosen then
+        v.on_chosen(self)
+    end
 
 	return v
 end

@@ -15,7 +15,12 @@ local LandingCrack = GameObject2D:extend("LandingCrack")
 local GlassShardsEffect = Effect:extend("GlassShardsEffect")
 local UnderEggFlash = GameObject2D:extend("UnderEggFlash")
 local Cutscenes = require("obj.Cutscene")
-local Penitent = require("obj.Spawn.Enemy.Penitent")
+local Penitent = require("obj.Spawn.Enemy.Penitent")[1]
+local EggWrath = require("obj.Spawn.Enemy.EggWrath")
+local EggTree = BaseEnemy:extend("EggTree")
+local EggTreeRoots = GameObject2D:extend("EggTreeRoot")
+local EggTreeFx = GameObject2D:extend("EggTreeFx")
+local FinalPhaseFloorFx = Effect:extend("FinalPhaseFloorFx")
 
 local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
@@ -855,18 +860,15 @@ function EggBoss:phase2_landing()
             -- self:show()
             
             
-            -- closest_player:show()
-            -- self:emit_signal("cutscene1_over")
-            -- closest_player:change_state("Walk")
-            -- self.world.floor_drawing = true
-            -- self:change_state("Phase6")
+
+            self:change_state("Phase6")
             
             -- placeholder block
-            s:wait(45)
-            self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
-            s:wait(180)
-            self.placeholder_text:start_destroy_timer(10)
-            self:die()
+            -- s:wait(45)
+            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+            -- s:wait(180)
+            -- self.placeholder_text:start_destroy_timer(10)
+            -- self:die()
 
             return
 		end)
@@ -881,9 +883,13 @@ function EggBoss:state_Phase2_update(dt)
 	end
 end
 
-function EggBoss:spawn_greenoid(pickup)
-	if not game_state.game_over then
-		self.world:spawn_rescue(NormalRescue, pickup, self.world:get_valid_spawn_position())
+function EggBoss:spawn_greenoid(pickup, x, y)
+    if not game_state.game_over then
+        if x == nil then
+            x, y = self.world:get_valid_spawn_position()
+        end
+
+		return self.world:spawn_rescue(NormalRescue, pickup, x, y)
 	end
 end
 
@@ -1013,10 +1019,18 @@ end
 
 function EggBoss:state_Phase6_enter()
     self.spawning_penitents = true
+    for _, player in self:get_players():ipairs() do
+        player:show()
+        player:change_state("Walk")
+    end
+    self:emit_signal("cutscene1_over")
+    self.world.floor_drawing = true
+    audio.set_music_volume(0.8)
+    self:spawn_object(EggTree(0, 0))
 end
 
 function EggBoss:state_Phase6_update(dt)
-    if self.spawning_penitents and self.is_new_tick and self.world:get_number_of_objects_with_tag("penitent") < 40 then
+    if self.spawning_penitents and self.is_new_tick and self.world:get_number_of_objects_with_tag("penitent") < 25 then
         local x, y = self:get_position_out_of_player_los()
         local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
 
@@ -1025,6 +1039,62 @@ function EggBoss:state_Phase6_update(dt)
             x, y = rng:random_vec2_times(rng:randf(0, 64))
         end
         self.world:spawn_object(Penitent(x, y))
+    end
+    if self.is_new_tick and not self:is_tick_timer_running("wrath") and rng:percent(0.5) and self.state_tick > 900 then
+        self.wrath_cycles = self.wrath_cycles or 1
+        local num_wraths = rng:randi(2, clamp(self.wrath_cycles + 1, 2, 10))
+        self.wrath_cycles = self.wrath_cycles + 1
+        self:start_tick_timer("wrath", 120 + num_wraths * 45)
+        local s = self.sequencer
+        s:start(function()
+            for i = 1, num_wraths do
+                local player = self:get_random_player()
+                if player then
+                    local bx, by = player:get_body_center()
+                    if i ~= num_wraths then
+                        bx, by = vec2_add(bx, by, rng:random_vec2_times(rng:randf(32, 180)))
+                    end
+                    self:spawn_object(EggWrath(bx, by))
+                end
+                s:wait(25)
+            end
+        end)
+    end
+    if self.is_new_tick and rng:percent(2) and self.world:get_number_of_objects_with_tag("rescue_object") <= 1 then
+        local pickup = nil
+
+        local upgrade = false
+
+        if not game_state:is_fully_upgraded() then
+            pickup = game_state:get_random_available_upgrade(false)
+            upgrade = true
+        elseif rng:percent(25) and game_state.artefacts.transmitter then
+            pickup = PickupTable.powerups.AmmoPowerup
+        end
+
+
+        if upgrade then
+            for _, object in self.world:get_objects_with_tag("rescue_object"):ipairs() do
+                if object.holding_pickup == pickup then
+                    pickup = nil
+                end
+            end
+        end
+
+        local x, y = self:get_position_out_of_player_los()
+        local greenoid = self:spawn_greenoid(pickup, x, y)
+        if greenoid then
+            greenoid.run_toward_player = true
+            greenoid.no_score = true
+        end
+    end
+    
+    if self.is_new_tick then
+        for i = 1, 3 do
+            local px, py = self.world.camera_target.pos.x, self.world.camera_target.pos.y
+            local offx, offy = rng:random_vec2_times(rng:randf(0, 170))
+            self:spawn_object(FinalPhaseFloorFx(px + offx, py + offy))
+        end
     end
 end
 
@@ -2024,6 +2094,295 @@ function UnderEggFlash:draw()
 		graphics.rectangle_centered(self.line_rect and "line" or "fill", 0, 0, scale, scale)
 	end
 	graphics.pop()
+end
+
+local ROOT_BOTTOM_HEIGHT = 50
+local ROOT_BOTTOM_WIDTH = 70
+local ROOT_GROWTH_SPEED = 1
+local ROOT_PULSE_SPEED = 2.5
+
+EggTree.max_hp = math.huge
+
+function EggTree:new(x, y)
+    EggTree.super.new(self, x, y)
+    self.applying_physics = false
+    self.body_height = 40
+    self.hurt_bubble_radius = 0
+    self.alive = true
+    self.melee_attacking = false
+    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self.declump_radius = 25
+    self.is_egg_tree = true
+end
+
+function EggTree:enter()
+    self:spawn_object(EggTreeRoots(self.pos.x, self.pos.y)):ref("parent", self)
+    self:spawn_object(EggTreeFx(self.pos.x, self.pos.y)):ref("parent", self)
+    self:add_hurt_bubble(0, self.body_height, 15, "main", 0, -30)
+end
+
+function EggTree:get_sprite()
+    return textures.enemy_egg_tree
+end
+
+local NUM_FLOATERS = 6
+
+function EggTree:draw_floaters(in_front)
+    graphics.push("all")
+    for i = 1, NUM_FLOATERS do
+        local angle = fposmod(-self.elapsed * 0.025 + tau * (i / NUM_FLOATERS), tau)
+        if in_front and (angle / tau) >= 0.5 then
+            goto continue
+        elseif not in_front and (angle / tau) <= 0.5 then
+            goto continue
+        end
+        local x, y = vec2_from_polar(20 + sin01(self.elapsed * 0.05) * 10, angle)
+        y = y * 0.75 + 10
+        y = y + sin(self.elapsed * 0.115 + i * 0.6 + tau * (i / NUM_FLOATERS)) * 3 - 40
+        -- local palette, palette_index = self:get_palette_shared()
+        -- graphics.drawp_centered(textures["enemy_egg_tree_floater" .. i], palette, palette_index, x, y)
+        local col1 = Palette.egg_wrath_shine:tick_color(self.tick + i, 0, 1)
+        local col2 = Palette.egg_wrath_shine2:tick_color(self.tick + i, 0, 1)
+        graphics.set_color(col2)
+        graphics.rectangle_centered("fill", x, y, 5, 5)
+        graphics.set_color(col1)
+        graphics.rectangle_centered("fill", x, y, 3, 3)
+        graphics.set_color(col2)
+        graphics.rectangle_centered("line", x, y, 7, 7)
+        -- for i = 1, 7 do
+        --     local angle2 = fposmod(angle + tau * (i / 7) + self.elapsed * 0.2, tau)
+        --     local x2, y2 = vec2_from_polar(6, angle2)
+        --     graphics.set_color(col2)
+        --     graphics.rectangle_centered("fill", x + x2, y + y2, 3, 3)
+        --     graphics.set_color(col1)
+        --     graphics.rectangle_centered("fill", x + x2, y + y2, 1, 1)
+        -- end
+        ::continue::
+    end
+    graphics.pop()
+end
+
+function EggTree:draw()
+
+    -- self:draw_floaters(false)
+
+    graphics.push()
+    EggTree.super.draw(self)
+    graphics.pop()
+
+    -- self:draw_floaters(true)
+end
+
+function EggTreeRoots:new(x, y)
+    EggTreeRoots.super.new(self, x, y)
+    local roots = {}
+    self.z_index = -2
+    for i = 1, 15 do
+        local dx, dy = 0, 0
+        local root_x, root_y = 0, 0
+        if rng:coin_flip() then
+            root_x = rng:rand_sign() * ROOT_BOTTOM_WIDTH / 2
+            root_y = rng:randf(-ROOT_BOTTOM_HEIGHT / 2, ROOT_BOTTOM_HEIGHT / 2)
+            dx = sign1(root_x)
+        else
+            root_y = rng:rand_sign() * ROOT_BOTTOM_HEIGHT / 2
+            root_x = rng:randf(-ROOT_BOTTOM_WIDTH / 2, ROOT_BOTTOM_WIDTH / 2)
+            dy = sign1(root_y)
+        end
+
+        local root = {
+            dx = dx,
+            dy = dy,
+            start_dx = dx,
+            start_dy = dy,
+            points = {
+                root_x, root_y,
+                root_x + dx, root_y + dy,
+            },
+            pulses = batch_remove_list(),
+            max_points = rng:randi(12, 22),
+            color = Palette.egg_tree_root:random_color() * 0.4,
+            scale = rng:randi(3, 8),
+            total_distance = 0,
+            speed = max(0.05, rng:randfn(ROOT_GROWTH_SPEED, ROOT_GROWTH_SPEED * 0.1)),
+
+            dist_since_last_point = 0,
+        }
+
+        table.insert(roots, root)
+    end
+    self.roots = roots
+    self:add_elapsed_ticks()
+end
+
+function EggTreeRoots:update(dt)
+    
+    if self.parent and self.parent.alive then
+        if self.is_new_tick and self.tick % 45 == 0 then
+            for _, root in ipairs(self.roots) do
+                local dx, dy = vec2_direction_to(root.points[1], root.points[2], root.points[3], root.points[4])
+                local pulse = {
+                    dist = root.total_distance,
+                    -- prev_dist = root.total_distance,
+                }
+                root.pulses:push(pulse)
+            end
+        end
+        for _, root in ipairs(self.roots) do
+            local point_count = #root.points
+
+            if root.dist_since_last_point < 1000 then
+                local speed = root.speed * dt
+                root.points[point_count - 1] = root.points[point_count - 1] + root.dx * speed
+                root.points[point_count] = root.points[point_count] + root.dy * speed
+                root.dist_since_last_point = root.dist_since_last_point + speed
+                root.total_distance = root.total_distance + speed
+            end
+
+            if self.is_new_tick and rng:percent(1) and #root.points < root.max_points * 2 then
+                local dx, dy = vec2_rotated(root.dx, root.dy, rng:rand_sign() * tau / 4)
+                while (dx == root.start_dx and dy == root.start_dy) or (dx == root.dx and dy == root.dy) do
+                    dx, dy = vec2_rotated(root.dx, root.dy, rng:rand_sign() * tau / 4)
+                end
+
+                root.dx = dx
+                root.dy = dy
+
+
+                root.points[point_count + 1] = root.points[point_count - 1]
+                root.points[point_count + 2] = root.points[point_count]
+
+                root.dist_since_last_point = 0
+            end
+
+            for _, pulse in root.pulses:ipairs() do
+                -- pulse.prev_dist = pulse.dist
+                pulse.dist = pulse.dist - dt * ROOT_PULSE_SPEED
+                if pulse.dist <= 0 then
+                    root.pulses:queue_remove(pulse)
+                end
+            end
+
+            root.pulses:apply_removals()
+        end
+    end
+end
+
+function EggTreeRoots:floor_draw()
+    -- graphics.set_line_width(4)
+    
+    -- if self.is_new_tick then
+        -- graphics.set_line_width(4)
+        for _, root in ipairs(self.roots) do
+            local scale = root.scale
+            graphics.set_color(root.color)
+            -- graphics.line(root.points)
+            local len = #root.points
+
+            graphics.rectangle_centered("fill", root.points[len - 1], root.points[len], scale, scale)
+            for _, pulse in root.pulses:ipairs() do
+                local x, y = interpolate_multiline_distance(root.points, pulse.dist)
+                graphics.rectangle_centered("fill", x, y, scale, scale)
+            end
+        end
+    -- end
+    if self.is_new_tick then
+        
+        -- graphics.set_color(Color.darkmagenta.r * 0.5, Color.darkmagenta.g * 0.5, Color.darkmagenta.b * 0.5)
+        -- graphics.rectangle_centered("fill", 0, 0, ROOT_BOTTOM_WIDTH, ROOT_BOTTOM_HEIGHT)
+        for i=1, 5 do
+            local scale = rng:randf(0.05, 0.25)
+            local offsx = rng:randfn(0, ROOT_BOTTOM_WIDTH / 2)
+            local offsy = rng:randfn(0, ROOT_BOTTOM_HEIGHT / 2)
+            -- graphics.set_color(Color.darkmagenta)
+            -- graphics.rectangle_centered("fill", offsx, offsy, ROOT_BOTTOM_WIDTH * 0.8 * scale, ROOT_BOTTOM_HEIGHT * 0.8 * scale)
+            graphics.set_color(Color.magenta)
+            graphics.rectangle_centered("fill", offsx, offsy, ROOT_BOTTOM_WIDTH * 0.6 * scale, ROOT_BOTTOM_HEIGHT * 0.6 * scale)
+        end
+        graphics.set_color(Color.magenta)
+        local offsx = rng:randfn(0, 2)
+        local offsy = rng:randfn(0, 2)
+        graphics.rectangle_centered("fill", offsx, offsy, ROOT_BOTTOM_WIDTH * rng:randfn(0.6, 0.1), ROOT_BOTTOM_HEIGHT * rng:randfn(0.6, 0.1))
+    end
+end
+
+function EggTreeFx:new(x, y)
+    EggTreeFx.super.new(self, x, y-1)
+    self:add_time_stuff()
+    self.z_index = 0.0
+    self.rising_particles = batch_remove_list()
+end
+
+function EggTreeFx:update(dt)
+    if self.parent and self.parent.alive then
+        self:set_visible(self.parent.visible)
+    else
+        self:queue_destroy()
+    end
+
+    if self.is_new_tick then
+        for i=1, 3 do
+            local offx, offy = rng:random_vec2_times(rng:randf(4, 8))
+            local particle = {
+                x = self.parent.pos.x + offx,
+                y = self.parent.pos.y + offy - 70,
+                t = 0,
+                elapsed = 0,
+                random_offset = rng:randi()
+            }
+            self.rising_particles:push(particle)
+        end
+    end
+    for _, particle in self.rising_particles:ipairs() do
+        particle.t = particle.t + dt * 0.05
+        particle.elapsed = particle.elapsed + dt
+        if particle.t > 1 then
+            self.rising_particles:queue_remove(particle)
+        end
+    end
+    self.rising_particles:apply_removals()
+end
+
+function EggTreeFx:draw()
+    for _, particle in self.rising_particles:ipairs() do
+        graphics.set_line_width(4)
+        graphics.set_color(Palette.egg_wrath_shine:tick_color(particle.elapsed + particle.random_offset, 0, 1))
+        local yoffs = 200 * ease("inCubic")(particle.t)
+        graphics.line(particle.x, min(particle.y - yoffs + particle.t * 100, particle.y), particle.x, particle.y - yoffs)
+    end
+end
+
+function FinalPhaseFloorFx:new(x, y)
+    FinalPhaseFloorFx.super.new(self, x, y)
+    self:add_time_stuff()
+    self.z_index = 0.0
+    self.height = max(rng:randfn_abs(2, 10), 1)
+    self.duration = max(10, self.height)
+    self.color = Palette.egg_wrath_shine:random_color()
+end
+function FinalPhaseFloorFx:draw(elapsed, tick, t)
+    if gametime.tick % 2 == 0 then
+        return
+    end
+    local t1 = ease("inCubic")(t)
+    local t2 = ease("inOutCubic")(t)
+    graphics.set_color(self.color)
+    graphics.set_line_width(1)
+    local height = self.height
+    graphics.line(0, -height*t1, 0, -height*t2)
+end
+
+function FinalPhaseFloorFx:floor_draw()
+    if self.is_new_tick and self.tick == 2 then
+        local mod = 0.25
+        graphics.set_color(self.color.r * mod, self.color.g * mod, self.color.b * mod)
+        if rng:coin_flip() then 
+            -- graphics.rectangle_centered("fill", 0, 0, 3, 3)
+            graphics.points(0, 0)
+        else
+            graphics.rectangle_centered("line", 0, 0, 3, 3)
+        end
+    end
 end
 
 AutoStateMachine(EggBoss, "Idle")

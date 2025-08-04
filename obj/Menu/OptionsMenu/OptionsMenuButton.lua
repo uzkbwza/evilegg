@@ -1,5 +1,7 @@
 local OptionsMenuButton = require("obj.Menu.OptionsMenu.OptionsMenuItem"):extend("OptionsMenuButton")
 
+OptionsMenuButton.is_button = true
+
 function OptionsMenuButton:new(x, y, text)
     OptionsMenuButton.super.new(self, x, y, text)
 end

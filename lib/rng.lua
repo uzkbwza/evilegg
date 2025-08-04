@@ -50,6 +50,10 @@ function rng:randfn(mean, std_dev)
 	return self._rng:randomNormal(std_dev, mean)
 end
 
+function rng:randfn_abs(mean, std_dev)
+	return abs(self:randfn(mean, std_dev))
+end
+
 function rng:coin_flip()
 	return self() < 0.5
 end

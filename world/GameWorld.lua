@@ -8,6 +8,9 @@ local shash = require "lib.shash"
 local ScoreNumberEffect = require("fx.score_number_effect")
 local TextPopupEffect = require("fx.text_popup_effect")
 local XpPickup = require("obj.XpPickup")
+local EggWrath = require("obj.Spawn.Enemy.EggWrath")
+local PenitentSoul = require("obj.Spawn.Enemy.Penitent")[2]
+local FatigueZone = require("obj.Spawn.Enemy.FatigueZone")
 local CAMERA_OFFSET_AMOUNT = 20
 local MAX_ENEMIES = 100
 local MAX_HAZARDS = 50
@@ -89,6 +92,12 @@ function GameWorld:new(x, y)
 
 	self.border_rainbow_offset = 0
 
+    -- self.pre_boss_hard_room = rng:randi(11, EGG_ROOM_START - 1)
+    -- self.pre_boss_cursed_room = rng:randi(11, EGG_ROOM_START - 1)
+    -- while self.pre_boss_cursed_room == self.pre_boss_hard_room do
+    --     self.pre_boss_cursed_room = rng:randi(11, EGG_ROOM_START - 1)
+    -- end
+
     self.rendering_content = true
 
 	self.notification_queue = {}
@@ -96,6 +105,8 @@ function GameWorld:new(x, y)
 	self.draining_bullet_powerup = false
 
 	self.waiting_on_bonus_screen = false
+
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
 
 
 	self:init_state_machine()
@@ -108,9 +119,12 @@ function GameWorld:enter()
 	self.timescaled:add_elapsed_ticks()
     self.timescaled:add_sequencer()
 	self.timescaled.update = function(self, dt)
-		if game_state.bullet_powerup and self.draining_bullet_powerup then
-			game_state:drain_bullet_powerup_time(dt)
-		end
+        if game_state.bullet_powerup and self.draining_bullet_powerup then
+            game_state:drain_bullet_powerup_time(dt)
+        end
+
+        self.world.room.elapsed_scaled = self.world.room.elapsed_scaled + dt
+        self.world.room.tick_scaled = floor(self.world.room.elapsed_scaled)
 	end
 	
 	-- self:play_sfx("level_start", 0.95, 1.0)
@@ -196,8 +210,8 @@ function GameWorld:enter()
 
     signal.connect(game_state, "tried_to_use_secondary_weapon_with_no_ammo", self, "on_player_out_of_ammo", function()
 		self:quick_notify(
-			tr.notif_out_of_ammo,
-            "notif_no_ammo",
+			self.room.curse == "curse_famine" and tr.notif_famine or tr.notif_out_of_ammo,
+            self.room.curse == "curse_famine" and "notif_famine" or "notif_no_ammo",
             nil,
             0,
             30,
@@ -438,11 +452,14 @@ function GameWorld:spawn_rescue(rescue_class, pickup, x, y)
 	signal.connect(rescue_object, "picked_up", self, "on_rescue_picked_up", function()
 		self:on_rescue_picked_up(rescue_object)
 	end)
+    return rescue_object
 end
 
 function GameWorld:on_rescue_picked_up(rescue_object)
-	local bx, by = rescue_object:get_body_center()
-    self:add_score_object(bx, by, rescue_object.spawn_data.score, "rescues")
+    local bx, by = rescue_object:get_body_center()
+    if not rescue_object.no_score then
+        self:add_score_object(bx, by, rescue_object.spawn_data.score, "rescues")
+    end
     if game_state.artefacts.clock then
 		self.clock_slowed = true
 		self:play_sfx("clock_slow", 0.75, 1.0)
@@ -458,8 +475,8 @@ end
 function GameWorld:spawn_wave()
     if self.room.cleared then return end
 
-    
 	game_state.wave = self.room.wave
+
 
 	self:change_state("Spawning")
 
@@ -656,6 +673,10 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
 
         self.enemies_to_kill[enemy_object] = nil
         game_state:add_kill()
+
+        if self.room.curse == "curse_penitence" and rng:percent(8 * (enemy_object.max_hp or 1)) then
+            self:register_non_wave_enemy_required_kill(self:spawn_object(PenitentSoul(bx, by)))
+        end
     end)
 
     signal.connect(enemy_object, "destroyed", self, "enemies_to_kill_table_on_enemy_destroyed", function()
@@ -864,31 +885,31 @@ function GameWorld:on_player_got_hurt()
 end
 
 function GameWorld:on_player_died()
-	local s = self.sequencer
+    local s = self.sequencer
 
     s:start(function()
-		s:start(function()
-			s:tween_property(self, "player_hurt_fx_t", 0, 1, 75, "linear")
-			self.player_hurt_fx_t = -1
-		end)
-		self:play_sfx("player_death", 0.85, 1.0)
-		self:emit_signal("player_died")
-		self:play_sfx("hazard_death", 0.5, 1.0)
-		self.object_time_scale = 0.025
-		self.player_death_fx = true
+        s:start(function()
+            s:tween_property(self, "player_hurt_fx_t", 0, 1, 75, "linear")
+            self.player_hurt_fx_t = -1
+        end)
+        self:play_sfx("player_death", 0.85, 1.0)
+        self:emit_signal("player_died")
+        self:play_sfx("hazard_death", 0.5, 1.0)
+        self.object_time_scale = 0.025
+        self.player_death_fx = true
         self.player_died = true
-		self:end_tick_timer("wave_timer")
-		self:end_tick_timer("last_wave_quick_clear")
+        self:end_tick_timer("wave_timer")
+        self:end_tick_timer("last_wave_quick_clear")
         savedata:on_death()
-		audio.stop_music()
-		if not game_state.artefacts.blast_armor then
+        audio.stop_music()
+        if not game_state.artefacts.blast_armor then
             game_state:on_game_over()
         end
-		s:wait(60)
+        s:wait(60)
         self.player_death_fx = false
         if game_state.artefacts.blast_armor then
-		    self.object_time_scale = 1.0
-		    s:wait(5)
+            self.object_time_scale = 1.0
+            s:wait(5)
             game_state:on_game_over()
             s:start(function()
                 s:tween_property(self, "object_time_scale", 1.0, 0.15, 90, "linear")
@@ -898,65 +919,64 @@ function GameWorld:on_player_died()
         self.object_time_scale = 0.15
         -- end
 
-		-- s:wait(18)
-		
-		-- while self:get_number_of_objects_with_tag("enemy") > 0 do
-		-- 	local waited = false
-		-- 	local enemies = self:get_objects_with_tag("enemy")
+        -- s:wait(18)
 
-		-- 	for i, enemy in enemies:ipairs() do
-				
-		-- 		if enemy:has_tag("hazard") then
-		-- 			self:remove_tag(enemy, "enemy")
-		-- 			goto continue
-		-- 		end
+        -- while self:get_number_of_objects_with_tag("enemy") > 0 do
+        --     local waited = false
+        --     local enemies = self:get_objects_with_tag("enemy")
 
-		-- 		if enemy.spawn_data and enemy.spawn_data.boss then
-		-- 			self:remove_tag(enemy, "enemy")
-		-- 			goto continue
-		-- 		end
+        --     for i, enemy in enemies:ipairs() do
+
+        --         if enemy:has_tag("hazard") then
+        --             self:remove_tag(enemy, "enemy")
+        --             goto continue
+        --         end
+
+        --         if enemy.spawn_data and enemy.spawn_data.boss then
+        --             self:remove_tag(enemy, "enemy")
+        --             goto continue
+        --         end
 
         --         -- if game_state.artefacts.death_cap and enemy:has_tag("fungus") then
-		-- 		-- 	goto continue
-		-- 		-- end
-				
-		-- 		if enemy.die then
-		-- 			enemy:die(self:get_random_object_with_tag("player"))
-		-- 		elseif not enemy.is_queued_for_destruction then
-		-- 			enemy:queue_destroy()
-		-- 		end
+        --         --     goto continue
+        --         -- end
+
+        --         if enemy.die then
+        --             enemy:die(self:get_random_object_with_tag("player"))
+        --         elseif not enemy.is_queued_for_destruction then
+        --             enemy:queue_destroy()
+        --         end
         --         if i % 5 == 0 then
         --             s:wait(5)
         --             waited = true
         --         end
-				
-		-- 		::continue::
-		-- 	end
-		-- 	if not waited then
-		-- 		s:wait(1)
-		-- 	end
-		-- end
+
+        --         ::continue::
+        --     end
+        --     if not waited then
+        --         s:wait(1)
+        --     end
+        -- end
 
 
-		-- while self:get_number_of_objects_with_tag("rescue_object") > 0 do
-		-- 	local waited = false
-		-- 	local rescues = self:get_objects_with_tag("rescue_object")
-		-- 	for _, rescue in rescues:ipairs() do
-		-- 		-- local player = self:get_random_object_with_tag("player")
-		-- 		rescue:die()
-		-- 		s:wait(5)
-		-- 		waited = true
-		-- 	end
-		-- 	if not waited then
-		-- 		s:wait(1)
-		-- 	end
-		-- end
+        -- while self:get_number_of_objects_with_tag("rescue_object") > 0 do
+        --     local waited = false
+        --     local rescues = self:get_objects_with_tag("rescue_object")
+        --     for _, rescue in rescues:ipairs() do
+        --         -- local player = self:get_random_object_with_tag("player")
+        --         rescue:die()
+        --         s:wait(5)
+        --         waited = true
+        --     end
+        --     if not waited then
+        --         s:wait(1)
+        --     end
+        -- end
 
 
-		self:emit_signal("player_death_sequence_finished")
-		-- s:wait(120)
-
-	end)
+        self:emit_signal("player_death_sequence_finished")
+        -- s:wait(120)
+    end)
 end
 
 function GameWorld:create_next_rooms()
@@ -981,7 +1001,8 @@ function GameWorld:create_next_rooms()
 	local artefact_room = rng:randi(1, 3)
 	local heart_room = rng:randi(1, 3)
 	local hard_room = rng:randi(1, 3)
-	local ammo_room = rng:randi(1, 3)
+    local ammo_room = rng:randi(1, 3)
+    local cursed_room = rng:randi(1, 3)
 	
 	game_state.already_selected_secondary_weapon_this_level = false
 	game_state.recently_selected_artefacts = {}
@@ -995,8 +1016,10 @@ function GameWorld:create_next_rooms()
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
-			hard_room = i == hard_room and game_state.level >= EGG_ROOM_START,
-			force_ammo = i == ammo_room and game_state.level
+			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
+			force_ammo = i == ammo_room and game_state.level,
+            cursed_room = (game_state.level >= 15 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
+            -- cursed_room = true
 		})
 		table.insert(rooms, room)
 	end
@@ -1165,9 +1188,17 @@ function GameWorld:on_room_clear()
 	self:stop_tick_timer("wave_timer")
 	self:stop_tick_timer("last_wave_quick_clear")
 
-	if self.room.is_hard then
-		game_state:level_bonus("hard_room")
-	end
+    if not game_state.hit_by_egg_wrath and self.room.curse == "curse_wrath" then
+        game_state:level_bonus("tactful")
+    end
+    
+    if self.room.is_hard then
+        game_state:level_bonus("hard_room")
+    end
+    
+    if self.room.curse then
+        game_state:level_bonus("cursed_room")
+    end
 
 	self.room_clear_nopause = true
 
@@ -1624,8 +1655,8 @@ function GameWorld:clear_floor_canvas(deferred)
     if deferred == nil then deferred = true end
 
     local f = self.clear_function or function()
-		local width = max(FLOOR_CANVAS_WIDTH, self.room.room_width)
-        local height = max(FLOOR_CANVAS_HEIGHT, self.room.room_height)
+		local width = max(FLOOR_CANVAS_WIDTH, self.room.room_width + 512)
+        local height = max(FLOOR_CANVAS_HEIGHT, self.room.room_height + 512)
 		self.floor_canvas_width = width
 		self.floor_canvas_height = height
 		self.lower_floor_canvas = graphics.new_canvas(width, height)
@@ -1680,7 +1711,7 @@ function GameWorld:draw_floor_canvas()
 
 
     do
-		if not self.paused then
+		-- if not self.paused then
 			self:floor_canvas_push()
 			if self.tags and self.tags["floor_draw"] then
 				for _, obj in (self.tags["floor_draw"]):ipairs() do
@@ -1693,7 +1724,7 @@ function GameWorld:draw_floor_canvas()
 				end
 			end
 			self:floor_canvas_pop()
-		end
+		-- end
 	end
 
 	graphics.set_color(1, 1, 1, 1)
@@ -1801,8 +1832,9 @@ function GameWorld:draw()
         -- self:draw_top_info()
     -- end
     
+    graphics.push("all")
     self:draw_top_info()
-
+    graphics.pop()
 
 	-- Draw tutorial text if active
 	if self.tutorial_state and not self.paused then
@@ -1879,14 +1911,31 @@ end
 
 function GameWorld:draw_top_info()
 
+    
+    self:draw_quick_clear_progress_bar()
+
+    graphics.origin()
+    local screen = self.canvas_layer
+    graphics.translate(self.viewport_size.x / 2 - conf.viewport_size.x / 2, self.viewport_size.y / 2 - conf.viewport_size.y / 2)
+    -- local offsx, offsy = self:get_object_draw_position(self.camera)
+    -- offsx, offsy = vec2_add(offsx, offsy, self.camera:get_draw_offset())
+    -- graphics.translate(offsx, offsy)
+
     if not self.player_hatched then
         return
     end
 
-    local x_start = -conf.viewport_size.x / 2 + self.camera_target.pos.x
-    local y_start = -conf.viewport_size.y / 2 + self.camera_target.pos.y - 2
+    local x_start = 0
+    local y_start = - 2
+    
+    
+    x_start = floor(x_start)
+    y_start = floor(y_start)
+
     local h_padding = conf.room_padding.x - 2
     local v_padding = conf.room_padding.y - 9
+
+
 
     local left = x_start + h_padding
     local top = y_start + v_padding - 1
@@ -1903,7 +1952,6 @@ function GameWorld:draw_top_info()
 	end
 
 
-    self:draw_quick_clear_progress_bar()
 
 
 
@@ -1986,7 +2034,7 @@ function GameWorld:draw_top_info()
 		scoremult4, Color.white, scoremult5, Color.grey)
 	graphics.set_color(Color.white)
 	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
-	graphics.pop()
+    graphics.pop()
 end
 
 function GameWorld:get_border_color()
@@ -2167,7 +2215,6 @@ function GameWorld:state_Normal_update(dt)
 		self:on_wave_cleared()
 	end
 
-
 	if input.debug_skip_wave_held then
 		if self.state == "Normal" and self.state_tick > 5 then
 			self.timescaled:end_tick_timer("wave_timer")
@@ -2192,8 +2239,23 @@ function GameWorld:state_Normal_update(dt)
             end
 		end)
 	end
-	-- end
+    -- end
+    
+    if self.room.curse then
+        local curse = self.room.curse
+        if curse == "curse_wrath" then
+            local player = self:get_random_player()
+            if self.room.tick_scaled > 60 and self.timescaled.is_new_tick and not self.timescaled:is_tick_timer_running("wrath_timer") and rng:percent(1 + (self.room.wave - 1) * 0.75) and player then
+                self.timescaled:start_tick_timer("wrath_timer", 70)
+                local pbx, pby = player:get_body_center()
+                self:spawn_object(EggWrath(pbx, pby))
+            end
+        elseif curse == "curse_fatigue" and self.timescaled.is_new_tick and rng:percent(1) and self:get_number_of_objects_with_tag("fatigue_zone") < 3 then
+            self:spawn_object(FatigueZone(self:get_random_position_in_room()))
+        end
+    end
 end
+
 
 function GameWorld:state_RoomClear_enter()
 end

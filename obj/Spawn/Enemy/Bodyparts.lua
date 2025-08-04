@@ -387,6 +387,7 @@ function Foot:enter()
 	self:add_hurt_bubble(-5, 4, 6, "main")
 	self:add_hurt_bubble(-5, -4, 5, "main2")
 	self:add_hurt_bubble(5, 4, 6, "main3")
+    self:start_tick_timer("stomp_cooldown", rng:randi(40, 120))
 end
 
 function Foot:get_sprite()
@@ -417,7 +418,9 @@ end
 
 function Foot:state_Idle_update(dt)
 	self:set_body_height(splerp(self.body_height, 24 + sin(self.tick * 0.045 + self.random_offset_ratio * 255) * 2, 200, dt))
-    if self.is_new_tick and rng:percent(2) or self.state_tick > 50 then
+    -- if self.is_new_tick and rng:percent(2) then
+    if self.is_new_tick and rng:percent(2) or not self:is_tick_timer_running("stomp_cooldown") then
+        self:start_tick_timer("stomp_cooldown", rng:randi(40, 70))
         self:change_state("Stomp")
     end
 end

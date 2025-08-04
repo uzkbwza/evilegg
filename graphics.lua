@@ -690,7 +690,11 @@ function graphics.draw_loop()
     graphics.set_canvas(graphics.canvas)
     graphics.set_shader(graphics.shader.adjustment)
     for arg, value in pairs(graphics.adjustment_shader_options) do
-        graphics.shader.adjustment:send(arg, value)
+        if arg == "hue" and usersettings.disco_mode then
+            graphics.shader.adjustment:send(arg, value + gametime.time * remap_pow(usersettings.hue, 0, 1, 0.0025, 0.06, 3))
+        else
+            graphics.shader.adjustment:send(arg, value)
+        end
     end
     graphics.draw(graphics.pre_adjustment_canvas, 0, 0)
 

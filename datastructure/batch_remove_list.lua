@@ -20,6 +20,10 @@ function BatchRemoveList:ipairs()
     end
 end
 
+function BatchRemoveList:length()
+    return #self.__array
+end
+
 function BatchRemoveList:queue_remove(value)
     self.__to_remove[value] = true
 end

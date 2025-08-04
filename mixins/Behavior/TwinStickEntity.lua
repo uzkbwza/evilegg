@@ -199,6 +199,15 @@ function TwinStickEntity:set_bubble_position(bubble_type, name, x, y)
     self:on_bubble_updated(bubble_type, bubble)
 end
 
+
+function TwinStickEntity:set_bubble_rect_width_height(bubble_type, name, width, height)
+    local bubble = self.bubbles[bubble_type] and self.bubbles[bubble_type][name]
+    if not bubble then return end
+    bubble:set_rect_width_height(width, height)
+    self:on_bubble_updated(bubble_type, bubble)
+end
+
+
 function TwinStickEntity:set_bubble_capsule_end_points(bubble_type, name, x2, y2)
     local bubble = self.bubbles[bubble_type] and self.bubbles[bubble_type][name]
     if not bubble then return end
@@ -248,6 +257,14 @@ end
 --  "Shortcut" methods specifically for HURT / HIT if you prefer
 -----------------------------------------------------------------------------
 
+function TwinStickEntity:get_hurt_bubble(name)
+    return self:get_bubble("hurt", name)
+end
+
+function TwinStickEntity:get_hit_bubble(name)
+    return self:get_bubble("hit", name)
+end
+
 function TwinStickEntity:add_hurt_bubble(x, y, radius, name, x2, y2)
     return self:add_bubble("hurt", x, y, radius, name, x2, y2)
 end
@@ -260,10 +277,14 @@ end
 function TwinStickEntity:set_hurt_bubble_radius(name, radius)
     return self:set_bubble_radius("hurt", name, radius)
 end
+
+function TwinStickEntity:set_hurt_bubble_rect_width_height(name, width, height)
+    return self:set_bubble_rect_width_height("hurt", name, width, height)
+end
+
 function TwinStickEntity:set_hurt_bubble_position(name, x, y)
     return self:set_bubble_position("hurt", name, x, y)
 end
-
 
 function TwinStickEntity:set_hurt_bubble_capsule_end_points(name, x2, y2)
     return self:set_bubble_capsule_end_points("hurt", name, x2, y2)
@@ -276,6 +297,11 @@ end
 function TwinStickEntity:add_hit_bubble(x, y, radius, name, damage, x2, y2)
     return self:add_bubble("hit", x, y, radius, name, x2, y2, damage)
 end
+
+function TwinStickEntity:set_hit_bubble_rect_width_height(name, width, height)
+    return self:set_bubble_rect_width_height("hit", name, width, height)
+end
+
 function TwinStickEntity:remove_hit_bubble(name)
     return self:remove_bubble("hit", name)
 end
@@ -441,14 +467,19 @@ end
 
 
 function TwinStickEntity:collision_bubble_draw(bubble)
-    local gx, gy = bubble:get_position()
-    local lx, ly = self:to_local(gx, gy)
-    graphics.circle("line", lx, ly, bubble.radius)
-
-    if bubble.capsule then
-        local lx2, ly2 = self:to_local(bubble:get_end_position())
-        graphics.debug_capsule(lx, ly, lx2, ly2, bubble.radius, gametime.tick % 2 == 0)
-	end
+    if bubble.aabb then
+        local x, y, w, h = bubble:get_rect()
+        local lx, ly = self:to_local(x, y)
+        graphics.rectangle("line", lx, ly, w, h)
+    else
+        local gx, gy = bubble:get_position()
+        local lx, ly = self:to_local(gx, gy)
+        graphics.circle("line", lx, ly, bubble.radius)
+        if bubble.capsule then
+            local lx2, ly2 = self:to_local(bubble:get_end_position())
+            graphics.debug_capsule(lx, ly, lx2, ly2, bubble.radius, gametime.tick % 2 == 0)
+        end
+    end
 end
 
 function TwinStickEntity:twin_stick_debug_draw()

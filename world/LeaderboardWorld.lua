@@ -153,7 +153,7 @@ function LeaderboardWorld:enter()
 
 
     local start = conf.viewport_size.x / 2 - LINE_WIDTH / 2
-    local dist = 1
+    local dist = 6
 
     self:ref("page_left_button",
         self:add_menu_item(O.PauseScreen.PauseScreenButton(start - page_buttons_width - dist - 1, page_buttons_y, "←",
@@ -407,10 +407,15 @@ function LeaderboardWorld:draw()
                 color = iflicker(self.tick, 5, 2) and Color.red or Color.darkred
             end
             graphics.set_color(color)
-            graphics.print_centered(tr.leaderboard_deaths:upper() .. ": " .. comma_sep(self.death_count), font2,
-                conf.viewport_size.x / 2, conf.viewport_size.y - font2:getHeight())
+            graphics.print(tr.leaderboard_deaths:upper() .. ": " .. comma_sep(self.death_count), font2,
+            MENU_ITEM_H_PADDING, conf.viewport_size.y - font2:getHeight() - 7)
+
         end
     end
+    graphics.set_color(Color.darkgrey)
+
+    graphics.print_right_aligned(GAME_LEADERBOARD_VERSION, font2,
+        conf.viewport_size.x - MENU_ITEM_H_PADDING, conf.viewport_size.y - font2:getHeight() - 7)
 end
 
 local function spell_out(text, t, max_length)

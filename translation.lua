@@ -22,12 +22,32 @@ local translations = {
 		-- room_is_bonus = "BONUS",
 		room_is_hard = "HARD",
 
+        curse_wrath = "WRATH",
+        curse_wrath_desc = "This room is cursed by wrathful thunder.",
+
+        curse_penitence = "PENITENCE",
+        curse_penitence_desc = "This room is cursed with shame.",
+
+        curse_fatigue = "FATIGUE",
+        curse_fatigue_desc = "This room is cursed with lethargy.",
+
+        curse_ignorance = "IGNORANCE",
+        curse_ignorance_desc = "This room is cursed with opacity.",
+
+        curse_hazardous = "PERIL",
+        curse_hazardous_desc = "This room is cursed with excessive hazards.",
+
+        curse_famine = "FAMINE",
+        curse_famine_desc = "This room is cursed with pacifism.",
+
 		notif_fire_rate = "FIRE RATE",
 		notif_range = "RANGE",
 		notif_bullets = "BULLETS",
 		notif_bullet_speed = "BULLET SPEED",
 		notif_damage = "DAMAGE",
-		notif_boost = "BOOST",
+        notif_boost = "BOOST",
+        
+        notif_famine = "FAMINE",
 
         notif_running_out_of_ammo = "LOW AMMO",
         notif_out_of_ammo = "NEED AMMO",
@@ -102,6 +122,12 @@ local translations = {
 		bonus_noid_died = "NOID CASUALTY",
         bonus_noid_died_codex = "A greenoid died.",
 
+        bonus_cursed_room = "CURSED ROOM",
+        bonus_cursed_room_codex = "Cleared a cursed room.",
+
+        bonus_tactful = "TACTFUL",
+        bonus_tactful_codex = "Successfully avoided mom's wrath.",
+
 		-- bonus_accuracy = "HITRATE: %0.0f%%",
         bonus_overflow = "OVERFLOW",
         bonus_overflow_codex = "Picked up an upgrade while at max upgrades.",
@@ -172,7 +198,7 @@ local translations = {
 		artefact_warbell_desc                        = "Greenoids will attack nearby enemies.",
 		artefact_useless_desc          				 = "Too heavy to take with you.",
 		artefact_transmitter_desc      				 = "Greenoids will bring extra ammo.",
-		artefact_heart_trade_desc                    = "Trade a random artefact for a heart.",
+		artefact_heart_trade_desc                    = "Trade an artefact for a heart.",
         artefact_blast_armor_desc                    = "You are prone to outbursts.",
         artefact_prayer_knot_desc                    = "Stop shooting to charge a powerful bullet.",
 
@@ -205,7 +231,7 @@ local translations = {
 		options_fps_cap                              = "FPS Cap",
 		options_fps_cap_unlimited                    = "No Cap",
 		options_zoom_level                           = "Zoom Level",
-        options_screen_shake_amount                  = "Screen Shake Amount",
+        options_screen_shake_amount                  = "Screenshake Intensity",
 		options_master_volume                        = "Master Volume",
 		options_music_volume                         = "Music Volume",
 		options_sfx_volume                           = "SFX Volume",
@@ -220,6 +246,7 @@ local translations = {
         options_retry_cooldown                       = "Gamer Health Cooldown",
         options_show_fps                             = "Show FPS",
         options_shader_quality                       = "Shader Quality",
+        options_disco_mode                           = "Disco Mode [FLASH WARNING]",
 
 
 		options_brightness          = "Brightness",
@@ -227,10 +254,11 @@ local translations = {
 		options_hue                 = "Hue Shift",
 		options_invert_colors       = "Invert Colors",
 
+		options_header_options      = "OPTIONS",
 		options_header_controls     = "CONTROLS",
 		options_header_display      = "DISPLAY",
 		options_header_audio        = "AUDIO",
-		options_header_other        = "OTHER",
+        options_header_other    = "OTHER",
 
 		-- options_header_cheats = "CHEATS",
 		-- options_header_leaderboard = "LEADERBOARD",
@@ -372,8 +400,11 @@ local translations = {
         codex_name_dancer           = "Dancer",
         codex_desc_dancer           = "Oblivious to all but the rhythm.",
 
-        codex_name_hookworm         = "Hook Worm",
-        codex_desc_hookworm         = "Hungry!",
+        -- codex_name_hookworm         = "Hook Worm",
+        -- codex_desc_hookworm         = "Hungry!",
+
+        codex_name_penitentsoul      = "Shameful Spirit",
+        codex_desc_penitentsoul      = "I promise that I'm sorry.",
 
         codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",
@@ -402,7 +433,7 @@ local translations = {
 
         codex_level_bonus_score            = "Points: %s",
         codex_level_bonus_score_multiplier = "Score Multiplier: %-3.2f",
-        codex_level_bonus_xp               = "XP: %s",
+        codex_item_xp               = "XP: %s",
 
 		codex_key_all               = "ALL",
 		codex_key_enemy             = "ENEMIES",

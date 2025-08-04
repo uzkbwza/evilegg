@@ -43,6 +43,9 @@ local PICKUP_RADIUS = 8
 local SECONDARY_BUFFER_TIME = 3
 local PRAYER_KNOT_CHARGE_TIME = 65
 
+local FATIGUE_MOVE_SPEED_MODIFIER = 0.45
+
+
 
 
 PlayerCharacter.bullet_powerups = {
@@ -509,8 +512,13 @@ function PlayerCharacter:handle_input(dt)
     move_amount_x = move_amount_x * magnitude
     move_amount_y = move_amount_y * magnitude
 
+
 	
     if self.state == "Walk" then
+        if self:is_tick_timer_running("fatigue") then
+            move_amount_x = move_amount_x * FATIGUE_MOVE_SPEED_MODIFIER
+            move_amount_y = move_amount_y * FATIGUE_MOVE_SPEED_MODIFIER
+        end
 		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self:move(move_amount_x * dt * self.speed, move_amount_y * dt * self.speed)
 		self.move_vel:set(move_amount_x, move_amount_y)
@@ -556,13 +564,12 @@ function PlayerCharacter:handle_input(dt)
     local secondary_weapon = self:get_secondary_weapon()
 
     local weapon = game_state.secondary_weapon
-    local has_weapon = input.secondary_weapon_pressed and weapon
     local not_enough_ammo = weapon and (
         game_state.secondary_weapon_ammo < weapon.ammo_needed_per_use or
         (weapon.minimum_ammo_needed_to_use and game_state.secondary_weapon_ammo < weapon.minimum_ammo_needed_to_use)
     )
 
-    if has_weapon and not_enough_ammo then
+    if input.secondary_weapon_pressed and weapon and (not_enough_ammo or self.world.room.curse == "curse_famine") then
         game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
     end
 
@@ -668,6 +675,11 @@ function PlayerCharacter:can_use_secondary_weapon()
     if not game_state.secondary_weapon then
         return false
     end
+
+    if self.world.room.curse == "curse_famine" then
+        return false
+    end
+
     if game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
         return false
     end
@@ -836,6 +848,10 @@ function PlayerCharacter:hit_by(by, force)
 
     local dead = false
 
+    if by.parent and by.parent.is_egg_wrath then
+        game_state.hit_by_egg_wrath = true
+    end
+
     if game_state.hearts > 0 then
         self:start_invulnerability_timer(90)
         -- self:play_sfx("old_player_death", 0.85)
@@ -964,12 +980,12 @@ function PlayerCharacter:update(dt)
     
 end
 
--- function PlayerCharacter:get_palette()
---     if self.state == "Hover" and self.tick % 2 == 0 then
---         return Palette.cmyk, 4
---     end
---     return nil, 0
--- end
+function PlayerCharacter:get_palette()
+    if self:is_tick_timer_running("fatigue") then
+        return Palette.fatigued, idiv(self.tick, 3)
+    end
+    return nil, 0
+end
 
 function PlayerCharacter:get_sprite()
 
@@ -1237,7 +1253,11 @@ function PlayerCharacter:state_Hover_update(dt)
 	self.hover_vel.y = self.hover_vel.y + self.hover_impulse.y
 	-- self.pos.x = self.pos.x + self.hover_vel.x * dt
     -- self.pos.y = self.pos.y + self.hover_vel.y * dt
-	self:move(self.hover_vel.x * dt, self.hover_vel.y * dt)
+    local modifier = 1.0
+    if self:is_tick_timer_running("fatigue") then
+        modifier = FATIGUE_MOVE_SPEED_MODIFIER
+    end
+	self:move(self.hover_vel.x * dt * modifier, self.hover_vel.y * dt * modifier)
 
     self.hover_vel.x, self.hover_vel.y = vec2_drag(self.hover_vel.x, self.hover_vel.y, self.drag, dt)
     self.hover_impulse:mul_in_place(0)
@@ -2035,6 +2055,9 @@ function PrayerKnotChargeEffect:update(dt)
 
     if self.player then
         self.body_height = self.player.body_height
+        if self.player.visible and not self.visible then
+            table.clear(self.particles)
+        end
         self:set_visible(self.player.visible)
     end
 

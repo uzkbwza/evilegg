@@ -316,14 +316,8 @@ local Artefacts = {
         destroy_score = 250,
         spawn_when_full = true,
         destroy_xp = 200,
-        can_spawn = function(game_state)
-            if game_state.num_spawned_artefacts <= 5 then return false end
-            if table.is_empty(game_state.artefacts) then return false end
-            local keys = table.keys(game_state.artefacts)
-            if #keys == 1 and keys[1] == "sacrificial_twin" then return false end
-            return true
-        end,
-        alternative_gain_function = function(game_state)
+
+        on_chosen = function(game_state)
             if table.is_empty(game_state.artefacts) then return end
             local keys = table.keys(game_state.artefacts)
             if #keys == 1 and keys[1] == "sacrificial_twin" then return end
@@ -333,6 +327,30 @@ local Artefacts = {
                 random_key = rng:choose(keys)
             end
             local artefact = game_state.artefacts[random_key]
+            game_state.heart_trade_artefact = artefact
+        end,
+
+        can_spawn = function(game_state)
+            if (not game_state.cheat) and game_state.num_spawned_artefacts <= 5 then return false end
+            if table.is_empty(game_state.artefacts) then return false end
+            local keys = table.keys(game_state.artefacts)
+            if #keys == 1 and keys[1] == "sacrificial_twin" then return false end
+            return true
+        end,
+        alternative_gain_function = function(game_state)
+            local artefact = game_state.heart_trade_artefact
+            if not artefact then
+                if table.is_empty(game_state.artefacts) then return end
+                local keys = table.keys(game_state.artefacts)
+                if #keys == 1 and keys[1] == "sacrificial_twin" then return end
+
+                local random_key = rng:choose(keys)
+                while random_key == "sacrificial_twin" do
+                    random_key = rng:choose(keys)
+                end
+                artefact = game_state.artefacts[random_key]
+            end
+            if not artefact then return end
             game_state:set_selected_artefact_slot(artefact.slot)
             game_state:remove_artefact(artefact.slot)
             game_state:gain_heart()

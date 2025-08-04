@@ -5,8 +5,9 @@ local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
-local DISTANCE_BETWEEN_ITEMS = 8
-local HEADER_SPACE = 1
+local DISTANCE_BETWEEN_ITEMS = 11
+local HEADER_SPACE = 0
+local HEADER_SPACE_UNDER = 1
 
 
 function OptionsMenuWorld:new()
@@ -14,7 +15,8 @@ function OptionsMenuWorld:new()
 	self:add_signal("exit_menu_requested")
 	self:add_signal("enter_name_requested")
 	
-	self.draw_sort = self.y_sort
+    self.draw_sort = self.y_sort
+    self.current_page = 1
 	-- menu_item:focus()
 end
 
@@ -25,42 +27,94 @@ function OptionsMenuWorld:enter()
 
     self:ref_array("menu_items")
 
-	local back_table = {
+    self:show_menu(1)
+
+end
+
+function OptionsMenuWorld:show_menu(page)
+
+    local items_to_remove = {}
+
+    for _, item in ipairs(self.menu_items) do
+        table.insert(items_to_remove, item)
+    end
+
+    for _, item in ipairs(items_to_remove) do
+        item:queue_destroy()
+        self:ref_array_remove("menu_items", item)
+    end
+
+    for _, item in (self:get_objects_with_tag("header")):ipairs() do
+        item:queue_destroy()
+    end
+
+    self.current_page = page
+
+    local back_table = {
 		name = "⮌",
 		item_type = "button",
 		is_back = true,
         select_func = function()
-			local s = self.sequencer
-            s:start(function()
-				self.handling_input = false
-				s:wait(1)
-				self:emit_signal("exit_menu_requested")
-			end)
+            if self.current_page == 1 then
+                local s = self.sequencer
+                s:start(function()
+                    self.handling_input = false
+                    s:wait(1)
+                    self:emit_signal("exit_menu_requested")
+                end)
+            else
+                self:show_menu(1)
+            end
 		end,
 	}
 
-    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING
+    self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 2
 
 	self:ref("back_button",self:add_menu_item(back_table))
 
 	self.next_item_y = self.next_item_y + 4
 
-	-- local base = MENU_ITEM_V_PADDING
-
+    -- local base = MENU_ITEM_V_PADDING
+    local current_page = 1
 
     for _, item in ipairs {
-        { "header",                               text = tr.options_header_controls },
-		{ "use_absolute_aim", item_type = "toggle" },
-        { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
-		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
-		{ "gamepad_plus_mouse", item_type = "toggle" },
-		
+        -- { "header", text = "" },
+        {
+            "header_display",
+            item_type = "button",
+            select_func = function()
+                self:show_menu(2)
+            end
+        },
+        { 
+            "header_controls",
+            item_type = "button",
+            select_func = function()
+			self:show_menu(3)
+            end,
+        },
+        {
+            "header_audio",
+            item_type = "button",
+            select_func = function()
+                self:show_menu(4)
+            end,
+        },
+        {
+            "header_other",
+            item_type = "button",
+            select_func = function()
+                self:show_menu(5)
+            end,
+        },
+        { newpage = true },
 		{ "header", text = tr.options_header_display },
 		{ "fullscreen", item_type = "toggle", skip=conf.platform_force_fullscreen},
         -- { "use_screen_shader", item_type = "toggle" },
 		
 		{ "show_hud", item_type = "toggle", inverse = true},
-		{ "pixel_perfect", item_type = "toggle"},
+        { "pixel_perfect", item_type = "toggle" },
+
         { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value)
             for _, item in ipairs(self.menu_items) do
                 item.focus_on_hover = false
@@ -126,19 +180,41 @@ function OptionsMenuWorld:enter()
             return usersettings.shader_quality
         end,
         },
+
+        { "screen_shake_amount", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1},
         
 	
 		{ "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
 	-- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-        { "hue",           item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.025 },
+        { "hue",                                  item_type = "slider",             slider_start = 0.0,    slider_stop = 1.0, slider_granularity = 0.025 },
+        { "disco_mode", item_type = "toggle", select_func = function()
+            if not usersettings.disco_mode then
+                usersettings:set_setting("hue", 0.5)
+            else
+                usersettings:set_setting("hue", 0.0)
+            end
+            usersettings:set_setting("disco_mode", not usersettings.disco_mode)
+        end,
+        get_func = function()
+            return usersettings.disco_mode
+        end },
 	
+        { "invert_colors", item_type = "toggle" },
+
 		-- { "invert_colors", item_type = "toggle" },
-	
+        { newpage = true },
+        { "header",                               text = tr.options_header_controls },
+		{ "use_absolute_aim", item_type = "toggle" },
+        { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
+		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
+        { "gamepad_plus_mouse",                   item_type = "toggle" },
+        
+        { newpage = true },
 		{ "header", text = tr.options_header_audio },
 		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
 		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-		{ "sfx_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-		
+        { "sfx_volume",    item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+        { newpage = true },
 		{ "header", text = tr.options_header_other },
         { "skip_tutorial", item_type = "toggle" },
         { "retry_cooldown", item_type = "toggle", update_function = function(self, dt)
@@ -149,7 +225,8 @@ function OptionsMenuWorld:enter()
         end },
 		{ "enter_name", item_type = "button", select_func = function()
 			self:emit_signal("enter_name_requested")
-		end },
+        end },
+
 
         { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
             debug.enabled = not debug.enabled
@@ -158,40 +235,49 @@ function OptionsMenuWorld:enter()
         get_func = function()
             return debug.enabled
         end },
-		
-		{ "header", text = "" },
+
     } do
+        if item.newpage then
+            current_page = current_page + 1
+            goto continue
+        end
 
-		if item[1] == "header" then
-			self:add_menu_item(item)
-			goto continue
-		end
+        if current_page ~= page then
+            goto continue
+        end
 
-		if item.skip then
-			goto continue
-		end
-        
-		item.name = tr["options_" .. item[1]]
+        if item[1] == "header" then
+            self:add_menu_item(item)
+            goto continue
+        end
 
-		if item.item_type == "toggle" then
+        if item.skip then
+            goto continue
+        end
+
+
+        item.name = tr["options_" .. item[1]]
+
+        if item.item_type == "toggle" then
             item.usersettings_toggle = item[1]
         end
 
-		if item.item_type == "slider" then
-			item.usersettings_slider = item[1]
-		end
+        if item.item_type == "slider" then
+            item.usersettings_slider = item[1]
+        end
 
-		if item.item_type == "cycle" then
-			item.usersettings_cycle = item[1]
-		end
+        if item.item_type == "cycle" then
+            item.usersettings_cycle = item[1]
+        end
 
         self:add_menu_item(item)
-		
-		::continue::
 
-	end
+        ::continue::
+    end
+    
+    -- self:add_menu_item({ "header", text = "" })
 
-	self:add_menu_item(back_table)
+	-- self:add_menu_item(back_table)
 
     if #self.menu_items > 1 then
         self.menu_items[1]:add_neighbor(self.menu_items[#self.menu_items], "up")
@@ -208,7 +294,7 @@ function OptionsMenuWorld:get_screen_shader_presets()
 end
 
 function OptionsMenuWorld:add_menu_item(menu_table)
-    
+
     if menu_table.debug and IS_EXPORT then
         return
     end
@@ -229,7 +315,8 @@ function OptionsMenuWorld:add_menu_item(menu_table)
         local object = self:spawn_object(O.OptionsMenu.OptionsMenuHeader(self.next_item_x, self.next_item_y,
         menu_table.text))
 		self.next_item_x = self.next_item_x + MENU_ITEM_SKEW
-		self.next_item_y = self.next_item_y + (menu_table.text ~= "" and DISTANCE_BETWEEN_ITEMS or HEADER_SPACE)
+        self.next_item_y = self.next_item_y + DISTANCE_BETWEEN_ITEMS + HEADER_SPACE_UNDER
+        object:add_tag_on_enter("header")
 		return
 	end
 
@@ -296,15 +383,18 @@ function OptionsMenuWorld:add_menu_item(menu_table)
 
     self:ref_array_push("menu_items", menu_item)
 
-    if num_items == 0 then
+    if num_items == 1 then
         menu_item:focus()
-    else
+    end
+
+    if num_items > 0 then
         self.menu_items[num_items]:add_neighbor(menu_item, "down")
         menu_item:add_neighbor(self.menu_items[num_items], "up")
     end
 	
 	self.next_item_x = self.next_item_x + MENU_ITEM_SKEW
     self.next_item_y = self.next_item_y + DISTANCE_BETWEEN_ITEMS
+
 	
 	return menu_item
 end

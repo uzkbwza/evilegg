@@ -422,7 +422,8 @@ function World:draw_shared()
 
 	self.camera_offset = self.camera_offset or Vec2()
 	self.camera_offset.x = floor(offset_x)
-	self.camera_offset.y = floor(offset_y)
+    self.camera_offset.y = floor(offset_y)
+
 
 	graphics.push()
 	graphics.origin()
@@ -432,8 +433,8 @@ function World:draw_shared()
 	graphics.translate(self.pos.x + offset_x, self.pos.y + offset_y)
 	self:draw()
 
-	if self.bump_world and debug.can_draw() then
-	end
+	-- if self.bump_world and debug.can_draw() then
+	-- end
 
 	graphics.pop()
 end

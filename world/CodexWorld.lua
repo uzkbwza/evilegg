@@ -227,6 +227,18 @@ function CodexWorld:open_spawn_description(spawn)
 		-- delay = delay + 1
 	end
 
+    
+    if (type(spawn.xp) == "number" and spawn.xp > 0) or type(spawn.xp) == "function" then
+        local xp_text = type(spawn.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.xp)
+        if spawn.class.spawn_data.boss then
+            xp_text = "???"
+        end
+        local xp_text_object = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_item_xp:format(xp_text), false, Color.blue, delay, true))
+        self:add_tag(xp_text_object, "sequence_object")
+        current_y = current_y + increment
+        delay = delay + 1
+    end
+
     if spawn.level_bonus then
 
         if (type(spawn.level_bonus.score) == "number" and spawn.level_bonus.score > 0) or type(spawn.level_bonus.score) == "function" then
@@ -256,7 +268,7 @@ function CodexWorld:open_spawn_description(spawn)
 
         if (type(spawn.level_bonus.xp) == "number" and spawn.level_bonus.xp > 0) or type(spawn.level_bonus.xp) == "function" then
             local xp_text = type(spawn.level_bonus.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.level_bonus.xp)
-            local level_bonus_text3 = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_level_bonus_xp:format(xp_text), false, Color.blue, delay, true))
+            local level_bonus_text3 = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_item_xp:format(xp_text), false, Color.blue, delay, true))
             self:add_tag(level_bonus_text3, "sequence_object")
             current_y = current_y + increment
             delay = delay + 1
@@ -594,6 +606,31 @@ function CodexWorld:get_spawns(page_category)
                     name = "room_is_hard",
                     description = "codex_glossary_room_is_hard",
                 },
+                {
+                    name = "curse_penitence",
+                    description = "curse_penitence_desc",
+                },
+                {
+                    name = "curse_fatigue",
+                    description = "curse_fatigue_desc",
+                },
+                {
+                    name = "curse_ignorance",
+                    description = "curse_ignorance_desc",
+                },
+                {
+                    name = "curse_hazardous",
+                    description = "curse_hazardous_desc",
+                },
+                {
+                    name = "curse_famine",
+                    description = "curse_famine_desc",
+                },
+
+                {
+                    name = "curse_wrath",
+                    description = "curse_wrath_desc",
+                },
             }
         elseif page_category == "levelbonus" then
             tab = {}
@@ -735,6 +772,7 @@ function CodexWorld:get_spawns(page_category)
                 entry.min_level = spawn.min_level
                 if page_category == "enemy" then
                     entry.score = spawn.score
+                    entry.xp = spawn.class:get_xp()
                 end
             end
 			

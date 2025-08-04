@@ -30,9 +30,17 @@ function RoomObject:new(x, y, room)
         graphics.circle("fill", 0, 0, PLAYER_DISTANCE)
     end
 	
-	self.font = fonts.depalettized.image_font1
+	-- self.font = fonts.depalettized.image_font1
     self.all_shown = false
 end
+
+function RoomObject:add_text_line(text, color1, color2)
+    color1 = color1 or Color.white
+    color2 = color2 or Color.darkergrey
+    local palette = PaletteStack(Color.black, color2, color1)
+    self:add_line("text", { text = text, palette = palette }, LINE_HEIGHT, false)
+end
+
 function RoomObject:add_line(line_type, line_data, line_height, separator)
     if separator == nil then separator = true end
     if separator then
@@ -49,70 +57,206 @@ function RoomObject:add_separator()
 	end
 end
 
+
+local IGNORANCE_ICON_COLORS = {
+    Color.red,
+    Color.orange,
+    Color.yellow,
+    Color.green,
+    Color.blue,
+    Color.purple,
+    Color.cyan,
+    Color.white,
+    Color.grey,
+    Color.skyblue,
+}
+
+function RoomObject:draw_ignorance_icon()
+    local canvas2 = graphics.new_canvas(ICON_SIZE, ICON_SIZE)
+    
+    graphics.push("all")
+    
+    graphics.set_canvas(canvas2)
+
+    local last_color = nil
+    
+    graphics.translate(ICON_SIZE / 2, ICON_SIZE / 2)
+    for i=1, rng:randi(1, 2) do
+        local color = rng:choose(IGNORANCE_ICON_COLORS)
+        while color == last_color do
+            color = rng:choose(IGNORANCE_ICON_COLORS)
+        end
+        last_color = color
+
+        graphics.set_color(color)
+
+        local rect_percent = rng:randf(0, 50)
+        
+        if rng:coin_flip() then
+            for j = 1, rng:randi(4, 8) do
+                local x, y = rng:randi(0, ICON_SIZE / 2), rng:randi(0, ICON_SIZE / 2)
+                if rng:percent(rect_percent) then
+                    local scale = rng:randfn_abs(2, 0.5)
+                    graphics.rectangle_centered("fill", x, y, scale, scale)
+                else
+                    graphics.points(x, y)
+                end
+            end
+        else
+            for j = 1, rng:randi(4, 8) do
+                local x, y = vec2_from_polar(rng:randf(0, ICON_SIZE/2), rng:randf(0, tau / 4))
+                if rng:percent(rect_percent) then
+                    local scale = rng:randfn_abs(2, 0.5)
+                    graphics.rectangle_centered("fill", x, y, scale, scale)
+                else
+                    graphics.points(x, y)
+                end
+            end
+
+        end
+
+        
+    end
+    graphics.pop()
+    graphics.translate(ICON_SIZE / 2, ICON_SIZE / 2)
+
+
+    -- graphics.rotate(rng:random_angle())
+
+    graphics.draw_centered(canvas2, 0, 0, 0, 1, 1)
+    graphics.draw_centered(canvas2, 0, 0, 0, -1, 1)
+    graphics.draw_centered(canvas2, 0, 0, 0, 1, -1)
+    graphics.draw_centered(canvas2, 0, 0, 0, -1, -1)
+
+    -- graphics.rotate(tau / 8)
+    -- graphics.scale(-1, 1)
+
+    -- graphics.draw_centered(canvas2, 0, 0, 0, 1, 1)
+    -- graphics.draw_centered(canvas2, 0, 0, 0, -1, 1)
+    -- graphics.draw_centered(canvas2, 0, 0, 0, 1, -1)
+    -- graphics.draw_centered(canvas2, 0, 0, 0, -1, -1)
+
+
+end
+
 function RoomObject:add_spawn_lines(tab, sort_func)
-	local current_icons = {}
-	local current_icon = 0
-	local icons_per_line = floor(RECT_WIDTH / (ICON_SIZE + 2) + 1)
+    local current_icons = {}
+    local current_icon = 0
+    local icons_per_line = floor(RECT_WIDTH / (ICON_SIZE + 2) + 1)
     local counter = 0
 
-	local sorted_tab = {}
+    local sorted_tab = {}
 
     for spawn, count in pairs(tab) do
-		-- print(spawn, count)
-		table.insert(sorted_tab, { spawn = spawn, count = count.count })
-	end
+        -- print(spawn, count)
+        table.insert(sorted_tab, { spawn = spawn, count = count.count })
+    end
     if sort_func then
         table.sort(sorted_tab, sort_func)
     end
-	
-	local table_length = 0
-	for _, data in ipairs(sorted_tab) do
-		local count = data.count
+
+    local table_length = 0
+
+
+    local ignorance_entry_count = {
+
+    }
+
+    local get_num_entries = function(data)
         local num_entries = 1
         if data.spawn.subtype == "powerup" then
-            num_entries = count
+            num_entries = data.count
         end
-		if type(num_entries) ~= "number" then
-			print(num_entries)
-		end
-		table_length = table_length + num_entries
-	end
+        if data.spawn.key == "heart_trade" then
+            num_entries = 2
+        end
+        return num_entries
+    end
+
+    for _, data in ipairs(sorted_tab) do
+        local count = data.count
+        local num_entries = get_num_entries(data)
+
+        -- if self.stored_room.curse == "curse_ignorance" and data.spawn.subtype ~= "artefact" then
+            -- num_entries = num_entries * rng:randi(0, 2)
+            -- ignorance_entry_count[data] = num_entries
+        -- end
+        
+        table_length = table_length + num_entries
+    end
 
     for _, data in ipairs(sorted_tab) do
         local spawn = data.spawn
         local count = data.count
-        local num_entries = 1
-		if data.spawn.subtype == "powerup" then 
-			num_entries = count
-		end
-		for i=1, num_entries do
+        local num_entries = get_num_entries(data)
 
-			local icon = spawn.icon
-			-- local icon = graphics.depalettized[spawn.icon]
-			-- print(spawn.name)
-			local width, height = graphics.texture_data[icon]:getDimensions()
-            local middle_x, middle_y = floor(width / 2), floor(height / 2)
-			local icon_width = min(ICON_SIZE, width)
-			local icon_height = min(ICON_SIZE, height)
-			local icon_quad = graphics.new_quad(middle_x - icon_width / 2, middle_y - icon_height / 2, icon_width, icon_height, width, height)
-			table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, icon_width, icon_height))
-			current_icon = current_icon + 1
-			counter = counter + 1
+        -- if self.stored_room.curse == "curse_ignorance" and data.spawn.subtype ~= "artefact" then
+            -- num_entries = ignorance_entry_count[data]
+        -- end
 
-			if current_icon >= icons_per_line or counter >= table_length then
-				local line_data = {
-					spawn = spawn,
-					count = count,
-					icons = current_icons,
-				}
-				self:add_line("spawn_count", line_data, ICON_SIZE + 2, false)
-				current_icons = {}
-				current_icon = 0
-			end
-			-- ::continue::
-		end
-	end
+        for i = 1, num_entries do
+
+            -- if self.stored_room.curse == "curse_ignorance" and data.spawn.subtype ~= "artefact" then
+            if self.stored_room.curse == "curse_ignorance" then
+            -- if true then
+                local canvas = graphics.new_canvas(ICON_SIZE, ICON_SIZE)
+                graphics.push("all")
+                graphics.set_canvas(canvas)
+                self:draw_ignorance_icon()
+                graphics.pop()
+                table.insert(current_icons, canvas)
+            else
+                if i == 2 and spawn.key == "heart_trade" and game_state.heart_trade_artefact then
+                    local canvas = graphics.new_canvas(ICON_SIZE, ICON_SIZE)
+                    graphics.push("all")
+                    graphics.set_canvas(canvas)
+                    graphics.drawp_centered(game_state.heart_trade_artefact.artefact.icon, Palette.heart_trade_artefact_icon, 0, ICON_SIZE/2, ICON_SIZE/2, 0, 1, 1)
+                    graphics.pop()
+                    table.insert(current_icons, canvas)
+                else
+                    local icon = spawn.icon
+                    -- local icon = graphics.depalettized[spawn.icon]
+                    -- print(spawn.name)
+                    local width, height = graphics.texture_data[icon]:getDimensions()
+                    local middle_x, middle_y = floor(width / 2), floor(height / 2)
+                    local icon_width = min(ICON_SIZE, width)
+                    local icon_height = min(ICON_SIZE, height)
+                    local icon_quad = graphics.new_quad(middle_x - icon_width / 2, middle_y - icon_height / 2, icon_width,
+                        icon_height, width, height)
+                    table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, icon_width, icon_height))
+                end
+            end
+            
+            current_icon = current_icon + 1
+            counter = counter + 1
+
+            if current_icon >= icons_per_line or counter >= table_length then
+                local line_data = {
+                    spawn = spawn,
+                    count = count,
+                    icons = current_icons,
+                }
+                self:add_line("spawn_count", line_data, ICON_SIZE + 2, false)
+                current_icons = {}
+                current_icon = 0
+            end
+            -- ::continue::
+        end
+    end
 end
+
+
+
+
+local CURSE_COLORS = {
+    curse_wrath = { Color.red, Color.darkmagenta },
+    curse_penitence = { Color.skyblue, Color.darkblue },
+    curse_fatigue = { Color.purple, Color.darkpurple },
+    curse_ignorance = { Color.magenta, Color.darkred },
+    curse_hazardous = { Color.yellow, Color.orange },
+    curse_famine = { Color.white, Color.red },
+}
+
 
 function RoomObject:enter()
     self:add_tag("room_object")
@@ -124,10 +268,10 @@ function RoomObject:enter()
     s:start(function()
 
         if self.stored_room.is_egg_room then
-			self:add_big_egg()
-			return
-		end
-
+            self:add_big_egg()
+            return
+        end
+        
         -- self:add_spawn_lines(self.stored_room.all_spawn_types)
 
         -- self:add_line("text", "ENEMIES")
@@ -138,7 +282,7 @@ function RoomObject:enter()
             -- self:add_separator()
             -- self:add_line("text", "SCORE+")
         elseif self.points_rating == 3 then
-            self:add_line("text", tr.room_has_max_points)
+            self:add_text_line(tr.room_has_max_points, Color.cyan, Color.darkblue)
             savedata:add_item_to_codex("room_has_max_points")
         end
 
@@ -147,8 +291,13 @@ function RoomObject:enter()
         -- end
 
         if self.stored_room.is_hard then
-            self:add_line("text", tr.room_is_hard)
+            self:add_text_line(tr.room_is_hard, Color.yellow, Color.red)
             savedata:add_item_to_codex("room_is_hard")
+        end
+
+        if self.stored_room.curse then
+            self:add_text_line(tr(self.stored_room.curse), unpack(CURSE_COLORS[self.stored_room.curse] or {}))
+            savedata:add_item_to_codex(self.stored_room.curse)
         end
 
         self:add_separator()
@@ -291,7 +440,7 @@ function RoomObject:draw()
         self.floor_object.die_alpha = self.die_alpha
     end
 	
-    graphics.set_font(self.font)
+    -- graphics.set_font(self.font)
 	graphics.set_color(self.die_alpha, self.die_alpha, self.die_alpha, 1)
     -- self:body_translate()
     -- RoomObject.super.draw(self)
@@ -415,9 +564,12 @@ function RoomObject:draw_line(line, y)
 	local die_alpha = self.die_alpha or 1
     graphics.set_color(die_alpha, die_alpha, die_alpha, 1)
     if line.type == "text" then
-        local text = line.data
-
-        graphics.print(string.sub(text, 1, floor(line.t / 1)), 0, y, 0, 1, 1, 0, 0)
+        local font = fonts.image_font1
+        graphics.set_font(font)
+        local text = line.data.text
+        graphics.set_color(Color.white)
+        graphics.printp(string.sub(text, 1, floor(line.t / 1)), font, line.data.palette, 0, 0, y, 0, 1, 1, 0, 0)
+        -- graphics.set_font(self.font)
     elseif line.type == "spawn_count" then
         -- graphics.draw(textures.enemy_base, 0, y, 0, 1, 1, 0, 0)
         for i, icon in pairs(line.data.icons) do

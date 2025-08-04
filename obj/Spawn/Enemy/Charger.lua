@@ -39,7 +39,7 @@ function Charger:new(x, y)
 end
 
 function Charger:enter()
-	self:charge(rng:randi(30, 60))
+	self:charge(rng:randi(30, 90))
 end
 
 function Charger:hit_by(object)
@@ -73,7 +73,12 @@ function Charger:state_Waiting_enter()
     self:start_tick_timer("drag", 6, function()
         self.drag = 0.15
     end)
-	self:charge()
+
+    if self.charged_yet then
+        self:charge()
+    end
+    -- self:charge()
+    
 end
 
 
@@ -86,10 +91,13 @@ function Charger:charge(time)
         return
     end
 	
+    self.charged_yet = true
+
     self:stop_tick_timer("waiting")
 	self:stop_tick_timer("effect")
 
-	local wait_time = time or rng:randi(25, 120)
+
+	local wait_time = (time or rng:randi(25, 90))
 	self:start_tick_timer("effect", wait_time - 5, function()
         self.pdx, self.pdy = self:get_body_direction_to_player()
 
@@ -347,7 +355,9 @@ end
 
 function Chargesploder:enter()
 	local bx, by = self:get_body_center()
-	self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
+    self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
+    self:charge(rng:randf(60, 90))
+    
 end
 
 function Chargesploder:get_sprite()

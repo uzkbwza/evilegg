@@ -61,6 +61,9 @@ function EggRoomDirector:new()
 end
 
 function EggRoomDirector:get_clear_color()
+
+    if self.world.clock_slowed then return nil end
+
     if self:is_timer_running("phase2_landing_fade") then
         -- local t = self:timer_progress("phase2_landing_fade")
         local color = Color.grey
@@ -225,12 +228,17 @@ function EggRoomDirector:on_player_choice_made(choice, player)
                 self.phase4_landing = false
                 game_state.cutscene_hide_hud = false
                 game_state.cutscene_no_pause = false
-                local dist = 850  
-                if rng:coin_flip() then
+                local dist = 850
+                local tp_to_center = true
+                if debug.enabled and tp_to_center then
+                    self.world.players[1]:move_to(0, 0)
+                elseif rng:coin_flip() then
                     self.world.players[1]:move_to(rng:randf(-dist, dist), dist * rng:rand_sign())
                 else
                     self.world.players[1]:move_to(dist * rng:rand_sign(), rng:randf(-dist, dist))
                 end
+
+
                 self.world.camera_target:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
                 self.world.camera:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
             end, true)

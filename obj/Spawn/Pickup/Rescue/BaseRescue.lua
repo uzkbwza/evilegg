@@ -215,7 +215,7 @@ function BaseRescue:on_pickup()
         game_state:greenoid_harm_penalty()
     end
 	
-	if self:is_timer_running("quick_save_time") then
+	if self:is_timer_running("quick_save_time") and not self.no_score then
 		game_state:level_bonus("quick_save")
 	end
 
@@ -389,11 +389,6 @@ function BaseRescue:update(dt)
 	end
 end
 
--- function BaseRescue:apply_impulse(dx, dy)
-    -- Mixins.SimplePhysics2D.apply_impulse(self, dx, dy)
--- end
-
-
 function BaseRescue.try_avoid_enemy(bubble, self)
 	table.insert(self.nearby_enemy_hit_bubbles, bubble)
 end
@@ -418,7 +413,7 @@ end
 function BaseRescueArrowParticle:update(dt)
     if self.target then
         local bx, by = self.target:get_body_center()
-        self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.target.hurt_bubble_radius * 2, 600, dt))
+        self:move_to(splerp_vec(self.pos.x, self.pos.y, bx, by - self.target.hurt_bubble_radius * 2, 10, dt))
     else
         self:queue_destroy()
     end
@@ -517,7 +512,7 @@ end
 
 function BaseRescueFloorParticle:update(dt)
 	if self.target then
-        self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, 60, dt))
+        self:move_to(splerp_vec(self.pos.x, self.pos.y, self.target.pos.x, self.target.pos.y, 10, dt))
 	end
 end
 

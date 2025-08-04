@@ -21,7 +21,6 @@ function Camera:follow(obj)
 	self:ref("following", obj)
 end
 
-
 function Camera:set_limits(xstart, ystart, xend, yend)
 	self.limits = {
 		xstart = xstart,
@@ -30,7 +29,6 @@ function Camera:set_limits(xstart, ystart, xend, yend)
 		yend = yend
 	}
 end
-
 
 function Camera:update(dt)
     if self.following then
@@ -41,9 +39,6 @@ function Camera:update(dt)
 		-- end
     end
 end
-
-
-
 
 function Camera:clamp_to_limits(offset_x, offset_y)
 	if not self.limits then

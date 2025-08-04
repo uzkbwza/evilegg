@@ -21,6 +21,7 @@ Roamer.palette = Palette[textures.enemy_roamer1]:clone()
 
 function Roamer:new(x, y)
     Roamer.super.new(self, x, y)
+    
 	-- self.drag = 0.6
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
 	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
@@ -97,7 +98,9 @@ end
 
 function Roamsploder:enter()
 	local bx, by = self:get_body_center()
-	self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
+    self:spawn_object(ExplosionRadiusWarning(bx, by, EXPLOSION_RADIUS, self))
+    local walk_speed = self.walk_speed
+    self:interpolate_property("walk_speed", 0, walk_speed, 30)
 end
 
 function Roamsploder:get_sprite()
