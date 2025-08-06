@@ -16,7 +16,7 @@ local default_usersettings = {
     invert_colors = false,
     show_hud = true,
     show_fps = false,
-    shader_quality = 1,
+    shader_quality = 0.5,
 	
     -- fx
     screen_shake_amount = 1,
