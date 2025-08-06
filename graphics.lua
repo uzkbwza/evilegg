@@ -363,8 +363,10 @@ function graphics.initialize_screen_shader_presets()
             {
                 shader = sblur_threshold(0.5),
                 args = {
-                    pre_blur_size = slider(0.13, 0.06),
-                    pre_blur_samples = threshold(2, slider(3, 7, true)),
+                    pre_blur_size = slider(0.08, 0.06),
+                    pre_blur_samples = threshold(2, slider(2, 7, true)),
+                    -- pre_blur_size = 0.06,
+                    -- pre_blur_samples = 7,
                 },
             },
 
