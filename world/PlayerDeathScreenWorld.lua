@@ -51,7 +51,9 @@ function PlayerDeathScreenWorld:enter()
     -- end
 
 
-    if usersettings.enable_leaderboard then
+    if usersettings.enable_leaderboard and score_table.valid_for_leaderboard then
+
+        score_table.valid_for_leaderboard = nil
 
         savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] or {}
 

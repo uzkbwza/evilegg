@@ -34,6 +34,9 @@ function GameScreen:enter()
 
 end
 
+function GameScreen:exit()
+end
+
 function GameScreen:on_player_died()
     -- self.hud_layer:hide()
     self.ui_layer:exit_all_screens()

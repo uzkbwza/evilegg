@@ -128,9 +128,10 @@ function MainScreen:start_leaderboard_menu()
     end)
 end
 function MainScreen:set_current_screen(screen)
-	if self.current_screen then
-		self.current_screen:destroy()
-	end
+    if self.current_screen then
+        self.current_screen:destroy()
+    end
+    
 	self:ref("current_screen", self:insert_layer(screen, 1))
 end
 
@@ -169,15 +170,52 @@ end
 
 function TopLayer:draw()
     -- if self.drawing_cursor then
-    
+    graphics.set_font(fonts.depalettized.image_neutralfont1)
+
     graphics.set_color(Color.white)
+
     local mouse_x, mouse_y = input.mouse.pos.x, input.mouse.pos.y
     if self.show_cursor and not (self.main_screen.current_screen.draw_cursor and self.main_screen.current_screen:draw_cursor(mouse_x, mouse_y)) and (input.last_input_device ~= "gamepad" or usersettings.gamepad_plus_mouse) then
         graphics.drawp(textures.ui_cursor, nil, 0, mouse_x, mouse_y)
     end
+
+    local time_warning = time_checker:should_warn()
+    local time_leaderboard_warning = not time_checker:is_valid_game_speed_for_leaderboard()
+    
+    -- if debug.enabled then
+        -- time_warning = true
+        -- time_leaderboard_warning = true
+    -- end
+    
+    graphics.set_color(Color.orange)
+    
+    if time_leaderboard_warning then
+        graphics.set_color(Color.red)
+    end
+    
+    if time_leaderboard_warning or iflicker(floor(seconds_to_frames(gametime.love_time)), 10, 2) then
+        if game_state then
+            if game_state.game_over then 
+                time_warning = false
+            end
+            if game_state.stopped_updating then
+                time_warning = false
+                time_leaderboard_warning = false
+            end
+        end
+        
+        if time_warning then
+            graphics.print("⏲", self.viewport_size.x - 9, 0, 0, 1, 1)
+            if not time_leaderboard_warning then
+                graphics.print("‼", self.viewport_size.x - 9, 9, 0, 1, 1)
+            end
+        end
+    end
+
+    graphics.set_color(Color.white)
         
     if usersettings.show_fps then
-        graphics.set_font(fonts.depalettized.image_neutralfont1)
+
         local fps = love.timer.getFPS()
 
         graphics.set_color(Color.darkergrey)

@@ -320,9 +320,13 @@ function debuggy.update(dt)
 		debuggy.fast_forward = false
 	end
 
-	if input.debug_signal_snapshot_pressed then
-		debuggy.snapshot_signals()
-	end
+    if input.debug_signal_snapshot_pressed then
+        debuggy.snapshot_signals()
+    end
+    
+    if input.keyboard_held["lshift"] then
+        love.timer.sleep(0.05)
+    end
 
 	table.insert(debuggy.dt_history, {
 		time = gametime.love_time,

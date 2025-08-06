@@ -2,8 +2,10 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.7.3"
+GAME_VERSION = "0.7.4"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
+
+local AntiTamper = require("lib.anti-tamper") -- or paste inline and keep the table
 
 print("Game version: " .. GAME_VERSION)
 print("Leaderboard version: " .. GAME_LEADERBOARD_VERSION)
@@ -74,9 +76,14 @@ StateMachine, State = fsm.StateMachine, fsm.State
 AutoStateMachine    = require "lib.fsm.AutoStateMachine"
 
 BaseGame        = require "game.BaseGame"
-Screens         = filesystem.get_modules("screen")
+Screens                                = filesystem.get_modules("screen")
+
+TimeChecker                       = require "lib.timechecker"
+
+time_checker = TimeChecker()
 
 local min, floor = math.min, math.floor
+
 local TICKRATE   = conf.tickrate or 60
 
 for _, k in ipairs(conf.to_vec2) do conf[k] = Vec2(conf[k].x, conf[k].y) end
@@ -138,6 +145,8 @@ function love.run()
         end
         if love.timer then dt = love.timer.step() end
 
+        time_checker:update(dt)
+
         local delta_seconds = min(dt, conf.max_delta_seconds)
         local delta_frame = delta_seconds * TICKRATE
         gametime.love_delta = dt
@@ -146,7 +155,8 @@ function love.run()
         local prev_tick     = gametime.tick
         gametime.tick       = floor(gametime.time)
         gametime.frame     = gametime.frame + 1
-        gametime.is_new_tick= (prev_tick~=gametime.tick)
+        gametime.is_new_tick = (prev_tick ~= gametime.tick)
+        
 
         -- Dynamically enable fixed‑delta when the game slows down (>=2x max fps allowed)
         if (dt > (conf.max_delta_seconds or 0) * 0.5) then
@@ -159,9 +169,9 @@ function love.run()
         else
             force_fixed_time_left = approach(force_fixed_time_left, 0, dt)
         end
-
-        local force_fixed = force_fixed_time_left > 0
-		-- local force_fixed = false
+        
+        -- local force_fixed = force_fixed_time_left > 0
+		local force_fixed = false
         local debug_ffwd  = debug.enabled and debug.fast_forward
         local fixed_enabled = conf.use_fixed_delta or force_fixed
         local cap_fps     = usersettings.cap_framerate and not debug_ffwd
@@ -217,6 +227,7 @@ function love.run()
         end
 
         if gametime.is_new_tick and gametime.tick % 300 == 0 then
+            
             if debug.enabled and not debug_printed_peak then
                 print("fps: "..love.timer.getFPS())
                 debug_printed_peak = true
@@ -254,9 +265,10 @@ end
 local averaged_frame_length = 0
 function love.update(dt)
     leaderboard.poll()
-	if steam then
-		steam.run_callbacks()
-	end
+    if steam then
+        steam.run_callbacks()
+    end
+
     if debug.enabled and debug.can_draw() then
         local flen = step_length*1000
         averaged_frame_length = (flen>averaged_frame_length) and flen or splerp(averaged_frame_length, flen, 1000.0, dt)
@@ -269,15 +281,17 @@ function love.update(dt)
         dbg("signal emitters", table.length(signal.emitters), Color.green)
         dbg("signal listeners", table.length(signal.listeners), Color.green)
 		local stats = signal.debug_get_pool_stats()
-        for name, s in pairs(stats) do
-            dbg("pool: " .. name, string.format("%d/%d", s.used, s.total), Color.green)
-        end
+        -- for name, s in pairs(stats) do
+            -- dbg("pool: " .. name, string.format("%d/%d", s.used, s.total), Color.green)
+        -- end
         dbg("retry_cooldown", savedata:get_seconds_until_retry_cooldown_is_over(), Color.magenta)
     end
     dt = dt * gametime.scale
     input.update(dt)
     if debug.enabled and debug.frame_advance then
-        if input.debug_frame_advance_pressed then game:update(dt); audio.update(dt) end
+        if input.debug_frame_advance_pressed then
+            game:update(dt); audio.update(dt)
+        end
     else
         local scaled_dt = debug.slow_motion and dt*0.1 or dt
         game:update(scaled_dt); audio.update(scaled_dt)

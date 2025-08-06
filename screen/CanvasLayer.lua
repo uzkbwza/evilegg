@@ -301,8 +301,6 @@ function CanvasLayer:remove_layer(index)
     local layer = table.remove(self.children, idx)
     self:refresh_layer_links()
 
-    layer:exit_shared()
-    layer.parent = nil
     layer:destroy()
 	-- collectgarbage("collect")
 end

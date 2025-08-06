@@ -412,7 +412,7 @@ local translations = {
         -- codex_desc_hookworm         = "Hungry!",
 
         codex_name_penitentsoul      = "Shameful Spirit",
-        codex_desc_penitentsoul      = "It's not good enough to apologize, you have to change.",
+        codex_desc_penitentsoul      = "It's not good enough to apologize. You have to change.",
 
         codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",
@@ -436,6 +436,9 @@ local translations = {
         
         codex_glossary_name_artefact       = "ARTEFACT",
         codex_glossary_desc_artefact       = "A piece of unique equipment sent to you by thankful greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",
+
+        codex_glossary_name_time_warning   = "⏲‼",
+        codex_glossary_desc_time_warning   = "Your game is running too slow or too fast. Your score may be disqualified from the leaderboard. Try disabling the screen shader if you are having performance issues.",
 
         codex_variable_score = "VARIES",
 

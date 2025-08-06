@@ -71,6 +71,12 @@ local conf = {
 	max_fps = 600,
     max_fixed_ticks_per_frame = 1,
 
+    -- leaderboard moderation
+    leaderboard_minimum_game_speed = 0.80,
+    leaderboard_maximum_game_speed = 1.20,
+    leaderboard_minimum_fps = 50,
+    -- leaderboard_maximum_fps = 120,
+
 	-- input
 	input_actions = {
 		shoot = {

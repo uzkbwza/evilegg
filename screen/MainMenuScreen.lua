@@ -2,6 +2,10 @@ local MainMenuScreen = CanvasLayer:extend("MainMenuScreen")
 
 function MainMenuScreen:enter()
 
+    if game_state and not game_state.stopped_updating then
+        game_state:stop_updating()
+    end
+
 	self.clear_color = Color.black
 	self:add_signal("start_game_requested")
     self:add_signal("options_menu_requested")

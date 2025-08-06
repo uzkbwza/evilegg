@@ -66,7 +66,11 @@ function GlobalState:reset_game_state()
 end
 
 function GlobalState:destroy_game_state()
-	signal.cleanup(game_state)
+    if game_state then
+        game_state:exit()
+        signal.cleanup(game_state)
+    end
+    
 	game_state = nil
 end
 
@@ -87,7 +91,10 @@ GlobalGameState.xp_until_heart = 3500
 GlobalGameState.xp_until_artefact = 3000
 
 function GlobalGameState:new()
-	self.enable_adaptive_difficulty = false
+    self.enable_adaptive_difficulty = false
+    self.elapsed = 0
+    self.tick = 0
+    self.is_new_tick = false
 	self.level = 1
 	self.wave = 1
 	self.difficulty = 1
@@ -128,7 +135,7 @@ function GlobalGameState:new()
 	self.num_queued_artefacts = 0
     self.num_queued_hearts = 0
 	self.cutscene_hide_hud = false
-	self.cutscene_no_pause = false
+    self.cutscene_no_pause = false
 
 	self.egg_rooms_cleared = 0
 
@@ -210,6 +217,8 @@ function GlobalGameState:new()
 	signal.register(self, "player_overflowed")
 	signal.register(self, "greenoid_harmed")
 
+    time_checker:start()
+
 	self.score_categories = {}
 
 	self.skip_tutorial = usersettings.skip_tutorial or self.level > 1
@@ -271,8 +280,31 @@ function GlobalGameState:new()
 
 end
 
+function GlobalGameState:stop_updating()
+    self.stopped_updating = true
+    time_checker:stop()
+end
+
+
 function GlobalGameState:update(dt)
-	if debug.enabled then
+    if self.stopped_updating then
+        return
+    end
+    self.elapsed = self.elapsed + dt
+    local old_tick = self.tick
+    self.tick = floor(self.elapsed)
+    if old_tick ~= self.tick then
+        self.is_new_tick = true
+    end
+
+    if not self.game_over and self.hatched then
+        local time = love.timer.get_time()
+        -- local os_time = os.time()
+        self.game_time = seconds_to_frames(time - self.start_time)
+        self.game_time_ms = floor((time - self.start_time) * 1000)
+    end
+
+    if debug.enabled then
 		-- dbg("xp", self.xp)
 		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
 		-- dbg("xp_until_heart", self.xp_until_heart)
@@ -280,15 +312,20 @@ function GlobalGameState:update(dt)
 		-- dbg("num_queued_upgrades", self.num_queued_upgrades)
 		-- dbg("num_queued_hearts", self.num_queued_hearts)
 		-- dbg("num_queued_artefacts", self.num_queued_artefacts)
-		dbg("difficulty_modifier", self:get_difficulty_modifier())
-		dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
-		dbg("aggression_bonus", self.aggression_bonus)
+		-- dbg("difficulty_modifier", self:get_difficulty_modifier())
+		-- dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
+		-- dbg("aggression_bonus", self.aggression_bonus)
+        -- dbg("average_fps", time_checker:get_average_fps(), Color.cyan)
+        dbg("relative_game_speed", time_checker:get_relative_game_speed(), Color.red)
+        local min_speed, max_speed = time_checker:get_relative_game_speed_bounds()
+        dbg("min_game_speed", min_speed, Color.red)
+        dbg("max_game_speed", max_speed, Color.red)
+        local min_fps = time_checker:get_average_fps_bound()
+        dbg("min_fps", min_fps, Color.red)
+        local average_fps = time_checker:get_average_fps()
+        dbg("average_fps", average_fps, Color.red)
+        -- dbg("game_state_tick", self.tick, Color.green)
 	end
-
-    if not self.game_over and self.hatched then
-        self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
-        self.game_time_ms = floor((love.timer.getTime() - self.start_time) * 1000)
-    end
 end
 
 function GlobalGameState:on_player_running_out_of_ammo()
@@ -301,7 +338,7 @@ end
 
 function GlobalGameState:on_hatched()
 	self.hatched = true
-    self.start_time = love.timer.getTime()
+    self.start_time = love.timer.get_time()
 	signal.emit(self, "hatched")
 end
 
@@ -475,7 +512,8 @@ end
 function GlobalGameState:on_game_over()
 	self.game_over = true
 	savedata:add_category_death(self.leaderboard_category)
-	savedata:set_save_data("death_count", savedata.death_count + 1)
+    savedata:set_save_data("death_count", savedata.death_count + 1)
+    time_checker:stop()
 	leaderboard.add_death()
 end
 
@@ -727,9 +765,12 @@ end
 function GlobalGameState:get_run_data_table()
 	local artefacts = {}
 
+    time_checker:stop()
+
 	for i = 1, GlobalGameState.max_artefacts do
 		artefacts[i] = self.artefact_slots[i] and self.artefact_slots[i].key or "none"
 	end
+
 
 	return {
 		name = savedata.name,
@@ -749,8 +790,19 @@ function GlobalGameState:get_run_data_table()
 		good_ending = self.good_ending,
 		damage_taken = self.total_damage_taken,
 		highest_rescue_chain = self.highest_rescue_chain,
-		run_key = rng:uuid(),
+        run_key = rng:uuid(),
+
+        -- i'm not going to try to obfuscate or secure this or anything.
+        -- the effort is totally futile. anything i do will be trivially circumvented.
+        -- i'm a solo dev and i'll have to remove your score manually if you cheat. 
+        -- please don't make me do that. please don't make my life harder.
+        valid_for_leaderboard = self:is_valid_run_for_leaderboard(),
 	}
+end
+
+function GlobalGameState:is_valid_run_for_leaderboard()
+    local valid_game_speed = time_checker:is_valid_game_speed_for_leaderboard()
+    return valid_game_speed
 end
 
 function GlobalGameState:gain_heart(heart)
@@ -1255,13 +1307,17 @@ function GlobalGameState:consume_artefact()
 end
 
 function GlobalGameState:add_score(score, score_category)
-	if self.game_over then return end
-	-- if score <= 0 then return end
-	self.score = self.score + score
-	self.score = max(self.score, 0)
-	assert(type(score_category) == "string", "score_category must be a string")
-	self.score_categories[score_category] = self.score_categories[score_category] or 0
-	self.score_categories[score_category] = self.score_categories[score_category] + score
+    if self.game_over then return end
+    -- if score <= 0 then return end
+    self.score = self.score + score
+    self.score = max(self.score, 0)
+    assert(type(score_category) == "string", "score_category must be a string")
+    self.score_categories[score_category] = self.score_categories[score_category] or 0
+    self.score_categories[score_category] = self.score_categories[score_category] + score
+end
+
+function GlobalGameState:exit()
+    time_checker:stop()
 end
 
 return MainGame

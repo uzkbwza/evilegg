@@ -607,6 +607,12 @@ function CodexWorld:get_spawns(page_category)
                     name = "room_is_hard",
                     description = "codex_glossary_room_is_hard",
                 },
+                {
+                    name = "codex_glossary_name_time_warning",
+                    description = "codex_glossary_desc_time_warning",
+                    start_unlocked = true,
+                },
+                
 
             }
 
