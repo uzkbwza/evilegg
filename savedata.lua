@@ -186,7 +186,7 @@ function savedata:add_score(run)
         category_highs.game_time = 0
     end
 
-    if GAME_VERSION == "0.7.1" then
+    if GAME_VERSION == "0.7.3" then
         if floor(category_highs.game_time) ~= category_highs.game_time then
             category_highs.game_time = floor(frames_to_seconds(category_highs.game_time) * 1000)
         end
