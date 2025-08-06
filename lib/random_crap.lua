@@ -503,6 +503,19 @@ function truthy_nil(v)
 	return v or v == nil
 end
 
+function tick_frequency_callback(n, tick, callback, ...)
+    if n < 1 then
+        if tick % round(1 / n) == 0 then
+            callback(...)
+        end
+    else
+        for i = 1, n do
+            callback(...)
+        end
+    end
+end
+
+
 dummy_table = setmetatable({}, {
     __index = function()
         return nil

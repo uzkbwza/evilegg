@@ -295,7 +295,8 @@ function RookProjectile:draw(floor_draw)
 
 	local crng = self.rng
 
-	local num_squares = max(1, floor(16 * self.break_scale))
+	-- local num_squares = max(1, floor(16 * self.break_scale))
+	local num_squares = 1
 
 	for layer = 1, 2 do
 		for i=1, num_squares do
@@ -312,15 +313,15 @@ function RookProjectile:draw(floor_draw)
 
 			local slow_t = inverse_lerp(slowtick1, slowtick2, slowtick / slow_period + i)
 			
-			local center = i == floor(num_squares / 2)
+			local center = i == 1
 
 			crng:set_seed(self.random_offset + i)
 			
 			crng:set_seed(slowtick1)
-			local size1 = crng:randf(center and 10.0 or 1.0, center and 24.0 or 4.0)
+			local size1 = crng:randf(center and 10.0 or 5.0, center and 24.0 or 8.0)
 			local base_x1, base_y1 = crng:random_vec2_times(crng:randf(0.5, center and 1.0 or 24.5) * self.scale)
 			crng:set_seed(slowtick2)
-			local size2 = crng:randf(center and 10.0 or 1.0, center and 24.0 or 4.0)
+			local size2 = crng:randf(center and 10.0 or 5.0, center and 24.0 or 8.0)
 			local base_x2, base_y2 = crng:random_vec2_times(crng:randf(0.5, center and 1.0 or 24.5) * self.scale)
 
 
@@ -348,6 +349,13 @@ function RookProjectile:draw(floor_draw)
 				rect_size = rect_size + 1
 			end
 
+            rect_size = max(3, rect_size)
+
+            local color_mod = 1.0
+            if floor_draw then
+                color_mod = 0.3
+            end
+
 			if center or rect_size >= 1 then
 				
 				crng:set_seed(self.random_offset + i)
@@ -359,10 +367,11 @@ function RookProjectile:draw(floor_draw)
 
 				local stroke_bg_x, stroke_bg_y = vec2_sign(stroke_x, stroke_y)
 
-				local fill_color = Palette.rook_projectile_fill:tick_color(self.tick + self.random_offset * i, 0, 2)
+                local fill_color = Palette.rook_projectile_fill:tick_color(self.tick + self.random_offset * i, 0, 2)
 
-				graphics.set_color(layer == 1 and Color.black or fill_color)
-				if not floor_draw then
+                local col1 = layer == 1 and Color.black or fill_color
+				graphics.set_color(col1.r * color_mod, col1.g * color_mod, col1.b * color_mod)
+				if not floor_draw and (center or rect_size <= 2) then
 					graphics.rectangle_centered("fill", center_x, center_y, rect_size, rect_size)
 				end
 				if rect_size >= 2 then
@@ -376,7 +385,7 @@ function RookProjectile:draw(floor_draw)
 					
 
 					local stroke_color = Palette.rook_projectile_stroke:tick_color(self.tick + self.random_offset, 0, 2)
-                    local color_mod = 0.3
+                    local color_mod = 0.3 * color_mod
 					if layer == 1 then
 						graphics.set_color(Color.black)
 					else

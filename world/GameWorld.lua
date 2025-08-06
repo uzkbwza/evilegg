@@ -210,8 +210,8 @@ function GameWorld:enter()
 
     signal.connect(game_state, "tried_to_use_secondary_weapon_with_no_ammo", self, "on_player_out_of_ammo", function()
 		self:quick_notify(
-			self.room.curse == "curse_famine" and tr.notif_famine or tr.notif_out_of_ammo,
-            self.room.curse == "curse_famine" and "notif_famine" or "notif_no_ammo",
+			self.room.curse_famine and tr.notif_famine or tr.notif_out_of_ammo,
+            self.room.curse_famine and "notif_famine" or "notif_no_ammo",
             nil,
             0,
             30,
@@ -372,6 +372,10 @@ function GameWorld:initialize_room(room)
 	local s = self.timescaled.sequencer
 
 	audio.play_music_if_stopped("music_drone")
+
+    if self.room.curse then
+        savedata:add_item_to_codex(self.room.curse)
+    end
 
 	s:start(function()
 		if table.is_empty(self.players) then
@@ -674,7 +678,7 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
         self.enemies_to_kill[enemy_object] = nil
         game_state:add_kill()
 
-        if self.room.curse == "curse_penitence" and rng:percent(8 * (enemy_object.max_hp or 1)) then
+        if self.room.curse_penitence and rng:percent(8 * (enemy_object.max_hp or 1)) then
             self:register_non_wave_enemy_required_kill(self:spawn_object(PenitentSoul(bx, by)))
         end
     end)
@@ -1449,6 +1453,20 @@ function GameWorld:update(dt)
 		self.timescaled:start_timer("player_notify_cooldown", 52)
 	end
 
+    if self.room.curse and self.state == "Normal" or self.state == "Spawning" then
+        local curse = self.room.curse
+        if curse == "curse_wrath" then
+            local player = self:get_random_player()
+            if self.room.tick_scaled > 60 and self.timescaled.is_new_tick and not self.timescaled:is_tick_timer_running("wrath_timer") and rng:percent(1.0) and player then
+                self.timescaled:start_tick_timer("wrath_timer", 110)
+                local pbx, pby = player:get_body_center()
+                self:spawn_object(EggWrath(pbx, pby))
+            end
+        elseif curse == "curse_fatigue" and self.timescaled.is_new_tick and rng:percent(1) and self:get_number_of_objects_with_tag("fatigue_zone") < 3 then
+            self:spawn_object(FatigueZone(self:get_random_position_in_room()))
+        end
+    end
+
 
 end
 
@@ -1911,6 +1929,10 @@ end
 
 function GameWorld:draw_top_info()
 
+
+	if not self.showing_hud then
+		return
+	end
     
     self:draw_quick_clear_progress_bar()
 
@@ -1946,10 +1968,6 @@ function GameWorld:draw_top_info()
 
     local hud_layer = self.canvas_layer.parent.hud_layer
 
-
-	if not self.showing_hud then
-		return
-	end
 
 
 
@@ -2241,19 +2259,16 @@ function GameWorld:state_Normal_update(dt)
 	end
     -- end
     
-    if self.room.curse then
-        local curse = self.room.curse
-        if curse == "curse_wrath" then
-            local player = self:get_random_player()
-            if self.room.tick_scaled > 60 and self.timescaled.is_new_tick and not self.timescaled:is_tick_timer_running("wrath_timer") and rng:percent(1 + (self.room.wave - 1) * 0.75) and player then
-                self.timescaled:start_tick_timer("wrath_timer", 70)
-                local pbx, pby = player:get_body_center()
-                self:spawn_object(EggWrath(pbx, pby))
-            end
-        elseif curse == "curse_fatigue" and self.timescaled.is_new_tick and rng:percent(1) and self:get_number_of_objects_with_tag("fatigue_zone") < 3 then
-            self:spawn_object(FatigueZone(self:get_random_position_in_room()))
-        end
+
+end
+
+
+function GameWorld:get_effective_fire_rate()
+    local fire_rate = game_state.upgrades.fire_rate
+    if game_state.artefacts.crown_of_frenzy and self:get_number_of_objects_with_tag("rescue_object") == 0 then
+        fire_rate = fire_rate + 1
     end
+    return fire_rate
 end
 
 

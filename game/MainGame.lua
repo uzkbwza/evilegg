@@ -98,8 +98,9 @@ function GlobalGameState:new()
 	self.score = 0
 	self.score_multiplier = 1
 	self.xp = 0
-	self.start_time = love.timer.getTime()
+	self.start_time = 0
 	self.game_time = 0
+    self.game_time_ms = 0
 	self.rescue_chain_bonus = 0
 
 	self.rescue_chain = 0
@@ -218,7 +219,7 @@ function GlobalGameState:new()
 
 
         local cheat = true
-        self.cheat = true
+        self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
@@ -237,11 +238,11 @@ function GlobalGameState:new()
                 PickupTable.artefacts.RailGunSecondaryWeapon,
             })
 
-            self.num_queued_artefacts = 10
+            -- self.num_queued_artefacts = 10
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 1
+            self.level = 51
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -284,8 +285,9 @@ function GlobalGameState:update(dt)
 		dbg("aggression_bonus", self.aggression_bonus)
 	end
 
-    if not self.game_over then
+    if not self.game_over and self.hatched then
         self.game_time = seconds_to_frames(love.timer.getTime() - self.start_time)
+        self.game_time_ms = floor((love.timer.getTime() - self.start_time) * 1000)
     end
 end
 
@@ -299,6 +301,7 @@ end
 
 function GlobalGameState:on_hatched()
 	self.hatched = true
+    self.start_time = love.timer.getTime()
 	signal.emit(self, "hatched")
 end
 
@@ -741,7 +744,7 @@ function GlobalGameState:get_run_data_table()
 		category = self.leaderboard_category,
 		rescues = self.rescues_saved,
 		artefacts = artefacts,
-		game_time = self.game_time,
+		game_time = self.game_time_ms,
 		secondary_weapon = self.secondary_weapon and self.secondary_weapon.key,
 		good_ending = self.good_ending,
 		damage_taken = self.total_damage_taken,

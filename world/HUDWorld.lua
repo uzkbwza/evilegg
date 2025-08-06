@@ -106,7 +106,7 @@ function HUDWorld:draw()
 		local font = fonts.depalettized.image_font2
 		graphics.set_font(font)
 		graphics.set_color(Color.white)
-		local text = format_hhmmssms1(frames_to_seconds(game_state.game_time) * 1000)
+		local text = format_hhmmssms1(game_state.game_time_ms)
 		graphics.print(text, conf.room_size.x / 2 - 1 - font:getWidth(text), 96)
 	end
 end

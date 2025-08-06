@@ -7,8 +7,11 @@ local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local BaseRescuePickupParticle = Effect:extend("BaseRescuePickupParticle")
 local RingOfLoyaltyBullet = require("obj.Player.Bullet.RingOfLoyaltyBullet")
 local WarbellProjectile = require("obj.Player.Bullet.GreenoidSelfDefenseBullet")
+local VulnerabilityParticle = GameObject2D:extend("VulnerabilityParticle")
 
 local START_INVULNERABILITY = 140
+-- local FRAILTY_INVULNERABILITY_TIME = 60
+local FRAILTY_INVULNERABILITY_TIME = START_INVULNERABILITY
 local QUICK_SAVE_TIME = 200
 local HIT_INVULNERABILITY = 60
 local LAST_HIT_INVULNERABILITY = 70
@@ -21,37 +24,69 @@ BaseRescue.max_hp = 4
 
 function BaseRescue:new(x, y)
     BaseRescue.super.new(self, x, y)
-	self.team = "player"
+    self.team = "player"
     self.body_height = 4
     self.hurt_bubble_radius = self.hurt_bubble_radius or 3
     -- self.declump_radius = self.declump_radius or 20
-	-- self.self_declump_modifier = self.self_declump_modifier or 0.3
+    -- self.self_declump_modifier = self.self_declump_modifier or 0.3
     self:lazy_mixin(Mixins.Behavior.Health)
     self:lazy_mixin(Mixins.Behavior.Hittable)
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
     -- self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self:lazy_mixin(Mixins.Fx.Rumble)
-	self.avoid_enemies = true
+    self.avoid_enemies = true
     self.spawn_sfx = "ally_rescue_spawn"
-	self.spawn_sfx_volume = 0.85
+    self.spawn_sfx_volume = 0.85
     self.spawn_cry = nil
-	self.spawn_cry_volume = 0.85
-	self.hurt_sfx = "ally_rescue_hurt"
+    self.spawn_cry_volume = 0.85
+    self.hurt_sfx = "ally_rescue_hurt"
     self.hurt_sfx_volume = 0.85
     self.die_sfx = "ally_rescue_death"
-	self.die_sfx_volume = 0.9
-	self.pickup_sfx = "ally_rescue_pickup"
+    self.die_sfx_volume = 0.9
+    self.pickup_sfx = "ally_rescue_pickup"
     self.pickup_sfx_volume = 0.85
-	self.avoid_enemies_speed = self.avoid_enemies_speed or 0.025
+    self.avoid_enemies_speed = self.avoid_enemies_speed or 0.025
     self.avoid_enemies_radius = self.avoid_enemies_radius or 16
     if self.auto_state_machine then
         self:init_state_machine()
     end
-	self.random_offset = rng:randi()
+    self.random_offset = rng:randi()
+    self:start_tick_timer("quick_save_time", QUICK_SAVE_TIME)
+    self:start_tick_timer("invulnerability", START_INVULNERABILITY)
+end
 
+function BaseRescue:physics_move(dt)
+    local mx, my = self.vel.x * dt, self.vel.y * dt
+    if self:is_tick_timer_running("fatigue") then
+        mx = mx * 0.25
+        my = my * 0.25
+    end
+    self:move(mx, my)
+end
+
+
+function BaseRescue:is_invulnerable()
+
+    if self.tick <= 2 then
+        return true
+    end
+
+    if self:is_tick_timer_running("invulnerability") then
+        return true
+    end
+
+    if self.world.state == "RoomClear" then
+        return true
+    end
+
+    return false
 end
 
 function BaseRescue:enter()
+    if self.world.room.curse_vulnerability then
+        self:initialize_hp(self.max_hp - 1)
+        self:spawn_object(VulnerabilityParticle(self.pos.x, self.pos.y)):ref("parent", self)
+    end
     self:add_hurt_bubble(0, 0, self.hurt_bubble_radius, "main")
     local s = self.sequencer
     s:start(function()
@@ -76,8 +111,7 @@ function BaseRescue:enter()
 			self:play_sfx(self.spawn_cry, self.spawn_cry_volume)
 		end)
 	end
-    self:start_timer("quick_save_time", QUICK_SAVE_TIME)
-    self:start_tick_timer("invulnerability", START_INVULNERABILITY)
+
     if self.holding_pickup then
         self:initialize_hp(self.max_hp + 1)
     end
@@ -96,7 +130,7 @@ function BaseRescue:spawn_particle()
 end
 
 function BaseRescue:hit_by(other)
-    if self:is_tick_timer_running("invulnerability") then
+    if self:is_invulnerable() then
         return
     end
 
@@ -104,16 +138,12 @@ function BaseRescue:hit_by(other)
 		return
 	end
 
-    if self.world.state == "RoomClear" then
-        return
-	end
-
     self:start_rumble(2.0, 60)
     local damage = other.damage
     if other.is_bubble then
         other = other.parent
     end
-    if self.hp > 1 then
+    if self.hp > 1 and not self.world.room.curse_vulnerability then
         damage = min(damage, self.hp - 1)
 	end
 	-- dbg("damage dealt to rescue", damage)
@@ -215,7 +245,7 @@ function BaseRescue:on_pickup()
         game_state:greenoid_harm_penalty()
     end
 	
-	if self:is_timer_running("quick_save_time") and not self.no_score then
+	if self:is_tick_timer_running("quick_save_time") and not self.no_score then
 		game_state:level_bonus("quick_save")
 	end
 
@@ -271,13 +301,18 @@ function BaseRescue:get_palette_shared()
 	palette = palette or self:get_default_palette()
 	offset = offs or 0
 
+	if self:is_tick_timer_running("quick_save_time") and iflicker(self.tick, 3, 3) then
+		offset = idiv(self.tick, 1)
+	end
+
+    if self:is_tick_timer_running("fatigue") then
+        palette = Palette.fatigued
+        offset = idiv(self.tick, 3)
+    end
+
 	if self.grabbed_by_cultist then
 		palette = Palette.cultist_grab
 		offset = idiv(self.tick, 2)
-	end
-
-	if self:is_timer_running("quick_save_time") and iflicker(self.tick, 3, 3) then
-		offset = idiv(self.tick, 1)
 	end
 
 	return palette, offset
@@ -352,8 +387,11 @@ function BaseRescue:update(dt)
         end
     end
 
+    local vulnerable = self.world.room.curse_vulnerability
+
+
     if self.is_new_tick and game_state.artefacts.warbell then
-        if (self.tick + self.random_offset) % (game_state.upgrades.fire_rate and 10 or 13) == 0 then
+        if (self.tick + self.random_offset) % ((13 - self.world:get_effective_fire_rate() * 3) * (vulnerable and 2 or 1)) == 0 then
             local bx, by = self:get_body_center()
             local x, y = bx - WARBELL_RADIUS, by - WARBELL_RADIUS
             local w, h = WARBELL_RADIUS * 2, WARBELL_RADIUS * 2
@@ -370,19 +408,19 @@ function BaseRescue:update(dt)
                 local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
                 local bullet_x, bullet_y = vec2_add(bx, by, dx * 7, dy * 7)
-                if game_state.upgrades.bullets > 0 then
+                if game_state.upgrades.bullets > 0 and not vulnerable then
                     local offsx, offsy = vec2_perpendicular(dx * 4, dy * 4)
-                    self:spawn_object(WarbellProjectile(bullet_x + offsx, bullet_y + offsy)).direction = Vec2(dx, dy)
-                    self:spawn_object(WarbellProjectile(bullet_x - offsx, bullet_y - offsy)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x + offsx, bullet_y + offsy, vulnerable)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x - offsx, bullet_y - offsy, vulnerable)).direction = Vec2(dx, dy)
                 else
-                    self:spawn_object(WarbellProjectile(bullet_x, bullet_y)).direction = Vec2(dx, dy)
+                    self:spawn_object(WarbellProjectile(bullet_x, bullet_y, vulnerable)).direction = Vec2(dx, dy)
                 end
                 self:play_sfx("ally_rescue_shoot", 0.35)
             end
         end
     end
 	
-	if self:is_timer_running("quick_save_time") then
+	if self:is_tick_timer_running("quick_save_time") then
 		if self.world.state == "RoomClear" then
 			self:start_timer("quick_save_time", QUICK_SAVE_TIME)
 		end
@@ -392,6 +430,7 @@ end
 function BaseRescue.try_avoid_enemy(bubble, self)
 	table.insert(self.nearby_enemy_hit_bubbles, bubble)
 end
+
 
 function BaseRescue:draw()
     if not (self:is_tick_timer_running("invulnerability") and (gametime.tick % 2 == 0)) then
@@ -556,12 +595,20 @@ function BaseRescueFloorParticle:draw(elapsed)
     else
 		almost_dead = self.target.hp <= 1 and self.target.max_hp > 1 and iflicker(gametime.tick, 5, 2)
 	end
+
+    local vulnerable = self.world.room.curse_vulnerability and self.world.state ~= "RoomClear" and self.target
+
+    -- if vulnerable and iflicker(gametime.tick, 1, 2) then
+    --     return
+     
+    -- end
 	
 
-    local color = self.dead and Color.red or (iflicker(gametime.tick, 4, 2) and (almost_dead and Color.red or Color.white) or (almost_dead and Color.yellow or Color.green))
+    local color = self.dead and Color.red or (iflicker(gametime.tick, 4, 2) and (almost_dead and Color.red or (vulnerable and Color.yellow or Color.white)) or (almost_dead and Color.yellow or (vulnerable and Color.green or Color.green)))
     local size = max(self.size + sin(elapsed * 0.05) * (self.size * (self.target and 0.2 or 0)), self.size + 80 - elapsed * 7)
     graphics.set_color(color)
 	graphics.set_line_width(2)
+	-- graphics.set_line_width(vulnerable and 1 or 2)
 	-- if almost_dead then
 	-- end
     graphics.rectangle(self:is_timer_running("on_pickup") and "fill" or "line", -size / 2, -size * 0.33, size, size * 0.66)
@@ -736,4 +783,50 @@ function BaseRescuePickupParticle:draw(elapsed, tick, t)
 
 end
 
+function VulnerabilityParticle:new(x, y)
+    VulnerabilityParticle.super.new(self, x, y)
+    self:add_elapsed_ticks()
+    self.z_index = 0
+    self.particles = batch_remove_list()
+end
+
+function VulnerabilityParticle:update(dt)
+    if self.parent then
+        self:move_to(self.parent.pos.x, self.parent.pos.y)
+        if self.is_new_tick and self.tick % 10 == 0 and self.world.state ~= "RoomClear" then
+            local particle = {
+                x = rng:randf(-8, 8) + self.parent.pos.x,
+                y = rng:randf(2, -12) + self.parent.pos.y,
+                t = 0,
+            }
+
+
+            self.particles:push(particle)
+        end
+    elseif self.particles:is_empty() then
+        self:queue_destroy()
+    end
+
+    for _, particle in (self.particles):ipairs() do
+        particle.t = particle.t + dt / 25
+        if particle.t >= 1 then
+            self.particles:queue_remove(particle)
+        end
+    end
+
+    self.particles:apply_removals()
+end
+
+function VulnerabilityParticle:draw()
+    graphics.push("all")
+    graphics.set_line_width(1)
+    for _, particle in (self.particles):ipairs() do
+        local x, y = self:to_local(particle.x, particle.y)
+        local size = 16
+        graphics.set_color(gametime.tick % 2 == 0 and Color.green or Color.yellow)
+        y = y - particle.t * 2
+        graphics.line(x, y - 12 + (1 - ease("outCubic")(particle.t)) * 12, x, y - 12)
+    end
+    graphics.pop()
+end
 return BaseRescue

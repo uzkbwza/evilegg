@@ -74,7 +74,7 @@ function Fungus:new(x, y, propogate_frequency)
 end
 
 function Fungus:max_fungi()
-    return self.world.room.curse == "curse_hazardous" and MAX_FUNGI_HAZARDOUS or MAX_FUNGI
+    return self.world.room.curse_hazardous and MAX_FUNGI_HAZARDOUS or MAX_FUNGI
 end
 
 function Fungus:enter()

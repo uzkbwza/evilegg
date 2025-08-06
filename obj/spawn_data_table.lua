@@ -439,12 +439,21 @@ local Hazards = {
 	
 	Shielder = {
         level = 2,
-        spawn_points = 80,
+        spawn_points = 35,
         min_level = 6,
+        max_spawns = 4,
 		-- extra_score = -50,
-        spawn_weight_modifier = 0.35,
+        spawn_weight_modifier = 0.19,
 		room_select_weight = 200,
 		icon = textures.enemy_shielder1,
+    },
+
+    FatigueZone = {
+        level = 2,
+        spawn_points = 55,
+        min_level = 15,
+        room_select_weight = 200,
+        icon = textures.enemy_fatigue,
     },
 	
 }

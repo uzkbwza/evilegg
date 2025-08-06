@@ -29,6 +29,7 @@ function ArtefactSpawn:new(x, y, artefact)
 	self.is_artefact = true
     self:add_time_stuff()
 	self:init_state_machine()
+    self.center_out_velocity_multiplier = 5.0
     self.text_amount = 0
     self.text_amount2 = 0
     self.text_amount3 = 0
@@ -63,15 +64,19 @@ function ArtefactSpawn:state_Dormant_enter()
     end)
 end
 
-function ArtefactSpawn:get_sprite()
-	return nil
-end
+-- function ArtefactSpawn:get_sprite()
+-- 	return nil
+-- end
 
 function ArtefactSpawn:update(dt)
     if self.spawner then
         self.spawner:move_to(self.pos.x, self.pos.y)
     end
-	self:collide_with_terrain()
+    self:collide_with_terrain()
+end
+
+function ArtefactSpawn:draw()
+    
 end
 
 function ArtefactSpawn:state_Dormant_draw()
@@ -89,8 +94,8 @@ function ArtefactSpawn:state_Idle_enter()
     s:start(function()
         s:start(function()
             self.text_amount = 0
-			self.text_amount2 = 0
-			self.text_amount3 = 0
+            self.text_amount2 = 0
+            self.text_amount3 = 0
             s:tween_property(self, "text_amount", 0, 1, 15, "linear")
             s:tween_property(self, "text_amount2", 0, 1, 15, "linear")
             s:tween_property(self, "text_amount3", 0, 1, 15, "linear")
@@ -108,6 +113,10 @@ function ArtefactSpawn:state_Idle_enter()
         local speed = 6 * max(0, (1 - dist / 100))
         player:apply_impulse(dx * speed, dy * speed)
     end
+end
+
+function ArtefactSpawn:get_sprite()
+    return self.artefact.sprite or self.artefact.icon
 end
 
 function ArtefactSpawn:hit_by(other)
@@ -129,6 +138,8 @@ function ArtefactSpawn:hit_by(other)
         self:play_sfx("pickup_artefact_explode", 0.8)
         game_state:on_artefact_destroyed(self.artefact)
         local size = 60
+        local parent = other.parent or other
+        BaseEnemy.normal_death_effect(self, parent)
         if self.artefact.explode_on_destroy then
                 self:spawn_object(Explosion(self.pos.x, self.pos.y, {
                     size = size,

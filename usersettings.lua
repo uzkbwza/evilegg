@@ -37,6 +37,7 @@ local default_usersettings = {
 
     -- misc
     retry_cooldown = false,
+    enable_leaderboard = true,
 
 }
 

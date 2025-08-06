@@ -633,7 +633,7 @@ function LeaderboardWorld:draw_leaderboard()
 
             
             if self.sort_by == "speed" then
-                score_text = format_hhmmssms(frames_to_seconds(run.game_time) * 1000)
+                score_text = format_hhmmssms(run.game_time)
             else
                 score_text = comma_sep(score)
             end

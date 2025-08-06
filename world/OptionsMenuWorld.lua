@@ -236,6 +236,8 @@ function OptionsMenuWorld:show_menu(page)
             return debug.enabled
         end },
 
+        { "enable_leaderboard", item_type = "toggle" },
+
     } do
         if item.newpage then
             current_page = current_page + 1

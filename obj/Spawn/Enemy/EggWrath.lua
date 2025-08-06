@@ -1,7 +1,7 @@
 local EggWrath = BaseEnemy:extend("EggWrath")
 local EggWrathParticle = GameObject2D:extend("EggWrathParticle")
 
-local WRATH_RADIUS = 40
+local WRATH_RADIUS = 35
 
 local STARTUP_TIME = 40
 

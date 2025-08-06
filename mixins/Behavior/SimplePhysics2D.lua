@@ -128,7 +128,7 @@ function SimplePhysics2D:apply_impulsev_relative(force)
 end
 
 function SimplePhysics2D:physics_move(dt)
-	self:move_to(self.pos.x + self.vel.x * dt, self.pos.y + self.vel.y * dt)
+	self:move(self.vel.x * dt, self.vel.y * dt)
 end
 
 function SimplePhysics2D:apply_simple_physics(dt)

@@ -215,7 +215,7 @@ function PenitentSoul:enter()
     trail:ref("parent", self)
     self:add_hurt_bubble(0, 0, 5, "main")
 
-    if self.world.room.curse == "curse_penitence" then
+    if self.world.room.curse_penitence then
         -- self.max_hp = 3
         self.drag = 0.01
         self.speed = PENITENT_SOUL_SPEED * 2

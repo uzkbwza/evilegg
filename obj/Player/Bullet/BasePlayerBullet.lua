@@ -138,8 +138,13 @@ function BasePlayerBullet:die()
 end 
 
 function BasePlayerBullet:on_terrain_collision(normal_x, normal_y)
+    local dx, dy = self.direction.x, self.direction.y
+    if vec2_dot(dx, dy, normal_x, normal_y) > 0 then
+        return
+    end
     if self.ricochet and self.ricochet_count > 0 then
 		self.trail_distance = 0
+        self.ignore_grappling_hook = true
 		self:play_sfx("player_ricochet", 0.5)
         self.ricochet_count = self.ricochet_count - 1
 		local bounce_x, bounce_y = vec2_bounce(self.direction.x, self.direction.y, normal_x, normal_y)
@@ -147,7 +152,7 @@ function BasePlayerBullet:on_terrain_collision(normal_x, normal_y)
         self:move(bounce_x * self.speed, bounce_y * self.speed)
 		self.num_ricochets = self.num_ricochets and self.num_ricochets + 1 or 1
         self.lifetime = self.elapsed + (self.base_lifetime / (self.num_ricochets + 1))
-	else
+    else
 		self:defer(function() self:die() end)
 	end
 end

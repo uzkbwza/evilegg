@@ -1,9 +1,11 @@
 local NormalRescue = require("obj.Spawn.Pickup.Rescue.BaseRescue"):extend("NormalRescue")
 
 local RUN_SPEED = 1.6
+local WALK_SPEED = 0.2
 
 function NormalRescue:new(x, y)
-    self.walk_speed = self.walk_speed or 0.2
+    self.walk_speed = self.walk_speed or WALK_SPEED
+    self.base_walk_speed = self.walk_speed
     -- self.team = "player"
     -- self.body_height = 4
     -- self.max_hp = self.max_hp or 3
@@ -23,6 +25,7 @@ function NormalRescue:enter()
         self.walk_toward_player_chance = 100
         self.roam_chance = 100
         self.walk_speed = RUN_SPEED
+        self.base_walk_speed = self.walk_speed
     end
 end
 
@@ -31,6 +34,16 @@ function NormalRescue:run_toward_player_func()
     if player then
         local dx, dy = player.pos.x - self.pos.x, player.pos.y - self.pos.y
         self:apply_force(vec2_normalized_times(dx, dy, RUN_SPEED))
+    end
+end
+
+function NormalRescue:update(dt)
+    NormalRescue.super.update(self, dt)
+    
+    if self:is_tick_timer_running("fatigue") then
+        self.walk_speed = self.base_walk_speed * 0.25
+    else
+        self.walk_speed = self.base_walk_speed
     end
 end
 

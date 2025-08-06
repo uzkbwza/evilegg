@@ -116,3 +116,11 @@ end
 function Rect:__tostring()
     return "Rect(x=" .. self.x .. ", y=" .. self.y .. ", width=" .. self.width .. ", height=" .. self.height .. ")"
 end
+
+function Rect:perimeter()
+    return self.width * 2 + self.height * 2
+end
+
+function rect_perimeter(w, h)
+    return w * 2 + h * 2
+end

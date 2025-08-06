@@ -74,7 +74,8 @@
 		"format_hhmmssms_decimal"
 	],
 	"Lua.diagnostics.disable": [
-		"undefined-field"
+		"undefined-field",
+		"unused-local"
 	],
 
 }

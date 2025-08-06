@@ -3,6 +3,7 @@ local O = require("obj")
 local SpawnDataTable = require("obj.spawn_data")
 local PickupDataTable = require("obj.pickup_table")
 local LevelBonus = require("levelbonus.LevelBonus")
+local Room = require("room.Room")
 
 
 local MENU_ITEM_H_PADDING = 12
@@ -384,7 +385,7 @@ function CodexWorld:_open_page(page_category, page_number)
     end
 
 
-    if page_number == idiv((#self.spawn_tables[self.category_selected] or 0), self:get_number_of_objects_per_page()) + 1 then
+    if page_number == idiv((#self.spawn_tables[self.category_selected] or 0) - 1, self:get_number_of_objects_per_page()) + 1 then
 
     else
 		self:ref("next_page_button",
@@ -606,32 +607,37 @@ function CodexWorld:get_spawns(page_category)
                     name = "room_is_hard",
                     description = "codex_glossary_room_is_hard",
                 },
-                {
-                    name = "curse_penitence",
-                    description = "curse_penitence_desc",
-                },
-                {
-                    name = "curse_fatigue",
-                    description = "curse_fatigue_desc",
-                },
-                {
-                    name = "curse_ignorance",
-                    description = "curse_ignorance_desc",
-                },
-                {
-                    name = "curse_hazardous",
-                    description = "curse_hazardous_desc",
-                },
-                {
-                    name = "curse_famine",
-                    description = "curse_famine_desc",
-                },
 
-                {
-                    name = "curse_wrath",
-                    description = "curse_wrath_desc",
-                },
             }
+
+            local curses = {
+
+            }
+
+            for key, data in pairs(Room.curses) do
+                table.insert(curses, {
+                    curse = data,
+                    name = key,
+                    description = key .. "_desc",
+                })
+            end
+            table.sort(curses, function(a, b)
+                
+                local a_min_level = a.curse.min_level or 1
+                local b_min_level = b.curse.min_level or 1
+
+                if a_min_level ~= b_min_level then
+                    return a_min_level < b_min_level
+                end
+
+                return
+                    tr[a.name] < tr[b.name]
+            end)
+
+            for _, v in ipairs(curses) do
+                table.insert(tab, v)
+            end
+
         elseif page_category == "levelbonus" then
             tab = {}
             for k, v in pairs(LevelBonus) do

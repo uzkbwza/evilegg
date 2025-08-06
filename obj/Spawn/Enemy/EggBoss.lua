@@ -860,15 +860,17 @@ function EggBoss:phase2_landing()
             -- self:show()
             
             
+            -- -- placeholder block
+            s:wait(45)
+            self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+            s:wait(180)
+            self.placeholder_text:start_destroy_timer(10)
+            self:die()
 
-            self:change_state("Phase6")
+
+            -- -- or
+            -- self:change_state("Phase6")
             
-            -- placeholder block
-            -- s:wait(45)
-            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
-            -- s:wait(180)
-            -- self.placeholder_text:start_destroy_timer(10)
-            -- self:die()
 
             return
 		end)

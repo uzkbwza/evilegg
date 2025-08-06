@@ -494,6 +494,8 @@ function tabley.serialize(t, indent, start)
             end
         elseif type(value) == "string" then
             serialized = serialized .. next_indent .. formatted_key .. " = " .. string.format("%q", value) .. ",\n"
+        -- elseif type(value) == "number" and math.floor(value) ~= (value) then 
+            -- serialized = serialized .. next_indent .. formatted_key .. " = " .. string.format("%.17g", value) .. ",\n"
         else
             serialized = serialized .. next_indent .. formatted_key .. " = " .. tostring(value) .. ",\n"
         end

@@ -167,7 +167,7 @@ function BaseEnemy:normal_death_effect(hit_by)
 		hit_vel_x, hit_vel_y = 0, 0
 	end
     local hit_point_x, hit_point_y = self.pos.x, self.pos.y
-	local center_out_velocity_multiplier = 1
+	local center_out_velocity_multiplier = self.center_out_velocity_multiplier or 1
     if hit_by then
         if hit_by.get_death_particle_hit_velocity then
             local extra_vel_x, extra_vel_y = hit_by:get_death_particle_hit_velocity(self)
@@ -176,7 +176,7 @@ function BaseEnemy:normal_death_effect(hit_by)
         end
 
         if hit_by.center_out_velocity_multiplier then
-			center_out_velocity_multiplier = hit_by.center_out_velocity_multiplier
+			center_out_velocity_multiplier = center_out_velocity_multiplier * hit_by.center_out_velocity_multiplier
 		end
 
 		
@@ -206,9 +206,10 @@ function BaseEnemy:normal_death_effect(hit_by)
 	if not self.no_death_splatter then
 		local class = DeathSplatter
 		-- if game_state.artefacts.death_cap and self:has_tag("wave_enemy") then
-		if game_state.artefacts.death_cap and not self.is_enemy_bullet and not self:has_tag("fungus") then
-			class = FungalDeathSplatter
-		end
+        if game_state.artefacts.death_cap and not self.is_enemy_bullet and not self:has_tag("fungus") then
+            class = FungalDeathSplatter
+        end
+
 		self:spawn_object(class(bx, by, self.flip, sprite, Palette[sprite], 2, hit_vel_x, hit_vel_y, hit_point_x, hit_point_y, center_out_velocity_multiplier))
 	end
 end

@@ -28,8 +28,8 @@ local translations = {
         curse_penitence = "PENITENCE",
         curse_penitence_desc = "This room is cursed with shame.",
 
-        curse_fatigue = "FATIGUE",
-        curse_fatigue_desc = "This room is cursed with lethargy.",
+        -- curse_fatigue = "FATIGUE",
+        -- curse_fatigue_desc = "This room is cursed with lethargy.",
 
         curse_ignorance = "IGNORANCE",
         curse_ignorance_desc = "This room is cursed with opacity.",
@@ -39,6 +39,9 @@ local translations = {
 
         curse_famine = "FAMINE",
         curse_famine_desc = "This room is cursed with pacifism.",
+
+        curse_vulnerability = "FRAILTY",
+        curse_vulnerability_desc = "This room weakens greenoid defenses.",
 
 		notif_fire_rate = "FIRE RATE",
 		notif_range = "RANGE",
@@ -201,6 +204,7 @@ local translations = {
 		artefact_heart_trade_desc                    = "Trade an artefact for a heart.",
         artefact_blast_armor_desc                    = "You are prone to outbursts.",
         artefact_prayer_knot_desc                    = "Stop shooting to charge a powerful bullet.",
+        
 
 		weapon_sword_desc                            = "This is the line of division.",
 		weapon_big_laser_desc                        = "Simple problems call for simple solutions.",
@@ -247,6 +251,7 @@ local translations = {
         options_show_fps                             = "Show FPS",
         options_shader_quality                       = "Shader Quality",
         options_disco_mode                           = "Disco Mode [FLASH WARNING]",
+        options_enable_leaderboard                   = "Submit Runs To Leaderboard",
 
 
 		options_brightness          = "Brightness",
@@ -374,7 +379,10 @@ local translations = {
 		codex_desc_exploder         = "Hateful engineering.",
 
 		codex_name_blinker          = "Blinker",
-		codex_desc_blinker          = "Erratic whims carry it here and there.",
+        codex_desc_blinker          = "Erratic whims carry it here and there.",
+        
+        codex_name_fatiguezone      = "Miasma",
+        codex_desc_fatiguezone      = "Inflicts lethargy.",
 
 		codex_name_normalrescue     = "Greenoid",
 		codex_desc_normalrescue     = "Friendly and endangered.",
@@ -404,7 +412,7 @@ local translations = {
         -- codex_desc_hookworm         = "Hungry!",
 
         codex_name_penitentsoul      = "Shameful Spirit",
-        codex_desc_penitentsoul      = "I promise that I'm sorry.",
+        codex_desc_penitentsoul      = "It's not good enough to apologize, you have to change.",
 
         codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",

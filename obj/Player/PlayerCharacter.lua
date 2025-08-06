@@ -238,7 +238,7 @@ function PlayerCharacter:start_prayer_knot_charge()
     self:stop_sfx("player_prayer_knot_charge")
     self.prayer_knot_angle = rng:random_angle()
     self.prayer_knot_angle_speed = rng:randf(0.01, 0.06) * rng:rand_sign()
-    local time = PRAYER_KNOT_CHARGE_TIME - game_state.upgrades.fire_rate * 10
+    local time = PRAYER_KNOT_CHARGE_TIME - self.world:get_effective_fire_rate() * 10
     self:start_tick_timer("prayer_knot", time, self.on_prayer_knot_charged)
     self:start_timer("prayer_knot_charge_sfx", time - 36, function()
         self:play_sfx("player_prayer_knot_charge", 0.5)
@@ -652,7 +652,7 @@ function PlayerCharacter:start_secondary_weapon_cooldown()
 		return
 	end
 	if secondary_weapon.cooldown > 0 then
-		self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0))
+		self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0) * self.world:get_effective_fire_rate())
 	end
 end
 
@@ -667,7 +667,7 @@ function PlayerCharacter:on_secondary_weapon_released()
 	end
     self:stop_stopwatch("secondary_weapon_held")
     if secondary_weapon.cooldown > 0 then
-        self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0))
+        self:start_tick_timer("secondary_weapon_cooldown", secondary_weapon.cooldown - (secondary_weapon.fire_rate_upgrade_cooldown_reduction or 0) * self.world:get_effective_fire_rate())
     end
 end
 
@@ -676,7 +676,7 @@ function PlayerCharacter:can_use_secondary_weapon()
         return false
     end
 
-    if self.world.room.curse == "curse_famine" then
+    if self.world.room.curse_famine then
         return false
     end
 
@@ -739,7 +739,7 @@ function PlayerCharacter:fire_current_bullet()
             self:play_sfx("player_damage_upgrade_1", 0.25)
         end
 
-        if game_state.upgrades.fire_rate >= 1 then
+        if self.world:get_effective_fire_rate() >= 1 then
             self:play_sfx("player_fire_rate_upgrade_1", 0.25)
         end
 
@@ -756,7 +756,7 @@ function PlayerCharacter:fire_current_bullet()
         end
 
         if game_state.upgrades.bullets == 1 then
-            if game_state.upgrades.fire_rate == 1 then
+            if self.world:get_effective_fire_rate() == 1 then
                 self:play_sfx("player_bullets_upgrade_1_with_fire_rate_1", 0.35)
             else
                 self:play_sfx("player_bullets_upgrade_1", 0.35)
@@ -1403,7 +1403,7 @@ function PlayerCharacter:secondary_big_laser_pressed()
 
     local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
 	
-	local target_duration = TARGET_DURATION - 8 * game_state.upgrades.fire_rate
+	local target_duration = TARGET_DURATION - 8 * self.world:get_effective_fire_rate()
 
 	self:ref("big_laser_beam_aiming_laser",
 	self:spawn_object(self.secondary_weapon_objects.BigLaserBeamAimingLaser(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x,

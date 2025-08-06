@@ -157,29 +157,40 @@ function savedata:add_score(run)
 	end
 	self.scores[GAME_LEADERBOARD_VERSION][run.category] = self.scores[GAME_LEADERBOARD_VERSION][run.category] or {}
 	table.insert(self.scores[GAME_LEADERBOARD_VERSION][run.category], run)
-	self:sort_scores()
+    self:sort_scores()
+    
 
-	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category] == nil then
-		self.category_highs[GAME_LEADERBOARD_VERSION][run.category] = {}
-	end
-	
-	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].score == nil then
-		self.category_highs[GAME_LEADERBOARD_VERSION][run.category].score = 0
-	end
-
-    if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].kills == nil then
-        self.category_highs[GAME_LEADERBOARD_VERSION][run.category].kills = 0
+    if self.category_highs[GAME_LEADERBOARD_VERSION][run.category] == nil then
+        self.category_highs[GAME_LEADERBOARD_VERSION][run.category] = {}
     end
-	
-	if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].level == nil then
-		self.category_highs[GAME_LEADERBOARD_VERSION][run.category].level = 0
-	end
-
-    if self.category_highs[GAME_LEADERBOARD_VERSION][run.category].rescues == nil then
-        self.category_highs[GAME_LEADERBOARD_VERSION][run.category].rescues = 0
-    end
-
+    
     local category_highs = self.category_highs[GAME_LEADERBOARD_VERSION][run.category]
+	
+	if category_highs.score == nil then
+		category_highs.score = 0
+	end
+
+    if category_highs.kills == nil then
+        category_highs.kills = 0
+    end
+	
+	if category_highs.level == nil then
+		category_highs.level = 0
+	end
+
+    if category_highs.rescues == nil then
+        category_highs.rescues = 0
+    end
+
+    if category_highs.game_time == nil then
+        category_highs.game_time = 0
+    end
+
+    if GAME_VERSION == "0.7.1" then
+        if floor(category_highs.game_time) ~= category_highs.game_time then
+            category_highs.game_time = floor(frames_to_seconds(category_highs.game_time) * 1000)
+        end
+    end
 	
 	if run.score > category_highs.score then
 		category_highs.score = run.score
@@ -196,6 +207,11 @@ function savedata:add_score(run)
 	if run.rescues > category_highs.rescues then
 		category_highs.rescues = run.rescues
 	end
+
+    if category_highs.game_time <= 0 or (run.game_time < category_highs.game_time) and run.good_ending then
+        category_highs.game_time = run.game_time
+    end
+
 	self:save()
 	self:apply_save_data()
 end

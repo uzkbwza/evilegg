@@ -27,7 +27,7 @@ function Turret:new(x, y)
 	self.gun_angle = vec2_angle(self.aim_dir_x, self.aim_dir_y)
     self.target_aim_dir_x, self.target_aim_dir_y = 0, 0
 
-	self.highlight_circle = -1
+	-- self.highlight_circle = -1
 
 	self.hurts_allies = rng:chance(1 / 3)
 end
@@ -45,13 +45,15 @@ function Turret:start_shoot_timer(time)
                 s:wait(1)
             end
             self:add_tag("turret_shooting")
+            self.shooting = true
             for i = 1, 3 do
                 self:shoot()
                 s:wait(15)
             end
-			while rng:percent(5) do
-				s:wait(20)
-			end
+            while rng:percent(5) do
+                s:wait(20)
+            end
+            self.shooting = false
 			self:remove_tag("turret_shooting")
 			self:start_shoot_timer()
 		end)
@@ -98,13 +100,13 @@ function Turret:update(dt)
 
     self.angle_diff = angle_diff(self.gun_angle, target_angle)
     
-	if self.is_new_tick and (self.tick) % 60 == 0 then
-		local s = self.sequencer
-        s:start(function()
-            s:tween_property(self, "highlight_circle", 60, 0, 40, "linear")
-			self.highlight_circle = -1
-		end)
-	end
+	-- if self.is_new_tick and (self.tick) % 60 == 0 then
+		-- local s = self.sequencer
+        -- s:start(function()
+        --     s:tween_property(self, "highlight_circle", 60, 0, 40, "linear")
+		-- 	self.highlight_circle = -1
+		-- end)
+	-- end
 end
 
 function Turret:get_sprite()
@@ -119,11 +121,50 @@ local gun_textures = {
 	textures.enemy_turret_gun5,
 }
 
+function Turret:draw_aim_line()
+    if self.shooting then
+        return
+    end
+    local dx, dy = vec2_from_angle(self.gun_angle)
+    dx, dy = vec2_snap_angle(dx, dy, 32, 0)
+    if iflicker(self.random_offset + gametime.tick, 1, 2) then
+        for j=1, 2 do
+            graphics.push("all")
+            graphics.translate(dx * 17, dy * 17, 0)
+            graphics.set_line_width(1)
+            local len = 12
+            local num_squares = 4
+            for i = 1, num_squares do
+                local ratio = (i - 1) / num_squares
+
+                local size = ceil(3 * (1 - ratio))
+                if j == 1 then
+                    graphics.set_color(Color.black)
+                    graphics.rectangle_centered("fill", 0, 0, size + 2, size + 2)
+                else
+                    -- graphics.set_color(iflicker(self.random_offset + gametime.tick, 2, 2) and Color.red or Color.yellow)
+                    graphics.set_color(Color.red)
+                    graphics.rectangle_centered("fill", 0, 0, size, size)
+                end
+                
+                local dist = 6 * ease("outCubic")(min(self.elapsed / 50, 1))
+                graphics.translate(dx * dist, dy * dist, 0)
+            end
+            graphics.pop()
+        end
+    end
+end
+
 function Turret:draw()
-    if self.highlight_circle > 0 and iflicker(self.tick, 4, 2) then
-		graphics.set_color(Color.red)
-		graphics.rectangle_centered("line", 0, 0, self.highlight_circle, self.highlight_circle)
-	end
+    -- if iflicker(self.random_offset +gametime.tick, 2, 2) then
+
+        -- local scale = 12 + sin(gametime.tick * 0.09) * 0.5
+		-- graphics.set_color(Color.red)
+		-- graphics.poly_regular("line", 0, 0, scale, 6, self.elapsed * 0.02)
+	-- end
+
+    local dx, dy = vec2_from_angle(self.gun_angle)
+
 
     -- Turret.super.draw(self)
     graphics.set_color(1, 1, 1, 1)
@@ -142,7 +183,13 @@ function Turret:draw()
 		normal = true
 	end
 	
-	self:body_translate()
+    self:body_translate()
+    
+    
+    if dy < 0 then
+        self:draw_aim_line()
+    end
+
 	graphics.set_color(Color.black)
 	graphics.draw_centered_outline(Color.black, gun_texture, 0, 2, rot, 1, y_scale)
 	graphics.draw_centered_outline(Color.black, gun_texture, 0, 1, rot, 1, y_scale)
@@ -151,7 +198,11 @@ function Turret:draw()
 	local tick_length = normal and 4 or 1
 	graphics.drawp_centered(gun_texture, palette, idiv(offset + (2), tick_length), 0, 2, rot, 1, y_scale)
 	graphics.drawp_centered(gun_texture, palette, idiv(offset + 1, tick_length), 0, 1, rot, 1, y_scale)
-	graphics.drawp_centered(gun_texture, palette, idiv(offset, tick_length), 0, 0, rot, 1, y_scale)
+    graphics.drawp_centered(gun_texture, palette, idiv(offset, tick_length), 0, 0, rot, 1, y_scale)
+    
+    if dy > 0 then
+        self:draw_aim_line()
+    end
 end
 
 

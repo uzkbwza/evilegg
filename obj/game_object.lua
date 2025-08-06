@@ -178,6 +178,12 @@ function GameObject:_update_elapsed_ticks(dt)
 	
 end
 
+function GameObject:tick_frequency_callback(n, callback, ...)
+    if self.is_new_tick then
+        return tick_frequency_callback(n, self.tick, callback, self, ...)
+    end
+end
+
 function GameObject:tick_pulse(pulse_length, offset)
     offset = offset or 0
 	return floor(((self.tick + offset) / pulse_length) % 2) == 0

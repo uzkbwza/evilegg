@@ -315,7 +315,7 @@ local Artefacts = {
         infinite_spawns = true,
         destroy_score = 250,
         spawn_when_full = true,
-        destroy_xp = 200,
+        destroy_xp = 0,
 
         on_chosen = function(game_state)
             if table.is_empty(game_state.artefacts) then return end
@@ -438,7 +438,7 @@ local Artefacts = {
 		name = "weapon_railgun_name",
         description = "weapon_railgun_desc",
 		spawn_weight = 1000,
-		fire_rate_upgrade_cooldown_reduction = 20,
+		fire_rate_upgrade_cooldown_reduction = 10,
         is_secondary_weapon = true,
 		
 		ammo = 48,
@@ -452,7 +452,7 @@ local Artefacts = {
 		
 		show_individual_ammo = false,
 		
-        cooldown = 70,
+        cooldown = 50,
 		is_railgun = true,
 
 		-- divide_ammo_to_one = true,

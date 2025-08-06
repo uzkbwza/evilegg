@@ -125,7 +125,7 @@ function SecondaryWeapon:draw()
     local unfireable_color = Color.grey
     local fireable_color = game_state.secondary_weapon.ammo_color
 
-    -- if self.world.room.curse == "curse_famine" then5
+    -- if self.world.room.curse_famine then
     --     fireable_color = Color.red
     -- end
 

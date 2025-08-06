@@ -1,25 +1,27 @@
 local Shielder = BaseEnemy:extend("Shielder")
 
 local SEARCH_RADIUS = 120
-local PUSH_FORCE = 0.0076
+local PUSH_FORCE = 0.0067
 local MAX_SHIELD_RADIUS = 48
 local SHIELD_RADIUS_GROWTH = 0.1
-local HEALTH_REGEN = 0.0067
-local MAX_HP = 3
+local HEALTH_REGEN = 0.0130
+local MAX_HP = 4
+local START_HP = 2.0
 local MIN_SHIELD_HP = 0.5
+local START_HEALTH_REGEN = 0.025
 
 Shielder.death_cry = "enemy_shielder_die"
 Shielder.death_cry_volume = 0.8
 	
 function Shielder:new(x, y)
-	self.max_hp = MIN_SHIELD_HP
-	self.hurt_bubble_radius = 6
+	self.max_hp = START_HP
+	self.hurt_bubble_radius = 8
     Shielder.super.new(self, x, y)
 	self:set_max_hp(MAX_HP)
 	self:lazy_mixin(Mixins.Behavior.BulletPushable)
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
-	self.bullet_push_modifier = 1.7
+	self.bullet_push_modifier = 1.4
     self.drag = 0.02
 	self.declump_radius = 32
 	self.declump_mass = 1
@@ -74,10 +76,15 @@ function Shielder:update(dt)
     -- local shield_x, shield_y, shield_w, shield_h = self:get_shield_rect()
     -- bullet_grid:each_self(shield_x, shield_y, shield_w, shield_h, self.shield_bullet, self)
 	if not self:is_tick_timer_running("shield_broken") then
-		self:heal(HEALTH_REGEN * dt)
+        if self.tick <= 30 then
+            self:heal(START_HEALTH_REGEN * dt)
+        else
+            self:heal(HEALTH_REGEN * dt)
+        end
 	end
     self.shield_radius = remap(self.hp, MIN_SHIELD_HP, self.max_hp, 0, MAX_SHIELD_RADIUS)
-	self.shield_radius = max(self.shield_radius, 10)
+    self.shield_radius = max(self.shield_radius, 10)
+    self.shield_radius = self.shield_radius * min(1, self.elapsed / 50)
 	self.shielding = self.hp > MIN_SHIELD_HP
 end
 

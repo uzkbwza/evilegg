@@ -6,12 +6,42 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
-local debug_enemy_enabled = false
-local debug_enemy = "HookWorm"
-local num_debug_enemies = 10
+local debug_enemy_enabled = true
+local debug_enemy = "Rook"
+local num_debug_enemies = 1
 local num_debug_waves = 3
 
+local debug_force_curse_enabled = false
+local debug_force_curse = "curse_wrath"
+
 Room.can_highlight_enemies = true
+
+
+
+Room.curses = {
+    curse_ignorance = {
+        weight = 0,
+    },
+    curse_wrath = {
+        weight = 1000,
+        min_level = 30,
+    },
+    curse_penitence = {
+        weight = 1000,
+    },
+    -- curse_fatigue = {
+        -- weight = 1000,
+    -- },
+    curse_hazardous = {
+        weight = 1000,
+    },
+    curse_famine = {
+        weight = 1000,
+    },
+    curse_vulnerability = {
+        weight = 1000,
+    },
+}
 
 Room.narrative_types = {
     debug_enemy = {
@@ -245,25 +275,6 @@ Room.narrative_types = {
 }
 
 
-Room.curses = {
-    curse_wrath = {
-        weight = 1000,
-        min_level = 30,
-    },
-    curse_penitence = {
-        weight = 1000,
-    },
-    curse_fatigue = {
-        weight = 1000,
-    },
-    curse_hazardous = {
-        weight = 1000,
-    },
-    curse_famine = {
-        weight = 1000,
-    },
-}
-
 if debug_enemy_enabled then
 	debug_force = "debug_enemy"
 	debug_force_enabled = true
@@ -425,6 +436,15 @@ function Room:build(params)
         self.curse = self:get_random_curse()
     end
 
+    if debug.enabled and debug_force_curse_enabled then
+        self.curse = debug_force_curse
+    end
+
+
+    if self.curse then
+        self[self.curse] = true
+    end
+
     if self.is_hard then
         self.level = self.level + clamp(floor(self.level), 3, 50)
     end
@@ -463,6 +483,9 @@ function Room:get_random_curse()
             goto continue
         end
         if not truthy_nil(resolve(curse.can_spawn)) then
+            goto continue
+        end
+        if curse.weight <= 0 then
             goto continue
         end
 
@@ -780,13 +803,13 @@ function Room:generate_waves()
             local weights = {}
 			
 			for _, enemy in pairs(pool) do
-				table.insert(weights, 1000 / enemy.spawn_points)
+				table.insert(weights, 1000 / enemy.spawn_points * (enemy.spawn_weight_modifier or 1))
 			end
 
 			local counts = {}
 
             local num_points = 50 * self:pool_point_modifier()
-            if self.curse == "curse_hazardous" then
+            if self.curse_hazardous then
                 num_points = num_points * 2.5
             end
 			local c = 0
@@ -796,7 +819,7 @@ function Room:generate_waves()
                 local hazard = rng:weighted_choice(pool, weights)
                 if hazard then
                     local max_spawns = hazard.max_spawns or math.huge
-                    if self.curse == "curse_hazardous" then
+                    if self.curse_hazardous then
                         max_spawns = max_spawns * 2.5
                     end
                     if max_spawns <= (counts[hazard.name] or 0) then

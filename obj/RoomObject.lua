@@ -197,7 +197,7 @@ function RoomObject:add_spawn_lines(tab, sort_func)
         for i = 1, num_entries do
 
             -- if self.stored_room.curse == "curse_ignorance" and data.spawn.subtype ~= "artefact" then
-            if self.stored_room.curse == "curse_ignorance" then
+            if self.stored_room.curse_ignorance then
             -- if true then
                 local canvas = graphics.new_canvas(ICON_SIZE, ICON_SIZE)
                 graphics.push("all")
@@ -251,10 +251,12 @@ end
 local CURSE_COLORS = {
     curse_wrath = { Color.red, Color.darkmagenta },
     curse_penitence = { Color.skyblue, Color.darkblue },
-    curse_fatigue = { Color.purple, Color.darkpurple },
-    curse_ignorance = { Color.magenta, Color.darkred },
+    -- curse_fatigue = { Color.purple, Color.darkpurple },
+    curse_famine = { Color.purple, Color.darkergrey },
+    curse_ignorance = { Color.white, Color.darkgrey },
+    -- curse_ignorance = { Color.magenta, Color.darkergrey },
     curse_hazardous = { Color.yellow, Color.orange },
-    curse_famine = { Color.white, Color.red },
+    curse_vulnerability = { Color.orange, Color.darkred },
 }
 
 
@@ -297,7 +299,6 @@ function RoomObject:enter()
 
         if self.stored_room.curse then
             self:add_text_line(tr(self.stored_room.curse), unpack(CURSE_COLORS[self.stored_room.curse] or {}))
-            savedata:add_item_to_codex(self.stored_room.curse)
         end
 
         self:add_separator()

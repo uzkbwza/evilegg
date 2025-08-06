@@ -38,6 +38,10 @@ function rng:rand_sign()
 	return self:coin_flip() and -1 or 1
 end
 
+function rng:rand_01()
+    return self:coin_flip() and 0 or 1
+end
+
 function rng:set_seed(seed)
     self._rng:setSeed(seed)
 end
@@ -227,6 +231,23 @@ function rng:new_instance(seed)
         __index = rng
     })
     return instance
+end
+
+function rng:random_point_on_rect_perimeter(x, y, w, h)
+    if self:coin_flip() then
+        return x + self:rand_01() * w, y + self() * h
+    end
+    return x + self() * w, y + self:rand_01() * h
+end
+
+
+function rng:random_point_on_centered_rect_perimeter(x, y, w, h)
+    x = x - w / 2
+    y = y - h / 2
+    if self:coin_flip() then
+        return x + self:rand_01() * w, y + self() * h
+    end
+    return x + self() * w, y + self:rand_01() * h
 end
 
 function rng:uuid()

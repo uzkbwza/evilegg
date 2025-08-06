@@ -31,6 +31,10 @@ function PlayerDeathScreenWorld:enter()
 	local prev_high_kills = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).kills or 0
 	local prev_high_level = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).level or 0
 	local prev_high_rescues = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).rescues or 0
+	local prev_high_time = savedata:get_category_highs(game_state.leaderboard_category) and savedata:get_category_highs(game_state.leaderboard_category).game_time or 0
+    if prev_high_time <= 0 then
+        prev_high_time = math.huge
+    end
 	
     local score_table = game_state:get_run_data_table()
 	
@@ -46,22 +50,28 @@ function PlayerDeathScreenWorld:enter()
     --     end
     -- end
 
-    savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] or {}
 
-    -- .run_upload_queue_tries[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION] or {}
+    if usersettings.enable_leaderboard then
 
-    local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
+        savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION] or {}
 
-    -- local run_upload_queue_tries = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION]
+        -- .run_upload_queue_tries[GAME_LEADERBOARD_VERSION] = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION] or {}
 
-    run_upload_queue[score_table.run_key] = score_table
+        local run_upload_queue = savedata.run_upload_queue[GAME_LEADERBOARD_VERSION]
 
-    -- run_upload_queue_tries[score_table.run_key] = run_upload_queue_tries[score_table.run_key] or leaderboard.NUM_TRIES
+        -- local run_upload_queue_tries = savedata.run_upload_queue_tries[GAME_LEADERBOARD_VERSION]
 
-    savedata:save()
+        run_upload_queue[score_table.run_key] = score_table
+
+        -- run_upload_queue_tries[score_table.run_key] = run_upload_queue_tries[score_table.run_key] or leaderboard.NUM_TRIES
+
+        savedata:save()
+
+        leaderboard.submit_queued_runs()
+
+    end
 
 
-    leaderboard.submit_queued_runs()
 	
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0)))
 
@@ -117,7 +127,7 @@ function PlayerDeathScreenWorld:enter()
 
         local start_y = -70
         
-        local increment = 30
+        local increment = 26
 
 		local start_x = 0
 
@@ -153,9 +163,9 @@ function PlayerDeathScreenWorld:enter()
 
         start_y = start_y + increment
 
-		self:ref("time_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_time_display, game_state.game_time)))
+		self:ref("time_display", self:spawn_object(StatDisplay(start_x, start_y, tr.game_over_time_display, game_state.game_time_ms, prev_high_time, true, not score_table.good_ending)))
 		
-        self.time_display.format_function = function(value) return format_hhmmssms(frames_to_seconds(value) * 1000) end
+        self.time_display.format_function = function(value) return format_hhmmssms(value) end
 	end)
 end
 
@@ -318,7 +328,7 @@ function BackgroundObject:draw()
 	end
 end
 
-function StatDisplay:new(x, y, label, value, prev_high_value)
+function StatDisplay:new(x, y, label, value, prev_high_value, lower_is_better, force_not_high_score)
 	StatDisplay.super.new(self, x, y)
 	self:add_time_stuff()
 	self:add_signal("finished")
@@ -328,6 +338,8 @@ function StatDisplay:new(x, y, label, value, prev_high_value)
 	self.print_value = 0
 	self._print_value = 0
 	self.finished_yet = false
+	self.lower_is_better = lower_is_better
+    self.force_not_high_score = force_not_high_score
 end
 
 function StatDisplay:enter()
@@ -348,10 +360,21 @@ function StatDisplay:update(dt)
 		local old_print_value = self.print_value
 		self.print_value = self._print_value
 		if old_print_value ~= self.print_value then
-			if self.prev_high_value and self.print_value > self.prev_high_value and old_print_value <= self.prev_high_value then
-				-- self:start_timer("high_score_flash", 10)
-				self.high_score = true
+            self.high_score = false
+            if self.lower_is_better then
+                if self.prev_high_value and self.print_value < self.prev_high_value then
+                    -- self:start_timer("high_score_flash", 10)
+                    self.high_score = true
+                end
+            else
+                if self.prev_high_value and self.print_value > self.prev_high_value then
+                    -- self:start_timer("high_score_flash", 10)
+                    self.high_score = true
+                end
 			end
+            if self.force_not_high_score then
+                self.high_score = false
+            end
 			self:play_sfx("ui_game_over_stat_display_tick")
 		end
 	end
@@ -400,7 +423,12 @@ function StatDisplay:draw()
     if self.prev_high_value then
         graphics.set_color(Color.darkgrey)
         graphics.print(tr.stat_display_prev_high:upper() .. ": ", left, 11)
-        graphics.print_right_aligned(self:format_value(max(self.prev_high_value, self.print_value)), font, right, 11)
+        local prev_high_value = self.lower_is_better and min(self.prev_high_value, self.print_value) or max(self.prev_high_value, self.print_value)
+        if self.force_not_high_score then
+            prev_high_value = self.prev_high_value
+        end
+
+        graphics.print_right_aligned(self:format_value(prev_high_value), font, right, 11)
     end
 
     local border_color = Palette.game_over_border:tick_color(self.tick, 0, 1)
