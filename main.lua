@@ -5,8 +5,6 @@
 GAME_VERSION = "0.7.4"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
-local AntiTamper = require("lib.anti-tamper") -- or paste inline and keep the table
-
 print("Game version: " .. GAME_VERSION)
 print("Leaderboard version: " .. GAME_LEADERBOARD_VERSION)
 print("Love version: " .. love.getVersion())
