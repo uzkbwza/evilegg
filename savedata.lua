@@ -208,7 +208,7 @@ function savedata:add_score(run)
 		category_highs.rescues = run.rescues
 	end
 
-    if category_highs.game_time <= 0 or (run.game_time < category_highs.game_time) and run.good_ending then
+    if (category_highs.game_time <= 0 or (run.game_time < category_highs.game_time)) and run.good_ending then
         category_highs.game_time = run.game_time
     end
 

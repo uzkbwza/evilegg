@@ -391,8 +391,6 @@ function StatDisplay:draw()
     local right = conf.viewport_size.x / 2 - padding
     local line_end = lerp_clamp(left, right, self.elapsed / 15)
 
-
-
     -- if gametime.tick % 2 == 0 then
         local rect_height = 9
         graphics.set_color(Color.black)
@@ -426,6 +424,10 @@ function StatDisplay:draw()
         local prev_high_value = self.lower_is_better and min(self.prev_high_value, self.print_value) or max(self.prev_high_value, self.print_value)
         if self.force_not_high_score then
             prev_high_value = self.prev_high_value
+        end
+
+        if prev_high_value == math.huge then
+            prev_high_value = 0
         end
 
         graphics.print_right_aligned(self:format_value(prev_high_value), font, right, 11)
