@@ -168,8 +168,8 @@ function love.run()
             force_fixed_time_left = approach(force_fixed_time_left, 0, dt)
         end
         
-        -- local force_fixed = force_fixed_time_left > 0
-		local force_fixed = false
+        local force_fixed = force_fixed_time_left > 0
+		-- local force_fixed = false
         local debug_ffwd  = debug.enabled and debug.fast_forward
         local fixed_enabled = conf.use_fixed_delta or force_fixed
         local cap_fps     = usersettings.cap_framerate and not debug_ffwd
