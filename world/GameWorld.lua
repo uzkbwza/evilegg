@@ -19,8 +19,8 @@ local MAX_HAZARDS = 50
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
-local EGG_ROOM_START = 30
-local EGG_ROOM_PERIOD = 20
+local EGG_ROOM_START = conf.egg_room_start
+local EGG_ROOM_PERIOD = conf.egg_room_period
 
 local FLOOR_CANVAS_WIDTH = 1024
 local FLOOR_CANVAS_HEIGHT = 1024
@@ -1003,7 +1003,7 @@ function GameWorld:create_next_rooms()
 
 	local upgrade_room = rng:randi(1, 3)
 	local artefact_room = rng:randi(1, 3)
-	local heart_room = rng:randi(1, 3)
+	local heart_room = next_level <= EGG_ROOM_START and upgrade_room or rng:randi(1, 3)
 	local hard_room = rng:randi(1, 3)
     local ammo_room = rng:randi(1, 3)
     local cursed_room = rng:randi(1, 3)

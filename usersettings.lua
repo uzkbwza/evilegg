@@ -1,7 +1,7 @@
 local default_usersettings = {
 	-- display
     -- use_screen_shader = true,
-	screen_shader_preset = "shader_preset_soft",
+	screen_shader_preset = "shader_preset_none",
     pixel_perfect = false,
     vsync = false,
     fullscreen = true,

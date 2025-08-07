@@ -370,8 +370,9 @@ function graphics.initialize_screen_shader_presets()
                 },
             },
 
-            -- { shader = graphics.shader.screenfilter, args = {} },sor
+            -- { shader = graphics.shader.screenfilter, args = {} },
             -- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
+            
             {
                 shader = graphics.shader.aberration,
                 args = {

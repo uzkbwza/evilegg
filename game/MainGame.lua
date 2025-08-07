@@ -86,9 +86,9 @@ GlobalGameState.max_upgrades = {
 
 GlobalGameState.max_artefacts = 8
 GlobalGameState.max_hearts = 2
-GlobalGameState.xp_until_upgrade = 2600
-GlobalGameState.xp_until_heart = 3500
-GlobalGameState.xp_until_artefact = 3000
+GlobalGameState.xp_until_upgrade = 2400
+GlobalGameState.xp_until_heart = 3400
+GlobalGameState.xp_until_artefact = 2500
 
 function GlobalGameState:new()
     self.enable_adaptive_difficulty = false
@@ -227,7 +227,7 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)

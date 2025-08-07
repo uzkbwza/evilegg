@@ -6,7 +6,7 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
-local debug_enemy_enabled = true
+local debug_enemy_enabled = false
 local debug_enemy = "Rook"
 local num_debug_enemies = 1
 local num_debug_waves = 3
@@ -689,6 +689,7 @@ end
 
 local STEP = 0.2             -- what we are adding each turn
 local OFFSET = 10.0
+local LEVEL_OFFSET = 5
 local SCALE = 7
 
 -- quick harmonic-number approximation (Euler–Maclaurin)
@@ -702,8 +703,8 @@ end
 local NUM_FACTOR = STEP * SCALE
 
 function Room:pool_point_modifier()
-
-    return 1 + NUM_FACTOR * (H(self.level - 1 + OFFSET) - H(OFFSET)) + self.level * 0.005
+    local l = self.level + LEVEL_OFFSET
+    return 1 + NUM_FACTOR * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
 end
 
 function Room:generate_waves()
@@ -849,7 +850,7 @@ function Room:generate_waves()
         local wave_number = 1
 
         for i = 1, min(#sub_narratives, self.level) do
-            local wave_strength = max(i, self.level >= 30 and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= 50 and (i + 1) or 1))
+            local wave_strength = max(i, self.level >= conf.egg_room_start and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= (conf.egg_room_start + conf.egg_room_period) and (i + 1) or 1))
             local sub_narrative = sub_narratives[wave_strength]
             print("wave strength: " .. wave_strength)
             if wave_types[sub_narrative.type] ~= nil then
@@ -1153,7 +1154,7 @@ end
 if debug.enabled then
     for i = 1, 200 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
 	end
 end
 

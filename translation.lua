@@ -271,6 +271,7 @@ local translations = {
 		name_entry_prompt           = "ENTER YOUR NAME",
 
         shader_preset_soft          = "Soft",
+        -- shader_preset_soft2         = "Soft 2",
         shader_preset_glow        	= "Glow",
 		shader_preset_scanline      = "Scanline",
 		shader_preset_lcd           = "LCD",
