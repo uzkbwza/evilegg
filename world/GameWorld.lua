@@ -1022,7 +1022,7 @@ function GameWorld:create_next_rooms()
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
 			force_ammo = i == ammo_room and game_state.level,
-            cursed_room = (game_state.level >= 15 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
+            cursed_room = (game_state.level >= 5 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
             -- cursed_room = true
 		})
 		table.insert(rooms, room)
