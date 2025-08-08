@@ -13,6 +13,7 @@ local default_savedata = {
     leaderboard_version = GAME_LEADERBOARD_VERSION,
     leaderboard_sort_index = 1,
     leaderboard_period = "daily",
+    done_shader_performance_test = false,
 }
 
 local SCORE_COUNT = 100

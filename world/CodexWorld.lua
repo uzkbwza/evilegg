@@ -277,7 +277,7 @@ function CodexWorld:open_spawn_description(spawn)
 
     end
 
-    local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, true))
+    local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, false))
     self:add_tag(spawn_description, "sequence_object")
     local text_height = spawn_description.text_height
 

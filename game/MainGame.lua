@@ -77,7 +77,7 @@ end
 GlobalGameState.max_upgrades = {
 	fire_rate = 1,
 	range = 2,
-	bullets = 1,
+	bullets = 2,
 	damage = 1,
 	-- knockback = 1, -- combined with bullet speed
 	bullet_speed = 1,
@@ -227,7 +227,7 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -251,7 +251,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 90
+            self.level = 31
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -771,6 +771,8 @@ function GlobalGameState:get_run_data_table()
 		artefacts[i] = self.artefact_slots[i] and self.artefact_slots[i].key or "none"
 	end
 
+    local min_speed, max_speed = time_checker:get_relative_game_speed_bounds()
+    local min_fps = time_checker:get_average_fps_bound()
 
 	return {
 		name = savedata.name,
@@ -797,6 +799,9 @@ function GlobalGameState:get_run_data_table()
         -- i'm a solo dev and i'll have to remove your score manually if you cheat. 
         -- please don't make me do that. please don't make my life harder.
         valid_for_leaderboard = self:is_valid_run_for_leaderboard(),
+        min_game_speed = min_speed,
+        max_game_speed = max_speed,
+        min_fps = min_fps,
 	}
 end
 

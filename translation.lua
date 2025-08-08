@@ -408,11 +408,27 @@ local translations = {
         codex_name_dancer           = "Dancer",
         codex_desc_dancer           = "Oblivious to all but the rhythm.",
 
+        codex_name_wildroamer        = "Wild Roamer",
+        codex_desc_wildroamer        = "Some never get the help they need.",
+
+        codex_name_minishotgunner    = "Patrol Officer",
+        codex_desc_minishotgunner    = "Looks for trouble.",
+
         -- codex_name_hookworm         = "Hook Worm",
         -- codex_desc_hookworm         = "Hungry!",
 
-        codex_name_penitentsoul      = "Shameful Spirit",
+        codex_name_penitentsoul      = "Shamed Spirit",
         codex_desc_penitentsoul      = "It's not good enough to apologize. You have to change.",
+
+        -- codex_name_skull             = "Skull",
+        -- codex_desc_skull             = "Chatters on.",
+
+        codex_name_evader            = "Evader",
+        codex_desc_evader           = "Runs away from its problems.",
+        
+        codex_name_heavypatrol       = "Heavy Patrol",
+        codex_desc_heavypatrol       = "Employs excessive use of force.",
+
 
         codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",
@@ -432,13 +448,13 @@ local translations = {
         "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
 
         codex_glossary_name_upgrade        = "UPGRADE",
-        codex_glossary_desc_upgrade        = "A temporary upgrade to your firepower, carried to you by a greenoid martyr. A random upgrade is destroyerd when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
+        codex_glossary_desc_upgrade        = "A temporary upgrade to your firepower, carried to you by a greenoid martyr. A random upgrade is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
         
         codex_glossary_name_artefact       = "ARTEFACT",
         codex_glossary_desc_artefact       = "A piece of unique equipment sent to you by thankful greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",
 
         codex_glossary_name_time_warning   = "⏲‼",
-        codex_glossary_desc_time_warning   = "Your game is running too slow or too fast. Your score may be disqualified from the leaderboard. Try disabling the screen shader if you are having performance issues.",
+        codex_glossary_desc_time_warning   = "Your game is running too slow or too fast. Your score may be disqualified from the leaderboard. Try adjusting your graphics settings in the options menu.",
 
         codex_variable_score = "VARIES",
 
@@ -500,7 +516,17 @@ local translations = {
 
 		score_reset_warning_title = "ATTENTION",
 		score_reset_warning_text = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
-        score_reset_warning_text2 = "To view those rankings, please use a corresponding version of the game.",
+        score_reset_warning_text2           = "To view those rankings, please use a corresponding version of the game.",
+        
+        shader_performance_warning_title = "WARNING",
+        shader_performance_warning_text     =
+        "This game uses a screen shader effect that may degrade performance on your device. Would you like to disable it? You may later adjust this in the options menu.",
+
+        performance_test_text               = "one moment...",
+        
+        button_ok                           = "OK",
+        button_no                           = "No",
+        button_yes                          = "Yes",
 	},
 }
 

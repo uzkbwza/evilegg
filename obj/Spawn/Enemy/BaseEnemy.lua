@@ -55,7 +55,7 @@ function BaseEnemy:get_xp()
     if score > 0 then
         -- local real_score = game_state:determine_score(score)
         -- return max(real_score * 0.0005, score * 0.005)
-		return score * 0.05
+		return score * 0.1
 	end
 	return 0
 end
@@ -161,8 +161,8 @@ end
 function BaseEnemy:normal_death_effect(hit_by)
 	local sprite = self:get_sprite()
 	local hit_vel_x, hit_vel_y
-	if self.is_simple_physics_object then
-		hit_vel_x, hit_vel_y = self.vel.x, self.vel.y
+	if self.is_simple_physics_object and self.applying_physics then
+		hit_vel_x, hit_vel_y = self.vel.x * 30, self.vel.y * 30
 	else
 		hit_vel_x, hit_vel_y = 0, 0
 	end

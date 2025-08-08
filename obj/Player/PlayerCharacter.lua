@@ -81,7 +81,7 @@ function PlayerCharacter:new(x, y)
 	self.move_vel = Vec2()
     self.mouse_pos_x, self.mouse_pos_y = 0, 0
 
-
+    self.bullets_fired = 0
     self.shoot_held_time = 0
 
     self.aim_radius = 12
@@ -727,7 +727,8 @@ function PlayerCharacter:fire_current_bullet()
     end
     
     local cooldown = class.cooldown
-	local num_bullets = clamp(game_state.upgrades.bullets + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
+    local bullets_upgrade = min(1, game_state.upgrades.bullets)
+	local num_bullets = clamp(bullets_upgrade + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
 
 	-- signal.connect(self:fire_bullet(class, nil, 0, 0, false), "bullet_hit", game_state, "on_bullet_hit", nil, true)
 	self:fire_bullet(class, nil, 0, 0, false)
@@ -751,11 +752,11 @@ function PlayerCharacter:fire_current_bullet()
             self:play_sfx("player_range_upgrade_2", 0.25)
         end
 
-        if game_state.upgrades.bullet_speed == 1 then
+        if game_state.upgrades.bullet_speed >= 1 then
             self:play_sfx("player_bullet_speed_upgrade_1", 0.2)
         end
 
-        if game_state.upgrades.bullets == 1 then
+        if game_state.upgrades.bullets >= 1 then
             if self.world:get_effective_fire_rate() == 1 then
                 self:play_sfx("player_bullets_upgrade_1_with_fire_rate_1", 0.35)
             else
@@ -768,10 +769,19 @@ function PlayerCharacter:fire_current_bullet()
 
     for i = 1, num_bullets do
         if num_bullets >= 1 then
-            self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(spread * i)), 0, class.h_offset * i, true)
-            self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(-spread * i)), 0, -class.h_offset * i, true)
+            local alternate = game_state.upgrades.bullets == 1
+
+            
+            if (not alternate) or self.bullets_fired % 2 == 0 then
+                self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(spread * i)), 0, class.h_offset * i, true)
+            end
+            if (not alternate) or self.bullets_fired % 2 == 1 then
+                self:fire_bullet(class, self.real_aim_direction:rotated(deg2rad(-spread * i)), 0, -class.h_offset * i, true)
+            end
         end
     end
+
+    self.bullets_fired = self.bullets_fired + 1
 	
     if self.drone then
 		self:fire_bullet_at_position(class, self.real_aim_direction:clone():mul_in_place(-1), self.drone.pos.x, self.drone.pos.y, true)

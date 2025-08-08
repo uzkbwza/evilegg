@@ -2,6 +2,10 @@ local Enforcer = BaseEnemy:extend("Enforcer")
 local EnforcerBullet = BaseEnemy:extend("EnforcerBullet")
 local RoyalGuard = Enforcer:extend("RoyalGuard")
 local RoyalGuardBullet = EnforcerBullet:extend("RoyalGuardBullet")
+local MiniShotgunner = BaseEnemy:extend("MiniShotgunner")
+local MiniShotgunnerBullet = EnforcerBullet:extend("MiniShotgunnerBullet")
+local HeavyPatrol = MiniShotgunner:extend("HeavyPatrol")
+local HeavyPatrolBullet = RoyalGuardBullet:extend("HeavyPatrolBullet")
 
 local HOMING_SPEED = 0.035
 
@@ -16,6 +20,10 @@ local MAX_DIST = 200
 
 Enforcer.max_hp = 2
 RoyalGuard.max_hp = 5
+MiniShotgunner.max_hp = 3
+MiniShotgunnerBullet.max_hp = 2
+HeavyPatrol.max_hp = 5
+HeavyPatrolBullet.max_hp = 3
 
 function Enforcer:new(x, y)
     self.body_height = 4
@@ -217,6 +225,7 @@ function EnforcerBullet:new(x, y)
 	self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self.z_index = 10
 	self.floor_draw_color = Palette.rainbow:get_random_color()
+    self.homing = true
 end
 
 function EnforcerBullet:get_sprite()
@@ -247,7 +256,7 @@ function EnforcerBullet:update(dt)
     end
 
 	local player = self:get_closest_player()
-	if player and self.tick < 120 then
+	if player and self.tick < 120 and self.homing then
         local pdx, pdy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
 		local homing_speed = HOMING_SPEED * (1.0 - self.tick / 120)
 		self:apply_force(pdx * homing_speed, pdy * homing_speed)
@@ -277,10 +286,119 @@ function RoyalGuardBullet:get_sprite()
 end
 
 function RoyalGuardBullet:get_palette()
-	return nil, idiv(self.tick, 2)
+    return nil, idiv(self.tick, 2)
 end
+
+
+MiniShotgunner.bullet_class = MiniShotgunnerBullet
+HeavyPatrol.bullet_class = HeavyPatrolBullet
+
+function MiniShotgunner:new(x, y)
+	self.body_height = 3
+	self.hurt_bubble_radius = 5
+	self.hit_bubble_radius = 2
+    self.walk_toward_player_chance = 80
+    MiniShotgunner.super.new(self, x, y)
+
+	self.follow_allies = true
+	-- self.roam_diagonals = true
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+	self:lazy_mixin(Mixins.Behavior.Roamer)
+	self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    self.declump_radius = 8
+    self.declump_mass = 1.5
+    self.back_away = true
+	self.bullet_push_modifier = 1.5
+	self.walk_frequency = 4
+	self.roam_chance = 12
+    self.walk_speed = 0.4
+    self.back_away_distance = 60
+    self.aim_direction = Vec2(rng:random_vec2())
+    self:start_tick_timer("shoot_delay", rng:randf(40, 60))
+    self.bullet_speed = 1.1
+end
+
+function MiniShotgunner:update(dt)
+    if self.is_new_tick and rng:percent(1) and not self:is_tick_timer_running("shoot_delay") then
+        self:shoot_bullets()
+        self:start_tick_timer("shoot_delay", 100)
+    end
+end
+
+
+function MiniShotgunner:shoot_bullets()
+    local player = self:get_closest_ally()
+    if player then
+        local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
+        self.aim_direction.x, self.aim_direction.y = vec2_snap_angle(dx, dy, 16)
+        self:shoot_bullet(self.bullet_speed, self.aim_direction.x, self.aim_direction.y)
+        self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 20))
+        self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 20))
+        self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 10))
+        self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 10))
+        self:play_sfx("enemy_mini_shotgunner_shoot", 0.7, 1.0)
+    end
+end
+
+function MiniShotgunner:shoot_bullet(speed, dx, dy)
+    local bx, by = self:get_body_center()
+    local bullet = self:spawn_object(self.bullet_class(bx, by))
+	bullet:move(dx * 8, dy * 8)
+    bullet:apply_impulse(dx * speed + self.vel.x, dy * speed + self.vel.y)
+	self:play_sfx("enemy_mini_shotgunner_shoot", 1, 1.0)
+end
+
+function MiniShotgunner:get_sprite()
+    return iflicker(self.tick, 10, 2) and textures.enemy_mini_shotgunner1 or textures.enemy_mini_shotgunner2
+end
+
+function HeavyPatrol:new(x, y)
+    HeavyPatrol.super.new(self, x, y)
+    self.walk_speed = 0.4
+    self.back_away_distance = 32
+    self.bullet_speed = 1.6
+end
+
+function HeavyPatrol:shoot_bullets()
+    local s = self.sequencer
+    s:start(function()
+        for i=1, 10 do
+            local player = self:get_closest_ally()
+            if player then
+                local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
+                self.aim_direction.x, self.aim_direction.y = vec2_snap_angle(dx, dy, 16)
+                self:shoot_bullet(self.bullet_speed, self.aim_direction.x, self.aim_direction.y)
+                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 20))
+                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 20))
+                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 10))
+                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 10))
+                self:play_sfx("enemy_mini_shotgunner_shoot", 1.0, 1.0)
+            end
+            s:wait(4)
+        end
+    end)
+end
+
+function MiniShotgunnerBullet:new(x, y)
+    MiniShotgunnerBullet.super.new(self, x, y)
+    self.drag = 0.0
+    self.homing = false
+end
+
+
+function HeavyPatrolBullet:new(x, y)
+    HeavyPatrolBullet.super.new(self, x, y)
+    self.drag = 0.0
+    self.homing = false
+end
+
+function HeavyPatrol:get_sprite()
+    return iflicker(self.tick, 10, 2) and textures.enemy_heavy_patrol1 or textures.enemy_heavy_patrol2
+end
+
 
 AutoStateMachine(Enforcer, "Spawning")
 AutoStateMachine(RoyalGuard, "Spawning")
 
-return {Enforcer, RoyalGuard}
+return {Enforcer, RoyalGuard, MiniShotgunner, HeavyPatrol}

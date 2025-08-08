@@ -111,7 +111,7 @@ end
 
 function Shotgunner:new(x, y)
 	self.body_height = 6
-	self.hurt_bubble_radius = 6
+	self.hurt_bubble_radius = 7
 	self.hit_bubble_radius = 4
     self.walk_toward_player_chance = 80
 	-- self.follow_allies = true
@@ -184,7 +184,7 @@ function Shotgunner:shoot()
 	end
 end
 
-function Shotgunner:exit() 
+function Shotgunner:exit()
 end
 
 function Shotgunner:draw()
@@ -209,6 +209,5 @@ function Shotgunner:draw_shotgun()
 	graphics.drawp_centered(shotgun_sprite, palette, palette_index, 0, 0, shotgun_rotation, 1, y_scale)
 end
 
-
-
-return Shotgunner
+return { Shotgunner }
+ 

@@ -24,6 +24,10 @@ function BatchRemoveList:length()
     return #self.__array
 end
 
+function BatchRemoveList:has(value)
+    return table.list_has(self.__array, value)
+end
+
 function BatchRemoveList:queue_remove(value)
     self.__to_remove[value] = true
 end

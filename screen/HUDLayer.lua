@@ -838,31 +838,31 @@ end
 
 function HUDLayer:create_persistent_ui()
 	self.upgrades = {
+        {
+            name = "damage",
+            color1 = Color.red,
+            color2 = Color.darkred,
+        },
 		{
 			name = "fire_rate",
 			color1 = Color.cyan,
 			color2 = Color.skyblue,
 		},
 		{
-			name = "damage",
-			color1 = Color.red,
-			color2 = Color.darkred,
-		},
-		{
-			name = "bullets",
-			color1 = Color.magenta,
-			color2 = Color.purple,
-		},
-		{
-			name = "bullet_speed",
+            name = "bullet_speed",
 			color1 = Color.green,
 			color2 = Color.darkgreen,
 		},
 		{
-			name = "range",
+            name = "range",
 			color1 = Color.yellow,
 			color2 = Color.orange,
 		},
+        {
+            name = "bullets",
+            color1 = Color.magenta,
+            color2 = Color.purple,
+        },
 	}
 
 	self.xp_bars = {

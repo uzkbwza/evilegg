@@ -11,7 +11,7 @@ local Enemies = {
     
 	Walker = {
         level = 1,
-		max_level = 18,
+		max_level = 7,
         spawn_points = 10,
 		room_select_weight = 2000,
         icon = textures.enemy_base,
@@ -33,7 +33,7 @@ local Enemies = {
 	FastWalker = {
         -- inherit = { "Walker" },
 		level = 1,
-		min_level = 12,
+		min_level = 4,
 		-- room_select_weight = 500,
 		spawn_points = 15,
 		extra_score = 10,
@@ -44,7 +44,7 @@ local Enemies = {
 	BigWalker = {
 		-- inherit = { "Walker" },
 		level = 1,
-		min_level = 16,
+		min_level = 9,
 		room_select_weight = 500,
 		spawn_points = 30,
 		extra_score = 10,
@@ -77,7 +77,32 @@ local Enemies = {
 		icon = textures.enemy_royalroamer1,
 		spawn_points = 9,
 		room_select_weight = 150,
-	},
+    },
+
+    WildRoamer = {
+        level = 2,
+        min_level = 7,
+        spawn_points = 30,
+        extra_score = 10,
+        icon = textures.enemy_wild_roamer1,
+    },
+
+    Evader = {
+        level = 3,
+        min_level = 6,
+        spawn_points = 45,
+        -- spawn_weight_modifier = 0.9,
+        -- extra_score = 10,
+        room_select_weight = 400,
+        icon = textures.enemy_evader1,
+    },
+
+    -- Skull = {
+    --     level = 1,
+    --     min_level = 2,
+    --     spawn_points = 50,
+    --     icon = textures.enemy_skull,
+    -- },
 
 	Hopper = {
         level = 2,
@@ -89,7 +114,7 @@ local Enemies = {
 
 	FastHopper = {
 		level = 2,
-		min_level = 14,
+		min_level = 11,
 		spawn_points = 35,
         room_select_weight = 1000,
 		extra_score = 5,
@@ -112,12 +137,32 @@ local Enemies = {
 
 	Shotgunner = {
 		level = 4,
-		min_level = 17,
+		min_level = 13,
 		spawn_points = 150,
 		extra_score = 9,
 		icon = textures.enemy_shotgunner1,
 		spawn_group = { "basic", "police" },
-	},
+    },
+    
+    MiniShotgunner = {
+        level = 3,
+        min_level = 6,
+        max_level = 30,
+        spawn_points = 45,
+        extra_score = 0,
+        room_select_weight = 500,
+        icon = textures.enemy_mini_shotgunner1,
+        spawn_group = { "basic", "police" },
+    },
+
+    HeavyPatrol = {
+        level = 3,
+        min_level = 30,
+        spawn_points = 100,
+        extra_score = 10,
+        icon = textures.enemy_heavy_patrol1,
+        spawn_group = { "basic", "police" },
+    },
 	
     Enforcer = {
 		level = 3,

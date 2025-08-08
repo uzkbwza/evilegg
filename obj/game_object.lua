@@ -140,16 +140,49 @@ function GameObject:ref_bongle_remove(name, obj)
 end
 
 function GameObject:ref_bongle_clear(name)
-	local array = self[name]
+    local array = self[name]
     if not array then return end
-	local to_remove = {}
-	for _, obj in array:ipairs() do
-		table.insert(to_remove, obj)
-	end
-	for _, obj in to_remove do
-		self:ref_bongle_remove(name, obj)
-	end
+    local to_remove = {}
+    for _, obj in array:ipairs() do
+        table.insert(to_remove, obj)
+    end
+    for _, obj in ipairs(to_remove) do
+        self:ref_bongle_remove(name, obj)
+    end
 end
+
+function GameObject:ref_batch_remove_list(name)
+    local list = batch_remove_list()
+    self[name] = list
+    return list
+end
+
+function GameObject:ref_batch_remove_list_push(name, obj)
+    local list = self[name]
+    if list:has(obj) then return end
+    list:push(obj)
+    signal.connect(obj, "destroyed", self, "on_object_in_ref_batch_remove_list_" .. name .. "_destroyed", function()
+        list:queue_remove(obj)
+        list:apply_removals()
+    end, true)
+    return obj
+end
+
+function GameObject:ref_batch_remove_list_queue_remove(name, obj)
+    local list = self[name]
+    if not list then return end
+    list:queue_remove(obj)
+end
+
+function GameObject:ref_batch_remove_list_apply_removals(name)
+    local list = self[name]
+    if not list then return end
+    for _, obj in ipairs(list.__to_remove) do
+        signal.disconnect(obj, "destroyed", self, "on_object_in_ref_batch_remove_list_" .. name .. "_destroyed")
+    end
+    list:apply_removals()
+end
+
 
 function GameObject:_update_sequencer(dt)
     self.sequencer:update(dt)

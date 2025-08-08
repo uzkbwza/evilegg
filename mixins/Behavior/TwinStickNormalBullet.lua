@@ -65,6 +65,10 @@ function TwinStickNormalBullet:collide_with_terrain()
     local collided = self:constrain_to_room()
 end
 
+function TwinStickNormalBullet:get_capsule()
+    return self.prev_pos.x, self.prev_pos.y, self.pos.x, self.pos.y, self.radius
+end
+
 function TwinStickNormalBullet:constrain_to_room()
     local room = self.world.room
 	local collided = false

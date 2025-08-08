@@ -1,6 +1,8 @@
 local Roamer = BaseEnemy:extend("Roamer")
 local Roamsploder = Roamer:extend("Roamsploder")
 local RoyalRoamer = Roamer:extend("RoyalRoamer")
+local WildRoamer = Roamer:extend("WildRoamer")
+local WildRoamerBullet = BaseEnemy:extend("WildRoamerBullet")
 local Explosion = require("obj.Explosion")
 local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 
@@ -11,8 +13,10 @@ Roamsploder:implement(Mixins.Behavior.ExploderEnemy)
 Roamer.max_hp = 1
 Roamsploder.max_hp = 2
 RoyalRoamer.max_hp = 2
+WildRoamer.max_hp = 2
 
 Roamer.palette = Palette[textures.enemy_roamer1]:clone()
+WildRoamer.palette = Palette[textures.enemy_wild_roamer1]:clone()
 
 -- Roamer.spawn_cry = "enemy_roamer_spawn"
 -- Roamer.spawn_cry_volume = 0.9
@@ -288,8 +292,118 @@ function RoyalRoamer:floor_draw()
 	end
 end
 
+function WildRoamer:new(x, y) 
+    WildRoamer.super.new(self, x, y)
+    self.walk_speed = 1.05
+    self.bullet_push_modifier = 2.5
+	self.walk_toward_player_chance = 50
+    self.walk_frequency = 4
+    self.roam_chance = 10
+end
+
+-- function WildRoamer:on_damaged(amount, new_hp)
+--     -- WildRoamer.super.on_damaged(self, amount, new_hp)
+--     local tries = amount * 2
+--     if tries < 1 then
+--         tries = rng:chance(tries) and 1 or tries
+--     end
+--     for i=1, tries do
+--         if rng:percent(50) then
+--             self:spawn_bullet(rng:randf(1, 2))
+--         end
+--     end
+-- end
+
+function WildRoamer:spawn_bullet(speed, dx, dy)
+    self:play_sfx("enemy_wild_roamer_shoot", 0.46)
+    local bullet = self:spawn_object(WildRoamerBullet(self.pos.x, self.pos.y))
+    bullet:apply_impulse(dx * speed, dy * speed)
+end
+
+function WildRoamer:update(dt)
+    WildRoamer.super.update(self, dt)
+    if self.world.timescaled.is_new_tick and self.world.timescaled.tick % 28 == 0 then
+        -- for _, vec in ipairs(ALL_DIRECTIONS) do
+            -- self:spawn_bullet(1.0, vec.x, vec.y)
+        -- end
+        self:spawn_bullet(0.0, 0, 0)
+    end
+
+end
+
+function WildRoamer:get_sprite()
+	return (self:tick_pulse(self.walk_frequency) and textures.enemy_wild_roamer1 or textures.enemy_wild_roamer2)
+end
+
+-- function WildRoamer:die()
+--     for i = 1, 4 do
+--         self:spawn_bullet(rng:randf(1, 2.5))
+--     end
+--     WildRoamer.super.die(self)
+-- end
+
+
+function WildRoamerBullet:new(x, y)
+    WildRoamerBullet.super.new(self, x, y)
+    self.lifetime = 28 * 8
+    self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    self.max_hp = 1
+    self.z_index = 0
+    self.drag = 0.08
+    self.hit_bubble_radius = 2
+    self.hurt_bubble_radius = 4
+    -- self.intangible = true
+    self.bullet_push_modifier = 2.5
+    -- self:start_tick_timer("intangible_timer", 1, function()
+    --     self.intangible = false
+    -- end)
+    self.start_x, self.start_y = x, y
+    self.bullet_passthrough = true
+    -- self.no_death_splatter = true
+end
+
+function WildRoamerBullet:damage(amount)
+    -- if self.tick <= 1 then
+        -- amount = 0
+    -- end
+    Mixins.Behavior.Health.damage(self, amount)
+end
+
+-- function WildRoamerBullet:update(dt)
+--     if self.vel:magnitude_squared() < 0.02 and self.tick > self.lifetime then
+--         self:die()
+--     end
+-- end
+
+function WildRoamerBullet:get_sprite()
+    return textures.enemy_wild_roamer_bullet
+end
+
+function WildRoamerBullet:get_palette()
+	local offset = idiv(self.tick, 2)
+
+	return nil, offset
+end
+
+function WildRoamerBullet:draw()
+    graphics.set_color(Color.red)
+    local t = self.elapsed / self.lifetime
+
+    graphics.poly_regular("line", 0, 0, ease("outExpo")(math.bump(t)) * 8, 6, self.elapsed * 0.1)
+    WildRoamerBullet.super.draw(self)
+    if self.tick < 4 then
+        local x, y = self:to_local(self.start_x, self.start_y)
+        graphics.set_color(Color.white)
+        graphics.rectangle_centered("fill", x, y, 8, 8)
+        graphics.rectangle_centered("line", x, y, 11, 11)
+    end
+end
+
+
+
 -- function RoyalRoamer:collide_with_terrain()
 	
 -- end
 
-return { Roamer, Roamsploder, RoyalRoamer }
+return { Roamer, Roamsploder, RoyalRoamer, WildRoamer }

@@ -31,6 +31,9 @@ local graphics = {
     bg_image = nil,
 	circles = {},
 	png_data = {},
+    shader_test_average_time_taken = 0,
+    shader_test_average_time_taken_count = 0,
+    elapsed = 0,
 }
 
 graphics = setmetatable(graphics, { __index = love.graphics })
@@ -573,7 +576,8 @@ function graphics.set_screen_shader_from_preset(preset)
 end
 
 function graphics.update(dt)
-	graphics.sequencer:update(dt)
+    graphics.sequencer:update(dt)
+    graphics.elapsed = graphics.elapsed + dt
 end
 
 function graphics.game_draw()
@@ -676,6 +680,7 @@ function graphics.start_rumble(intensity, duration, easing_function)
     graphics.rumble_coroutine = s:start(func)
 end
 
+
 function graphics.draw_loop()
 
 
@@ -764,18 +769,23 @@ function graphics.draw_loop()
 	graphics.window_size.x = window_size.x
 	graphics.window_size.y = window_size.y
 
+
     if graphics.pre_canvas_draw_function then
         graphics.pre_canvas_draw_function()
     elseif graphics.bg_image then
         graphics.draw_bg_image(graphics.bg_image)
     end
 
-	local canvas_to_draw = graphics.canvas
+    local canvas_to_draw = graphics.canvas
+    local testing_shader_performance = (not savedata.done_shader_performance_test or debug.enabled) and graphics.elapsed > 5
+    
+    local start_time = 0
+    
+    if testing_shader_performance then
+        start_time = love.timer.getTime()
+    end
 
 	if viewport_pixel_scale > 1 then
-		if gametime.tick % 10 == 0 then
-			-- pcall(graphics.shader.update)
-		end
 		
 		for i = 2, #(graphics.screen_shaders or dummy_table) do
 			
@@ -828,29 +838,17 @@ function graphics.draw_loop()
 
     graphics.set_canvas()
 	
-    -- if conf.pixel_perfect then
 	graphics.draw(canvas_to_draw, math.floor(canvas_pos.x), math.floor(canvas_pos.y), 0, viewport_pixel_scale,
 		viewport_pixel_scale)
-    -- else
-    --     local scaled_canvas = graphics.scaled_canvas
-		
-    --     local wsx, wsy = canvas_size.x, canvas_size.y
-    --     if scaled_canvas == nil or scaled_canvas:getWidth() ~= wsx or scaled_canvas:getHeight() ~= wsy then
-    --         if scaled_canvas then
-    --             scaled_canvas:release()
-    --         end
-    --         scaled_canvas = graphics.new_canvas(wsx, wsy)
-    --         scaled_canvas:setFilter("linear", "linear")
-    --         graphics.scaled_canvas = scaled_canvas
-    --     end
-	-- 	-- TODO: apply shader *after* scaling
-	-- 	graphics.set_canvas(scaled_canvas)
-	-- 	graphics.clear(0, 0, 0, 0)
-	-- 	graphics.draw(canvas_to_draw, 0, 0, 0, viewport_pixel_scale, viewport_pixel_scale)
-	-- 	graphics.set_canvas()
-	-- 	graphics.draw_fit(scaled_canvas, 0, 0, graphics.window_size.x, graphics.window_size.y)
-    -- end
-	
+
+    if testing_shader_performance then
+        local end_time = love.timer.getTime()
+        local time_taken = end_time - start_time
+        graphics.shader_test_average_time_taken = (graphics.shader_test_average_time_taken * graphics.shader_test_average_time_taken_count + time_taken) / (graphics.shader_test_average_time_taken_count + 1)
+        graphics.shader_test_average_time_taken_count = graphics.shader_test_average_time_taken_count + 1
+        dbg("average shader time taken", graphics.shader_test_average_time_taken, Color.red)
+    end
+
 	graphics.set_shader()
 
 	graphics.set_canvas()
@@ -858,6 +856,7 @@ function graphics.draw_loop()
     if graphics.post_canvas_draw_function then
         graphics.post_canvas_draw_function()
     end
+
 
 	debug.printlines(0, 0)
 end

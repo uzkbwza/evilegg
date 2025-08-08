@@ -274,7 +274,7 @@ function BaseRescue:on_pickup()
 
     if game_state.artefacts.ring_of_loyalty then
 		self:play_sfx("pickup_artefact_ring_of_loyalty_trigger", 0.7)
-		local num_bullets = 12 + (game_state.upgrades.bullets) * 4
+		local num_bullets = 12 + (game_state.upgrades.bullets) * 2
         for i = 1, num_bullets do
 			local bullet = self:spawn_object(RingOfLoyaltyBullet(bx, by, true))
 			bullet.direction = Vec2.from_angle(tau / num_bullets * i)

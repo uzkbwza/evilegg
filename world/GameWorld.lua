@@ -1003,7 +1003,8 @@ function GameWorld:create_next_rooms()
 
 	local upgrade_room = rng:randi(1, 3)
 	local artefact_room = rng:randi(1, 3)
-	local heart_room = rng:randi(1, 3)
+	-- local heart_room = next_level <= EGG_ROOM_START and upgrade_room or rng:randi(1, 3)
+	local heart_room = upgrade_room
 	local hard_room = rng:randi(1, 3)
     local ammo_room = rng:randi(1, 3)
     local cursed_room = rng:randi(1, 3)
@@ -1022,7 +1023,7 @@ function GameWorld:create_next_rooms()
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
 			force_ammo = i == ammo_room and game_state.level,
-            cursed_room = (game_state.level >= 15 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
+            cursed_room = (game_state.level >= 6 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
             -- cursed_room = true
 		})
 		table.insert(rooms, room)
@@ -1237,7 +1238,7 @@ function GameWorld:on_room_clear()
 				end
 				
 				if enemy.die then
-					enemy:die(self:get_random_object_with_tag("player"))
+					enemy:die()
 				elseif not enemy.is_queued_for_destruction then
 					enemy:queue_destroy()
 				end

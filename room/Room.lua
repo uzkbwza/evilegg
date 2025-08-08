@@ -6,9 +6,9 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
-local debug_enemy_enabled = true
-local debug_enemy = "Rook"
-local num_debug_enemies = 1
+local debug_enemy_enabled = false
+local debug_enemy = "WildRoamer"
+local num_debug_enemies = 10
 local num_debug_waves = 3
 
 local debug_force_curse_enabled = false
@@ -690,6 +690,7 @@ end
 local STEP = 0.2             -- what we are adding each turn
 local OFFSET = 10.0
 local SCALE = 7
+local LEVEL_OFFSET = 3
 
 -- quick harmonic-number approximation (Euler–Maclaurin)
 local GAMMA = 0.5772156649015329
@@ -702,8 +703,8 @@ end
 local NUM_FACTOR = STEP * SCALE
 
 function Room:pool_point_modifier()
-
-    return 1 + NUM_FACTOR * (H(self.level - 1 + OFFSET) - H(OFFSET)) + self.level * 0.005
+    local l = self.level + LEVEL_OFFSET
+    return 1 + NUM_FACTOR * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
 end
 
 function Room:generate_waves()
@@ -1093,9 +1094,11 @@ function Room:generate_waves()
     local should_have_heart = self.wants_heart
 
 	if self.needs_heart then
-		should_have_heart = true
+        should_have_heart = true
+    elseif self.wants_heart and game_state.total_damage_taken == 0 and (self.artefacts and (table.list_has(self.artefacts, PickupTable.artefacts.SacrificialTwinArtefact) or table.list_has(self.artefacts, PickupTable.artefacts.StoneTrinketArtefact))) and game_state.num_spawned_artefacts < 3 then
+        should_have_heart = true
     elseif self.wants_heart then
-		should_have_heart = rng:percent(90)
+        should_have_heart = rng:percent(90)
 
 		if self.consumed_upgrade then
 			should_have_heart = should_have_heart and rng:percent(5)
@@ -1104,9 +1107,7 @@ function Room:generate_waves()
         if self.consumed_artefact then
             should_have_heart = should_have_heart and rng:percent(5)
         end
-
 	end
-
 
 	if should_have_heart and not self.consumed_heart then
 	-- if self.needs_heart  then
@@ -1153,7 +1154,7 @@ end
 if debug.enabled then
     for i = 1, 200 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
 	end
 end
 

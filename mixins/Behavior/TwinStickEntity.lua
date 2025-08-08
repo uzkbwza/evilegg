@@ -319,6 +319,10 @@ function TwinStickEntity:collide_with_terrain()
     self:constrain_to_room()
 end
 
+function TwinStickEntity:make_bouncy()
+    self.on_terrain_collision = self.terrain_collision_bounce
+end
+
 function TwinStickEntity:constrain_to_room()
     local room = self.world.room
 	local collided = false

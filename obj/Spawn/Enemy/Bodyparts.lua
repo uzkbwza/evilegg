@@ -31,7 +31,7 @@ local eyeball_limits = {
 
 Eyeball.max_hp = 3
 Hand.max_hp = 10
-Foot.max_hp = 5
+Foot.max_hp = 4
 Nose.max_hp = 4
 Mouth.max_hp = 8
 
