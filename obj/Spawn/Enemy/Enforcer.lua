@@ -267,7 +267,8 @@ local COLOR_MOD = 0.9
 
 function EnforcerBullet:floor_draw()
     local scale = pow(1.0 - self.tick / 600, 1.5)
-    graphics.set_color(scale * COLOR_MOD, 0, 1.0 - scale * COLOR_MOD, 1)
+    local color_mod = (self.floor_trail_color_mod or 1.0)
+    graphics.set_color(scale * COLOR_MOD * color_mod, 0, (1.0 - scale * COLOR_MOD) * color_mod, 1)
     if self.is_new_tick and self.tick % 4 == 0 and scale > 0.1 then
 		local palette, offset = self:get_palette()
         local sprite = self:get_floor_sprite()
@@ -379,6 +380,9 @@ function HeavyPatrol:shoot_bullets()
         end
     end)
 end
+
+MiniShotgunnerBullet.floor_trail_color_mod = 0.25
+HeavyPatrolBullet.floor_trail_color_mod = 0.25
 
 function MiniShotgunnerBullet:new(x, y)
     MiniShotgunnerBullet.super.new(self, x, y)
