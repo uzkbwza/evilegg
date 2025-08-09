@@ -314,7 +314,8 @@ local Artefacts = {
         -- end,
         infinite_spawns = true,
         destroy_score = 250,
-        spawn_when_full = true,
+        -- spawn_when_full = true,
+        spawn_only_when_full = true,
         destroy_xp = 0,
 
         on_chosen = function(game_state)

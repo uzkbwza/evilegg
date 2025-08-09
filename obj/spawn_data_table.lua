@@ -33,7 +33,7 @@ local Enemies = {
 	FastWalker = {
         -- inherit = { "Walker" },
 		level = 1,
-		min_level = 4,
+		min_level = 7,
 		-- room_select_weight = 500,
 		spawn_points = 15,
 		extra_score = 10,
@@ -44,7 +44,7 @@ local Enemies = {
 	BigWalker = {
 		-- inherit = { "Walker" },
 		level = 1,
-		min_level = 9,
+		min_level = 13,
 		room_select_weight = 500,
 		spawn_points = 30,
 		extra_score = 10,
@@ -96,13 +96,6 @@ local Enemies = {
         room_select_weight = 400,
         icon = textures.enemy_evader1,
     },
-
-    -- Skull = {
-    --     level = 1,
-    --     min_level = 2,
-    --     spawn_points = 50,
-    --     icon = textures.enemy_skull,
-    -- },
 
 	Hopper = {
         level = 2,

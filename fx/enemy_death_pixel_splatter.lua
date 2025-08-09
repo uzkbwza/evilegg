@@ -45,13 +45,19 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
     local vel_dir_x, vel_dir_y = vec2_normalized(vel_x, vel_y)
 	self.vel_dir_x, self.vel_dir_y = vel_dir_x, vel_dir_y
     local speed = vec2_magnitude(vel_x, vel_y)
+    local center_x, center_y = width / 2, height / 2
 	-- local center_x, center_y = width / 2, height / 2
 	hit_point_x = hit_point_x or x
 	hit_point_y = hit_point_y or y
     local dx, dy = vec2_sub(hit_point_x, hit_point_y, x, y)
 	self.hit_point_local_x, self.hit_point_local_y = dx, dy
-	dx = dx + width / 2
-    dy = dy + height / 2
+	dx = dx + center_x
+    dy = dy + center_y
+
+    local random_offset_x, random_offset_y = rng:random_vec2_times(rng:randf(0, 1))
+
+    center_x = center_x + random_offset_x
+    center_y = center_y + random_offset_y
 
 
 	self.random_start_tick = rng:randi(0, 999)
@@ -84,7 +90,7 @@ function DeathSplatter:new(x, y, flip, texture, texture_palette, palette_tick_le
 			local speed_scale = pow(abs(b_), 2.5)
 			local pixel_vel_x, pixel_vel_y = vec2_mul_scalar(vel_dir_x, vel_dir_y, min(speed_scale * speed, MAX_SPEED))
 
-			local center_dir_x, center_dir_y = vec2_direction_to(self.hit_point_local_x, self.hit_point_local_y, x2 - width / 2, y2 - height / 2)
+			local center_dir_x, center_dir_y = vec2_direction_to(self.hit_point_local_x, self.hit_point_local_y, x2 - center_x, y2 - center_y)
             local center_vel_x, center_vel_y = vec2_mul_scalar(center_dir_x, center_dir_y, (CENTER_SPEED * (center_speed_modifier or 1)))
 			
 			pixel_vel_x = (pixel_vel_x + center_vel_x)

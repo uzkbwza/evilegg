@@ -812,6 +812,10 @@ function vec2_to_cardinal(x, y)
 	end
 end
 
+function vec2_stepify(x, y, step)
+    return stepify(x, step), stepify(y, step)
+end
+
 
 
 -- Vec3 Functions

@@ -10,6 +10,7 @@ function TwinStickEnemyBullet:__mix_init()
     self.lifetime = self.lifetime or 6000
     self:add_update_function(function(self, dt)
         if self.elapsed > self.lifetime then
+            self:on_lifetime_end()
             self:die()
         end
     end)
@@ -20,6 +21,9 @@ function TwinStickEnemyBullet:__mix_init()
     self:add_enter_function(function(self)
         self:add_tag("enemy_bullet")
     end)
+end
+
+function TwinStickEnemyBullet:on_lifetime_end()
 end
 
 function TwinStickEnemyBullet:add_terrain_collision_death()

@@ -343,16 +343,21 @@ end
 -- end
 
 
+WildRoamerBullet.is_wild_roamer_bullet = true
+
 function WildRoamerBullet:new(x, y)
     WildRoamerBullet.super.new(self, x, y)
     self.lifetime = 28 * 8
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
     self.max_hp = 1
-    self.z_index = 0
+    self.z_index = -1
     self.drag = 0.08
     self.hit_bubble_radius = 2
-    self.hurt_bubble_radius = 4
+    self.hurt_bubble_radius = 5
+    self.declump_radius = 6
+    self.declump_force = 0.06
     -- self.intangible = true
     self.bullet_push_modifier = 2.5
     -- self:start_tick_timer("intangible_timer", 1, function()
@@ -360,14 +365,19 @@ function WildRoamerBullet:new(x, y)
     -- end)
     self.start_x, self.start_y = x, y
     self.bullet_passthrough = true
-    -- self.no_death_splatter = true
+    self.no_death_splatter = false
 end
 
-function WildRoamerBullet:damage(amount)
+function WildRoamerBullet:entity_declump_filter(other)
+    return other.is_wild_roamer_bullet
+end
+
+function WildRoamerBullet:on_lifetime_end()
     -- if self.tick <= 1 then
         -- amount = 0
     -- end
-    Mixins.Behavior.Health.damage(self, amount)
+    self.no_death_splatter = true
+    -- Mixins.Behavior.Health.damage(self, amount)
 end
 
 -- function WildRoamerBullet:update(dt)
@@ -376,22 +386,37 @@ end
 --     end
 -- end
 
+function WildRoamerBullet:update(dt)
+    -- local x2, y2 = vec2_stepify(self.pos.x, self.pos.y, 16)
+    -- self:move_to(splerp_vec(self.pos.x, self.pos.y, x2, y2, 200, dt))
+end
+
 function WildRoamerBullet:get_sprite()
-    return textures.enemy_wild_roamer_bullet
+    return textures.enemy_wild_roamer_bullet_floor
 end
 
 function WildRoamerBullet:get_palette()
-	local offset = idiv(self.tick, 2)
+	local offset = idiv(self.tick, 3)
 
 	return nil, offset
 end
 
-function WildRoamerBullet:draw()
-    graphics.set_color(Color.red)
-    local t = self.elapsed / self.lifetime
+-- function WildRoamerBullet:floor_draw()
+--     -- local color = Palette[textures.enemy_wild_roamer_bullet]:tick_color(self.tick / 4)
+--     -- local color_mod = 1 - self.elapsed / self.lifetime
+--     -- graphics.set_color(color.r * color_mod, color.g * color_mod, color.b * color_mod)
+--     if self.is_new_tick and self.tick % 4 == 0 then
+--         graphics.set_color(Color.darkred)
+--         local t = self.elapsed / self.lifetime
+--         graphics.poly_regular("line", 0, 0, ease("outExpo")(math.bump(t)) * 5, 4)
+--     end
+-- end
 
-    graphics.poly_regular("line", 0, 0, ease("outExpo")(math.bump(t)) * 8, 6, self.elapsed * 0.1)
-    WildRoamerBullet.super.draw(self)
+function WildRoamerBullet:draw()
+
+    local palette, offset = self:get_palette_shared()
+    graphics.drawp_centered_outline(Palette.wild_roamer_mine_border:tick_color(self.tick, 0, 1), textures.enemy_wild_roamer_bullet, Palette[textures.enemy_wild_roamer_bullet], offset, 0, 0)
+    -- WildRoamerBullet.super.draw(self)
     if self.tick < 4 then
         local x, y = self:to_local(self.start_x, self.start_y)
         graphics.set_color(Color.white)
