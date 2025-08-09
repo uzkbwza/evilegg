@@ -7,7 +7,7 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = true
-local debug_enemy = "WildRoamer"
+local debug_enemy = "HeavyPatrol"
 local num_debug_enemies = 5
 local num_debug_waves = 3
 

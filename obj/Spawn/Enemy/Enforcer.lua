@@ -25,6 +25,9 @@ MiniShotgunnerBullet.max_hp = 2
 HeavyPatrol.max_hp = 5
 HeavyPatrolBullet.max_hp = 3
 
+MiniShotgunner.spawn_cry = "enemy_patrol_spawn"
+HeavyPatrol.spawn_cry = "enemy_heavy_patrol_spawn"
+
 function Enforcer:new(x, y)
     self.body_height = 4
 
@@ -312,18 +315,20 @@ function MiniShotgunner:new(x, y)
     self.back_away = true
 	self.bullet_push_modifier = 1.5
 	self.walk_frequency = 4
-	self.roam_chance = 12
+    self.roam_chance = 12
+    self.shoot_chance = 1
     self.walk_speed = 0.4
     self.back_away_distance = 60
     self.aim_direction = Vec2(rng:random_vec2())
     self:start_tick_timer("shoot_delay", rng:randf(40, 60))
     self.bullet_speed = 1.1
+    self.shoot_cooldown = 100
 end
 
 function MiniShotgunner:update(dt)
-    if self.is_new_tick and rng:percent(1) and not self:is_tick_timer_running("shoot_delay") then
+    if self.is_new_tick and rng:percent(self.shoot_chance) and not self:is_tick_timer_running("shoot_delay") then
         self:shoot_bullets()
-        self:start_tick_timer("shoot_delay", 100)
+        self:start_tick_timer("shoot_delay", self.shoot_cooldown)
     end
 end
 
@@ -359,6 +364,9 @@ function HeavyPatrol:new(x, y)
     self.walk_speed = 0.4
     self.back_away_distance = 32
     self.bullet_speed = 1.6
+    self.shoot_chance = 1.0
+    self.shoot_cooldown = 120
+    self:start_tick_timer("shoot_delay", rng:randf(40, 240))
 end
 
 function HeavyPatrol:shoot_bullets()
