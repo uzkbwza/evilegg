@@ -254,7 +254,7 @@ function GlobalGameState:new()
             self.level = 31
             self.hearts = self.max_hearts
 
-            for i = 1, 8 do
+            for i = 1, 7 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do 
                     artefact = self:get_random_available_artefact()

@@ -154,6 +154,7 @@ local Enemies = {
         spawn_points = 100,
         extra_score = 10,
         icon = textures.enemy_heavy_patrol1,
+        room_select_weight = 500,
         spawn_group = { "basic", "police" },
     },
 	
