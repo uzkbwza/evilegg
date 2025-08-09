@@ -150,7 +150,7 @@ function GlobalGameState:new()
 
 	self.hearts = 1
 
-	self.total_damage_taken = 1
+	self.total_damage_taken = 0
 
 	self.rescue_chain_difficulty = 0
 	self.highest_rescue_chain = 0

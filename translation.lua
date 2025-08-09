@@ -129,7 +129,7 @@ local translations = {
         bonus_cursed_room_codex = "Cleared a cursed room.",
 
         bonus_tactful = "TACTFUL",
-        bonus_tactful_codex = "Successfully avoided mom's wrath.",
+        bonus_tactful_codex = "Successfully avoided Mom's wrath.",
 
 		-- bonus_accuracy = "HITRATE: %0.0f%%",
         bonus_overflow = "OVERFLOW",
