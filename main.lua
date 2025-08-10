@@ -2,7 +2,7 @@
 --  Evil Egg
 -- ===========================================================================
 
-GAME_VERSION = "0.8.4"
+GAME_VERSION = "0.8.5"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
