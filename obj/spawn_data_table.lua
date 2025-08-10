@@ -17,7 +17,7 @@ local Enemies = {
         icon = textures.enemy_base,
 		
     },
-	
+
 	Walksploder = {
 		-- inherit = { "Walker" },
 		spawn_points = 15,
@@ -91,10 +91,20 @@ local Enemies = {
         level = 3,
         min_level = 6,
         spawn_points = 45,
+        max_level = 29,
         -- spawn_weight_modifier = 0.9,
         -- extra_score = 10,
         room_select_weight = 400,
         icon = textures.enemy_evader1,
+    },
+    
+    HeavyEvader = {
+        level = 3,
+        min_level = 30,
+        spawn_points = 60,
+        extra_score = 10,
+        room_select_weight = 400,
+        icon = textures.enemy_heavy_evader1,
     },
 
 	Hopper = {
@@ -148,15 +158,15 @@ local Enemies = {
         spawn_group = { "basic", "police" },
     },
 
-    HeavyPatrol = {
-        level = 3,
-        min_level = 30,
-        spawn_points = 100,
-        extra_score = 10,
-        icon = textures.enemy_heavy_patrol1,
-        room_select_weight = 500,
-        spawn_group = { "basic", "police" },
-    },
+    -- HeavyPatrol = {
+    --     level = 3,
+    --     min_level = 30,
+    --     spawn_points = 100,
+    --     extra_score = 10,
+    --     icon = textures.enemy_heavy_patrol1,
+    --     room_select_weight = 500,
+    --     spawn_group = { "basic", "police" },
+    -- },
 	
     Enforcer = {
 		level = 3,
@@ -211,7 +221,20 @@ local Enemies = {
         spawn_weight_modifier = 0.65,
 		extra_score = 20,
 		icon = textures.enemy_cultist,
-	},
+    },
+    
+    Lich = {
+        level = 4,
+        min_level = 30,
+        spawn_points = 100,
+        max_spawns = 1,
+        spawn_weight_modifier = 0.65,
+        icon = textures.enemy_lich_icon,
+        -- extra_score = 20,
+
+        codex_sprite = textures.enemy_lich,
+        codex_icon = textures.enemy_lich,
+    },
 
     Gnome = {
         level = 4,

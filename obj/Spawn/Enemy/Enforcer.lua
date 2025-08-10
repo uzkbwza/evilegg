@@ -372,16 +372,16 @@ end
 function HeavyPatrol:shoot_bullets()
     local s = self.sequencer
     s:start(function()
-        for i=1, 10 do
+        for i=1, 5 do
             local player = self:get_closest_ally()
             if player then
                 local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, player.pos.x, player.pos.y)
                 self.aim_direction.x, self.aim_direction.y = vec2_snap_angle(dx, dy, 16)
-                self:shoot_bullet(self.bullet_speed, self.aim_direction.x, self.aim_direction.y)
-                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 20))
-                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 20))
-                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, tau / 10))
-                self:shoot_bullet(self.bullet_speed, vec2_rotated(self.aim_direction.x, self.aim_direction.y, -tau / 10))
+                for j = 1, 2 do
+                    local dx, dy = vec2_rotated(self.aim_direction.x, self.aim_direction.y, rng:randf(-tau / 15, tau / 15))
+                    self:shoot_bullet(self.bullet_speed, dx, dy)
+                end
+
                 self:play_sfx("enemy_mini_shotgunner_shoot", 1.0, 1.0)
             end
             s:wait(4)

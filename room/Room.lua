@@ -7,8 +7,8 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = true
-local debug_enemy = "HeavyPatrol"
-local num_debug_enemies = 5
+local debug_enemy = "Lich"
+local num_debug_enemies = 1
 local num_debug_waves = 3
 
 local debug_force_curse_enabled = false
@@ -132,7 +132,7 @@ Room.narrative_types = {
 		sub_narratives = {
 			[1] = {
                 type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
+				exclude_enemies = { "Lich", "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
                 points = 100,
 				disable_hazards = true,
                 max_difficulty = 3,
@@ -140,7 +140,7 @@ Room.narrative_types = {
 			},
 			[2] = {
 				type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
+				exclude_enemies = { "Lich", "Walker", "Roamer", "Shielder", "Mortar", "Cultist", "Hand", "Dancer" },
                 points = 175,
 				disable_hazards = true,
                 max_difficulty = 4,
@@ -148,7 +148,7 @@ Room.narrative_types = {
             },
 			[3] = {
 				type = "pool_point_buy",
-				exclude_enemies = { "Walker", "Roamer", "Shielder", "Cultist", "Hand", "Dancer" },
+				exclude_enemies = { "Lich", "Walker", "Roamer", "Shielder", "Cultist", "Hand", "Dancer" },
                 points = 250,
 				random_pool_size = 1,
             },
@@ -433,7 +433,7 @@ function Room:build(params)
     end
 
     if params.cursed_room then
-        self.curse = self:get_random_curse()
+        self.curse = self:get_random_curse(params.allow_ignorance)
     end
 
     if debug.enabled and debug_force_curse_enabled then
@@ -471,9 +471,9 @@ function Room:build(params)
 end
 
 
-function Room:get_random_curse()
+function Room:get_random_curse(allow_ignorance)
 
-    if rng:chance(1/6) then
+    if truthy_nil(allow_ignorance) and rng:chance(1/6) then
         return "curse_ignorance"
     end
 

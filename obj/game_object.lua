@@ -54,9 +54,11 @@ function GameObject:on_moved()
     self:emit_signal("moved")
 end
 
-function GameObject:follow_movement(other)
+function GameObject:follow_movement(other, offset_x, offset_y)
+    offset_x = offset_x or 0
+    offset_y = offset_y or 0
     signal.connect(other, "moved", self, "on_movement_target_moved", function()
-        self:move_to(other.pos.x, other.pos.y)
+        self:move_to(other.pos.x + offset_x, other.pos.y + offset_y)
     end)
 end
 

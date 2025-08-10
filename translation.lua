@@ -41,7 +41,7 @@ local translations = {
         curse_famine_desc = "This room is cursed with pacifism.",
 
         curse_vulnerability = "FRAILTY",
-        curse_vulnerability_desc = "This room weakens greenoid defenses.",
+        curse_vulnerability_desc = "This room weakens Greenoid defenses.",
 
 		notif_fire_rate = "FIRE RATE",
 		notif_range = "RANGE",
@@ -78,10 +78,10 @@ local translations = {
         bonus_overheal_codex = "Picked up a heart while at full health.",
 
 		bonus_rescue = "GREENOIDS",
-        bonus_rescue_codex = "Rescued a greenoid.",
+        bonus_rescue_codex = "Rescued a Greenoid.",
 
 		bonus_all_rescues = "RESCUED ALL",
-        bonus_all_rescues_codex = "Rescued all greenoids in a room.",
+        bonus_all_rescues_codex = "Rescued all Greenoids in a room.",
 
         bonus_quick_wave = "QUICK WAVE",
         bonus_quick_wave_codex = "Cleared a wave in under 9 seconds.",
@@ -96,7 +96,7 @@ local translations = {
         bonus_aggression_codex = "Gained by killing enemies up close.",
 
         bonus_perfect = "FLAWLESS",
-        bonus_perfect_codex = "Cleared a room without you or any greenoids taking damage.",
+        bonus_perfect_codex = "Cleared a room without you or any Greenoids taking damage.",
 
 		bonus_ammo_saver = "AMMO SAVER",
         bonus_ammo_saver_codex = "Didn't use any secondary weapon ammo.",
@@ -114,7 +114,7 @@ local translations = {
         bonus_twin_saved_codex = "Rescued the twin egg.",
 
 		bonus_quick_save = "QUICK SAVE",
-        bonus_quick_save_codex = "Rescued a greenoid soon after spawning.",
+        bonus_quick_save_codex = "Rescued a Greenoid soon after spawning.",
 
         bonus_twin_protected = "PROTECTOR",
         bonus_twin_protected_codex = "Protected the twin egg.",
@@ -123,7 +123,7 @@ local translations = {
         bonus_twin_killed_codex = "Allowed the twin egg to be killed.",
 
 		bonus_noid_died = "NOID CASUALTY",
-        bonus_noid_died_codex = "A greenoid died.",
+        bonus_noid_died_codex = "A Greenoid died.",
 
         bonus_cursed_room = "CURSED ROOM",
         bonus_cursed_room_codex = "Cleared a cursed room.",
@@ -187,14 +187,14 @@ local translations = {
 		weapon_repulsion_field_name				     = "REPULSION FIELD",
 
 		artefact_ricochet_desc                       = "Your bullets bounce off walls.",
-		artefact_grappling_hook_desc                 = "Shoot greenoids to pull them closer.",
+		artefact_grappling_hook_desc                 = "Shoot Greenoids to pull them closer.",
 		artefact_amulet_of_rage_desc                 = "Your bullets deal more damage up close.",
 		artefact_sacrificial_twin_desc               = "What are you willing to sacrifice?",
 		artefact_drone_desc                          = "A loyal companion.",
-		artefact_ring_of_loyalty_desc                = "Rescuing greenoids triggers a burst attack.",
+		artefact_ring_of_loyalty_desc                = "Rescuing Greenoids triggers a burst attack.",
 		artefact_boost_damage_desc                   = "Faster boost that leaves a trail of fire.",
 		artefact_stone_trinket_desc                  = "+Random upgrade when you overheal.",
-		artefact_crown_of_frenzy_desc                = "+Fire rate when no greenoids on screen.",
+		artefact_crown_of_frenzy_desc                = "+Fire rate when no Greenoids on screen.",
 		artefact_death_cap_desc                      = "Fungi are sympathetic to your mission.",
 		artefact_clock_desc                          = "Chain rescues to increasingly slow enemies.",
 		-- artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
@@ -354,8 +354,8 @@ local translations = {
 		codex_name_evilplayer       = "Shadow Self",
 		codex_desc_evilplayer       = "Your heart takes you where it wants.",
 
-		codex_name_evilgreenoidboss = "Lost Embryo",
-		codex_desc_evilgreenoidboss = "Becomes aggressive and unpredictable as its makeshift shell decays.",
+		codex_name_evilGreenoidboss = "Lost Embryo",
+		codex_desc_evilGreenoidboss = "Becomes aggressive and unpredictable as its makeshift shell decays.",
 
 		codex_name_eggboss          = "Evil Egg",
 		codex_desc_eggboss          = "I never wanted to be born a monster.",
@@ -423,14 +423,20 @@ local translations = {
         -- codex_name_skull             = "Skull",
         -- codex_desc_skull             = "Chatters on.",
 
-        codex_name_evader            = "Evader",
+        codex_name_evader            = "Jester",
         codex_desc_evader           = "Runs away from its problems.",
+
+        codex_name_heavyevader       = "Harlequin",
+        codex_desc_heavyevader       = "Not very funny.",
         
-        codex_name_heavypatrol       = "Heavy Patrol",
-        codex_desc_heavypatrol       = "Employs excessive use of force.",
+        codex_name_lich             = "Lich",
+        codex_desc_lich             = "A high ranking demon engorged with Greenoid life force. Cannot be killed unless you destroy its spirit jar.",
+
+        -- codex_name_heavypatrol       = "Heavy Patrol",
+        -- codex_desc_heavypatrol       = "Employs excessive use of force.",
 
 
-        codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and greenoids.",
+        codex_glossary_room_has_max_points = "This room has the highest potential point value from enemies and Greenoids.",
         codex_glossary_room_is_hard        = "This room is extra difficult.",
         
         codex_glossary_name_lvl            = "Lvl",
@@ -448,10 +454,10 @@ local translations = {
         "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
 
         codex_glossary_name_upgrade        = "UPGRADE",
-        codex_glossary_desc_upgrade        = "A temporary upgrade to your firepower, carried to you by a greenoid martyr. A random upgrade is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
+        codex_glossary_desc_upgrade        = "A temporary upgrade to your firepower, carried to you by a Greenoid martyr. A random upgrade is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
         
         codex_glossary_name_artefact       = "ARTEFACT",
-        codex_glossary_desc_artefact       = "A piece of unique equipment sent to you by thankful greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",
+        codex_glossary_desc_artefact       = "A piece of unique equipment sent to you by thankful Greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",
 
         codex_glossary_name_time_warning   = "⏲‼",
         codex_glossary_desc_time_warning   = "Your game is running too slow or too fast. Your score may be disqualified from the leaderboard. Try adjusting your graphics settings in the options menu.",
@@ -481,7 +487,7 @@ local translations = {
 		tip_codex                   = "Check the codex to learn about things you've seen.",
         tip_dont_quit               = "It ain't over 'til it's over.",
         tip_choose_wisely           = "Choose wisely.",
-        tip_greenoid1               = "They're depending on you.",
+        tip_Greenoid1               = "They're depending on you.",
 		
 		game_over_score_display = "Final Score",
 		game_over_rescue_display = "Greenoids Saved",

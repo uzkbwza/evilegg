@@ -1013,6 +1013,17 @@ function GameWorld:create_next_rooms()
 	game_state.recently_selected_artefacts = {}
 	game_state.recently_selected_upgrades = {}
 
+    local cursed_frequency = 3
+    if game_state.level >= EGG_ROOM_START then
+        cursed_frequency = 2
+    end
+    if game_state.level >= EGG_ROOM_START + EGG_ROOM_PERIOD then
+        cursed_frequency = 1
+    end
+
+    local force_percent = 4 + max(0, ceil(((next_level) - EGG_ROOM_START) / EGG_ROOM_PERIOD)) * 2
+    local force_cursed = rng:percent(force_percent)
+
 	for i = 1, 3 do
 		local room = self:create_room({
 			-- bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
@@ -1023,7 +1034,8 @@ function GameWorld:create_next_rooms()
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
 			force_ammo = i == ammo_room and game_state.level,
-            cursed_room = (game_state.level >= 6 and (((i == cursed_room) or rng:percent(4)) and (game_state.level % (game_state.level > EGG_ROOM_START and 2 or 3) == 0)))
+            cursed_room = (game_state.level >= 6 and (((i == cursed_room) or force_cursed) and (game_state.level % cursed_frequency == 0))),
+            allow_ignorance = not (force_cursed and i ~= cursed_room),
             -- cursed_room = true
 		})
 		table.insert(rooms, room)

@@ -1,8 +1,14 @@
 local Evader = BaseEnemy:extend("Evader")
 local EvaderParticle = GameObject2D:extend("EvaderParticle")
 local EvaderBullet = BaseEnemy:extend("EvaderBullet")
+local HeavyEvader = Evader:extend("HeavyEvader")
+local HeavyEvaderDeathBullet = EvaderBullet:extend("HeavyEvaderDeathBullet")
 
 Evader.max_hp = 1
+HeavyEvader.max_hp = 2
+
+HeavyEvader.trail_color = Color.red
+HeavyEvader.heavy_evader = true
 
 local EVADE_SPEED = 2.0
 local SEARCH_RADIUS = 48
@@ -10,6 +16,7 @@ local DASH_SPEED = 0.5
 local RETREAT_SPEED = 0.25
 local BULLET_SPEED = 2.5
 local BULLET_COUNT = 7
+local DEATH_BULLET_SPEED = 1.0
 local SHOOT_FREQUENCY = 3
 
 local physics_limits = {
@@ -36,6 +43,7 @@ function Evader:new(x, y)
     self.average_bullet_dy = 0
     self.average_bullet_x = 0
     self.average_bullet_y = 0
+    self.shoot_chance = 2
     self.num_bullets = 0
     self:make_bouncy()
     self:set_physics_limits(physics_limits)
@@ -43,7 +51,7 @@ function Evader:new(x, y)
 end
 
 function Evader:enter()
-    local object = self:spawn_object(EvaderParticle(self.pos.x, self.pos.y)):ref("parent", self)
+    local object = self:spawn_object(EvaderParticle(self.pos.x, self.pos.y, self.trail_color)):ref("parent", self)
 
 end
 
@@ -82,7 +90,7 @@ function Evader:update(dt)
         if not (center_x == bx and center_y == by) then
             local cdx, cdy = vec2_direction_to(bx, by, center_x, center_y)
             local ratio = (1 - min(1, vec2_distance(bx, by, center_x, center_y) / SEARCH_RADIUS))
-            local speed = EVADE_SPEED * pow(ratio, 3) 
+            local speed = EVADE_SPEED * pow(ratio, 3)
             local dash_dx, dash_dy = vec2_rotated(average_dx, average_dy, rng:rand_sign() * tau / 4)
             if vec2_dot(dash_dx, dash_dy, cdx, cdy) < 0 then
                 dash_dx = -dash_dx
@@ -99,24 +107,35 @@ function Evader:update(dt)
             self:apply_force(dash_dx * -speed, dash_dy * -speed)
         end
     end
-    
+
     self.any_bullets_nearby = num_bullets > 0
 
     self:ref_bongle_clear("nearby_bullets")
 
-    if self.tick > 60 and self.world.timescaled.is_new_tick and rng:percent(2) and not self:is_tick_timer_running("shoot_cooldown") and not backing_away and self.world.timescaled.tick % SHOOT_FREQUENCY == 0 and not self:is_tick_timer_running("dash_cooldown") then
-        local s = self.sequencer
-        s:start(function()
-            for i = 1, BULLET_COUNT do
-                if self:is_tick_timer_running("dash_cooldown") then return end
-                self:play_sfx("enemy_evader_shoot", 0.5)
-                local bullet = self:spawn_object(EvaderBullet(bx, by))
-                bullet:apply_impulse(dx * BULLET_SPEED, dy * BULLET_SPEED)
-                s:wait(SHOOT_FREQUENCY)
-             end
-        end)
+    if self.tick > 60 and self.world.timescaled.is_new_tick and rng:percent(self.shoot_chance) and self:can_shoot() and self.world.timescaled.tick % SHOOT_FREQUENCY == 0 and not self:is_tick_timer_running("dash_cooldown") then
+        self:shoot(dx, dy)
         self:start_tick_timer("shoot_cooldown", 120)
     end
+end
+
+function Evader:can_shoot(allow_backing_away)
+    return self.heavy_evader or (not self:is_tick_timer_running("shoot_cooldown") and (allow_backing_away or not self.backing_away))
+end
+
+function Evader:shoot(dx, dy)
+    local s = self.sequencer
+    local bx, by = self:get_body_center()
+
+    s:start(function()
+    for i = 1, BULLET_COUNT do
+        if not self:can_shoot(true) then return end
+            self:play_sfx("enemy_evader_shoot", 0.5)
+            local bullet = self:spawn_object(EvaderBullet(bx, by))
+            bullet:apply_impulse(dx * BULLET_SPEED, dy * BULLET_SPEED)
+            s:wait(SHOOT_FREQUENCY)
+            bullet.heavy = self.heavy_evader
+        end
+    end)
 end
 
 function Evader.process_nearby_bullets(bullet, self)
@@ -146,12 +165,13 @@ function Evader:get_sprite()
     return iflicker(self.tick, 5, 2) and textures.enemy_evader1 or textures.enemy_evader2
 end
 
-function EvaderParticle:new(x, y)
+function EvaderParticle:new(x, y, color)
     EvaderParticle.super.new(self, x, y)
     -- self:set_sprite(textures.enemy_evader_particle)
     self:add_elapsed_ticks()
     self.particles = batch_remove_list()
     self.z_index = -1
+    self.color = color
 end
 
 
@@ -189,7 +209,7 @@ function EvaderParticle:draw()
             local scale = 1 - particle.elapsed / particle.lifetime
             local size = 8 * scale
             local x, y = self:to_local(particle.x, particle.y)
-            graphics.set_color(Color.magenta)
+            graphics.set_color(self.color or Color.magenta)
             graphics.rectangle_centered("line", x, y, size, size)
         end
     end
@@ -221,6 +241,9 @@ function EvaderBullet:on_terrain_collision(normal_x, normal_y)
 end
 
 function EvaderBullet:get_sprite()
+    -- if self.heavy then
+    --     return iflicker(self.tick, 3, 2) and textures.enemy_heavy_evader_bullet1 or textures.enemy_heavy_evader_bullet2
+    -- end
     return iflicker(self.tick, 3, 2) and textures.enemy_evader_bullet1 or textures.enemy_evader_bullet2
 end
 
@@ -231,5 +254,49 @@ end
 function EvaderBullet:update(dt)
 end
 
+function HeavyEvader:new(x, y)
+    HeavyEvader.super.new(self, x, y)
+    self.hit_bubble_radius = 7
+    self.shoot_chance = 4
+    self.walk_speed = 0.06
+end
 
-return Evader
+function HeavyEvader:get_sprite()
+    return iflicker(self.tick, 5, 2) and textures.enemy_heavy_evader1 or textures.enemy_heavy_evader2
+end
+
+function HeavyEvader:die()
+    -- local NUM_BULLETS = 24
+    -- for i = 1, NUM_BULLETS do
+    --     local bx, by = self:get_body_center()
+    --     local bullet = self:spawn_object(HeavyEvaderDeathBullet(bx, by))
+    --     local dx, dy = vec2_from_polar(DEATH_BULLET_SPEED, i / NUM_BULLETS * tau)
+    --     bullet:apply_impulse(dx, dy)
+    -- end
+    HeavyEvader.super.die(self)
+end
+
+function HeavyEvaderDeathBullet:new(x, y)
+    HeavyEvaderDeathBullet.super.new(self, x, y)
+    self.intangible = true
+    self.melee_attacking = false
+    self:start_tick_timer("intangible_cooldown", 3, function()
+        self.intangible = false
+        self.melee_attacking = true
+    end)
+    self.hurt_bubble_radius = 4
+    self.hit_bubble_radius = 3
+end
+
+function HeavyEvaderDeathBullet:get_sprite()
+    return textures.enemy_heavy_evader_death_bullet
+end
+
+
+
+-- function HeavyEvader:get_palette()
+--     return nil, self.tick / 3
+-- end
+
+
+return { Evader, HeavyEvader }

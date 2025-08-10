@@ -5,6 +5,10 @@ local FloorParticle = GameObject2D:extend("FloorParticle")
 local PullParticle = GameObject2D:extend("PullParticle")
 local BiteParticle = Effect:extend("BiteParticle")
 local PowerupParticle = Effect:extend("PowerupParticle")
+local Lich = Cultist:extend("Lich")
+local Phylactery = BaseEnemy:extend("Phylactery")
+local PhylacteryExplosion = GameObject2D:extend("PhylacteryExplosion")
+local PhylacteryParticles = GameObject2D:extend("PhylacteryParticles")
 local PULL_RADIUS = 90
 local PULL_FORCE = 0.0355
 local GRAB_SPEED = 3
@@ -12,12 +16,22 @@ local GRAB_TIME = 50
 local GRAB_RADIUS = 12
 local HURT_TIME = 49
 
+Phylactery.death_cry = "enemy_lich_phylactery_destroyed"
+
 Cultist.max_hp = 9
 
 Cultist.spawn_cry = "enemy_cultist_spawn"
 Cultist.spawn_cry_volume = 0.8
 Cultist.death_cry = "enemy_cultist_death"
 Cultist.death_cry_volume = 0.8
+
+Lich.spawn_cry = "enemy_lich_spawn"
+Lich.spawn_cry_volume = 0.8
+Lich.death_cry = "enemy_lich_death"
+Lich.death_cry_volume = 0.8
+
+Lich.is_lich = true
+Lich.max_hp = 7
 
 function Cultist:new(x, y)
     self.body_height = 7
@@ -40,16 +54,20 @@ function Cultist:new(x, y)
 end
 
 function Cultist:enter()
-	self:add_hurt_bubble(0, -4, 3, "main")
-	self:add_hurt_bubble(0, 0, 5, "main2")
-    self:add_hurt_bubble(0, 3, 5, "main3")
-    self:ref("floor_particle", self:spawn_object(FloorParticle(0, 0, self)))
+    self:add_bubbles()
+    self:ref("floor_particle", self:spawn_object(FloorParticle(0, 0, self, self.is_lich)))
 	self:ref("pull_particle", self:spawn_object(PullParticle(0, 0, self)))
     self:add_exit_function(function()
 		if self.floor_particle then
             self.floor_particle:finish()
 		end
 	end)
+end
+
+function Cultist:add_bubbles()
+    self:add_hurt_bubble(0, -4, 3, "main")
+    self:add_hurt_bubble(0, 0, 5, "main2")
+    self:add_hurt_bubble(0, 3, 5, "main3")
 end
 
 function Cultist:get_sprite()
@@ -96,7 +114,7 @@ function Cultist:walk_toward_target(dt)
 end
 
 function Cultist:update(dt)
-    if self.held_rescues:length() == 0 then
+    if self.held_rescues:length() == 0 and not self.dizzy then
         self:walk_toward_target(dt)
         self.bullet_push_modifier = 1.0
     else
@@ -105,7 +123,7 @@ function Cultist:update(dt)
         -- self.vel:mul_in_place(0)
     end
 
-    self.floor_particle:move_to(self:get_body_center())
+    self.floor_particle:move_to(self.pos.x, self.pos.y)
     local bx, by = self:get_body_center()
     local x, y, w, h = bx - PULL_RADIUS, by - PULL_RADIUS, PULL_RADIUS * 2, PULL_RADIUS * 2
 
@@ -140,6 +158,9 @@ function Cultist:update(dt)
                         s:wait(HURT_TIME)
                         if not self.hold_positions[rescue] then
                             return
+                        end
+                        if self.is_lich then 
+                            self:spawn_rescue_projectile(false)
                         end
                         rescue:damage(1)
                         self:start_timer("heal_fx", 25)
@@ -255,22 +276,31 @@ function PowerupParticle:draw(elapsed, tick, t)
 	
 end
 
-function Cultist:spawn_rescue_projectile()
+function Cultist:spawn_rescue_projectile(all)
     -- local projectile = self:spawn_object(CultistProjectile(x, y))
     -- projectile.target = self:get_closest_player()
 
     local s = self.sequencer
     local num_projectiles = rng:randi(2, 5)
     if rng:percent(10) then
-		num_projectiles = num_projectiles + rng:randi(1, 3)
-	end
+        num_projectiles = num_projectiles + rng:randi(1, 3)
+    end
+    
+    all = truthy_nil(all)
+
+    if not all then
+        num_projectiles = 1
+    end
+
 	s:start(function()
         for i = 1, num_projectiles do
-			local x, y = self:get_body_center()
+            for j=1, (all and self.is_lich and 2) or 1 do
+                local x, y = self:get_body_center()
 
-			local projectile = self:spawn_object(CultistBullet(x, y))
-			projectile:apply_impulse(rng:random_vec2_times(1.15))
-			s:wait(15)
+                local projectile = self:spawn_object(CultistBullet(x, y))
+                projectile:apply_impulse(rng:random_vec2_times(1.15))
+            end
+            s:wait(15)
 		end
     end)
 	self:start_tick_timer("spawn_projectile", rng:randi(20, 50) * num_projectiles, function()
@@ -407,12 +437,13 @@ function PullParticle:draw()
 	end
 end
 
-function FloorParticle:new(x, y, parent)
+function FloorParticle:new(x, y, parent, is_lich)
     FloorParticle.super.new(self, x, y)
     self:add_time_stuff()
     self.particles = {}
     self.z_index = -1
 	self:ref("parent", parent)
+    self.is_lich = is_lich
 end
 
 function FloorParticle:finish()
@@ -506,8 +537,13 @@ function FloorParticle:floor_draw()
     for particle, _ in pairs(self.particles) do
 
 		if rng:percent(60) then goto continue end
-		local alpha = abs(rng:randfn(0.35, 0.055)) * particle.angle_offset
-		graphics.set_color(alpha * 1, alpha * 0.1, 0)
+        local alpha = abs(rng:randfn(0.35, 0.055)) * particle.angle_offset
+        if self.is_lich then
+            graphics.set_color(alpha * 1, 0, alpha * 0.7)
+            
+        else
+            graphics.set_color(alpha * 1, alpha * 0.1, 0)
+        end
 		local size = particle.size * (particle.angle_offset)
 		local vx, vy = self:get_particle_position(particle)
 		graphics.rectangle_centered("fill", vx, vy, size, size)
@@ -623,6 +659,318 @@ end
 -- 	end
 -- end
 
-AutoStateMachine(Cultist, "Waiting")
+function Lich:new(x, y)
+    Lich.super.new(self, x, y)
+    self.body_height = 10
+    self.walk_speed = 0.16
+    self.dizzy = true
+    self:start_tick_timer("dizzy", 15, function()
+        self.dizzy = false
+    end)
+end
 
-return Cultist
+function Lich:add_bubbles()
+    self:add_hurt_bubble(0, -8, 3, "main4")
+    self:add_hurt_bubble(0, -4, 5, "main")
+    self:add_hurt_bubble(0, 0, 5, "main2")
+    self:add_hurt_bubble(0, 3, 5, "main3")
+    
+end
+
+function Lich:get_sprite()
+    return textures.enemy_lich
+end
+
+function Lich:is_invulnerable()
+
+    if self.phylactery then
+        return true
+    end
+
+    return Lich.super.is_invulnerable(self)
+end
+
+function Lich:enter()
+    Lich.super.enter(self)
+    self:ref("phylactery", self:spawn_object(Phylactery(self.pos.x, self.pos.y)))
+    self.phylactery:ref("parent", self)
+end
+
+function Lich:get_palette()
+    if self.phylactery then
+        return Palette.lich_invuln_palette, self.tick / 3
+    end
+    return Lich.super.get_palette(self)
+end
+
+function Lich:on_phylactery_destroyed()
+    self.dizzy = true
+    self.walk_speed = 0.2
+    self:start_tick_timer("dizzy", 20, function()
+        self.dizzy = false
+    end)
+end
+
+function Phylactery:new(x, y)
+    self.max_hp = 4
+    Phylactery.super.new(self, x, y)
+    self.melee_attacking = false
+    self.body_height = 0
+    self.hit_bubble_radius = 0
+    self.hurt_bubble_radius = 5
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    self:lazy_mixin(Mixins.Behavior.EntityDeclump)
+    self.irng = rng:new_instance()
+end
+
+function Phylactery:get_sprite()
+    return textures.enemy_phylactery3
+end
+
+local PARTICLE_COLORS = {
+    Color.cyan,
+    Color.cyan,
+    Color.cyan,
+    Color.skyblue,
+    Color.skyblue,
+    Color.blue,
+}
+
+function Phylactery:enter()
+    self:ref("particles", self:spawn_object(PhylacteryParticles(self.pos.x, self.pos.y)))
+    self.particles:ref("parent", self)
+    -- self.particles:follow_movement(self)
+end
+
+function Phylactery:update(dt)
+    Phylactery.super.update(self, dt)
+
+    self:play_sfx_if_stopped("enemy_lich_invuln", 0.45, 1.0, true)
+end
+
+function Phylactery:exit()
+    self:stop_sfx("enemy_lich_invuln")
+    if self.parent then
+
+        local offsy = self.parent.body_height
+        self:spawn_object(PhylacteryExplosion(self.parent.pos.x, self.parent.pos.y - offsy, 12, 21)):follow_movement(self.parent, 0, -offsy)
+        self.parent:on_phylactery_destroyed()
+    end
+    self:spawn_object(PhylacteryExplosion(self.pos.x, self.pos.y, 10, 10))
+end
+
+function Phylactery:draw()
+    self:body_translate()
+    local palette, offset = self:get_palette_shared()
+    graphics.drawp_centered(textures.enemy_phylactery1, palette, offset, 0, -1)
+
+    local irng = self.irng
+    irng:set_seed(self.tick + self.random_offset)
+
+    local center_offsx, center_offsy = irng:random_vec2_times(irng:randf(0, 2))
+    local hsize = irng:randfn_abs(4, 1)
+    local vsize = irng:randfn_abs(4, 1)
+    graphics.set_color(Color.cyan)
+    graphics.rectangle_centered("fill", center_offsx, center_offsy, hsize, vsize)
+
+end
+
+local PARTICLE_STEP = 4
+
+function PhylacteryParticles:new(x, y)
+    PhylacteryParticles.super.new(self, x, y)
+    self.particles = batch_remove_list()
+    self.particles2 = batch_remove_list()
+    self:add_elapsed_ticks()
+    for i = 1, 40 do
+        self:spawn_particle2()
+    end
+
+    self.exploded_yet = false
+end
+
+function PhylacteryParticles:spawn_particle2(color, speed)
+    local particle = {
+        elapsed = 0,
+    }
+    particle.x, particle.y = rng:random_vec2_times(12)
+    particle.vel_x, particle.vel_y = vec2_normalized_times(particle.x, particle.y, speed or rng:randfn(1, 3))
+    particle.x = particle.x + self.pos.x
+    particle.y = particle.y + self.pos.y
+    particle.prev_x, particle.prev_y = particle.x, particle.y
+    particle.prev_x_step, particle.prev_y_step = vec2_stepify(particle.prev_x, particle.prev_y, PARTICLE_STEP)
+    particle.color = color or Color.darkblue
+
+    self.particles2:push(particle)
+end
+
+function PhylacteryParticles:draw()
+    for _, particle in self.particles:ipairs() do
+        graphics.set_color(particle.color)
+        local size = particle.size * (1 - particle.t)
+        local x, y = self:to_local(particle.x, particle.y)
+        graphics.rectangle_centered("fill", x, y, size, size)
+    end
+
+    if self.tick < 3 then
+        graphics.set_color(Color.white)
+        graphics.rectangle_centered("fill", 0, 0, 40, 40)
+    end
+
+    if self.parent then
+        local palette, offset = self.parent:get_palette_shared()
+        graphics.set_color(Color.white)
+        graphics.drawp_centered(textures.enemy_phylactery2, palette, offset, 0, -1)
+    end 
+end
+
+function PhylacteryParticles:update(dt)
+    if self.parent then
+        self:move_to(self.parent.pos.x, self.parent.pos.y + 0.01)
+    elseif not self.exploded_yet then
+        self.exploded_yet = true
+        for i = 1, 40 do
+            self:spawn_particle2(Color.darkcyan, rng:randfn(6, 3))
+        end
+    end
+    if self.is_new_tick and self.parent then
+        local bx, by = self.parent:get_body_center()
+        local particle = {
+            t = 0,
+            x = bx,
+            y = by,
+            elapsed = 0,
+            lifetime = rng:randfn(20, 90),
+            size = rng:randfn(4, 1),
+            speed = rng:randfn_abs(0.5, 0.25),
+            color = rng:choose(PARTICLE_COLORS),
+        }
+        particle.dx, particle.dy = rng:random_vec2()
+        self.particles:push(particle)
+    end
+
+    for _, particle in self.particles:ipairs() do
+        particle.elapsed = particle.elapsed + dt
+        particle.t = particle.elapsed / particle.lifetime
+        particle.x = particle.x + particle.dx * dt * particle.speed
+        particle.y = particle.y + particle.dy * dt * particle.speed
+        particle.y = particle.y - dt * 0.25
+
+        if self.is_new_tick then
+            particle.dx, particle.dy = vec2_rotated(particle.dx, particle.dy, rng:randfn(0, tau / 20))
+        end
+
+        if particle.elapsed > particle.lifetime then
+            self.particles:queue_remove(particle)
+        end
+    end
+
+    for _, particle in self.particles2:ipairs() do
+        particle.prev_x, particle.prev_y = particle.x, particle.y
+        particle.x = particle.x + particle.vel_x * dt
+        particle.y = particle.y + particle.vel_y * dt
+        if stepify(particle.prev_x, PARTICLE_STEP) ~= stepify(particle.x, PARTICLE_STEP) or stepify(particle.prev_y, PARTICLE_STEP) ~= stepify(particle.y, PARTICLE_STEP) then
+            particle.prev_x_step, particle.prev_y_step = particle.prev_x, particle.prev_y
+        end
+        particle.elapsed = particle.elapsed + dt
+        particle.vel_x, particle.vel_y = vec2_drag(particle.vel_x, particle.vel_y, 0.1, dt)
+        if vec2_magnitude_squared(particle.vel_x, particle.vel_y) < pow(0.01, 2) then
+            self.particles2:queue_remove(particle)
+        end
+    end
+
+    self.particles:apply_removals()
+    self.particles2:apply_removals()
+
+    if self.particles:is_empty() and self.particles2:is_empty() and self.parent == nil then
+        self:queue_destroy()
+    end
+end
+
+function PhylacteryParticles:floor_draw()
+    if not self.is_new_tick then
+        return
+    end
+    graphics.push("all")
+    for _, particle in self.particles2:ipairs() do
+        graphics.set_line_width(ceil(max(2 - particle.elapsed / 20, 0)))
+        graphics.set_color(particle.color)
+
+        local x, y = self:to_local(vec2_stepify(particle.prev_x_step, particle.prev_y_step, PARTICLE_STEP))
+        local x2, y2 = self:to_local(vec2_stepify(particle.x, particle.y, PARTICLE_STEP))
+        graphics.line(x, y, x2, y2)
+    end
+    graphics.pop()
+end
+
+
+function PhylacteryExplosion:new(x, y, width, height)
+    width = width + 8
+    height = height + 8
+    self.width = width
+    self.height = height
+    PhylacteryExplosion.super.new(self, x, y)
+    self.z_index = 0.1
+    self.particles = batch_remove_list()
+    for i = 1, width * height / 5 do
+        local particle = {
+            t = 0,
+            x = rng:randf(-width / 2, width / 2),
+            y = rng:randf(-height / 2, height / 2),
+            height = height,
+            elapsed = 0,
+            lifetime = rng:randfn_abs(20, 90),
+            size = rng:randfn_abs(4, 1),
+            speed = rng:randfn_abs(0.34, 0.15),
+            color = rng:choose(PARTICLE_COLORS),
+            splerp_speed = max(rng:randfn_abs(200, 400), 100)
+        }
+        particle.real_x, particle.real_y = self.pos.x, self.pos.y
+        particle.dx, particle.dy = vec2_normalized(particle.x, particle.y)
+        if rng:percent(5) then
+            particle.splerp_speed = particle.splerp_speed * 10
+        end
+        self.particles:push(particle)
+    end
+    self:add_elapsed_ticks()
+end
+
+function PhylacteryExplosion:update(dt)
+    for _, particle in self.particles:ipairs() do
+        particle.elapsed = particle.elapsed + dt
+        particle.t = particle.elapsed / particle.lifetime
+        particle.y = particle.y - dt * particle.speed
+        particle.x = particle.x + particle.dx * dt * 0.5
+        particle.y = particle.y + particle.dy * dt * 0.5
+        if particle.t < 0.5 then
+            particle.real_x, particle.real_y = splerp_vec(particle.real_x, particle.real_y,  self.pos.x, self.pos.y, particle.splerp_speed + particle.t * particle.splerp_speed * 10, dt)
+        end
+        if particle.elapsed > particle.lifetime then
+            self.particles:queue_remove(particle)
+        end
+    end
+
+    self.particles:apply_removals()
+
+    if self.particles:is_empty() then
+        self:queue_destroy()
+    end
+end
+
+function PhylacteryExplosion:draw()
+    if self.tick < 2 then
+        graphics.set_color(Color.white)
+        graphics.rectangle_centered("fill", 0, 0, self.width, self.height)
+    end
+    for _, particle in self.particles:ipairs() do
+        graphics.set_color(particle.color)
+        local size = particle.size * (1 - ease("outCubic")(particle.t))
+        local x, y = self:to_local(particle.real_x + particle.x, particle.real_y + particle.y)
+        graphics.rectangle_centered("fill", x, y, size, size)
+    end
+end
+
+-- AutoStateMachine(Cultist, "Waiting")
+-- AutoStateMachine(Lich, "Waiting")
+
+return { Cultist, Lich }
