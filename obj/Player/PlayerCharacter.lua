@@ -133,13 +133,16 @@ function PlayerCharacter:new(x, y)
 end
 
 function PlayerCharacter:state_GameStart_enter()
-	if game_state.skip_tutorial then
+	if game_state.skip_intro then
         self:emit_signal("egg_ready")
         self.egg_ready = true
     else
         local s = self.sequencer
         self:move_to(0, -400)
-		s:start(function() 
+        s:start(function()
+            while self.world.beginning_cutscene do
+                s:wait(1)
+            end
 			local start_y = self.pos.y
             local tween = function(t)
 				-- print(t)

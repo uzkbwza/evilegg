@@ -221,13 +221,13 @@ function GlobalGameState:new()
 
 	self.score_categories = {}
 
-	self.skip_tutorial = usersettings.skip_tutorial or self.level > 1
-	if savedata.first_time_playing then self.skip_tutorial = false end
+	self.skip_intro = usersettings.skip_intro or self.level > 1
+	if savedata.hasnt_played_intro_yet then self.skip_intro = false end
 
     if debug.enabled then
 
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)

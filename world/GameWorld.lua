@@ -11,6 +11,8 @@ local XpPickup = require("obj.XpPickup")
 local EggWrath = require("obj.Spawn.Enemy.EggWrath")
 local PenitentSoul = require("obj.Spawn.Enemy.Penitent")[2]
 local FatigueZone = require("obj.Spawn.Enemy.FatigueZone")
+local Cutscene = require("obj.Cutscene")
+local BeginningCutscene = Cutscene.BeginningCutscene
 local CAMERA_OFFSET_AMOUNT = 20
 local MAX_ENEMIES = 100
 local MAX_HAZARDS = 50
@@ -276,17 +278,26 @@ function GameWorld:enter()
 		threshold_notify(notif, "notif_upgrade_available")
 	end)
 
-	if not game_state.skip_tutorial and not (debug.enabled and debug.skip_tutorial_sequence) then
+	if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
 		local s = self.timescaled.sequencer
-		s:start(function()
+        s:start(function()
             local player = self.players[1]
+            player:hide()
+            -- cutscene block
+            -- self:ref("beginning_cutscene", self:spawn_object(BeginningCutscene(0, 0)))
+            -- while self.beginning_cutscene do
+            --     s:wait(1)
+            -- end
+            player:show()
 			s:wait_for_signal(player, "egg_ready")
+            audio.play_music_if_stopped("music_drone")
             s:wait(35)
 			if not game_state.hatched then
 				self.tutorial_state = 1
 			end
         end)
-	elseif game_state.skip_tutorial then
+    elseif game_state.skip_intro then
+        audio.play_music_if_stopped("music_drone")
 		self.tutorial_state = 1
 	end
 end
@@ -371,7 +382,6 @@ function GameWorld:initialize_room(room)
 
 	local s = self.timescaled.sequencer
 
-	audio.play_music_if_stopped("music_drone")
 
     if self.room.curse then
         savedata:add_item_to_codex(self.room.curse)
@@ -799,7 +809,7 @@ function GameWorld:create_player(player_id)
 
         game_state:on_hatched()
 
-		savedata:set_save_data("first_time_playing", false)
+		savedata:set_save_data("hasnt_played_intro_yet", false)
 
 		if debug.enabled and debug.skip_tutorial_sequence then
 			self:room_border_fade("in")
@@ -807,7 +817,7 @@ function GameWorld:create_player(player_id)
 		end
 		
 		local s = self.timescaled.sequencer
-        if game_state.skip_tutorial then
+        if game_state.skip_intro then
 			self:room_border_fade("in")
             self:soft_room_clear()
 			s:start(function()

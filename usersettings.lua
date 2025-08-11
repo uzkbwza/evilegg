@@ -8,7 +8,6 @@ local default_usersettings = {
 	fps_cap = 300,
     cap_framerate = true,
 	zoom_level = 1,
-    skip_tutorial = true,
     brightness = 1.0,
     saturation = 1.0,
     hue = 0.0,
@@ -38,6 +37,8 @@ local default_usersettings = {
     -- misc
     retry_cooldown = false,
     enable_leaderboard = true,
+    skip_intro = true,
+
 
 }
 

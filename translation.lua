@@ -243,7 +243,7 @@ local translations = {
 		options_use_absolute_aim                     = "Absolute Mouse Aim",
 		options_mouse_sensitivity                    = "Relative Aim Sensitivity",
 		options_relative_mouse_aim_snap_to_max_range = "Rel. Aim Fixed Distance",
-		options_skip_tutorial                        = "Skip Intro",
+		options_skip_intro                           = "Skip Intro",
 		options_enter_name                           = "Enter Name",
 		options_show_hud                             = "Immersive Mode",
         options_gamepad_plus_mouse                   = "Always Show Cursor",
@@ -354,8 +354,8 @@ local translations = {
 		codex_name_evilplayer       = "Shadow Self",
 		codex_desc_evilplayer       = "Your heart takes you where it wants.",
 
-		codex_name_evilGreenoidboss = "Lost Embryo",
-		codex_desc_evilGreenoidboss = "Becomes aggressive and unpredictable as its makeshift shell decays.",
+		codex_name_evilgreenoidboss = "Lost Embryo",
+		codex_desc_evilgreenoidboss = "Becomes aggressive and unpredictable as its makeshift shell decays.",
 
 		codex_name_eggboss          = "Evil Egg",
 		codex_desc_eggboss          = "I never wanted to be born a monster.",
@@ -430,7 +430,7 @@ local translations = {
         codex_desc_heavyevader       = "Not very funny.",
         
         codex_name_lich             = "Lich",
-        codex_desc_lich             = "A high ranking demon engorged with Greenoid life force. Cannot be killed unless you destroy its spirit jar.",
+        codex_desc_lich             = "A high ranking demon engorged with Greenoid life force. Cannot be killed unless you destroy its spirit lantern.",
 
         -- codex_name_heavypatrol       = "Heavy Patrol",
         -- codex_desc_heavypatrol       = "Employs excessive use of force.",

@@ -10,6 +10,10 @@ local EGG_Y = -35
 local SUN_Y = -60
 
 local SKIP_CUTSCENE1 = true
+local LAST_PLANET_STARS_SEED = 5245
+local LAST_PLANET_STARS_SEED2 = 5246
+local GREENOID_STARS_SEED = 5247
+local GREENOID_STARS_SEED2 = 5248
 
 SKIP_CUTSCENE1 = SKIP_CUTSCENE1 and debug.enabled
 
@@ -31,8 +35,8 @@ local STAR_COLORS = {
 local function generate_stars(seed)
 	local irng = rng:new_instance()
 	irng:set_seed(seed or 0)
-	local width = 600
-	local height = 500
+	local width = 1200
+	local height = 600
 	local stars = {}
 	for _ = 1, 500 do
 		local star = {
@@ -59,9 +63,78 @@ local function draw_stars(stars)
 	graphics.pop()
 end
 
+
+function BeginningCutscene:new(x, y)
+    BeginningCutscene.super.new(self, x, y)
+    self.stars = generate_stars(LAST_PLANET_STARS_SEED)
+    self.stars2 = generate_stars(LAST_PLANET_STARS_SEED2)
+    self.greenoid_stars = generate_stars(GREENOID_STARS_SEED)
+    self.greenoid_stars2 = generate_stars(GREENOID_STARS_SEED2)
+
+    game_state.cutscene_hide_hud = true
+    game_state.cutscene_no_pause = true
+    self:init_state_machine()
+end
+
+function BeginningCutscene:enter()
+    local s = self.world.timescaled.sequencer
+    s:start(function()
+        s:wait(90)
+        self:change_state("Scene1")
+        s:wait(200)
+        self:change_state("Scene2")
+        s:wait(240)
+        self:queue_destroy()
+    end)
+end
+
+function BeginningCutscene:state_Scene0_enter()
+    
+end
+
+function BeginningCutscene:state_Scene1_enter()
+    local s = self.world.timescaled.sequencer
+end
+
+function BeginningCutscene:state_Scene1_draw()
+    self:draw_planet()
+end
+
+function BeginningCutscene:state_Scene2_enter()
+    
+end
+
+function BeginningCutscene:state_Scene2_draw()
+    draw_stars(self.stars2)
+    graphics.drawp_centered(textures.cutscene_planet_horizon1, nil, 0, 0)
+end
+
+function BeginningCutscene:draw_planet()
+    draw_stars(self.stars)
+
+    graphics.set_color(Color.white)
+    
+	if iflicker(self.tick, 1, 2) then
+		graphics.draw_centered(textures.cutscene_sun, 0, SUN_Y)
+	end
+
+    graphics.drawp_centered(textures.cutscene_tiny_egg, nil, 0, 0, EGG_Y)
+    
+    graphics.drawp_centered(textures.cutscene_infected_planet_greenoid, nil, 0, 0, PLANET_Y)
+
+end
+
+
+
+function BeginningCutscene:exit()
+    game_state.cutscene_hide_hud = false
+    game_state.cutscene_no_pause = false
+end
+
+
 function EndingCutscene1:new(x, y)
     EndingCutscene1.super.new(self, x, y)
-	self.stars = generate_stars()
+	self.stars = generate_stars(GREENOID_STARS_SEED)
 	self.stencil_points = {}
     self.drawing_in_points = {}
     self.is_drawing_in_greenoids = true
@@ -305,6 +378,7 @@ function EndingCutscene2:new(x, y)
 end
 
 AutoStateMachine(EndingCutscene1, "Scene1")
+AutoStateMachine(BeginningCutscene, "Scene0")
 
 return {
 	Cutscene = Cutscene,

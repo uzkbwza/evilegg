@@ -63,7 +63,7 @@ function Evader:update(dt)
 
     local backing_away = false
 
-    if vec2_distance(bx, by, pbx, pby) < 48 then
+    if vec2_distance(bx, by, pbx, pby) < self.back_away_distance then
         self:apply_force(dx * -RETREAT_SPEED, dy * -RETREAT_SPEED)
         backing_away = true
     else
@@ -112,14 +112,20 @@ function Evader:update(dt)
 
     self:ref_bongle_clear("nearby_bullets")
 
-    if self.tick > 60 and self.world.timescaled.is_new_tick and rng:percent(self.shoot_chance) and self:can_shoot() and self.world.timescaled.tick % SHOOT_FREQUENCY == 0 and not self:is_tick_timer_running("dash_cooldown") then
+    if self.tick > 60 and self.world.timescaled.is_new_tick and rng:percent(self.shoot_chance) and self:can_shoot() and not self:is_tick_timer_running("shoot_cooldown") and self.world.timescaled.tick % SHOOT_FREQUENCY == 0 and not self:is_tick_timer_running("dash_cooldown") then
         self:shoot(dx, dy)
         self:start_tick_timer("shoot_cooldown", 120)
+
     end
 end
 
 function Evader:can_shoot(allow_backing_away)
-    return self.heavy_evader or (not self:is_tick_timer_running("shoot_cooldown") and (allow_backing_away or not self.backing_away))
+
+    if self.heavy_evader then
+        return true
+    else
+        return (allow_backing_away or not self.backing_away)
+    end
 end
 
 function Evader:shoot(dx, dy)
@@ -128,7 +134,8 @@ function Evader:shoot(dx, dy)
 
     s:start(function()
     for i = 1, BULLET_COUNT do
-        if not self:can_shoot(true) then return end
+            if not self:can_shoot(true) then return end
+
             self:play_sfx("enemy_evader_shoot", 0.5)
             local bullet = self:spawn_object(EvaderBullet(bx, by))
             bullet:apply_impulse(dx * BULLET_SPEED, dy * BULLET_SPEED)
@@ -259,6 +266,7 @@ function HeavyEvader:new(x, y)
     self.hit_bubble_radius = 7
     self.shoot_chance = 4
     self.walk_speed = 0.06
+    self.back_away_distance = 48
 end
 
 function HeavyEvader:get_sprite()

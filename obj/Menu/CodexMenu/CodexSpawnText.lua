@@ -6,6 +6,7 @@ function CodexSpawnText:new(x, y, text, centered, color, delay, uppercase)
     CodexSpawnText.super.new(self, x, y)
     self.font = uppercase and fonts.depalettized.image_font2 or fonts.depalettized.image_neutralfont1
     self.text = uppercase and text:upper() or text
+    self.uppercase = uppercase
     
 	if centered == nil then
         centered = true
@@ -38,11 +39,20 @@ function CodexSpawnText:draw()
         local text = line
 		text = utf8.sub(line, 1, (1 - self:timer_progress("show_text")) * utf8.len(line))
 
-		if self.centered then
-			graphics.print_centered(text, self.font, 0, line_height * (i - 1))
-		else
-			graphics.print(text, -LINE_WIDTH / 2, line_height * (i - 1))
-		end
+        if self.uppercase then
+            if self.centered then
+                graphics.print_centered(text, self.font, 0, line_height * (i - 1))
+            else
+                graphics.print(text, -LINE_WIDTH / 2, line_height * (i - 1))
+            end
+        else
+            if self.centered then
+                graphics.print_outline_centered(Color.black, text, self.font, 0, line_height * (i - 1))
+            else
+                graphics.print_outline(Color.black, text, -LINE_WIDTH / 2, line_height * (i - 1))
+            end
+
+        end
 	end
 end
 

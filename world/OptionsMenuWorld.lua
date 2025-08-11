@@ -216,7 +216,7 @@ function OptionsMenuWorld:show_menu(page)
         { "sfx_volume",    item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
         { newpage = true },
 		{ "header", text = tr.options_header_other },
-        { "skip_tutorial", item_type = "toggle" },
+        { "skip_intro", item_type = "toggle" },
         { "retry_cooldown", item_type = "toggle", update_function = function(self, dt)
             self:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
             if not self.enabled and not self.gamer_health_timer then
