@@ -251,7 +251,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 91
+            self.level = 30
             self.hearts = self.max_hearts
 
             for i = 1, 7 do

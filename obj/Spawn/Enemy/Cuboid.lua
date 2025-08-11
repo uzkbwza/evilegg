@@ -71,6 +71,11 @@ function Cuboid:new(x, y)
 	-- self.on_terrain_collision = self.terrain_collision_bounce
 end
 
+function Cuboid:on_terrain_collision(normal_x, normal_y)
+    self:terrain_collision_bounce(normal_x, normal_y)
+    self:move(normal_x, normal_y)
+end
+
 function Cuboid:enter()
     self.melee_attacking = false
     self.intangible = true

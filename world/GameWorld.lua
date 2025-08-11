@@ -287,7 +287,7 @@ function GameWorld:enter()
             -- cutscene block
             -- self:ref("beginning_cutscene", self:spawn_object(BeginningCutscene(0, 0)))
             -- while self.beginning_cutscene do
-            --     s:wait(1)
+                -- s:wait(1)
             -- end
             -----------------
             
@@ -382,7 +382,13 @@ function GameWorld:initialize_room(room)
 
 	game_state:on_level_start()
 
-	self.room = room
+    self.room = room
+    
+    if self.play_music_next_level then
+        audio.play_music_if_stopped("music_drone")
+        self.play_music_next_level = false
+    end
+
 
 	local s = self.timescaled.sequencer
 

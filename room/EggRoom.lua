@@ -180,7 +180,8 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 			audio.stop_music()
 
 			self.world:on_room_clear()
-			
+            self.world.play_music_next_level = true
+
 			game_state:on_egg_room_cleared()
 			
         elseif choice == "kill_egg" then
