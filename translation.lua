@@ -35,13 +35,17 @@ local translations = {
         curse_ignorance_desc = "This room is cursed with opacity.",
 
         curse_hazardous = "PERIL",
-        curse_hazardous_desc = "This room is cursed with excessive hazards.",
+        curse_hazardous_desc = "This room is cursed with excess hazards.",
 
         curse_famine = "FAMINE",
-        curse_famine_desc = "This room is cursed with pacifism.",
+        curse_famine_desc = "This room disables the use of your secondary weapon.",
 
         curse_vulnerability = "FRAILTY",
         curse_vulnerability_desc = "This room weakens Greenoid defenses.",
+
+        curse_encore = "TOIL",
+        curse_encore_desc = "This room lasts an extra wave.",
+
 
 		notif_fire_rate = "FIRE RATE",
 		notif_range = "RANGE",

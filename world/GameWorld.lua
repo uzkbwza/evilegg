@@ -283,11 +283,15 @@ function GameWorld:enter()
         s:start(function()
             local player = self.players[1]
             player:hide()
+            
             -- cutscene block
             -- self:ref("beginning_cutscene", self:spawn_object(BeginningCutscene(0, 0)))
             -- while self.beginning_cutscene do
             --     s:wait(1)
             -- end
+            -----------------
+            
+
             player:show()
 			s:wait_for_signal(player, "egg_ready")
             audio.play_music_if_stopped("music_drone")
@@ -1022,6 +1026,7 @@ function GameWorld:create_next_rooms()
 	game_state.already_selected_secondary_weapon_this_level = false
 	game_state.recently_selected_artefacts = {}
 	game_state.recently_selected_upgrades = {}
+	game_state.recently_selected_curses = {}
 
     local cursed_frequency = 3
     if game_state.level >= EGG_ROOM_START then
@@ -1032,9 +1037,20 @@ function GameWorld:create_next_rooms()
     end
 
     local force_percent = 4 + max(0, ceil(((next_level) - EGG_ROOM_START) / EGG_ROOM_PERIOD)) * 2
+    
     local force_cursed = rng:percent(force_percent)
 
-	for i = 1, 3 do
+    local num_cursed_rooms = 0
+
+	for i = 1, 3 do 
+        local cursed = (game_state.level >= 6 and (((i == cursed_room) or force_cursed) and (game_state.level % cursed_frequency == 0)))
+        if cursed then
+            num_cursed_rooms = num_cursed_rooms + 1
+        end
+        if num_cursed_rooms >= 2 and next_level < EGG_ROOM_START then
+            cursed = false
+            force_cursed = false
+        end
 		local room = self:create_room({
 			-- bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
 			bonus_room = game_state.level > 3 and ((next_level) % 5 == 0),
@@ -1044,7 +1060,7 @@ function GameWorld:create_next_rooms()
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
 			force_ammo = i == ammo_room and game_state.level,
-            cursed_room = (game_state.level >= 6 and (((i == cursed_room) or force_cursed) and (game_state.level % cursed_frequency == 0))),
+            cursed_room = cursed,
             allow_ignorance = not (force_cursed and i ~= cursed_room),
             -- cursed_room = true
 		})

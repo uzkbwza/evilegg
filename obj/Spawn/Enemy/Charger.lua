@@ -58,7 +58,7 @@ function Charger:damage(damage)
 end
 
 -- function Charger:is_invulnerable()
-	-- return self.state == "Waiting"/
+	-- return true
 -- end
 
 function Charger:state_Waiting_enter()
@@ -77,7 +77,6 @@ function Charger:state_Waiting_enter()
     if self.charged_yet then
         self:charge()
     end
-    -- self:charge()
     
 end
 
@@ -98,16 +97,24 @@ function Charger:charge(time)
 
 
 	local wait_time = (time or rng:randi(25, 90))
-	self:start_tick_timer("effect", wait_time - 5, function()
-        self.pdx, self.pdy = self:get_body_direction_to_player()
 
-        self:play_sfx("enemy_charger_warning", 0.75, 1.0)
-        local bx, by = self:get_body_center()
-        self:spawn_object(ChargerIndicator(bx + self.pdx * 8, by + self.pdy * 8, self.pdx, self.pdy))
+    local s = self.sequencer
+    s:start(function()
+        while self:is_tick_timer_running("waiting") do
+            s:wait(1)
+        end
+        self:start_tick_timer("effect", wait_time - 5, function()
+            self.pdx, self.pdy = self:get_body_direction_to_player()
+            
+            self:play_sfx("enemy_charger_warning", 0.75, 1.0)
+            local bx, by = self:get_body_center()
+            self:spawn_object(ChargerIndicator(bx + self.pdx * 8, by + self.pdy * 8, self.pdx, self.pdy))
+        end)
+        self:start_tick_timer("waiting", wait_time, function()
+            self:change_state("Charging")
+        end)
     end)
-    self:start_tick_timer("waiting", wait_time, function()
-		self:change_state("Charging")
-    end)
+
 end
 
 function Charger:state_Waiting_exit()
@@ -170,6 +177,7 @@ end
 function Charger:state_Charging_exit()
     self:stop_sfx("enemy_charger_charge")
 	self:play_sfx("enemy_charger_wall_slam", 0.85, 1.0)
+    self:start_tick_timer("charge_cooldown", 10)
 end
 
 function Charger:state_Charging_update(dt)
@@ -190,7 +198,7 @@ function Charger:get_palette()
 end
 
 function Charger:on_terrain_collision(normal_x, normal_y)
-	if self.state == "Charging" and self.state_tick > 3 then
+	if self.state == "Charging" and self.state_tick > 3 and vec2_dot(normal_x, normal_y, self.pdx, self.pdy) < 0.0 then
         self:change_state("Waiting")
 		self:bump_recoil(normal_x, normal_y)
 	end

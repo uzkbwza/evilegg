@@ -7,7 +7,7 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = true
-local debug_enemy = "Evader"
+local debug_enemy = "Charger"
 local num_debug_enemies = 1
 local num_debug_waves = 3
 
@@ -41,6 +41,10 @@ Room.curses = {
     curse_vulnerability = {
         weight = 1000,
     },
+    curse_encore = {
+        weight = 1000,
+        min_level = 30,
+    }
 }
 
 Room.narrative_types = {
@@ -482,6 +486,11 @@ function Room:get_random_curse(allow_ignorance)
         if self.level < (curse.min_level and resolve(curse.min_level) or 0) then
             goto continue
         end
+
+        if table.list_has(game_state.recently_selected_curses, curse_name) then
+            goto continue
+        end
+
         if not truthy_nil(resolve(curse.can_spawn)) then
             goto continue
         end
@@ -493,7 +502,10 @@ function Room:get_random_curse(allow_ignorance)
 
         ::continue::
     end
-    return rng:weighted_choice_dict(valid_curses)
+    local result = rng:weighted_choice_dict(valid_curses)
+
+    table.insert(game_state.recently_selected_curses, result)
+    return result
 end
 
 function Room:get_random_position_within_room(terrain_collision_radius)
@@ -846,7 +858,10 @@ function Room:generate_waves()
 	}
 
     local function process_narrative(narrative)
-        local sub_narratives = narrative.sub_narratives
+        local sub_narratives = table.deepcopy(narrative.sub_narratives)
+        if self.curse_encore then
+            table.insert(sub_narratives, sub_narratives[#sub_narratives])
+        end
         local wave_number = 1
 
         for i = 1, min(#sub_narratives, self.level) do

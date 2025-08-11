@@ -257,6 +257,7 @@ local CURSE_COLORS = {
     -- curse_ignorance = { Color.magenta, Color.darkergrey },
     curse_hazardous = { Color.yellow, Color.orange },
     curse_vulnerability = { Color.orange, Color.darkred },
+    curse_encore = { Color.blue, Color.darkblue },
 }
 
 

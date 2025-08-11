@@ -68,7 +68,7 @@ function Cuboid:new(x, y)
 	self.beaming = false
 
     self.random_bullet_angle = rng:randf(0, tau)
-	self.on_terrain_collision = self.terrain_collision_bounce
+	-- self.on_terrain_collision = self.terrain_collision_bounce
 end
 
 function Cuboid:enter()

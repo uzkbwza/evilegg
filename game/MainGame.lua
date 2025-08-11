@@ -227,7 +227,7 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
+        local cheat = true
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -251,7 +251,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 31
+            self.level = 91
             self.hearts = self.max_hearts
 
             for i = 1, 7 do
