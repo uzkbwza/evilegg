@@ -1045,3 +1045,4 @@ Vec2.RIGHT = Vec2(1, 0)
 CARDINAL_DIRECTIONS = { Vec2.UP, Vec2.DOWN, Vec2.LEFT, Vec2.RIGHT }
 ORDINAL_DIRECTIONS = { Vec2(1, 1), Vec2(-1, 1), Vec2(-1, -1), Vec2(1, -1) }
 ALL_DIRECTIONS = { Vec2(0, 0), Vec2(1, 0), Vec2(0, 1), Vec2(-1, 0), Vec2(0, -1), Vec2(1, 1), Vec2(-1, 1), Vec2(-1, -1), Vec2(1, -1) }
+CARDINAL_AND_ORDINAL_DIRECTIONS = { Vec2(1, 0), Vec2(0, 1), Vec2(-1, 0), Vec2(0, -1), Vec2(1, 1), Vec2(-1, 1), Vec2(-1, -1), Vec2(1, -1) }

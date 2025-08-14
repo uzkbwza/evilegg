@@ -698,7 +698,7 @@ function graphics.draw_loop()
     graphics.set_shader(graphics.shader.adjustment)
     for arg, value in pairs(graphics.adjustment_shader_options) do
         if arg == "hue" and usersettings.disco_mode then
-            graphics.shader.adjustment:send(arg, value + gametime.time * remap_pow(usersettings.hue, 0, 1, 0.0025, 0.06, 3))
+            graphics.shader.adjustment:send(arg, value + gametime.time * remap_pow(usersettings.hue, 0, 1, 0.0002, 0.06, 3))
         else
             graphics.shader.adjustment:send(arg, value)
         end

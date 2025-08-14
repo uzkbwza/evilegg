@@ -30,8 +30,8 @@ function bonglewunch:length()
     return self.__length
 end
 
-function bonglewunch:random()
-    return self.__array[rng:randi(1, self.__length)]
+function bonglewunch:random(irng)
+    return self.__array[(irng or rng):randi(1, self.__length)]
 end
 
 function bonglewunch:ipairs()

@@ -8,9 +8,15 @@ SOURCE_DIR = os.path.join("assets", "audio", "music")
 
 def convert_wav_to_ogg(wav_path):
     ogg_path = os.path.splitext(wav_path)[0] + ".ogg"
-    # if os.path.exists(ogg_path):
-    #     print(f"Skipping (already exists): {ogg_path}")
-    #     return
+    if os.path.exists(ogg_path):
+        try:
+            wav_mtime = os.path.getmtime(wav_path)
+            ogg_mtime = os.path.getmtime(ogg_path)
+            if ogg_mtime >= wav_mtime:
+                print(f"Up-to-date, skipping: {ogg_path}")
+                return
+        except OSError:
+            pass
 
     try:
         subprocess.run(

@@ -103,8 +103,12 @@ function audio.update(dt)
 	end
 	
     if debug.enabled then
-		-- dbg("audio.object_sounds", table.length(audio.sound_objects))
-	end
+        -- dbg("audio.object_sounds", table.length(audio.sound_objects))
+    end
+    
+    if audio.playing_music and not audio.playing_music:isPlaying() then
+        audio.playing_music = nil
+    end
 end
 
 function audio.set_position(x, y, z)
@@ -268,9 +272,13 @@ end
 
 function audio.get_music(name)
     if not audio.music[name] then
-        error("Music not found: " .. name) 
+        error("Music not found: " .. name)
     end
     return audio.music[name]
+end
+
+function audio.get_playing_music()
+    return audio.playing_music
 end
 
 function audio.get_sfx(name)
@@ -320,7 +328,7 @@ function audio.usersettings_update()
     if audio.playing_music then
         audio.playing_music:setVolume(usersettings.music_volume * audio.playing_music_volume)
     end
-	audio.set_volume(usersettings.master_volume * audio.base_master_volume)
+    audio.set_volume(usersettings.master_volume * audio.base_master_volume)
 end
 
 function audio.stop_music()

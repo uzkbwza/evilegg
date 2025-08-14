@@ -7,19 +7,75 @@ local default_savedata = {
     codex_items = {},
     new_codex_items = {},
     run_upload_queue = {},
-    hasnt_played_intro_yet = true,
+    new_version_force_intro = true,
     last_died_at = 0,
 	game_version = GAME_VERSION,
     leaderboard_version = GAME_LEADERBOARD_VERSION,
     leaderboard_sort_index = 1,
     leaderboard_period = "daily",
     done_shader_performance_test = false,
+    -- update_force_cutscene = true,
 }
 
 local SCORE_COUNT = 100
 
 local savedata = {}
 local MAX_NAME_LENGTH = 18
+
+local VERSIONS_WITH_NEW_INTRO = {
+    "0.8.9",
+}
+
+
+-- Compare two version strings like "0.8.9" or "1.2.3-rc1".
+-- Returns 1 if a > b, -1 if a < b, 0 if equal.
+function savedata:version_compare(a, b)
+    local function parse_version(v)
+        v = tostring(v or "")
+        local parts = {}
+        for part in v:gmatch("[^%.]+") do
+            local num = tonumber(part:match("^(%d+)")) or 0
+            local suffix = part:match("%d+(.*)")
+            if suffix == "" then suffix = nil end
+            parts[#parts + 1] = { num = num, suffix = suffix }
+        end
+        return parts
+    end
+
+    local pa, pb = parse_version(a), parse_version(b)
+    local max_len = math.max(#pa, #pb)
+    for i = 1, max_len do
+        local va = pa[i] or { num = 0, suffix = nil }
+        local vb = pb[i] or { num = 0, suffix = nil }
+        if va.num ~= vb.num then
+
+            return (va.num > vb.num) and 1 or -1
+        end
+
+        local sa, sb = va.suffix, vb.suffix
+        if sa ~= sb then
+            if sa == nil and sb ~= nil then return 1 end   -- release > pre-release
+            if sa ~= nil and sb == nil then return -1 end  -- pre-release < release
+            if sa ~= nil and sb ~= nil then
+                if sa ~= sb then
+                    return (sa > sb) and 1 or -1
+                end
+            end
+        end
+    end
+    return 0
+end
+
+-- Convenience: true if version a is newer than version b
+function savedata:is_version_newer(a, b)
+    return savedata:version_compare(a, b) == 1
+end
+
+function savedata:is_version_older(a, b)
+    return savedata:version_compare(a, b) == -1
+end
+
+
 
 function savedata:load()
     local _, u = pcall(require, "_savedata")
@@ -53,7 +109,16 @@ function savedata:load()
     if self.game_version ~= GAME_VERSION then
         self.was_old_game_version = true
         self.old_game_version = self.game_version
+        if self.old_game_version == nil then
+            self.old_game_version = "0.0.0"
+        end
         self.game_version = GAME_VERSION
+        for _, version in ipairs(VERSIONS_WITH_NEW_INTRO) do
+            if self:version_compare(self.old_game_version, version) < 0 and self:version_compare(self.game_version, version) >= 0 then
+                self.new_version_force_intro = true
+                break
+            end
+        end
     end
 
     if self.leaderboard_version ~= GAME_LEADERBOARD_VERSION then

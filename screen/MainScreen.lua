@@ -145,6 +145,11 @@ function MainScreen:update(dt)
     if self.current_screen and self.current_screen.get_mouse_mode then
         visible, relative = self.current_screen:get_mouse_mode()
     end
+
+    if game_state and game_state.cutscene_hide_hud and game_state.cutscene_no_pause then
+        visible = false
+    end
+
     self.drawing_cursor = visible
     self.clear_color = self:get_clear_color()
     -- love.mouse.set_visible(visible)

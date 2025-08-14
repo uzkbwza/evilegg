@@ -200,11 +200,15 @@ function PlayerDeathScreenWorld:add_buttons()
 	signal.connect(leaderboard, "selected", self, "on_leaderboard_selected", function() self:on_button_pressed("leaderboard_requested") end)
 
     signal.connect(retry, "selected", self, "on_retry_selected",
-        function() self:on_button_pressed("restart_requested") end)
+        function()
+            if global_state then
+                global_state.restarting = true
+            end
+            self:on_button_pressed("restart_requested") end)
     signal.connect(quit, "selected", self, "on_quit_selected", function() self:on_button_pressed("quit_requested") end)
 
     retry:focus()
-end
+end 
 
 function PlayerDeathScreenWorld:on_button_pressed(signal_name)
 	self:emit_signal("menu_item_selected")

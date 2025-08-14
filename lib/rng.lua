@@ -31,7 +31,11 @@ function rng:one_in(n)
 end
 
 function rng:randf_pow(min_, max_, power)
-	return remap01(pow(self(), power), min_, max_)
+    return remap01(pow(self(), power), min_, max_)
+end
+
+function rng:randf_pow_inverted(min_, max_, power)
+    return remap01(pow(1 - self(), power), max_, min_)
 end
 
 function rng:rand_sign()

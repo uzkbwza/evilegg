@@ -51,7 +51,10 @@ function MainMenuWorld:create_buttons()
 	local menu_root = self:spawn_object(O.MainMenu.MainMenuRoot(1, 1, 1, 1))
 
     local menu_items = {
-		{name = tr.main_menu_start_button, func = function() self:emit_signal("start_game_requested") end},
+		{name = tr.main_menu_start_button, func = function() 
+            global_state.restarting = false
+            self:emit_signal("start_game_requested")
+            end},
         -- {name = tr.menu_codex_button, func = function() end},
         -- {name = tr.main_menu_tutorial_buttom, func = function() end},
 		{

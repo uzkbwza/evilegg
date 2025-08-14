@@ -479,6 +479,10 @@ function GameObject:interpolate_property(prop, start, finish, duration, nil_at_e
 	self:interpolate_property_at_time(prop, start, finish, self.elapsed, duration, nil_at_end)
 end
 
+function GameObject:interpolate_property_after(prop, start, finish, delay, duration, nil_at_end)
+    self:interpolate_property_at_time(prop, start, finish, self.elapsed + delay, duration, nil_at_end)
+end
+
 function GameObject:interpolate_property_at_time(prop, start, finish, start_time, duration, nil_at_end)
 	self:interpolate_property_between_times(prop, start, finish, start_time, start_time + duration, nil_at_end)
 end
@@ -497,6 +501,39 @@ function GameObject:interpolate_property_between_times(prop, start, finish, star
 		nil_at_end = nil_at_end
     })
 end
+
+
+function GameObject:interpolate_property_eased(prop, start, finish, duration, easing, nil_at_end)
+	self[prop] = start
+	self:interpolate_property_at_time_eased(prop, start, finish, self.elapsed, duration, easing, nil_at_end)
+end
+
+
+function GameObject:interpolate_property_after_eased(prop, start, finish, delay, duration, easing, nil_at_end)
+    self:interpolate_property_at_time_eased(prop, start, finish, self.elapsed + delay, duration, easing, nil_at_end)
+end
+
+
+function GameObject:interpolate_property_at_time_eased(prop, start, finish, start_time, duration, easing, nil_at_end)
+	self:interpolate_property_between_times_eased(prop, start, finish, start_time, start_time + duration, easing, nil_at_end)
+end
+
+function GameObject:interpolate_property_between_times_eased(prop, start, finish, start_time, finish_time, easing, nil_at_end)
+    if not self.interpolate_properties then
+        self.interpolate_properties = {}
+        self:add_update_function(self._interpolate_properties_update_function)
+    end
+    table.insert(self.interpolate_properties, {
+        prop = prop,
+        start = start,
+        finish = finish,
+        start_time = start_time,
+        finish_time = finish_time,
+		nil_at_end = nil_at_end,
+		easing = easing
+    })
+end
+
 
 function GameObject:is_interpolating_property(prop)
     return self.interpolation_counts and self.interpolation_counts[prop]
@@ -523,12 +560,12 @@ function GameObject:_interpolate_properties_update_function(dt)
     -- Pass 1: Activate newly started interpolations and find the dominant one for each property.
     self._interpolate_latest_starters = self._interpolate_latest_starters or {}
     local latest_starters = self._interpolate_latest_starters
-    
+
     -- Clear the cached table
     for prop in pairs(latest_starters) do
         latest_starters[prop] = nil
     end
-    
+
     for i = 1, #self.interpolate_properties do
         local v = self.interpolate_properties[i]
         if self.elapsed >= v.start_time and not v.started then
@@ -546,9 +583,9 @@ function GameObject:_interpolate_properties_update_function(dt)
     for i = #self.interpolate_properties, 1, -1 do
         local v = self.interpolate_properties[i]
 
-		if not v.started then
-			goto continue
-		end
+        if not v.started then
+            goto continue
+        end
 
         -- Check if it is superseded by a new interpolation that just started
         local dominant_starter = latest_starters[v.prop]
@@ -558,20 +595,24 @@ function GameObject:_interpolate_properties_update_function(dt)
             goto continue
         end
 
-		local elapsed = self.elapsed - v.start_time
-		local duration = v.finish_time - v.start_time
-		
-		if elapsed >= duration then
-			if v.nil_at_end then
-				self[v.prop] = nil
-			else
-				self[v.prop] = v.finish
-			end
-			self:_decrement_interpolation_count(v.prop)
-			table.remove(self.interpolate_properties, i)
-		else
-			self[v.prop] = lerp(v.start, v.finish, elapsed / duration)
-		end
+        local elapsed = self.elapsed - v.start_time
+        local duration = v.finish_time - v.start_time
+
+        if elapsed >= duration then
+            if v.nil_at_end then
+                self[v.prop] = nil
+            else
+                self[v.prop] = v.finish
+            end
+            self:_decrement_interpolation_count(v.prop)
+            table.remove(self.interpolate_properties, i)
+        else
+            if v.easing then
+                self[v.prop] = lerp(v.start, v.finish, ease(v.easing)(elapsed / duration))
+            else
+                self[v.prop] = lerp(v.start, v.finish, elapsed / duration)
+            end
+        end
         ::continue::
     end
 
@@ -581,6 +622,27 @@ function GameObject:_interpolate_properties_update_function(dt)
     end
 end
 
+function GameObject:set_property_at_tick(prop, value, tick)
+    if not self.set_properties_at_tick then
+        self.set_properties_at_tick = {}
+        self:add_update_function(self._set_properties_at_tick_update_function)
+    end
+    self.set_properties_at_tick[tick] = self.set_properties_at_tick[tick] or {}
+    self.set_properties_at_tick[tick][prop] = value
+end
+
+function GameObject:_set_properties_at_tick_update_function()
+    if self.set_properties_at_tick and self.set_properties_at_tick[self.tick] then
+        for prop, value in pairs(self.set_properties_at_tick[self.tick]) do
+            self[prop] = value
+        end
+        self.set_properties_at_time[self.elapsed] = nil
+    end
+end
+
+function GameObject:set_property_after(prop, value, delay)
+    self:set_property_at_tick(prop, value, self.tick + delay)
+end
 function GameObject:start_stopwatch(name)
 	self.stopwatches = self.stopwatches or {}
 	if self.stopwatches[name] then

@@ -151,13 +151,19 @@ function SecondaryWeapon:draw()
 	if game_state.secondary_weapon_ammo <= low_ammo_threshold and iflicker(self.tick, 3, 2) then
 		fireable_color = self.tick % 2 == 0 and Color.red or Color.orange
 	end
+    
+    local unfireable_height = 2
+    local fireable_height = 3
+    
+    local unfireable_y_start = self.height - unfireable_height - 2
+    local fireable_y_start = self.height - fireable_height - 2
 	
 	if game_state.secondary_weapon.show_individual_ammo then
         for i = 1, max_ammo do
             local x = floor(ammo_start + (i - 1) * (ammo_width / max_ammo))
-            local y = self.height - 4
+            local y = unfireable_y_start
             local w = floor((ammo_width / max_ammo) - 1)
-            local h = 2
+            local h = unfireable_height
 
             -- graphics.set_color(Color.black)
 
@@ -168,7 +174,7 @@ function SecondaryWeapon:draw()
             if i <= fireable_ammo then
                 graphics.set_color(fireable_color)
                 y = y - 1
-                h = h + 1
+                h = fireable_height
             elseif i <= ammo then
                 graphics.set_color(unfireable_color)
             end
@@ -198,16 +204,16 @@ function SecondaryWeapon:draw()
 			-- print(fireable_chunk1_ratio, fireable_chunk2_ratio)
 			
 			graphics.set_color(empty_color)
-			graphics.rectangle("fill", ammo_start, self.height - 4, chunk1_width - 1, 2)
-            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 4, chunk2_width, 2)
+			graphics.rectangle("fill", ammo_start, unfireable_y_start, chunk1_width - 1, unfireable_height)
+            graphics.rectangle("fill", ammo_start + chunk1_width, unfireable_y_start, chunk2_width, unfireable_height)
 			
 			graphics.set_color(unfireable_color)
-            graphics.rectangle("fill", ammo_start, self.height - 4, unfireable_chunk1_ratio * (chunk1_width - 1), 2)
-            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 4, unfireable_chunk2_ratio * (chunk2_width), 2)
+            graphics.rectangle("fill", ammo_start, unfireable_y_start, unfireable_chunk1_ratio * (chunk1_width - 1), unfireable_height)
+            graphics.rectangle("fill", ammo_start + chunk1_width, unfireable_y_start, unfireable_chunk2_ratio * (chunk2_width), unfireable_height)
 
 			graphics.set_color(fireable_color)
-			graphics.rectangle("fill", ammo_start, self.height - 5, fireable_chunk1_ratio * (chunk1_width - 1), 3)
-            graphics.rectangle("fill", ammo_start + chunk1_width, self.height - 5, fireable_chunk2_ratio * (chunk2_width), 3)
+			graphics.rectangle("fill", ammo_start, fireable_y_start, fireable_chunk1_ratio * (chunk1_width - 1), fireable_height)
+            graphics.rectangle("fill", ammo_start + chunk1_width, fireable_y_start, fireable_chunk2_ratio * (chunk2_width), fireable_height)
 			
 		else
 
@@ -216,8 +222,8 @@ function SecondaryWeapon:draw()
 			local chunk_width = (ammo_width / num_chunks)
 			
 			local w = (chunk_width - 1)
-            local y = self.height - 4
-			local h = 2
+            local y = unfireable_y_start
+			local h = unfireable_height
 			
 			for i=1, num_chunks do
 				graphics.set_color(empty_color)
@@ -227,11 +233,11 @@ function SecondaryWeapon:draw()
                 ammo)
 				local fireable_ratio = fireable_ammo >= ammo_needed_per_use * (i) and 1 or 0
 
-				graphics.rectangle("fill", x, y, w, h)
+				graphics.rectangle("fill", x, unfireable_y_start, w, h)
 				graphics.set_color(unfireable_color)
-				graphics.rectangle("fill", x, y, w * unfireable_ratio, h)
+				graphics.rectangle("fill", x, unfireable_y_start, w * unfireable_ratio, h)
 				graphics.set_color(fireable_color)
-				graphics.rectangle("fill", x, y - 1, w * fireable_ratio, h + 1)
+				graphics.rectangle("fill", x, fireable_y_start, w * fireable_ratio, fireable_height)
 			end
         -- else
 			-- graphics.set_color(empty_color)

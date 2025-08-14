@@ -278,27 +278,42 @@ function GameWorld:enter()
 		threshold_notify(notif, "notif_upgrade_available")
 	end)
 
-	if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
+    if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
+                                    
+
+        
 		local s = self.timescaled.sequencer
         s:start(function()
             local player = self.players[1]
+
             player:hide()
             
             -- cutscene block
-            -- self:ref("beginning_cutscene", self:spawn_object(BeginningCutscene(0, 0)))
-            -- while self.beginning_cutscene do
-                -- s:wait(1)
-            -- end
+            self:ref("beginning_cutscene", self:spawn_object(BeginningCutscene(0, 0)))
+            while self.beginning_cutscene do
+                s:wait(1)
+            end
             -----------------
             
 
             player:show()
-			s:wait_for_signal(player, "egg_ready")
-            audio.play_music_if_stopped("music_drone")
+            s:start(function()
+                
+                
+                while audio:get_playing_music() do
+                    s:wait(1)
+                end
+                
+
+                s:wait(60)
+                
+                audio.play_music_if_stopped("music_drone")
+            end)
             s:wait(35)
 			if not game_state.hatched then
 				self.tutorial_state = 1
 			end
+            s:wait_for_signal(player, "egg_ready")
         end)
     elseif game_state.skip_intro then
         audio.play_music_if_stopped("music_drone")
@@ -819,7 +834,9 @@ function GameWorld:create_player(player_id)
 
         game_state:on_hatched()
 
-		savedata:set_save_data("hasnt_played_intro_yet", false)
+		savedata:set_save_data("new_version_force_intro", false)
+        -- savedata:set_save_data("update_force_cutscene", false)
+
 
 		if debug.enabled and debug.skip_tutorial_sequence then
 			self:room_border_fade("in")

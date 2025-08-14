@@ -16,8 +16,7 @@ local default_usersettings = {
     show_hud = true,
     show_fps = false,
     shader_quality = 0.5,
-	
-    -- fx
+    window_size = { x = 0, y = 0 },
     screen_shake_amount = 1,
 	
     -- audio
@@ -25,7 +24,7 @@ local default_usersettings = {
 	music_volume = 1.0,
     sfx_volume = 1.0,
 	
-	-- debug
+	-- debug 
 	debug_enabled = true,
 	
     -- controls
@@ -37,7 +36,7 @@ local default_usersettings = {
     -- misc
     retry_cooldown = false,
     enable_leaderboard = true,
-    skip_intro = true,
+    skip_intro = false,
 
 
 }
@@ -93,9 +92,12 @@ end
 function usersettings:initial_load()
     self:load()
     self:save()
-    if not IS_EXPORT then
-        self.fullscreen = false
-    end
+    -- if not IS_EXPORT then
+        -- self.fullscreen = false
+    -- else
+    -- end
+    self.apply_window_size = true
+
 	self:apply_settings()
 	
 end
@@ -104,11 +106,18 @@ end
 function usersettings:apply_settings()
     print("applying user settings")
 
-	if conf.platform_force_fullscreen then 
+	if conf.platform_force_fullscreen then
 		self.fullscreen = true
     else
 		love.window.setFullscreen(self.fullscreen)
 	end
+
+    if self.apply_window_size and not self.fullscreen and self.window_size then
+        self.apply_window_size = nil
+        if self.window_size and self.window_size.x > 0 and self.window_size.y > 0 then
+            love.window.updateMode(self.window_size.x, self.window_size.y)
+        end
+    end
 
 	
     love.window.setVSync(self.vsync and -1 or 0)

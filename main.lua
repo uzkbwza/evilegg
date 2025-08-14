@@ -1,8 +1,9 @@
 -- ===========================================================================
 --  Evil Egg
 -- ===========================================================================
+---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "0.8.8"
+GAME_VERSION = "0.8.9"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -18,10 +19,10 @@ if steam then
     function_style_key_process(steam)
 end
 
-debug          = require "debuggy"          ---@diagnostic disable: lowercase-global
-table          = require "lib.tabley"       ---@diagnostic disable: lowercase-global
-Object         = require "lib.object"       ---@diagnostic disable: lowercase-global
-leaderboard    = require "leaderboard"      ---@diagnostic disable: lowercase-global
+debug          = require "debuggy"
+table          = require "lib.tabley"
+Object         = require "lib.object"
+leaderboard    = require "leaderboard"
 rng            = require "lib.rng"
 savedata       = require "savedata"; savedata:initial_load()
 nativefs       = require "lib.nativefs"
@@ -34,14 +35,18 @@ require "lib.vector"         ; require "lib.rect"
 require "lib.random_crap"    ; require "lib.sequencer"
 require "physics_layers"     ; require "lib.anim"
 require "lib.collision"      ; require "datastructure.bst"
-require "datastructure.bst2"; require "lib.func"
+require "datastructure.bst2" ; require "lib.func"
 
 bench            = require "lib.bench"
 
-bonglewunch       = require "datastructure.bonglewunch"
-makelist          = require "datastructure.smart_array"
-circular_buffer   = require "datastructure.circular_buffer"
-batch_remove_list = require "datastructure.batch_remove_list"
+bonglewunch              = require "datastructure.bonglewunch"
+makelist                 = require "datastructure.smart_array"
+circular_buffer          = require "datastructure.circular_buffer"
+batch_remove_list        = require "datastructure.batch_remove_list"
+array2d                  = require "datastructure.array2d"
+grid2d                   = require "datastructure.grid2d"
+static_spatial_grid      = require "datastructure.static_spatial_grid"
+
 
 ease             = require "lib.ease"
 input            = require "input"
@@ -131,6 +136,8 @@ function love.run()
     love.keyboard.set_text_input(true)
 
     local dt, debug_printed_peak = 0, false
+
+    usersettings:apply_settings()
     return function()
         if love.event then
             love.event.pump()
@@ -261,6 +268,9 @@ function love.load(...)
 end
 
 local averaged_frame_length = 0
+
+local cached_window_size = Vec2(0, 0)
+
 function love.update(dt)
     leaderboard.poll()
     if steam then
@@ -296,9 +306,17 @@ function love.update(dt)
     end
     graphics.update(dt)
     if input.fullscreen_toggle_pressed then
-        usersettings:set_setting("fullscreen", not love.window.getFullscreen())
+        usersettings:set_setting("fullscreen", not love.window.get_fullscreen())
     end
     debug.update(dt); input.post_update()
+
+    local window_width, window_height = love.window.get_mode()
+    if not love.window.get_fullscreen() and (window_width ~= cached_window_size.x or window_height ~= cached_window_size.y) then
+        cached_window_size.x = window_width
+        cached_window_size.y = window_height
+        usersettings:set_setting("window_size", { x = cached_window_size.x, y = cached_window_size.y })
+        usersettings:apply_settings()
+    end
 end
 
 function love.draw()
@@ -319,6 +337,7 @@ function love.draw()
 end
 
 function love.quit()
+
     usersettings:save()
     savedata:save()
 	if steam then

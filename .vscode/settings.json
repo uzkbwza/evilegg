@@ -75,7 +75,8 @@
 	],
 	"Lua.diagnostics.disable": [
 		"undefined-field",
-		"unused-local"
+		"unused-local",
+		"lowercase-global"
 	],
 
 }

@@ -221,13 +221,22 @@ function GlobalGameState:new()
 
 	self.score_categories = {}
 
-	self.skip_intro = usersettings.skip_intro or self.level > 1
-	if savedata.hasnt_played_intro_yet then self.skip_intro = false end
+	self.skip_intro = usersettings.skip_intro or self.level > 1 or global_state.restarting
+    -- if savedata.update_force_cutscene then
+        -- savedata:set_save_data("update_force_cutscene", false)
+        -- savedata:set_save_data("new_version_force_intro", false)
+        -- self.skip_intro = false
+    -- end
+    if savedata.new_version_force_intro then
+        self.skip_intro = false
+        self.unskippable_intro = true
+    end
+
 
     if debug.enabled then
 
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)

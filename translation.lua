@@ -230,12 +230,10 @@ local translations = {
 		death_screen_quit_button                     = "QUIT",
 		death_screen_leaderboard_button              = "RANKINGS",
 
-		-- options_use_screen_shader = "Use Screen Shader",
 		options_screen_shader_preset                 = "Screen Shader",
 		options_pixel_perfect                        = "Pixel Perfect Scaling",
 		options_vsync                                = "VSync",
 		options_fullscreen                           = "Fullscreen",
-		-- options_cap_framerate = "FPS Cap Enabled",
 		options_fps_cap                              = "FPS Cap",
 		options_fps_cap_unlimited                    = "No Cap",
 		options_zoom_level                           = "Zoom Level",
@@ -256,6 +254,10 @@ local translations = {
         options_shader_quality                       = "Shader Quality",
         options_disco_mode                           = "Disco Mode [FLASH WARNING]",
         options_enable_leaderboard                   = "Submit Runs To Leaderboard",
+        options_set_window_size                      = "Windowed Scale",
+        options_set_aspect_ratio                     = "Windowed Aspect Ratio",
+
+        options_window_size_custom = "Custom",
 
 
 		options_brightness          = "Brightness",

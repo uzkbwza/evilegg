@@ -76,7 +76,8 @@ function midpoint_circle(radius)
 	return t
 end
 
-function neighbors(x, y)
+function neighbors(vec)
+    local x, y = vec.x, vec.y
     return {
         Vec2(x - 1, y),
         Vec2(x + 1, y),

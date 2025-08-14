@@ -456,32 +456,7 @@ local Artefacts = {
         cooldown = 50,
 		is_railgun = true,
 
-		-- divide_ammo_to_one = true,
-
 	},
-	
-    -- RepulsionFieldSecondaryWeapon = {
-	-- 	sprite = textures.pickup_weapon_repulsion_field,
-	-- 	icon = textures.pickup_weapon_repulsion_field_icon,
-	-- 	hud_icon = textures.pickup_weapon_repulsion_field_hud,
-	-- 	key = "repulsion_field",
-	-- 	name = "weapon_repulsion_field_name",
-    --     description = "weapon_repulsion_field_desc",
-	-- 	-- debug_spawn_weight = 10000000000,
-	-- 	spawn_weight = 1000,
-    --     is_secondary_weapon = true,
-		
-    --     show_individual_ammo = false,
-		
-	-- 	ammo = 12,
-	-- 	ammo_gain_per_level = 1,
-	-- 	ammo_needed_per_use = 2,
-	-- 	low_ammo_threshold = 3,
-	-- 	starting_ammo = 2,
-    --     ammo_color = Color.orange,
-
-	-- 	-- spawnable = false,
-	-- }
 }
 
 
