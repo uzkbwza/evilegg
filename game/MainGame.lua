@@ -306,7 +306,7 @@ function GlobalGameState:update(dt)
         self.is_new_tick = true
     end
 
-    if not self.game_over and self.hatched then
+    if not self.game_over and self.running_clock then
         local time = love.timer.get_time()
         -- local os_time = os.time()
         self.game_time = seconds_to_frames(time - self.start_time)
@@ -343,6 +343,13 @@ end
 
 function GlobalGameState:on_ran_out_of_ammo()
     signal.emit(self, "ran_out_of_ammo")
+end
+
+function GlobalGameState:on_level_transition()
+    if not self.running_clock then
+        self.running_clock = true
+        self.start_time = love.timer.get_time()
+    end
 end
 
 function GlobalGameState:on_hatched()

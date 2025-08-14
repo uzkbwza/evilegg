@@ -143,6 +143,12 @@ function PlayerCharacter:state_GameStart_enter()
             while self.world.beginning_cutscene do
                 s:wait(1)
             end
+            if game_state.skip_intro then
+                self:move_to(0, 0)
+                self:emit_signal("egg_ready")
+                self.egg_ready = true
+                return
+            end
 			local start_y = self.pos.y
             local tween = function(t)
 				-- print(t)

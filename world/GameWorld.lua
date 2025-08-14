@@ -278,12 +278,13 @@ function GameWorld:enter()
 		threshold_notify(notif, "notif_upgrade_available")
 	end)
 
-    if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
-                                    
 
-        
-		local s = self.timescaled.sequencer
-        s:start(function()
+    local s = self.timescaled.sequencer
+
+
+    s:start(function()
+
+        if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
             local player = self.players[1]
 
             player:hide()
@@ -297,6 +298,13 @@ function GameWorld:enter()
             
 
             player:show()
+        end
+        
+        if not game_state.skip_intro and not (debug.enabled and debug.skip_tutorial_sequence) then
+
+            -- s:start(function()
+            local player = self.players[1]
+
             s:start(function()
                 
                 
@@ -310,15 +318,16 @@ function GameWorld:enter()
                 audio.play_music_if_stopped("music_drone")
             end)
             s:wait(35)
-			if not game_state.hatched then
-				self.tutorial_state = 1
-			end
+            if not game_state.hatched then
+                self.tutorial_state = 1
+            end
             s:wait_for_signal(player, "egg_ready")
-        end)
-    elseif game_state.skip_intro then
-        audio.play_music_if_stopped("music_drone")
-		self.tutorial_state = 1
-	end
+            -- end)
+        elseif game_state.skip_intro then
+            audio.play_music_if_stopped("music_drone")
+            self.tutorial_state = 1
+        end
+    end)
 end
 
 function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duration, ignore_queue)
@@ -2457,7 +2466,8 @@ function GameWorld:state_LevelTransition_exit()
 	self:initialize_room(self.transitioning_to_room)
 	self.transitioning_to_room = nil
     self.frozen = false
-	self:room_border_fade("in", 2)
+    self:room_border_fade("in", 2)
+    game_state:on_level_transition()
 end
 
 function GameWorld:room_border_fade(in_or_out, time_scale)

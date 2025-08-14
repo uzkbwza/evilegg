@@ -102,21 +102,21 @@ local conf = {
 		},
 
 		skip_bonus_screen = {
-			keyboard = { "tab", "escape", "space", "return", "shift" },
+			keyboard = { "tab", "escape", },
 			joystick = { "start", "a" }
         },
         
         skip_intro = {
-            keyboard = { "escape", "tab" },
+            keyboard = { "escape", "tab", "space", "return", "shift" },
             joystick = { "start", "a" },
             mouse = { "lmb" }
         },
 		
-		restart = {
-			keyboard = { "r" },
-			joystick = { "start" },
-			-- mouse = { "lmb" }
-		},
+		-- restart = {
+		-- 	keyboard = { "r" },
+		-- 	joystick = { "start" },
+		-- 	-- mouse = { "lmb" }
+		-- },
 		
 		menu = {
 			keyboard = { "escape", },

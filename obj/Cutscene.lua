@@ -219,6 +219,7 @@ function BeginningCutscene:update(dt)
         local input = self:get_input_table()
         if input.skip_intro_pressed then
             audio.stop_music()
+            game_state.skip_intro = true
             self:stop_sfx("cutscene_egg_sound_1")
             self:stop_sfx("cutscene_egg_sound_2")
             self:stop_sfx("cutscene_egg_sound_3")

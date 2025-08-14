@@ -143,20 +143,20 @@ local translations = {
 		upgrade_desc_fire_rate = "Increases how rapidly you can fire bullets and secondary weapons.",
 
 		upgrade_name_range = "+RANGE",
-		upgrade_desc_range = "Increases the range of your bullets and secondary weapons. Affects some artefacts.",
+		upgrade_desc_range = "Increases the range of your bullets and secondary weapons. Affects some artefacts and secondary weapons.",
 
 		upgrade_name_bullets = "+BULLETS",
 		upgrade_desc_bullets = "Increases the number of bullets you can fire at once. Affects some artefacts.",
 
 		upgrade_name_bullet_speed = "+BULLET SPEED",
-		upgrade_desc_bullet_speed = "Increases the speed of your bullets as well as their knockback. Affects some artefacts.",
+		upgrade_desc_bullet_speed = "Increases the speed of your bullets as well as their knockback. Affects some artefacts and secondary weapons.",
 
 		upgrade_name_damage = "+DAMAGE",
 		upgrade_desc_damage = "Increases the damage of your bullets, secondary weapons, and certain artefacts.",
 
 
 		heart_base_name                              = "HEART",
-		heart_base_desc                              = "Restores 1 heart. If you are damaged with no hearts left, you will die. Max 2.",
+		heart_base_desc                              = "Restores 1 heart. If you are damaged with no hearts left, you will typically die. Max 2.",
 
 		powerup_rocket_name                          = "MISSILE",
 		powerup_rocket_desc                          = "High-powered rocket-propelled missiles. Lasts for 6 seconds. Duration stacks.",
