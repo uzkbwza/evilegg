@@ -107,7 +107,7 @@ local conf = {
         },
         
         skip_intro = {
-            keyboard = { "escape", "tab", "space", "return", "shift" },
+            keyboard = { "escape", "tab", "space", "return", "lshift" },
             joystick = { "start", "a" },
             mouse = { "lmb" }
         },
