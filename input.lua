@@ -152,7 +152,7 @@ function input.check_input_combo(mapping_table, mapping_type, joystick, input_ta
     for _, keycombo in ipairs(mapping_table) do
         if type(keycombo) == "string" then
             if mapping_type == "keyboard" then
-                local key = love.keyboard.get_key_from_scancode(love.keyboard.get_scancode_from_key(keycombo))
+                local key = love.keyboard.get_key_from_scancode(keycombo)
                 if input_table.keyboard_held[key] or input_table.keyboard_pressed[key] then
                     pressed = true
                 end
@@ -170,8 +170,7 @@ function input.check_input_combo(mapping_table, mapping_type, joystick, input_ta
 
             for _, key in ipairs(keycombo) do
                 if mapping_type == "keyboard" then
-                    key = love.keyboard.get_key_from_scancode(love.keyboard.get_scancode_from_key(key))
-
+                    key = love.keyboard.get_key_from_scancode(key)
                     if not input_table.keyboard_held[key] and not input_table.keyboard_pressed[key] then
                         pressed = false
                         break
@@ -479,6 +478,7 @@ end
 
 function input.update(dt)
     input.process(input)
+
 end
 
 function input.on_key_pressed(key)
@@ -570,5 +570,6 @@ function input.on_mouse_wheel_moved(dx, dy)
     input.mouse.wheel.y = dy
     signal.emit(input, "mouse_wheel_moved", dx, dy)
 end
+
 
 return input

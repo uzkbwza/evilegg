@@ -26,7 +26,7 @@ function MainMenuScreen:enter()
 		self:add_sibling_below(Screens.NameEntryScreen())
 	end
 	
-	audio.stop_music()
+    audio.play_music_if_stopped("music_main_menu", 0.7)
 
     local s = self.sequencer
 	s:start(function() 

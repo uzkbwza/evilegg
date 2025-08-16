@@ -136,38 +136,42 @@ function TitleScreen:generate_stars()
         local valid = false
         local attempts = 0
 
-        local new_pos = Vec2()
+        -- local new_pos = Vec2()
+        new_pos = Vec2(
+            rng:randi(0, STAR_FIELD_WIDTH) - STAR_FIELD_WIDTH / 2,
+            rng:randi(0, STAR_FIELD_HEIGHT) - STAR_FIELD_HEIGHT / 2
+        )
 
-        while not valid and attempts < 100 do
-            new_pos = Vec2(
-                rng:randi(0, STAR_FIELD_WIDTH) - STAR_FIELD_WIDTH / 2,
-                rng:randi(0, STAR_FIELD_HEIGHT) - STAR_FIELD_HEIGHT / 2
-            )
-            attempts = attempts + 1
-            valid = true
-            for _, pos in pairs(used_positions) do
-                if new_pos:distance_squared(pos) < (STAR_DISTANCE * STAR_DISTANCE) then
-                    valid = false
-                    break
-                end
-                if vec2_distance_squared(new_pos.x, new_pos.y, pos.x - conf.viewport_size.x, pos.y) < (STAR_DISTANCE * STAR_DISTANCE) then
-                    valid = false
-                    break
-                end
-                if vec2_distance_squared(new_pos.x, new_pos.y, pos.x + conf.viewport_size.x, pos.y) < (STAR_DISTANCE * STAR_DISTANCE) then
-                    valid = false
-                    break
-                end
-                if vec2_distance_squared(new_pos.x, new_pos.y, pos.x, pos.y - conf.viewport_size.y) < (STAR_DISTANCE * STAR_DISTANCE) then
-                    valid = false
-                    break
-                end
-                if vec2_distance_squared(new_pos.x, new_pos.y, pos.x, pos.y + conf.viewport_size.y) < (STAR_DISTANCE * STAR_DISTANCE) then
-                    valid = false
-                    break
-                end
-            end
-        end
+        -- while not valid and attempts < 100 do
+        --     new_pos = Vec2(
+        --         rng:randi(0, STAR_FIELD_WIDTH) - STAR_FIELD_WIDTH / 2,
+        --         rng:randi(0, STAR_FIELD_HEIGHT) - STAR_FIELD_HEIGHT / 2
+        --     )
+        --     attempts = attempts + 1
+        --     valid = true
+        --     for _, pos in pairs(used_positions) do
+        --         if new_pos:distance_squared(pos) < (STAR_DISTANCE * STAR_DISTANCE) then
+        --             valid = false
+        --             break
+        --         end
+        --         if vec2_distance_squared(new_pos.x, new_pos.y, pos.x - conf.viewport_size.x, pos.y) < (STAR_DISTANCE * STAR_DISTANCE) then
+        --             valid = false
+        --             break
+        --         end
+        --         if vec2_distance_squared(new_pos.x, new_pos.y, pos.x + conf.viewport_size.x, pos.y) < (STAR_DISTANCE * STAR_DISTANCE) then
+        --             valid = false
+        --             break
+        --         end
+        --         if vec2_distance_squared(new_pos.x, new_pos.y, pos.x, pos.y - conf.viewport_size.y) < (STAR_DISTANCE * STAR_DISTANCE) then
+        --             valid = false
+        --             break
+        --         end
+        --         if vec2_distance_squared(new_pos.x, new_pos.y, pos.x, pos.y + conf.viewport_size.y) < (STAR_DISTANCE * STAR_DISTANCE) then
+        --             valid = false
+        --             break
+        --         end
+        --     end
+        -- end
 
         self.stars[i] = {
             pos = new_pos,
@@ -420,7 +424,7 @@ end
 
 
 function TitleScreen:exit()
-	audio.stop_music("music_title")
+    audio.stop_music("music_title")
 end
 
 local steps = {

@@ -281,6 +281,8 @@ function GameWorld:enter()
 
     local s = self.timescaled.sequencer
 
+    audio.stop_music()
+
 
     s:start(function()
 

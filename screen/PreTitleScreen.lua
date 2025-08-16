@@ -16,7 +16,7 @@ function PreTitleScreen:new(x, y)
 		PhotosensitivityWarningScreen,
     }
 
-    if not savedata.done_shader_performance_test or debug.enabled then
+    if not savedata.done_shader_performance_test then
         usersettings:set_setting("screen_shader_preset", "shader_preset_soft")
         table.insert(self.screens, 1, PerformanceTestScreen)
     end

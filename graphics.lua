@@ -968,6 +968,10 @@ function graphics.draw_quad_table(tab, x, y, r, sx, sy, ox, oy, kx, ky)
     love.graphics.draw(tab.texture, tab.quad, x, y, r, sx, sy, ox, oy, kx, ky)
 end
 
+function graphics.draw_quad_table_centered(tab, x, y, r, sx, sy, ox, oy, kx, ky)
+    love.graphics.draw(tab.texture, tab.quad, x - tab.width * 0.5, y - tab.height * 0.5, r, sx, sy, ox, oy, kx, ky)
+end
+
 function graphics._auto_palette(texture, palette, offset)
     if palette == nil then
 		if offset == 0 or offset == nil then

@@ -1041,33 +1041,36 @@ return {
 		[1] = "assets/sprite/title/egg3.png",
 	},
 	[346] = {
-		[1] = "assets/sprite/title/sun.png",
+		[1] = "assets/sprite/title/egg4.png",
 	},
 	[347] = {
-		[1] = "assets/sprite/title/sun1.png",
+		[1] = "assets/sprite/title/sun.png",
 	},
 	[348] = {
-		[1] = "assets/sprite/title/sun2.png",
+		[1] = "assets/sprite/title/sun1.png",
 	},
 	[349] = {
-		[1] = "assets/sprite/title/title_text.png",
+		[1] = "assets/sprite/title/sun2.png",
 	},
 	[350] = {
-		[1] = "assets/sprite/title/title_text_mockup.png",
+		[1] = "assets/sprite/title/title_text.png",
 	},
 	[351] = {
-		[1] = "assets/sprite/ui/codex_unknown.png",
+		[1] = "assets/sprite/title/title_text_mockup.png",
 	},
 	[352] = {
-		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+		[1] = "assets/sprite/ui/codex_unknown.png",
 	},
 	[353] = {
-		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
 	},
 	[354] = {
-		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
 	},
 	[355] = {
+		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+	},
+	[356] = {
 		[1] = "assets/sprite/ui/leaderboard_good_ending.png",
 	},
 }
