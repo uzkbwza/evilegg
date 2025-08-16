@@ -143,7 +143,7 @@ local translations = {
 		upgrade_desc_fire_rate = "Increases how rapidly you can fire bullets and secondary weapons.",
 
 		upgrade_name_range = "+RANGE",
-		upgrade_desc_range = "Increases the range of your bullets and secondary weapons. Affects some artefacts and secondary weapons.",
+		upgrade_desc_range = "Increases the range of your bullets and secondary weapons. Affects some artefacts.",
 
 		upgrade_name_bullets = "+BULLETS",
 		upgrade_desc_bullets = "Increases the number of bullets you can fire at once. Affects some artefacts.",

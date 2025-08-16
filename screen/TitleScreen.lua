@@ -312,17 +312,30 @@ function TitleScreen:enter()
 					self.clear_color = Color.black
 				end)
 			end
-			-- s:tween_property(self.clear_color, "g", self.clear_color.g, 0, 32, "linear", 0.125)
+			s:tween_property(self.clear_color, "g", self.clear_color.g, 0, 32, "linear", 0.125)
         end)
 		
 		s:start(function()
-			s:wait(100)
-			self.show_press_start = true
+			s:wait(savedata.has_seen_title_screen and 100 or 120)
+            self.show_press_start = true
+            savedata:set_save_data("has_seen_title_screen", true)
 		end)
 	end)
 end
 
 function TitleScreen:update_stars(dt)
+end
+
+function TitleScreen:can_skip()
+    if self.show_press_start then
+        return true
+    end
+
+    if savedata.has_seen_title_screen then
+        return true
+    end
+
+    return false
 end
 
 function TitleScreen:update(dt)
@@ -331,7 +344,7 @@ function TitleScreen:update(dt)
 
     local input = self:get_input_table()
 
-    if input.ui_title_screen_start_pressed then
+    if input.ui_title_screen_start_pressed and self:can_skip() then
         self:emit_signal("start_main_menu_requested")
     end
 

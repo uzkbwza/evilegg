@@ -14,6 +14,7 @@ local default_savedata = {
     leaderboard_sort_index = 1,
     leaderboard_period = "daily",
     done_shader_performance_test = false,
+    has_seen_title_screen = false,
     -- update_force_cutscene = true,
 }
 
