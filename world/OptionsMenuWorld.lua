@@ -485,7 +485,7 @@ function OptionsMenuWorld:show_menu(page)
         item_type = "toggle",
     },
     		
-    { "show_hud", item_type = "toggle", inverse = true},
+    { "show_hud", item_type = "toggle", inverse = false},
 	{ "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
 
 		get_func = function()
