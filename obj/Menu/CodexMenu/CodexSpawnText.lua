@@ -35,25 +35,24 @@ function CodexSpawnText:draw()
 	graphics.set_color(self.color)
     graphics.set_font(self.font)
 	local line_height = self.font:getHeight(" ")
-    for i, line in ipairs(self.wrapped_text) do
-        local text = line
-		text = utf8.sub(line, 1, (1 - self:timer_progress("show_text")) * utf8.len(line))
-
-        if self.uppercase then
-            if self.centered then
+	local t = 1 - self:timer_progress("show_text")
+	if self.centered then
+        for i, line in ipairs(self.wrapped_text) do
+            local text = utf8.sub(line, 1, t * utf8.len(line))
+            if self.uppercase then
                 graphics.print_centered(text, self.font, 0, line_height * (i - 1))
             else
-                graphics.print(text, -LINE_WIDTH / 2, line_height * (i - 1))
-            end
-        else
-            if self.centered then
                 graphics.print_outline_centered(Color.black, text, self.font, 0, line_height * (i - 1))
-            else
-                graphics.print_outline(Color.black, text, -LINE_WIDTH / 2, line_height * (i - 1))
             end
-
         end
-	end
+    else
+        t = self.elapsed / utf8.len(self.text) * 5
+        if self.uppercase then
+            graphics.printf_interpolated(self.text, self.font, -LINE_WIDTH / 2, 0, LINE_WIDTH, "left", t)
+        else
+            graphics.printf_interpolated_outline(Color.black, self.text, self.font, -LINE_WIDTH / 2, 0, LINE_WIDTH, "left", t)
+        end
+    end
 end
 
 return CodexSpawnText

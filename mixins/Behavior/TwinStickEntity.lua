@@ -370,7 +370,7 @@ end
 
 
 function TwinStickEntity:normal_terrain_collision(normal_x, normal_y)
-	if self.vel then
+	if self.vel and not self.wall_collision_ignore_vel then
 		if normal_x ~= 0 then
 			self.vel.x = 0
 		end
@@ -471,7 +471,7 @@ end
 
 
 function TwinStickEntity:collision_bubble_draw(bubble)
-    if bubble.aabb then
+    if bubble.shape_type == "aabb" then
         local x, y, w, h = bubble:get_rect()
         local lx, ly = self:to_local(x, y)
         graphics.rectangle("line", lx, ly, w, h)
@@ -479,7 +479,7 @@ function TwinStickEntity:collision_bubble_draw(bubble)
         local gx, gy = bubble:get_position()
         local lx, ly = self:to_local(gx, gy)
         graphics.circle("line", lx, ly, bubble.radius)
-        if bubble.capsule then
+        if bubble.shape_type == "capsule" then
             local lx2, ly2 = self:to_local(bubble:get_end_position())
             graphics.debug_capsule(lx, ly, lx2, ly2, bubble.radius, gametime.tick % 2 == 0)
         end

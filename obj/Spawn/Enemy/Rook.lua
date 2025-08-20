@@ -136,13 +136,15 @@ function RookProjectile:exit()
 	self:stop_sfx("enemy_rook_projectile_noise_small")
 end
 
-function RookProjectile:die()
+function RookProjectile:die(...)
+    if self.dead then return end
+    if not self.world then return end
     if self.done_growing then
 		if self.scale > 0.5 then
 			self:break_apart()
 		end
     end
-    RookProjectile.super.die(self)
+    RookProjectile.super.die(self, ...)
 end
 
 local function shoot_piece(self)

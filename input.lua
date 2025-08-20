@@ -13,10 +13,10 @@ input.generated_action_names = {}
 
 input.mouse = {
     prev_wheel = Vec2(0, 0),
-    prev_pos = Vec2(math.huge, math.huge),
-	prev_pos_absolute = Vec2(math.huge, math.huge),
-    pos = Vec2(math.huge, math.huge),
-	pos_absolute = Vec2(math.huge, math.huge),
+    prev_pos = Vec2(0, 0),
+	prev_pos_absolute = Vec2(0, 0),
+    pos = Vec2(0, 0),
+	pos_absolute = Vec2(0, 0),
     dxy = Vec2(0, 0),
 	dxy_absolute = Vec2(0, 0),
 	dxy_relative = Vec2(0, 0),
@@ -72,7 +72,9 @@ function input.load()
 	input.dummy.keyboard_released = {}
 	input.dummy.joystick_held = {}
 	input.dummy.joystick_pressed = {}
-	input.dummy.joystick_released = {}
+    input.dummy.joystick_released = {}
+    input.dummy.mouse = table.deepcopy(input.mouse)
+    input.dummy.dummy = input.dummy
 	
 
     for action, _ in pairs(input.mapping) do

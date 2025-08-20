@@ -42,9 +42,9 @@ function RetroRumble:start_rumble(amount, duration, easing_function, x_axis, y_a
     self.rumble_coroutine = s:start(func)
 end
 
-function RetroRumble:set_rumble_directly(amount)
-	self.rumble_amount_x = amount
-	self.rumble_amount_y = amount
+function RetroRumble:set_rumble_directly(x, y)
+	self.rumble_amount_x = x
+	self.rumble_amount_y = y or x
 end
 
 function RetroRumble:stop_rumble()

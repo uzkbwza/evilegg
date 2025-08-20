@@ -8,6 +8,8 @@ local ExplosionRadiusWarning = require("obj.ExplosionRadiusWarning")
 
 Roamsploder:implement(Mixins.Behavior.ExploderEnemy)
 
+local MAX_WILD_ROAMER_BULLETS = 70
+
 -- local ROAMER_SHEET = SpriteSheet(textures.enemy_roamer, 10, 14)
 
 Roamer.max_hp = 1
@@ -301,6 +303,7 @@ function WildRoamer:new(x, y)
     self.roam_chance = 10
 end
 
+
 -- function WildRoamer:on_damaged(amount, new_hp)
 --     -- WildRoamer.super.on_damaged(self, amount, new_hp)
 --     local tries = amount * 2
@@ -322,7 +325,7 @@ end
 
 function WildRoamer:update(dt)
     WildRoamer.super.update(self, dt)
-    if self.world.timescaled.is_new_tick and self.world.timescaled.tick % 28 == 0 then
+    if self.world.timescaled.is_new_tick and self.world.timescaled.tick % 28 == 0 and self.world:get_number_of_objects_with_tag("wild_roamer_bullet") < MAX_WILD_ROAMER_BULLETS then
         -- for _, vec in ipairs(ALL_DIRECTIONS) do
             -- self:spawn_bullet(1.0, vec.x, vec.y)
         -- end
@@ -367,6 +370,11 @@ function WildRoamerBullet:new(x, y)
     self.bullet_passthrough = true
     self.no_death_splatter = false
 end
+
+function WildRoamerBullet:enter()
+    self:add_tag("wild_roamer_bullet")
+end
+
 
 function WildRoamerBullet:entity_declump_filter(other)
     return other.is_wild_roamer_bullet

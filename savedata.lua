@@ -128,7 +128,7 @@ function savedata:load()
         self.leaderboard_version = GAME_LEADERBOARD_VERSION
     end
 
-	print("uid: ", self:get_uid())
+	-- print("uid: ", self:get_uid())
 end
 
 function savedata:get_uid()

@@ -17,6 +17,10 @@ function smart_array:__len()
 	return self.__length
 end
 
+function smart_array:get(index)
+    return self[index]
+end
+    
 function smart_array:length()
 	return self.__length
 end

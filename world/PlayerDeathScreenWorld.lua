@@ -8,6 +8,7 @@ local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 local O = require("obj")
 
 local YOU_DIED_TEXT = "GAME OVER"
+local YOU_WON_TEXT = "YOU WIN"
 local BEAM_TIME = 10
 
 function PlayerDeathScreenWorld:new()
@@ -77,7 +78,9 @@ function PlayerDeathScreenWorld:enter()
 	
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0)))
 
-	local text_center = self.you_died_font:getWidth(YOU_DIED_TEXT) / 2
+    local text = game_state.good_ending and YOU_WON_TEXT or YOU_DIED_TEXT
+
+	local text_center = self.you_died_font:getWidth(text) / 2
 	
 	
 	local global_x_offset = 0
@@ -87,12 +90,12 @@ function PlayerDeathScreenWorld:enter()
 	s:start(function()
 		
 		s:wait(5)
-		for i = 1, #YOU_DIED_TEXT do
-			local x = self.you_died_font:getWidth(i > 1 and YOU_DIED_TEXT:sub(1, i - 1) or 0)
+		for i = 1, #text do
+			local x = self.you_died_font:getWidth(i > 1 and text:sub(1, i - 1) or 0)
 			x = x - text_center
 
 
-			local char = YOU_DIED_TEXT:sub(i, i)
+			local char = text:sub(i, i)
 
 			if char == " " then goto continue end
 

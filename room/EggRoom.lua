@@ -1,6 +1,7 @@
 local EggRoom = require("room.Room"):extend("EggRoom")
 local EggElevator = require("obj.EggElevator")
 local EggRoomDirector = GameObject:extend("EggRoomDirector")
+local Cutscenes = require("obj.Cutscene")
 
 EggRoom.can_highlight_enemies = false
 
@@ -8,7 +9,7 @@ EggRoomDirector.is_egg_director = true
 
 local EvilPlayer = require("obj.Spawn.Enemy.EvilPlayer")
 local EvilGreenoidBoss = require("obj.Spawn.Enemy.EvilGreenoidBoss")
-local EggBoss = require("obj.Spawn.Enemy.EggBoss")
+local EggBoss = require("obj.Spawn.Enemy.EggBoss")[1]
 
 local bosses = {
 	"EvilPlayer",
@@ -105,17 +106,20 @@ function EggRoomDirector:get_screen_border_color()
 
             local amt = 0.55
             local mod = 1
-            color.r = lerp(color2.r, color2.r * t, amt) * mod       
+            color.r = lerp(color2.r, color2.r * t, amt) * mod
             color.g = lerp(color2.g, color2.g * t, amt) * mod
             color.b = lerp(color2.b, color2.b * t, amt) * mod
         end
         return color
     end
     
-    return nil
+    return Color.black
 end
 
 function EggRoomDirector:get_border_color()
+    if self.glow_floor then
+        return self:get_screen_border_color()
+    end
 	if self.phase4_landing then
 		return Color.transparent
 	end
@@ -220,6 +224,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 				-- audio.play_music("music_egg_boss1", 1.0)
 
                 game_state.cutscene_hide_hud = true
+                game_state.cutscene_no_cursor = true
 			end, true)
 			
             signal.connect(self.egg_boss, "cutscene1_over", self, "on_egg_boss_cutscene1_over", function()
@@ -228,9 +233,10 @@ function EggRoomDirector:on_player_choice_made(choice, player)
                 self.glow_floor = true
                 self.phase4_landing = false
                 game_state.cutscene_hide_hud = false
+                game_state.cutscene_no_cursor = false
                 game_state.cutscene_no_pause = false
                 local dist = 850
-                local tp_to_center = true
+                local tp_to_center = false
                 if debug.enabled and tp_to_center then
                     self.world.players[1]:move_to(0, 0)
                 elseif rng:coin_flip() then
@@ -244,11 +250,110 @@ function EggRoomDirector:on_player_choice_made(choice, player)
                 self.world.camera:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
             end, true)
 
-            while self.egg_boss do
-                s:wait(1)
-            end
+            signal.connect(self.egg_boss, "phase7_enter", self, "on_egg_boss_phase7_enter", function()
 
-			self.world:on_final_boss_killed()
+                if not self.world.players[1] then
+                    return
+                end
+
+                self.world.players[1].force_invuln = true
+
+
+                local s = self.world.sequencer
+                s:start(function()
+                    s:wait(1)
+                    for _, object in self.world.objects:ipairs() do
+                        if not object.is_egg_boss and not object.persist and object ~= self then
+                            object:queue_destroy()
+                        end
+                    end
+
+                    s:wait(1)
+                    self.world:clear_floor_canvas()
+                    self.world.floor_drawing = false
+                    self.glow_floor = false
+                
+                    game_state.cutscene_hide_hud = true
+                    game_state.cutscene_no_cursor = true
+                    game_state.cutscene_no_pause = true
+                    audio.stop_music()
+                    
+                    self.world.object_time_scale = 0.0125
+                    s:wait(60)
+                    self.world.rendering_content = false
+                    s:wait(90)
+                    if self.world.players[1] then
+                        self.world.rendering_content = true
+                        self.world.room.free_camera = false
+                        self.world.camera_target:move_to(0, 0)
+
+                        game_state.cutscene_no_cursor = false
+
+                        self.world.players[1]:change_state("Cutscene")
+                        self.world.object_time_scale = 1
+                        self.world.players[1]:hide()
+                        local final_object = self.world:get_first_object_with_tag("final_object")
+                        if final_object then    
+                            local diff = final_object.pos - self.world.players[1].pos
+                            diff:limit_length(200)
+                            self.world.players[1]:movev_to(final_object.pos - diff)
+                        end
+
+                    end
+
+
+                    s:wait(60)
+
+                    if self.world.players[1] then
+                        self.world.players[1]:show()
+                        self.world.room.free_camera = true
+                        self.world.fog_of_war = false
+                        self.world.players[1]:change_state("Walk")
+                    end
+                    -- self.world.fog_of_war = false
+                end)
+            end, true)
+
+            signal.connect(self.egg_boss, "final_object_died", self, "on_final_object_died", function()
+                local s = self.world.sequencer
+                s:start(function()
+                    self.world.room.free_camera = false
+                    game_state.cutscene_no_cursor = true
+                    
+                    s:start(function()
+                        local start_x, start_y = self.world.camera_target.pos.x, self.world.camera_target.pos.y
+                        s:tween(function(t) 
+                            self.world.camera_target:move_to(vec2_lerp(start_x, start_y, 0, 0, t))
+                        end, 0, 1, 120, "inOutCubic")
+                        s:wait(10)
+                    end)
+
+                    game_state.twin_saved = game_state.artefacts.sacrificial_twin
+                    game_state:end_game()
+                    self.final_boss_killed = true
+                    if self.world.players[1] then
+                        self.world.players[1]:change_state("Cutscene")
+                        -- self.world.players[1]:hide()
+                    end
+                end)
+            end, true)
+
+            signal.connect(self.egg_boss, "final_object_animation1_complete", self, "on_final_object_animation1_complete",
+            function()
+                game_state.force_bonus_screen = true
+                self.world:emit_signal("force_bonus_screen")
+                while self.world.waiting_on_bonus_screen do
+                    s:wait(1)
+                end
+                self:ref("final_score_cutscene", self.world:spawn_object(Cutscenes.FinalScoreCutscene(0, 0)))
+                while self.final_score_cutscene do
+                    s:wait(1)
+                end
+                game_state.cutscene_no_cursor = false
+                game_state.force_cursor = true
+                -- game_state.cutscene_hide_hud = false
+                self.world:on_final_boss_end_sequence_finished()
+            end, true)
 		end
     end)
 end

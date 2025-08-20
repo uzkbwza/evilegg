@@ -268,7 +268,7 @@ end
 function Hand:state_Holding_enter()
     self:play_sfx("enemy_hand_grab")
 	self.held_object.held_by_hand = true
-	self.bullet_push_modifier = 0.25
+	self.bullet_push_modifier = 0.0
 	self.z_index = 1
     self.pause_walking_toward_player = true
 end

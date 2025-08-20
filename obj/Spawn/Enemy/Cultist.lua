@@ -31,7 +31,7 @@ Lich.death_cry = "enemy_lich_death"
 Lich.death_cry_volume = 0.8
 
 Lich.is_lich = true
-Lich.max_hp = 7
+Lich.max_hp = 8
 
 function Cultist:new(x, y)
     self.body_height = 7
@@ -662,9 +662,9 @@ end
 function Lich:new(x, y)
     Lich.super.new(self, x, y)
     self.body_height = 10
-    self.walk_speed = 0.16
+    self.walk_speed = 0.18
     self.dizzy = true
-    self:start_tick_timer("dizzy", 15, function()
+    self:start_tick_timer("dizzy", 10, function()
         self.dizzy = false
     end)
 end
@@ -692,7 +692,7 @@ end
 
 function Lich:enter()
     Lich.super.enter(self)
-    self:ref("phylactery", self:spawn_object(Phylactery(self.pos.x, self.pos.y)))
+    self:ref("phylactery", self:spawn_object(Phylactery(self.world:get_valid_spawn_position())))
     self.phylactery:ref("parent", self)
 end
 
@@ -705,8 +705,8 @@ end
 
 function Lich:on_phylactery_destroyed()
     self.dizzy = true
-    self.walk_speed = 0.2
-    self:start_tick_timer("dizzy", 20, function()
+    self.walk_speed = 0.21
+    self:start_tick_timer("dizzy", 10, function()
         self.dizzy = false
     end)
 end

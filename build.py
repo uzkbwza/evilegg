@@ -37,11 +37,11 @@ RAW_EXCLUDED_PATTERNS = [
 	'*steam_api64.dll',
 	'*luasteam.dll',
 
-
     # non build stuff
     '*.ase',
     '*.aseprite',
-    'palette_cycle_test_image.png',
+    'assets/sprite/palette_cycle_test_image.png',
+    'assets/sprite/palettized/palette_cycle_test_image.png',
     'tools/is_debug.lua',
 	'tools/luasteam',
 	'tools/fennel-1.5.0-x86_64',

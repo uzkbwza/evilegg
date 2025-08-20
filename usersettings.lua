@@ -32,6 +32,7 @@ local default_usersettings = {
 	relative_mouse_aim_snap_to_max_range = false,
 	mouse_sensitivity = 0.08,
     gamepad_with_mouse = false,
+    confine_mouse = "when_aiming", -- when_aiming, always, never
 
     -- misc
     retry_cooldown = false,

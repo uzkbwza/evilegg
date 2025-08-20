@@ -3,7 +3,7 @@
 -- ===========================================================================
 ---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "0.8.12"
+GAME_VERSION = "0.9.0"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -53,7 +53,9 @@ input            = require "input"
 gametime         = require "time"
 graphics         = require "graphics"
 translator       = require "translation"
-global_state     = {}
+global_state = {}
+
+modloader    = require "modding.modloader"()
 
 signal           = require "signal"
 audio            = require "audio"
@@ -163,6 +165,10 @@ function love.run()
         gametime.is_new_tick = (prev_tick ~= gametime.tick)
         
 
+        -- if gametime.is_new_tick and rng:percent(1) and debug.enabled then
+            -- love.timer.sleep(0.25)
+        -- end
+
         -- Dynamically enable fixed‑delta when the game slows down (>=2x max fps allowed)
         if (dt > (conf.max_delta_seconds or 0) * 0.5) then
             force_fixed_time_buildup = approach(force_fixed_time_buildup, FORCE_FIXED_TIME_LOW_FPS_THRESHOLD_SECONDS, dt)
@@ -202,7 +208,7 @@ function love.run()
 				if force_fixed then
 					loops = min(
 						floor(accumulated_fixed_time / fixed_frame_time),
-						conf.max_fixed_ticks_per_frame or 4
+						conf.max_fixed_ticks_per_frame or 1
 					)
 				end
 			
@@ -213,6 +219,7 @@ function love.run()
                         if accumulated_fixed_time < fixed_frame_time then break end
                         _step(fixed_delta_frame)
                         accumulated_fixed_time = accumulated_fixed_time - fixed_frame_time
+                        accumulated_fixed_time = accumulated_fixed_time % (fixed_frame_time * loops)
                     end
                 end
             else
@@ -227,6 +234,7 @@ function love.run()
                     gametime.delta, gametime.delta_seconds = capped_frame, capped_seconds
                     _step(capped_frame)
                     accumulated_cap_time = accumulated_cap_time - capped_seconds
+                    accumulated_cap_time = accumulated_cap_time % cap_interval
                 end
             end
         end
@@ -252,8 +260,11 @@ end
 function love.load(...)
     local build_assets = table.list_has(arg, "build_assets") and not IS_EXPORT
 	if build_assets then love.window.minimize() end
+    modloader:load_mods()
     graphics.load()
-	debug.load()
+    modloader:call("on_graphics_loaded", graphics)
+    debug.load()
+    modloader:call("on_debug_loaded", debug)
     if build_assets then
         require("tools.palletizer")()
         love.event.quit()
@@ -261,10 +272,13 @@ function love.load(...)
 	end
     Palette.load()
     audio.load()
+    modloader:call("on_audio_loaded", audio)
     tilesets.load()
 	input.load()
+    modloader:call("on_input_loaded", input)
     game = filesystem.get_modules("game").MainGame()
-	game:load()
+    game:load()
+    modloader:call("on_game_loaded", game)
 end
 
 local averaged_frame_length = 0
@@ -311,7 +325,7 @@ function love.update(dt)
     debug.update(dt); input.post_update()
 
     local window_width, window_height = love.window.get_mode()
-    if not love.window.get_fullscreen() and (window_width ~= cached_window_size.x or window_height ~= cached_window_size.y) then
+    if not love.window.get_fullscreen() and not love.window.is_maximized() and (window_width ~= cached_window_size.x or window_height ~= cached_window_size.y) then
         cached_window_size.x = window_width
         cached_window_size.y = window_height
         usersettings:set_setting("window_size", { x = cached_window_size.x, y = cached_window_size.y })
@@ -337,13 +351,17 @@ function love.draw()
 end
 
 function love.quit()
-
     usersettings:save()
     savedata:save()
 	if steam then
 		steam.shutdown()
 	end
 	return false
+end
+
+
+if IS_EXPORT then
+    love.errorhandler = require("error")
 end
 
 function love.joystickadded(joystick)   input.joystick_added(joystick); input.last_input_device="gamepad" end

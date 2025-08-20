@@ -1,5 +1,5 @@
 local HUDLayer = CanvasLayer:extend("HUDLayer")
-local LevelBonus = require("levelbonus.LevelBonus")
+local LevelBonus = require("bonus.LevelBonus")
 local ALWAYS_SHOW_BONUS_DETAILS = true
 
 function HUDLayer:new()
@@ -185,7 +185,7 @@ function HUDLayer:start_after_level_bonus_screen()
 
 				if not self.skipping_bonus_screen then
                     s:wait(1)
-					if not self:should_show() then
+					if not self:should_show_bonus_screen() then
 						self.skipping_bonus_screen = true
 					end
 				end
@@ -276,7 +276,7 @@ function HUDLayer:start_after_level_bonus_screen()
 				end
 
 
-				game_state:add_score(score, one_b.name)
+				game_state:add_score(score, one_b.name, true)
                 game_state:add_score_multiplier(one_b.score_multiplier)
 				game_state:apply_level_bonus_difficulty(one_b.bonus.difficulty_modifier)
 				
@@ -330,6 +330,10 @@ function HUDLayer:start_after_level_bonus_screen()
 end
 
 function HUDLayer:update(dt)
+
+    local should_show = self:should_show()
+
+
     if self.is_new_tick then
         if game_state.score > self.score_display then
             local step = 1
@@ -342,7 +346,7 @@ function HUDLayer:update(dt)
             end
 
             self.score_display = self.score_display + step
-            if stepify_floor_safe(self.score_display, step) % (step * 5) == 0 then
+            if stepify_floor_safe(self.score_display, step) % (step * 5) == 0 and not game_state.cutscene_hide_hud then
                 self:play_sfx("score_add", 0.15)
             end
         end
@@ -353,9 +357,8 @@ function HUDLayer:update(dt)
 
     local input = self:get_input_table()
 	
-    local should_show = self:should_show()
 
-    if ((input.skip_bonus_screen_held) or (not should_show)) and self.after_level_bonus_screen then
+    if ((input.skip_bonus_screen_held) or (not self:should_show_bonus_screen())) and self.after_level_bonus_screen then
         self.skipping_bonus_screen = true
     end
 
@@ -382,12 +385,21 @@ function HUDLayer:update(dt)
     end
 	
 	self.world.showing = should_show
-	self.world.force_show_time = self:is_timer_running("show_hud_held")
+	self.force_show_time = self:is_timer_running("show_hud_held")
 end
 
 local bonus_palette = PaletteStack:new(Color.black, Color.white)
 
+function HUDLayer:should_show_bonus_screen()
+    if game_state.force_bonus_screen then return true end
+    return self:should_show()
+end
+
 function HUDLayer:should_show()
+
+    -- do
+        -- return true
+    -- end
 
 	if game_state.cutscene_hide_hud then return false end
 
@@ -453,8 +465,11 @@ function HUDLayer:draw_top()
     local border_color = self.game_layer.world:get_border_rainbow()
     local charwidth = fonts.hud_font:getWidth("0")
 
+	
+    local should_show = self:should_show()
 
-	if not self:should_show() then
+
+	if not should_show then
 		return
 	end
 
@@ -541,12 +556,30 @@ function HUDLayer:draw_top()
 		scoremult4, Color.white, scoremult5, Color.grey)
 	graphics.set_color(Color.white)
 	graphics.drawp_centered(textures.ally_rescue1, nil, 0, font:getWidth(scoremult1..scoremult2..scoremult3) + 6, 4)
-	graphics.pop()
+    graphics.pop()
+
 end
 
 function HUDLayer:pre_world_draw()
 
-    -- self:draw_top()
+	local room_elapsed = self.game_layer.world.room.elapsed
+	local world = self.game_layer.world
+	local show_time_on_room_clear = world.state == "RoomClear" or world.state == "LevelTransition"
+	local show_time_on_room_start = room_elapsed < 60 or room_elapsed < 90 and iflicker(gametime.tick, 3, 2)
+
+    local should_show = self:should_show()
+
+    if should_show and (show_time_on_room_clear or show_time_on_room_start or self:is_paused()) or self.force_show_time or self:is_timer_running("show_hud_held") then
+		local font2 = fonts.depalettized.image_font2
+		graphics.set_font(font2)
+		graphics.set_color(Color.white)
+        local text = format_hhmmssms1(game_state.game_time_ms)
+        graphics.push("all")
+        graphics.translate(self.viewport_size.x / 2, self.viewport_size.y / 2)
+		graphics.print(text, conf.room_size.x / 2 - 1 - font2:getWidth(text), 96)
+        graphics.pop()
+	end
+
 
     local game_area_width = conf.viewport_size.x - conf.room_padding.x * 2
     local game_area_height = conf.viewport_size.y - conf.room_padding.y * 2
@@ -675,7 +708,7 @@ function HUDLayer:pre_world_draw()
 	graphics.push()
 
 
-    if self.after_level_bonus_screen and should_show and not self:is_paused() then
+    if self.after_level_bonus_screen and self:should_show_bonus_screen() and not self:is_paused() then
         local font2 = fonts.depalettized.image_font2
         graphics.set_font(font2)
         local middle_x = self.viewport_size.x / 2
@@ -903,8 +936,12 @@ function HUDLayer:draw()
         local width = self.game_layer.viewport_size.x
         local height = self.game_layer.viewport_size.y
         local color = Color.white
-        if self.game_layer.world.room.get_screen_border_color then 
+        if self.game_layer.world.room.get_screen_border_color then
             color = self.game_layer.world.room:get_screen_border_color()
+        end
+        
+        if color == nil then
+            color = Color.transparent
         end
         graphics.set_color(color)
         graphics.set_line_width(2)

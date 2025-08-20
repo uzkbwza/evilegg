@@ -81,9 +81,10 @@ local Enemies = {
 
     WildRoamer = {
         level = 2,
-        min_level = 7,
+        min_level = 8,
         spawn_points = 30,
         extra_score = 10,
+        room_select_weight = 800,
         icon = textures.enemy_wild_roamer1,
     },
 
@@ -432,11 +433,19 @@ local Enemies = {
         icon = textures.enemy_penitent_soul1,
     },
 
+    EggSentry = {
+        spawnable = false,
+        icon = textures.enemy_egg_sentry,
+        boss = true,
+        -- codex_hidden = true,
+		min_level = 104,
+    },
+
 	EggBoss = {
 		spawnable = false,
         icon = textures.enemy_egg_boss1,
         boss = true,
-		min_level = 1000,
+        min_level = 1000,
 	},
 }
 
@@ -539,6 +548,12 @@ local Rescues = {
 		spawn_weight = 50,
 		score = 160,
 	},
+
+    HatchedTwinRescue = {
+        icon = textures.cutscene_twin1,
+        can_spawn = false,
+        boss = true,
+    },
 }
 
 

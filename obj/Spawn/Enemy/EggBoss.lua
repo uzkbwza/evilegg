@@ -16,13 +16,22 @@ local GlassShardsEffect = Effect:extend("GlassShardsEffect")
 local UnderEggFlash = GameObject2D:extend("UnderEggFlash")
 local Cutscenes = require("obj.Cutscene")
 local Penitent = require("obj.Spawn.Enemy.Penitent")[1]
+local PenitentSoul = require("obj.Spawn.Enemy.Penitent")[2]
 local EggWrath = require("obj.Spawn.Enemy.EggWrath")
 local EggTree = BaseEnemy:extend("EggTree")
 local EggTreeRoots = GameObject2D:extend("EggTreeRoot")
 local EggTreeFx = GameObject2D:extend("EggTreeFx")
-local FinalPhaseFloorFx = Effect:extend("FinalPhaseFloorFx")
+local FinalPhaseFloorFx = GameObject2D:extend("FinalPhaseFloorFx")
+local EggSentry = BaseEnemy:extend("EggSentry")
+local EggSentryBullet = BaseEnemy:extend("EggSentryBullet")
+local EggFinalObject = BaseEnemy:extend("EggFinalObject")
+local EggSentryDeathFx = Effect:extend("EggSentryDeathFx")
+local EggFinalBlackHole = GameObject2D:extend("EggFinalBlackHole")
+local DeathFlash = require("fx.enemy_death_flash")
+local DeathSplatter = require("fx.enemy_death_pixel_splatter")
+local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, true
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -84,6 +93,9 @@ function EggBoss:new()
     self:add_signal("phase2_landing")
     self:add_signal("phase4_landing")
     self:add_signal("cutscene1_over")
+    self:add_signal("phase7_enter")
+    self:add_signal("final_object_died")
+    self:add_signal("final_object_animation1_complete")
     self.body_height = 80
     self.z_index = 0
     self.base_body_height = self.body_height
@@ -98,6 +110,7 @@ function EggBoss:new()
 
     self.walk_speed = 0.15
     self.walk_timer = 180
+    self.is_egg_boss = true
 
     self.shadow_darkness = 0.0
 
@@ -657,7 +670,8 @@ function EggBoss:state_Phase2_enter()
 
                 self:spawn_greenoid(pickup)
                 -- for j = 1, (self.phase2_started_twice and rng:randi(1, 2) or 2) do
-                for j = 1, (self.phase2_started_twice and 2 or (1 + i % 2)) do
+                -- for j = 1, (self.phase2_started_twice and 2 or (1 + i % 2)) do
+                for j = 1, (1 + i % 2) do
                 -- for j = 1, (2) do
 
 				if self.phase2_started_twice or i >= num_greenoids / 2 then
@@ -861,15 +875,15 @@ function EggBoss:phase2_landing()
             
             
             -- -- placeholder block
-            s:wait(45)
-            self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
-            s:wait(180)
-            self.placeholder_text:start_destroy_timer(10)
-            self:die()
+            -- s:wait(45)
+            -- self:ref("placeholder_text", self:spawn_object(PlaceholderText(0, 0)))
+            -- s:wait(180)
+            -- self.placeholder_text:start_destroy_timer(10)
+            -- self:die()
 
 
             -- -- or
-            -- self:change_state("Phase6")
+            self:change_state("Phase6")
             
 
             return
@@ -1019,6 +1033,8 @@ function EggBoss:state_Phase5_enter()
     self.can_take_damage = true
 end
 
+local NUM_SENTRIES = 5
+
 function EggBoss:state_Phase6_enter()
     self.spawning_penitents = true
     for _, player in self:get_players():ipairs() do
@@ -1027,12 +1043,32 @@ function EggBoss:state_Phase6_enter()
     end
     self:emit_signal("cutscene1_over")
     self.world.floor_drawing = true
-    audio.set_music_volume(0.8)
+    local s = self.sequencer
+    s:start(function()
+        s:tween(function(t)
+            if self.state == "Phase6" then
+                audio.set_music_volume(lerp(1.0, 0.9, t))
+            end
+         end, 0, 1, 900, "linear")
+    end)
     self:spawn_object(EggTree(0, 0))
+    if not SKIP_PHASE_5 then
+        for i = 1, NUM_SENTRIES do
+            self:spawn_object(EggSentry(vec2_from_polar(500, i * tau / NUM_SENTRIES + self.random_offset)))
+        end
+    end
+    -- spawn floor fx manager that follows camera
+    local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
+    -- self:spawn_object(FinalPhaseFloorFx(cx, cy))
 end
 
 function EggBoss:state_Phase6_update(dt)
-    if self.spawning_penitents and self.is_new_tick and self.world:get_number_of_objects_with_tag("penitent") < 25 then
+    if self.world:get_number_of_objects_with_tag("egg_sentry") == 0 and self.state_tick > 10 then
+        self:change_state("Phase7")
+        return
+    end
+
+    if self.spawning_penitents and self.is_new_tick and self.world:get_number_of_objects_with_tag("penitent") < 15 then
         local x, y = self:get_position_out_of_player_los()
         local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
 
@@ -1042,7 +1078,7 @@ function EggBoss:state_Phase6_update(dt)
         end
         self.world:spawn_object(Penitent(x, y))
     end
-    if self.is_new_tick and not self:is_tick_timer_running("wrath") and rng:percent(0.5) and self.state_tick > 900 then
+    if self.is_new_tick and not self:is_tick_timer_running("wrath") and rng:percent(0.5) and (self.world:get_number_of_objects_with_tag("egg_sentry") < (NUM_SENTRIES - 1) or self.state_tick > 3000) then
         self.wrath_cycles = self.wrath_cycles or 1
         local num_wraths = rng:randi(2, clamp(self.wrath_cycles + 1, 2, 10))
         self.wrath_cycles = self.wrath_cycles + 1
@@ -1050,6 +1086,7 @@ function EggBoss:state_Phase6_update(dt)
         local s = self.sequencer
         s:start(function()
             for i = 1, num_wraths do
+                if self.state ~= "Phase6" then return end
                 local player = self:get_random_player()
                 if player then
                     local bx, by = player:get_body_center()
@@ -1088,16 +1125,10 @@ function EggBoss:state_Phase6_update(dt)
         if greenoid then
             greenoid.run_toward_player = true
             greenoid.no_score = true
+
         end
     end
     
-    if self.is_new_tick then
-        for i = 1, 3 do
-            local px, py = self.world.camera_target.pos.x, self.world.camera_target.pos.y
-            local offx, offy = rng:random_vec2_times(rng:randf(0, 170))
-            self:spawn_object(FinalPhaseFloorFx(px + offx, py + offy))
-        end
-    end
 end
 
 function EggBoss:get_position_out_of_player_los()
@@ -1176,23 +1207,14 @@ function EggBoss:draw()
 end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+function EggBoss:state_Phase7_enter()
+    signal.emit(self, "phase7_enter")
+    self:start_tick_timer("spawn_final_object", 3, function()
+        self:ref("final_object", self:spawn_object(EggFinalObject(0, 0)))
+        signal.pass_up(self.final_object, "final_object_died", self, "final_object_died")
+        signal.pass_up(self.final_object, "final_object_animation1_complete", self, "final_object_animation1_complete")
+    end)
+end
 
 
 function BloodSpawner:new(x, y, body_height, dx, dy)
@@ -1412,7 +1434,7 @@ function BloodSpawner:draw()
 
 	local pos = self:get_position_for_history()
 	
-    if self.zapping and self.zap_target and self.zap_startup then
+    if self.zapping and self.zap_target and self.zap_startup and self.tick % 2 == 0 then
         local start_x, start_y = self:get_body_center_local()
         local end_x, end_y = self:to_local(self.zap_target:get_body_center())
         graphics.push("all")
@@ -2108,7 +2130,7 @@ EggTree.max_hp = math.huge
 function EggTree:new(x, y)
     EggTree.super.new(self, x, y)
     self.applying_physics = false
-    self.body_height = 40
+    self.body_height = 20
     self.hurt_bubble_radius = 0
     self.alive = true
     self.melee_attacking = false
@@ -2117,10 +2139,16 @@ function EggTree:new(x, y)
     self.is_egg_tree = true
 end
 
+
+function EggTree:is_invulnerable()
+    return true
+end
+
 function EggTree:enter()
     self:spawn_object(EggTreeRoots(self.pos.x, self.pos.y)):ref("parent", self)
     self:spawn_object(EggTreeFx(self.pos.x, self.pos.y)):ref("parent", self)
-    self:add_hurt_bubble(0, self.body_height, 15, "main", 0, -30)
+    self:add_hurt_bubble(0, self.body_height, 60, "main", 0, -30)
+    self:add_tag("egg_tree")
 end
 
 function EggTree:get_sprite()
@@ -2216,6 +2244,10 @@ function EggTreeRoots:new(x, y)
     self.roots = roots
     self:add_elapsed_ticks()
 end
+function EggTreeRoots:enter()
+    self:add_tag("to_remove_on_phase7")
+end
+
 
 function EggTreeRoots:update(dt)
     
@@ -2315,6 +2347,10 @@ function EggTreeFx:new(x, y)
     self.rising_particles = batch_remove_list()
 end
 
+function EggTreeFx:enter()
+    self:add_tag("to_remove_on_phase7")
+end
+
 function EggTreeFx:update(dt)
     if self.parent and self.parent.alive then
         self:set_visible(self.parent.visible)
@@ -2324,10 +2360,10 @@ function EggTreeFx:update(dt)
 
     if self.is_new_tick then
         for i=1, 3 do
-            local offx, offy = rng:random_vec2_times(rng:randf(4, 8))
+            local offx, offy = rng:random_vec2_times(rng:randf(4, 64))
             local particle = {
                 x = self.parent.pos.x + offx,
-                y = self.parent.pos.y + offy - 70,
+                y = self.parent.pos.y + offy,
                 t = 0,
                 elapsed = 0,
                 random_offset = rng:randi()
@@ -2347,46 +2383,567 @@ end
 
 function EggTreeFx:draw()
     for _, particle in self.rising_particles:ipairs() do
-        graphics.set_line_width(4)
+        graphics.set_line_width(32)
         graphics.set_color(Palette.egg_wrath_shine:tick_color(particle.elapsed + particle.random_offset, 0, 1))
         local yoffs = 200 * ease("inCubic")(particle.t)
-        graphics.line(particle.x, min(particle.y - yoffs + particle.t * 100, particle.y), particle.x, particle.y - yoffs)
+        graphics.line(particle.x, min(particle.y - yoffs + particle.t * 400, particle.y), particle.x, particle.y - yoffs)
     end
 end
 
 function FinalPhaseFloorFx:new(x, y)
     FinalPhaseFloorFx.super.new(self, x, y)
     self:add_time_stuff()
-    self.z_index = 0.0
-    self.height = max(rng:randfn_abs(2, 10), 1)
-    self.duration = max(10, self.height)
-    self.color = Palette.egg_wrath_shine:random_color()
+    self.z_index = 1.0
+    self.lines = batch_remove_list()
+    self.color_cycle = Palette.egg_wrath_shine
 end
-function FinalPhaseFloorFx:draw(elapsed, tick, t)
-    if gametime.tick % 2 == 0 then
-        return
+
+local function make_line(px, py, color_cycle)
+    local offx, offy = rng:random_vec2_times(rng:randf(0, 270))
+    local height = max(rng:randfn_abs(2, 10), 1)
+    local duration = max(10, height)
+    return {
+        world_x = px + offx,
+        world_y = py + offy,
+        height = height,
+        duration = duration,
+        elapsed = 0,
+        color = color_cycle:random_color(),
+    }
+end
+
+function FinalPhaseFloorFx:update(dt)
+    -- follow the camera target center
+    if self.world and self.world.camera_target then
+        self:move_to(self.world.camera_target.pos.x, self.world.camera_target.pos.y)
     end
-    local t1 = ease("inCubic")(t)
-    local t2 = ease("inOutCubic")(t)
-    graphics.set_color(self.color)
+
+    if self.is_new_tick then
+        -- spawn a few new lines around camera
+        for i = 1, 6 do
+            self.lines:push(make_line(self.pos.x, self.pos.y, self.color_cycle))
+        end
+    end
+
+    for _, line in self.lines:ipairs() do
+        line.elapsed = line.elapsed + dt
+        if line.elapsed >= line.duration then
+            self.lines:queue_remove(line)
+        end
+    end
+    self.lines:apply_removals()
+end
+
+function FinalPhaseFloorFx:draw()
+    if gametime.tick % 2 == 0 then return end
     graphics.set_line_width(1)
-    local height = self.height
-    graphics.line(0, -height*t1, 0, -height*t2)
+    for _, line in self.lines:ipairs() do
+        -- draw in local space relative to camera-following object
+        local lx, ly = self:to_local(line.world_x, line.world_y)
+        local t = clamp01(line.elapsed / line.duration)
+        local t1 = ease("inCubic")(t)
+        local t2 = ease("inOutCubic")(t)
+        graphics.set_color(line.color)
+        graphics.line(lx, ly - line.height * t1, lx, ly - line.height * t2)
+    end
 end
 
 function FinalPhaseFloorFx:floor_draw()
-    if self.is_new_tick and self.tick == 2 then
-        local mod = 0.25
-        graphics.set_color(self.color.r * mod, self.color.g * mod, self.color.b * mod)
-        if rng:coin_flip() then 
-            -- graphics.rectangle_centered("fill", 0, 0, 3, 3)
-            graphics.points(0, 0)
-        else
-            graphics.rectangle_centered("line", 0, 0, 3, 3)
+    if not self.is_new_tick then return end
+    for _, line in self.lines:ipairs() do
+        if rng:percent(50) and self.tick % 2 == 0 then
+            local mod = 0.25
+            graphics.set_color(line.color.r * mod, line.color.g * mod, line.color.b * mod)
+            local lx, ly = self:to_local(line.world_x, line.world_y)
+            if rng:coin_flip() then
+                graphics.points(lx, ly)
+            else
+                graphics.rectangle_centered("line", lx, ly, 3, 3)
+            end
         end
+    end
+end
+
+EggSentry.is_egg_sentry = true
+EggSentry.death_cry = "enemy_egg_sentry_death"
+
+function EggSentry:new(x, y)
+    self.max_hp = 40
+    EggSentry.super.new(self, x, y)
+    -- self.z_index = 1.0
+    self.body_height = 25
+    self.irng = rng:new_instance()
+    self.no_death_splatter = true
+    self:lazy_mixin(Mixins.Behavior.AllyFinder)
+    self.applying_physics = false
+end
+
+function EggSentry:enter()
+    self:add_hurt_bubble(10, 20, 18, "main", 0, 0)
+    self:add_hurt_bubble(-10, 20, 18, "main4", 0, 0)
+    self:add_hit_bubble(-10, 20, 10, "main", 1, 10, 20)
+    -- self:add_hurt_bubble(0, -20, 5, "main2", -10, 20)
+    -- self:add_hurt_bubble(0, -20, 5, "main3", 10, 20)
+    self:add_tag("egg_sentry")
+end
+
+function EggSentry:floor_draw()
+    if self.is_new_tick then
+        local target = self:get_closest_object_with_tag("egg_tree")
+        if target then
+            local t = 1 - ((self.elapsed / 50) % 1)
+            graphics.set_color(Color.red.r * t, Color.red.g * t, Color.red.b * t)
+            graphics.set_line_width(2)
+            local bx, by = self:to_local(self:get_body_center())
+            local tx, ty = self:to_local(target:get_body_center())
+            graphics.axis_quantized_line(bx, by, tx, ty, 100, 100, false, nil, 2, 2, nil)
+            graphics.set_color(Color.white)
+
+        end
+    end
+end
+
+function EggSentry:get_palette()
+    self.irng:set_seed(idiv(self.tick, 4) + self.random_offset)
+
+    return nil, self.irng:percent(80) and self.irng:randi() or 0
+end
+
+function EggSentry:update(dt)
+    if self.is_new_tick and not self:is_tick_timer_running("shoot_cooldown") and self.tick > 120 then
+        local player_distance = self:get_body_distance_to_player()
+        if player_distance < 200 then
+            local s = self.sequencer
+            -- local bx, by = self:get_body_center()
+            local bx, by = self.pos.x, self.pos.y - 15
+            s:start(function()
+                local NUM_BULLETS_PER_BURST = 7
+                local TIME_BETWEEN_SHOTS = 2
+                local TIME_BETWEEN_BURSTS = 30
+                local NUM_BURSTS = 10
+                local NUM_SHOTS_PER_BURST = 1
+                for i = 1, NUM_BURSTS do
+                    for k = 1, NUM_SHOTS_PER_BURST do
+                        self:start_tick_timer("shoot_cooldown", 60)
+                        for j = 1, NUM_BULLETS_PER_BURST do
+                            local direction_x, direction_y = vec2_from_angle(j / NUM_BULLETS_PER_BURST * tau +
+                                i * (tau / 32))
+                            local bullet = EggSentryBullet(bx + direction_x * 20, by + direction_y * 20, direction_x, direction_y, 1.0)
+                            self.world:spawn_object(bullet)
+                        end
+                        self:play_sfx("enemy_egg_sentry_shoot", 1, 1.0)
+                        s:wait(TIME_BETWEEN_SHOTS)
+                    end
+                    s:wait(TIME_BETWEEN_BURSTS)
+                end
+            end)
+        end
+    end
+end
+
+function EggSentry:get_sprite()
+    return textures.enemy_egg_sentry
+end
+
+function EggSentry:die()
+    for i = 1, 6 do
+        local bx, by = self:get_body_center()
+        local bx2, by2 = rng:random_vec2_times(1)
+        self:spawn_object(PenitentSoul(bx + bx2, by + by2))
+    end
+    EggSentry.super.die(self)
+    self.world.camera:start_rumble(2, 120, "linear", true, true)
+    self.world:spawn_object(EggSentryDeathFx(0, 0))
+end
+
+function EggSentryBullet:new(x, y, direction_x, direction_y, speed)
+    self.max_hp = 9
+    self.no_death_splatter = true
+
+    self.terrain_collision_radius = 1
+    self.hit_bubble_radius = 7
+    self.hurt_bubble_radius = 10
+    self.bullet_passthrough = false
+    self.speed = speed or 2.1
+    self.lifetime = 300
+	EggSentryBullet.super.new(self, x, y)
+	self.z_index = 1
+    self.drag = 0.0015
+	self.direction_x, self.direction_y = direction_x, direction_y
+    self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
+    self:lazy_mixin(Mixins.Behavior.BulletPushable)
+    self.bullet_push_modifier = 0.35
+    -- self:add_time_stuff()
+    self:apply_impulse(direction_x * self.speed, direction_y * self.speed)
+end
+
+function EggSentryBullet:get_sprite()
+    return iflicker(self.tick + self.random_offset, 2, 2) and textures.enemy_egg_sentry_bullet1 or
+        textures.enemy_egg_sentry_bullet2
+end
+
+function EggSentryBullet:get_palette()
+    return nil, idiv(self.tick, 3)
+end
+
+function EggSentryBullet:update(dt)
+    if self.vel:magnitude_squared() < (0.5 * 0.5) then
+        self:die()
+    end
+end
+
+EggSentryDeathFx.duration = 500
+
+function EggSentryDeathFx:new(x, y)
+    EggSentryDeathFx.super.new(self, x, y)
+    self.z_index = 1
+end
+
+
+function EggSentryDeathFx:draw(elapsed, tick, t)
+    graphics.set_color(Color.red)
+    local scale = elapsed * 10 + 400
+    graphics.rotate(elapsed * 0.01)
+    graphics.set_line_width(2)
+    graphics.circle("line", 0, 0, scale / 2, 10)
+end
+
+function EggFinalObject:new(x, y)
+    self.max_hp = 10
+    EggFinalObject.super.new(self, x, y)
+    self.hurt_bubble_radius = 6
+    self.z_index = -1
+    self.melee_attacking = false
+    self.applying_physics = false
+    self:add_signal("final_object_died")
+    self:add_signal("final_object_animation1_complete")
+    self.pixel_particles = {}
+    self.wind_particles = batch_remove_list()
+
+    self.black_hole_open = false
+    self.black_hole_size = 12
+    self.sucking_pixels = false
+    local image_data = graphics.texture_data[textures.enemy_evil_egg_final]
+    local width, height = textures.enemy_evil_egg_final:getPixelWidth(), textures.enemy_evil_egg_final:getPixelHeight()
+    for py = 0, height - 1 do
+        for px = 0, width - 1 do
+            local r, g, b, a = image_data:getPixel(px, py)
+            if a > 0 then
+                local px2, py2 = px - width / 2, py - height / 2
+                local dir_x, dir_y = vec2_normalized(px2, py2)
+                local particle = {
+                    x = ceil(px2),
+                    y = ceil(py2),
+                    t = 0,
+                    elapsed = 0,
+                    random_offset = rng:randi(),
+                    r = r,
+                    g = g,
+                    b = b,
+                    dir_x = dir_x,
+                    dir_y = dir_y,
+                    speed = rng:randf(0.0, 1.0),
+                    suck_speed = rng:randfn_abs(1.0, 0.5)
+                }
+                table.insert(self.pixel_particles, particle)
+            end
+        end
+    end
+
+    
+end
+
+function EggFinalObject:enter()
+    self:add_tag("final_object")
+    if SKIP_PHASE_5 then
+        self:start_tick_timer("skip_phase_5", 90, function()
+            self:die()
+        end)
+    end
+end
+
+function EggFinalObject:get_palette()
+    return nil, idiv(self.tick, 3)
+end
+
+function EggFinalObject:get_sprite()
+    return textures.enemy_evil_egg_final
+end
+
+function EggFinalObject:update(dt)
+
+    local black_hole_stopwatch = self:get_stopwatch("black_hole_open_time")
+    local black_hole_elapsed = black_hole_stopwatch and black_hole_stopwatch.elapsed or 0
+
+	for _, particle in ipairs(self.pixel_particles) do
+        if particle.moving then
+			particle.x = particle.x + particle.dir_x * dt * particle.speed
+			particle.y = particle.y + particle.dir_y * dt * particle.speed
+			if self.is_new_tick then
+				particle.dir_x, particle.dir_y = vec2_rotated(particle.dir_x, particle.dir_y, rng:randfn(0, 0.1))
+			end
+		end
+		if self.sucking_pixels and not particle.absorbed then
+			local dx, dy = -particle.x, -particle.y
+			local dist = sqrt(dx * dx + dy * dy)
+            if dist > 0 then
+                dx, dy = dx / dist, dy / dist
+            end
+			local suck_speed = (0.75 + (self.black_hole_size or 0) * 5.0) * pow(max(0, black_hole_elapsed / 300), 3) * particle.suck_speed
+            
+			particle.x = particle.x + dx * dt * suck_speed
+			particle.y = particle.y + dy * dt * suck_speed
+			if dist < max((self.black_hole_size or 0) * 0.6, 6) and black_hole_elapsed > 20 then
+				particle.absorbed = true
+			end
+        end
+
+	end
+
+	if self.black_hole_open then
+    self.black_hole_size = self.black_hole_size + dt * 0.135
+        if self.is_new_tick then
+            for i = 1, rng:randi(1, 3) do
+                local radius = rng:randf(220, 360)
+                local angle = rng:randf(0, tau)
+                local x, y = vec2_from_polar(radius, angle)
+                local speed = rng:randf(0.01, 0.15)
+                local length = rng:randf(6, 14)
+                self.wind_particles:push({ x = x, y = y, speed = speed, length = length, elapsed = 0 })
+            end
+        end
+
+        if not self.absorbed_player then
+            local player = self:get_closest_object_with_tag("player")
+            if player then
+                local move_speed = max(remap_pow(max(0,(black_hole_elapsed - 100) / 300), 0, 1, 0, 300, 3), remap_pow(clamp01((black_hole_elapsed - 60) / 50), 0, 1, 0, 0.5, 0.15))
+                local dx, dy = self:body_direction_to(player)
+                local bx, by = self:get_body_center()
+                local px, py = player:get_body_center()
+                local dist = vec2_distance(bx, by, px, py)
+                move_speed = min(move_speed, dist)
+                player:move(dx * -move_speed, dy * -move_speed)
+                if dist < 2 then
+                    self.absorbed_player = true
+                    -- player:start_tick_timer("absorbed_player", 120, function()
+                        player:get_absorbed()
+                    -- end)
+                    -- self.world.camera:start_rumble(2, 120, "linear", true, true)
+                    -- self.world:spawn_object(EggSentryDeathFx(0, 0))
+                    player:move_to(self.pos.x, self.pos.y)
+                    local px2, py2 = player:get_body_center_local()
+                    player:move(-px2, -py2)
+                    -- player:hide()
+                end
+            end
+        end
+	end
+
+    if self.shaking_camera and self.is_new_tick then
+        local camera_shake_amount = self.camera_shake_amount
+        if self.cutscene and self.cutscene.camera_shake_amount then
+            camera_shake_amount = self.cutscene.camera_shake_amount
+            self.camera_shake_amount = camera_shake_amount
+        end
+        local x_amount = rng:randf_pow(0, camera_shake_amount * 4, 2)
+        local y_amount = rng:randf_pow(0, camera_shake_amount * 4, 2)
+        self.world.camera:set_rumble_directly(x_amount, y_amount)
+    end
+    
+    local return_time = self:get_stopwatch("black_hole_return_time") and self:get_stopwatch("black_hole_return_time").elapsed or 0
+    
+
+    for _, wp in self.wind_particles:ipairs() do
+        local dx, dy = -wp.x, -wp.y
+        local dist = sqrt(dx * dx + dy * dy)
+        if dist > 0 then
+            dx, dy = dx / dist, dy / dist
+        end
+        wp.elapsed = wp.elapsed + dt
+        local speed = wp.speed * wp.elapsed * 0.5 * remap_pow(clamp01(black_hole_elapsed / 300) * 2.0, 0, 1, 1, 5, 3)
+        if self.super_fast_wind then
+            speed = speed * remap_pow(max(0, return_time / 10), 0, 1, 1, 10, 3)
+        end
+        wp.x = wp.x + dx * speed * dt
+        wp.y = wp.y + dy * speed * dt
+        if dist < max((self.black_hole_size or 0) * 0.7, 8) then
+            self.wind_particles:queue_remove(wp)
+        end
+    end
+    self.wind_particles:apply_removals()
+    
+    if self.twin then
+        if self.is_new_tick and self.twin_irng:percent(5) then
+            self.twin.direction = self.twin_irng:choose(CARDINAL_DIRECTIONS):clone()
+        end
+        self.twin.position:add_in_place(self.twin.direction.x * dt * 0.01, self.twin.direction.y * dt * 0.01)
+    end
+
+    
+end
+
+function EggFinalObject:draw()
+
+	local palette = Palette[textures.enemy_evil_egg_final]
+	if self.drawing_pixels then
+		for _, particle in ipairs(self.pixel_particles) do
+			if not particle.absorbed then
+				local pixel_color = palette:get_swapped_color_unpacked(particle.r, particle.g, particle.b,
+						palette, idiv(self.tick, 3))
+				graphics.set_color(pixel_color)
+				graphics.points(particle.x + 1, particle.y)
+			end
+		end
+	else
+		EggFinalObject.super.draw(self)
+	end
+
+	if self.black_hole_open then
+        graphics.set_line_width(1)
+        graphics.set_color(Color.darkergrey)
+        for _, wp in self.wind_particles:ipairs() do
+            local dx, dy = -wp.x, -wp.y
+            local dist = sqrt(dx * dx + dy * dy)
+            if dist > 0 then dx, dy = dx / dist, dy / dist end
+            local tail_x = wp.x - dx * wp.length
+            local tail_y = wp.y - dy * wp.length
+            graphics.line(wp.x, wp.y, tail_x, tail_y)
+        end
+	end
+
+    if self.twin then
+        graphics.set_color(Color.white)
+        local tex = iflicker(self.world.tick, 10, 2) and textures.cutscene_twin1 or textures.cutscene_twin2
+        graphics.drawp_centered(tex, nil, 0, self.twin.position.x, self.twin.position.y)
+    end
+
+end
+
+function EggFinalObject:die()
+    if self.dead then return end
+    self.dead = true
+    self.intangible = true
+    -- self:normal_death_effect()
+    -- self:hide()
+    self:emit_signal("final_object_died")
+    local s = self.sequencer
+    s:start(function()
+
+        s:wait(140)
+
+        self.z_index = 1
+
+        self.drawing_pixels = true
+        self:play_sfx("cutscene_egg_sound_1", 0.7)
+
+        for _, particle in ipairs(self.pixel_particles) do
+            particle.moving = true
+            -- s:wait(1)
+        end
+
+        s:wait(100)
+
+        s:start(function()
+            self.shaking_camera = true
+            self.shaking_camera_tween = true
+            s:tween(function(t)
+                if self.shaking_camera_tween then
+                    self.camera_shake_amount = t
+                end
+                    
+            end, 0, 1, 380, "linear")
+        end)
+
+        s:wait(150)
+
+        self.black_hole_open = true
+		self.sucking_pixels = true
+        self:start_stopwatch("black_hole_open_time")
+		self:ref("black_hole", self:spawn_object(EggFinalBlackHole(0, 0))):ref("parent", self)
+		self:bind_destruction(self.black_hole)
+        
+        s:wait(330)
+        
+        if game_state.good_ending == 2 then
+            self:start_stopwatch("black_hole_return_time")
+            self.super_fast_wind = true
+
+            game_state:use_sacrificial_twin()
+            local player = self:get_closest_object_with_tag("player")
+            -- player:show()
+            player:spawn_twin_death_effect()
+            self.twin_irng = rng:new_instance()
+            self.twin = {
+                position = Vec2(),
+                direction = self.twin_irng:choose(CARDINAL_DIRECTIONS):clone(),
+            }
+            self:play_sfx("pickup_artefact_twin_death", 0.8)
+
+            self.world.floor_drawing = true
+            self:spawn_object(JustTheSplatter(0, 0, 20, 20, 3.0))
+            self:spawn_object(DeathFlash(0, 0, textures.player_egg, 0.25, nil, nil, false))
+            self:spawn_object(DeathSplatter(0, 0, 1, textures.player_egg, Palette[textures.player_egg], 1.0, vel_x, vel_y, 0, 0, 3.0))
+            self:play_sfx("player_egg_hatch")
+
+            s:wait(25)
+            self.shaking_camera = false
+            self.world.camera:set_rumble_directly(0, 0)
+            
+            self.black_hole_open = false
+            -- s:wait(30)
+            -- self:hide()
+            
+            s:wait(180)
+            self.world.floor_drawing = false
+            self:hide()
+            s:wait(44)
+            self:ref("cutscene", self:spawn_object(Cutscenes.GoodEndCutscene(0, 0)))
+        else
+            s:wait(100)
+            self:hide()
+            self.black_hole:hide()
+            self.shaking_camera_tween = false
+            self.camera_shake_amount = 2
+
+            -- self.camera_shake_amount = 2
+            self:ref("cutscene", self:spawn_object(Cutscenes.OkEndCutscene(0, 0)))
+        end
+
+        while self.cutscene and not self.cutscene.finished do
+            s:wait(1)
+        end
+        
+        self:emit_signal("final_object_animation1_complete")
+    end)
+end
+
+function EggFinalBlackHole:new(x, y)
+	EggFinalBlackHole.super.new(self, x, y)
+	self.z_index = -1
+	self:add_elapsed_time()
+	self:add_elapsed_ticks()
+end
+
+function EggFinalBlackHole:enter()
+	self:add_tag("egg_final_black_hole")
+end
+
+function EggFinalBlackHole:draw()
+	if not self.parent then return end
+	local stopwatch = self.parent:get_stopwatch("black_hole_open_time")
+	local elapsed = stopwatch and stopwatch.elapsed or 0
+    local return_time = self.parent:get_stopwatch("black_hole_return_time") and self.parent:get_stopwatch("black_hole_return_time").elapsed or 0
+	local size = max(0, min((self.parent.black_hole_size or 0) - remap_pow(max(0,return_time / 10), 0, 1, 0, 30, 3), elapsed / 5))
+    if size > 0 then
+        graphics.push("all")
+        graphics.set_color(Color.nearblack)
+        graphics.set_line_width(1)
+        graphics.rotate(tau / 8)
+		graphics.rectangle_centered("line", 0, 0, size, size)
+		graphics.pop()
     end
 end
 
 AutoStateMachine(EggBoss, "Idle")
 
-return EggBoss
+return {EggBoss, EggSentry}

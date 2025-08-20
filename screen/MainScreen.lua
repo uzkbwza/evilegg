@@ -1,11 +1,11 @@
 local MainScreen = CanvasLayer:extend("MainScreen")
 local TopLayer = CanvasLayer:extend("TopLayer")
 
--- local debug_start = "game"
+local debug_start = "game"
 -- local debug_start = "codex_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
-local debug_start = "title_screen"
+-- local debug_start = "title_screen"
 -- local debug_start = "pre_title_screen"
 
 function MainScreen:new()
@@ -132,22 +132,27 @@ function MainScreen:set_current_screen(screen)
         self.current_screen:destroy()
     end
     
-	self:ref("current_screen", self:insert_layer(screen, 1))
+    self:ref("current_screen", self:insert_layer(screen, 1))
+    modloader:call("on_screen_changed", self.current_screen)
 end
 
 function MainScreen:get_mouse_mode()
-	local visible, relative = self.current_screen:get_mouse_mode()
-	return visible, relative
+	local visible, relative, confine = self.current_screen:get_mouse_mode()
+	return visible, relative, confine
 end
 
 function MainScreen:update(dt)
-	local visible, relative = true, false
+	local visible, relative, confine = true, false, false
     if self.current_screen and self.current_screen.get_mouse_mode then
-        visible, relative = self.current_screen:get_mouse_mode()
+        visible, relative, confine = self.current_screen:get_mouse_mode()
     end
 
-    if game_state and game_state.cutscene_hide_hud and game_state.cutscene_no_pause then
+    if game_state and game_state.cutscene_no_cursor then
         visible = false
+    end
+
+    if game_state and game_state.force_cursor then
+        visible = true
     end
 
     self.drawing_cursor = visible
@@ -170,7 +175,14 @@ function MainScreen:update(dt)
     self._prev_relative = (relative and not usersettings.use_absolute_aim)
 
     love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
-    love.mouse.set_grabbed(not visible)
+
+    if usersettings.confine_mouse == "when_aiming" then
+        love.mouse.set_grabbed(confine)
+    elseif usersettings.confine_mouse == "always" then
+        love.mouse.set_grabbed(true)
+    elseif usersettings.confine_mouse == "never" then
+        love.mouse.set_grabbed(false)
+    end
 end
 
 function TopLayer:draw()

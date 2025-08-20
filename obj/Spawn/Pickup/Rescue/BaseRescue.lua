@@ -150,6 +150,8 @@ function BaseRescue:hit_by(other)
     self:damage(damage)
     self:start_tick_timer("invulnerability", self.hp <= 1 and LAST_HIT_INVULNERABILITY or HIT_INVULNERABILITY)
 
+    game_state.any_greenoids_hurt = true
+
 
     -- local sprite = self:get_sprite()
 
@@ -335,7 +337,7 @@ function BaseRescue:die()
     self:play_sfx(self.die_sfx, self.die_sfx_volume)
 	self.pickupable = false
 	self.floor_particle:die()
-	game_state:on_rescue_failed()
+    game_state:on_rescue_failed()
 	self:queue_destroy()
 end
 

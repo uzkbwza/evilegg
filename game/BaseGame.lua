@@ -29,6 +29,8 @@ end
 function BaseGame:update(dt)
     self.layer_tree:update_shared(dt)
 
+    modloader:call("update", dt)
+
 	if debug.enabled then
         if input.debug_editor_toggle_pressed then
             if self:get_main_screen():is(Screens.LevelEditor) then

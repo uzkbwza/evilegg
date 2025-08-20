@@ -95,20 +95,6 @@ function HUDWorld:draw()
 	if not self.showing then return end
 	HUDWorld.super.draw(self)
 
-	
-
-	local room_elapsed = self.canvas_layer.game_layer.world.room.elapsed
-	local world = self.canvas_layer.game_layer.world
-	local show_time_on_room_clear = world.state == "RoomClear" or world.state == "LevelTransition"
-	local show_time_on_room_start = room_elapsed < 60 or room_elapsed < 90 and iflicker(gametime.tick, 3, 2)
-	
-	if show_time_on_room_clear or show_time_on_room_start or self.canvas_layer.parent.ui_layer.state == "Paused" or self.force_show_time then
-		local font = fonts.depalettized.image_font2
-		graphics.set_font(font)
-		graphics.set_color(Color.white)
-		local text = format_hhmmssms1(game_state.game_time_ms)
-		graphics.print(text, conf.room_size.x / 2 - 1 - font:getWidth(text), 96)
-	end
 end
 
 return HUDWorld

@@ -44,9 +44,15 @@ function LeaderboardWorld:new()
     self.period = savedata.leaderboard_period or "daily"
 
 	self.run_t_values = {}
-	for i=1, PAGE_LENGTH do
-		self.run_t_values[i] = 0
-	end
+    for i = 1, PAGE_LENGTH do
+        self.run_t_values[i] = 0
+    end
+    self.run_tables = {}
+    for i = 1, PAGE_LENGTH do
+        self.run_tables[i] = {
+            hatch_particles = batch_remove_list(),
+        }
+    end
 
     self.wait_function = function(ok, res)
 		if self.is_destroyed then
@@ -312,6 +318,27 @@ function LeaderboardWorld:on_page_fetched(page)
 	for i=1, PAGE_LENGTH do
         self.run_t_values[i] = 0
 	end
+    self.run_tables = {}
+    for i = 1, PAGE_LENGTH do
+        self.run_tables[i] = {
+            hatch_particles = nil,
+            random_offset = rng:randi()
+        }
+    end
+
+    for i = 1, PAGE_LENGTH do
+        local run = self.current_page.entries[i]
+        if run then
+            for j = 1, GlobalGameState.max_artefacts do
+                local artefact = self.artefact_map[run.artefacts[j]]
+                if artefact and artefact.name == "HatchedTwinArtefact" then
+                    self.run_tables[i].hatch_particles = batch_remove_list()
+                    break
+                end
+            end
+        end
+    end
+
     local s = self.sequencer
 	
     self.fetch_sequences = self.fetch_sequences or {}
@@ -366,6 +393,31 @@ function LeaderboardWorld:update(dt)
         self.back_button:select()
     end
 
+    for i = 1, PAGE_LENGTH do
+        local run_table = self.run_tables[i]
+        if run_table.hatch_particles then
+            if self.is_new_tick and rng:percent(20) and self.run_t_values[i] > 0 then
+                local particle = {
+                    position = Vec2(rng:random_vec2_times(rng:randf(0, 6))),
+                    velocity = Vec2(0, -rng:randf(0.05, 0.15)),
+                    size = rng:randf(1, 3),
+                    color = Color.white,
+                    lifetime = rng:randf(20, 90),
+                    elapsed = 0,
+                }
+                particle.position.x = particle.position.x * 0.8
+                run_table.hatch_particles:push(particle)
+            end
+            for _, particle in (run_table.hatch_particles):ipairs() do
+                particle.position:add_in_place(particle.velocity.x * dt, particle.velocity.y * dt)
+                particle.elapsed = particle.elapsed + dt
+                if particle.elapsed > particle.lifetime then
+                    run_table.hatch_particles:queue_remove(particle)
+                end
+            end
+            run_table.hatch_particles:apply_removals()
+        end
+    end
 end
 
 function LeaderboardWorld:draw()
@@ -444,6 +496,7 @@ function LeaderboardWorld:draw_leaderboard()
         if t == 0 then
             break
         end
+        local run_table = self.run_tables[i]
         local run = self.current_page.entries[i]
         if run then
             local is_self = run.uid == savedata:get_uid()
@@ -520,7 +573,25 @@ function LeaderboardWorld:draw_leaderboard()
                 graphics.draw(textures.hud_artefact_slot1, 0, 0, 0, 1, 1)
                 local artefact = self.artefact_map[run.artefacts[j]]
                 if artefact and artefact ~= "none" and j <= t * GlobalGameState.max_artefacts then
-                    graphics.drawp(artefact.icon, nil, 0, 0, 0, 0, 1, 1)
+                    local palette, offset = nil, 0
+                    if artefact.name == "HatchedTwinArtefact" then
+                        -- palette = Palette.rankings_hatched_twin
+                        -- palette = nil
+                        -- offset = idiv(self.tick, 2)
+                        -- offset = 0
+                        graphics.set_color(Color.cyan)
+                        local size1 = 3 + sin(run_table.random_offset + self.elapsed * 0.05) * 2
+                        graphics.rectangle_centered("fill", 7, 7, size1, size1)
+                        for _, particle in (run_table.hatch_particles):ipairs() do
+                            local size2 = particle.size * (1 - (particle.elapsed / particle.lifetime))
+                            graphics.rectangle_centered("fill", particle.position.x + 7, particle.position.y + 5, size2, size2)
+                        end
+                        graphics.set_color(Color.white)
+                        -- graphics.drawp(iflicker(gametime.tick, 20, 2) and textures.pickup_artefact_hatched_twin1 or textures.pickup_artefact_hatched_twin2, palette, offset, 0, 0, 0, 1, 1)
+                        graphics.drawp(artefact.icon, palette, offset, 0, 0, 0, 1, 1)
+                    else
+                        graphics.drawp(artefact.icon, palette, offset, 0, 0, 0, 1, 1)
+                    end
                 end
                 graphics.pop()
             end

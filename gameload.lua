@@ -16,6 +16,7 @@ graphics.load_image_font("image_neutralfont1", "font_neutralfont1", " ABCDEFGHIJ
 graphics.load_image_font("image_bigfont1", "font_bigfont1", " APRHOSITNCXDEFQUVGLKBMWJZY")
 
 graphics.load_image_font("egglanguage", "font_egglanguage", "abcdefghijklmnopqrstuvwxyz")
+graphics.load_image_font("bignum", "font_bignum", "1234567890.,x")
 
 ---@diagnostic disable-next-line: lowercase-global
 control_glyphs = {

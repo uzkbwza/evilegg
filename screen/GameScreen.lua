@@ -29,6 +29,7 @@ function GameScreen:enter()
 	signal.connect(self.game_layer, "player_died", self, "on_player_died")
     signal.connect(self.game_layer, "restart_requested", self, "on_game_layer_restart_requested")
     signal.connect(self.game_layer.world, "all_spawns_cleared", self.hud_layer, "start_after_level_bonus_screen")
+    signal.connect(self.game_layer.world, "force_bonus_screen", self.hud_layer, "start_after_level_bonus_screen")
 	signal.connect(self.game_layer, "player_death_sequence_finished", self.ui_layer, "on_player_death_sequence_finished")
 	signal.connect(self.ui_layer, "leaderboard_requested", self, "on_leaderboard_requested")
 
@@ -51,13 +52,13 @@ function GameScreen:on_game_layer_restart_requested()
 end
 
 function GameScreen:update(dt)
-    if input.menu_pressed then
-    end
+    
     if self.game_layer.world then
         self.game_layer.world.showing_hud = self.hud_layer:should_show()
         self.game_layer.world:always_update(dt)
     end
 
+    -- if false then
     if self.game_layer.world.fog_of_war then
         local width, height = conf.viewport_size.x - 18, conf.viewport_size.y - 22
         self.game_layer:set_viewport_size(width, height)
@@ -71,15 +72,15 @@ function GameScreen:update(dt)
     self.clear_color = self:get_clear_color()
 end
 
-function GameScreen:get_mouse_mode()
-    if self:in_menu() then return true, false end
+function GameScreen:get_mouse_mode() -- visible, relative, confine
+    if self:in_menu() then return true, false, false end
 
 
     if usersettings.use_absolute_aim then
-        return true, true
+        return true, true, true
     end
 
-    return false, true
+    return false, true, false
 end
 
 function GameScreen:in_menu()

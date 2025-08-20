@@ -67,7 +67,7 @@ function TimeChecker:update(dt)
         self.last_slowdown_detection_time_os = os_time
     else
 
-        local current_fps = love.timer.get_fps()
+        local current_fps = min(300, love.timer.get_fps())
         self.fps_samples = self.fps_samples + 1
         self.fps = self.fps + current_fps
 

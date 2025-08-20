@@ -250,10 +250,10 @@ function Object:get_methods(recursive, methods)
         end
     end
 
-	local super = self.super
+	local super = getmetatable(self)
 
     -- Check if metatable exists and has an __index table
-    if recursive and super and type(super) == "table" then
+    if recursive and super and type(super) == "table" and super ~= Object then
         super:get_methods(true, m)
     end
     

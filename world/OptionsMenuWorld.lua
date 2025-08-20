@@ -9,7 +9,7 @@ local DISTANCE_BETWEEN_ITEMS = 11
 local HEADER_SPACE = 0
 local HEADER_SPACE_UNDER = 1
 
-local NUM_WINDOW_SIZES = 6
+local NUM_WINDOW_SIZES = 8
 
 local function parse_ratio(str)
     local a, b = str:match("^(%d+):(%d+)$")
@@ -531,11 +531,20 @@ function OptionsMenuWorld:show_menu(page)
 		-- { "invert_colors", item_type = "toggle" },
         { newpage = true },
         { "header",                               text = tr.options_header_controls },
-		{ "use_absolute_aim", item_type = "toggle" },
+		{ "use_absolute_aim", item_type = "toggle", inverse = true },
         { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
 		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
         { "gamepad_plus_mouse",                   item_type = "toggle" },
-        
+        { "confine_mouse", item_type = "cycle", options = { "when_aiming", "always", "never" },
+        set_func = function(value)
+            usersettings:set_setting("confine_mouse", value)
+        end,
+        print_func = function(value)
+            local key = "options_confine_mouse_" .. (value or "")
+            return tr:has_key(key) and tr[key] or "???"
+        end,
+        translate_options = true
+    },
         { newpage = true },
 		{ "header", text = tr.options_header_audio },
 		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
@@ -543,7 +552,7 @@ function OptionsMenuWorld:show_menu(page)
         { "sfx_volume",    item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
         { newpage = true },
 		{ "header", text = tr.options_header_other },
-        { "skip_intro", item_type = "toggle" },
+        { "skip_intro", item_type = "toggle", skip = savedata.new_version_force_intro },
         { "retry_cooldown", item_type = "toggle", update_function = function(self, dt)
             self:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
             if not self.enabled and not self.gamer_health_timer then

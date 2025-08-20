@@ -17,8 +17,10 @@ end
 
 IS_EXPORT = not pcall(require, "tools.is_debug")
 
+local debugger = true
 
-local IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and arg[2] == "debug"
+
+local IS_DEBUG = os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" and arg[2] == "debug" and debugger
 if IS_DEBUG then
     -- lldebugger = lldebuggerPatcher.start()
     require("lldebugger").start()
@@ -150,6 +152,14 @@ local conf = {
             keyboard = {
                 { "lctrl", "k" },
                 { "rctrl", "k" }
+            }
+        },
+
+        debug_hurt_player = {
+            debug = true,
+            keyboard = {
+                { "lctrl", "h" },
+                { "rctrl", "h" }
             }
         },
 

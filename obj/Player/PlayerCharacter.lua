@@ -84,6 +84,8 @@ function PlayerCharacter:new(x, y)
     self.bullets_fired = 0
     self.shoot_held_time = 0
 
+    -- self.damage = 1
+
     self.aim_radius = 12
 
     self.moving_direction = Vec2(rng:random_vec2())
@@ -226,7 +228,9 @@ end
 
 function PlayerCharacter:prayer_knot_charge_fx()
     self:stop_sfx("player_prayer_knot_charge")
-    self:play_sfx("player_prayer_knot_charged", 0.8)
+    if self.state ~= "Cutscene" then
+        self:play_sfx("player_prayer_knot_charged", 0.8)
+    end
     local effect = self:spawn_object(PrayerKnotChargeEffect(self.pos.x, self.pos.y))
     effect:ref("player", self)
     signal.connect(self, "moved", effect, "on_player_moved", function()
@@ -250,7 +254,9 @@ function PlayerCharacter:start_prayer_knot_charge()
     local time = PRAYER_KNOT_CHARGE_TIME - self.world:get_effective_fire_rate() * 10
     self:start_tick_timer("prayer_knot", time, self.on_prayer_knot_charged)
     self:start_timer("prayer_knot_charge_sfx", time - 36, function()
-        self:play_sfx("player_prayer_knot_charge", 0.5)
+        if self.state ~= "Cutscene" then
+            self:play_sfx("player_prayer_knot_charge", 0.5)
+        end
     end)
 
 end
@@ -436,6 +442,16 @@ function PlayerCharacter:handle_input(dt)
         self:die()
     end
 
+    if debug.enabled and input.debug_hurt_player_pressed then
+        self:hit_by(self)
+    end
+
+    if self.no_input then
+        input = input.dummy
+    end
+
+    local no_input = input == input.dummy
+
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
     local aim_x_digital, aim_y_digital = input.aim_digital_clamped.x, input.aim_digital_clamped.y
 
@@ -463,7 +479,7 @@ function PlayerCharacter:handle_input(dt)
                     self.mouse_aim_offset.y, aim_x, aim_y, 900, gametime.delta)
             end
         end
-    else
+    elseif not no_input then
         if usersettings.use_absolute_aim then
             local global_mouse_x, global_mouse_y = self:get_mouse_position()
             self.mouse_pos_x = global_mouse_x
@@ -498,6 +514,9 @@ function PlayerCharacter:handle_input(dt)
         self.moving_direction:set(input.move_normalized.x, input.move_normalized.y)
     end
 
+    dbg("aim_direction", self.aim_direction)
+
+
     local move_amount_x = input.move_clamped.x
     local move_amount_y = input.move_clamped.y
     if move_amount_x > 0.9 then
@@ -520,21 +539,30 @@ function PlayerCharacter:handle_input(dt)
 
     move_amount_x = move_amount_x * magnitude
     move_amount_y = move_amount_y * magnitude
-
-
 	
     if self.state == "Walk" then
         if self:is_tick_timer_running("fatigue") then
             move_amount_x = move_amount_x * FATIGUE_MOVE_SPEED_MODIFIER
             move_amount_y = move_amount_y * FATIGUE_MOVE_SPEED_MODIFIER
         end
+
 		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self:move(move_amount_x * dt * self.speed, move_amount_y * dt * self.speed)
-		self.move_vel:set(move_amount_x, move_amount_y)
+        self.move_vel:set(move_amount_x, move_amount_y)
+        
+        if input.hover_held then
+            self:change_state("Hover")
+        end
     elseif self.state == "Hover" then
 		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self.hover_accel.x = self.hover_accel.x + move_amount_x * self.speed
         self.hover_accel.y = self.hover_accel.y + move_amount_y * self.speed
+
+        if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
+            -- if not self.world.room.cleared then
+                self:change_state("Walk")
+            -- end
+        end
     end
 
     self.shooting = self.shooting or input.shoot_held
@@ -825,6 +853,10 @@ function PlayerCharacter:is_invulnerable()
 		return true
 	end
 
+    if self.force_invuln then
+        return true
+    end
+
 	if global_state.debug_invulnerable then
 		return true
 	end
@@ -834,7 +866,7 @@ end
 
 function PlayerCharacter:hit_by(by, force)
 
-    if by.damage <= 0 then return end
+    if type(by.damage) == "number" and by.damage <= 0 then return end
 
 	if debug.enabled then
         if by.parent then
@@ -889,7 +921,7 @@ function PlayerCharacter:hit_by(by, force)
         s:start(function()
             s:wait(15)
             if not self.is_destroyed then
-                self.world:spawn_object(TwinDeathEffect(self.pos.x, self.pos.y))
+                self:spawn_twin_death_effect()
             end
         end)
 
@@ -925,6 +957,10 @@ function PlayerCharacter:hit_by(by, force)
 	end
 
 	game_state:on_damage_taken()
+end
+
+function PlayerCharacter:spawn_twin_death_effect()
+    self:spawn_object(TwinDeathEffect(self.pos.x, self.pos.y))
 end
 
 function PlayerCharacter:on_health_reached_zero()
@@ -996,12 +1032,15 @@ function PlayerCharacter:update(dt)
 
 
     end
-    
+    modloader:call("player_update", self, dt)
 end
 
 function PlayerCharacter:get_palette()
     if self:is_tick_timer_running("fatigue") then
         return Palette.fatigued, idiv(self.tick, 3)
+    end
+    if self.absorbed then
+        return Palette.player_absorbed, idiv(self.tick, 3)
     end
     return nil, 0
 end
@@ -1139,12 +1178,8 @@ end
 function PlayerCharacter:state_Walk_update(dt)
 	self:alive_update(dt)
 	local input = self:get_input_table()
-	if input.hover_held then
-		self:change_state("Hover")
-    end
     if input.debug_toggle_invulnerability_pressed then
 		global_state.debug_invulnerable = not global_state.debug_invulnerable
-
 	end
 end
 
@@ -1213,11 +1248,6 @@ function PlayerCharacter:state_Hover_update(dt)
 	self:alive_update(dt)
     local input = self:get_input_table()
 
-	if self.state_tick >= MIN_HOVER_TIME and not input.hover_held then
-		-- if not self.world.room.cleared then
-			self:change_state("Walk")
-		-- end
-	end
 
 	self.hover_particle_direction:splerp_in_place(self.moving_direction, 10, dt)
 	
@@ -1387,6 +1417,14 @@ end
 
 function PlayerCharacter:state_EggRoomStart_draw()
 
+end
+
+function PlayerCharacter:get_absorbed()
+    self.absorbed = true
+    self:start_tick_timer("absorbed", 80, function()
+        self:hide()
+    end)
+    
 end
 
 ------------------------------------------ secondary weapon methods ------------------------------------------
@@ -2077,7 +2115,8 @@ function PrayerKnotChargeEffect:update(dt)
         if self.player.visible and not self.visible then
             table.clear(self.particles)
         end
-        self:set_visible(self.player.visible)
+        self:set_visible(self.player.visible and self.player.state ~= "Cutscene")
+        -- self:set_visible(self.player.visible)
     end
 
     if self.player and (not self.player.prayer_knot_charged or not game_state.artefacts.prayer_knot) then

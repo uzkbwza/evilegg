@@ -2,7 +2,7 @@ local CodexWorld = World:extend("CodexWorld")
 local O = require("obj")
 local SpawnDataTable = require("obj.spawn_data")
 local PickupDataTable = require("obj.pickup_table")
-local LevelBonus = require("levelbonus.LevelBonus")
+local LevelBonus = require("bonus.LevelBonus")
 local Room = require("room.Room")
 
 
@@ -187,14 +187,12 @@ function CodexWorld:open_spawn_description(spawn)
 		current_y = current_y + sprite_height / 2
 		self:add_tag(spawn_sprite, "sequence_object")
 	end
-
-
 	
 	
 	local increment = 12
 
 	if hp_categories[spawn.page_category] then
-		local hp_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_hp_text, spawn.class.max_hp or "???"), false, Color.red, delay, true))
+		local hp_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_hp_text, spawn.class and spawn.class.max_hp or "???"), false, Color.red, delay, true))
 		self:add_tag(hp_text, "sequence_object")
 		current_y = current_y + increment
 		delay = delay + 1

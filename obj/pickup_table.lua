@@ -455,8 +455,16 @@ local Artefacts = {
 		
         cooldown = 50,
 		is_railgun = true,
-
 	},
+
+    HatchedTwinArtefact = {
+        icon = textures.pickup_artefact_hatched_twin,
+		key = "hatched_twin",
+        can_spawn = false,
+        spawn_weight = 1000,
+        codex_hidden = true,
+        no_codex = true,
+    },
 }
 
 

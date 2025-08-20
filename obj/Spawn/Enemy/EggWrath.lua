@@ -86,6 +86,9 @@ function EggWrath:filter_melee_attack(bubble)
     if bubble.parent.is_egg_tree then
         return false
     end
+    if bubble.parent.is_egg_sentry then
+        return false
+    end
     return true
     -- return EggWrath.super.filter_melee_attack(self, bubble)
 

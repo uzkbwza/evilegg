@@ -52,7 +52,10 @@ function GameWorld:new(x, y)
     self:add_signal("level_transition_started")
 	self:add_signal("player_died")
 	self:add_signal("player_death_sequence_finished")
-
+    self:add_signal("force_bonus_screen")
+	self:add_signal("room_cleared")
+    self:add_signal("all_spawns_cleared")
+    
 	local grid_size = 24
 
 	self:add_spatial_grid("game_object_grid", grid_size)
@@ -77,8 +80,7 @@ function GameWorld:new(x, y)
 	self.empty_update_objects = bonglewunch()
 
 	self.object_class_counts = {}
-	self:add_signal("room_cleared")
-	self:add_signal("all_spawns_cleared")
+
 
 	self.players = {}
 	self.last_player_positions = {}
@@ -110,7 +112,6 @@ function GameWorld:new(x, y)
 
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
 
-
 	self:init_state_machine()
 end
 
@@ -127,6 +128,8 @@ function GameWorld:enter()
 
         self.world.room.elapsed_scaled = self.world.room.elapsed_scaled + dt
         self.world.room.tick_scaled = floor(self.world.room.elapsed_scaled)
+
+        modloader:call("world_update_timescaled", self, dt)
 	end
 	
 	-- self:play_sfx("level_start", 0.95, 1.0)
@@ -330,9 +333,15 @@ function GameWorld:enter()
             self.tutorial_state = 1
         end
     end)
+
+    modloader:call("on_world_created", self)
 end
 
 function GameWorld:quick_notify(text, palette_name, sound, sound_volume, duration, ignore_queue)
+    if game_state.game_over then
+        return
+    end
+
 	if debug.enabled then
 		print("notifying: " .. text)
 	end
@@ -634,9 +643,9 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 			-- s:wait(1)
 			-- end
 
-			while self:get_number_of_objects_with_tag(tag_name) > max_count do
-				s:wait(1)
-			end
+			-- while self:get_number_of_objects_with_tag(tag_name) > max_count do
+				-- s:wait(1)
+			-- end
 			::continue::
 		end
 	end)
@@ -889,6 +898,8 @@ function GameWorld:create_player(player_id)
 		
 	end)
 
+    modloader:call("on_player_spawned", player)
+
 	return player
 end
 
@@ -938,6 +949,8 @@ end
 
 function GameWorld:on_player_died()
     local s = self.sequencer
+
+    modloader:call("on_player_died", self)
 
     s:start(function()
         s:start(function()
@@ -1029,6 +1042,10 @@ function GameWorld:on_player_died()
         self:emit_signal("player_death_sequence_finished")
         -- s:wait(120)
     end)
+end
+
+function GameWorld:on_final_boss_end_sequence_finished()
+    self:emit_signal("player_death_sequence_finished")
 end
 
 function GameWorld:create_next_rooms()
@@ -1230,12 +1247,6 @@ end
 function GameWorld:spawn_artefact(artefact)
 	local artefact_object = self:spawn_object(O.Artefact.ArtefactSpawn(0, 0, artefact))
 	self:add_tag(artefact_object, "artefact")
-end
-
-function GameWorld:on_final_boss_killed()
-    self.final_boss_killed = true
-	game_state:on_final_room_cleared()
-	self:on_room_clear()
 end
 
 function GameWorld:can_pause()
@@ -1467,11 +1478,12 @@ function GameWorld:update(dt)
 	average_player_aim_direction_y = average_player_aim_direction_y / num_players
 
 
-	if self.state ~= "LevelTransition" and self.room.free_camera then
+    if self.state ~= "LevelTransition" and self.room.free_camera then
+        local cx, cy = self.camera_target.pos.x, self.camera_target.pos.y
 		if num_players > 0 then
-			self.camera_target.pos.x, self.camera_target.pos.y =
+			cx, cy =
 				splerp_vec(
-					self.camera_target.pos.x, self.camera_target.pos.y,
+					cx, cy,
 					average_player_x + self.camera_aim_offset.x, average_player_y + self.camera_aim_offset.y,
 					300.0,
 					dt
@@ -1486,16 +1498,22 @@ function GameWorld:update(dt)
 					dt
 				)
 		end
-		if self.camera_target.pos.x < self.room.left then
-			self.camera_target.pos.x = self.room.left
-		elseif self.camera_target.pos.x > self.room.right then
-			self.camera_target.pos.x = self.room.right
+		if cx < self.room.left then
+			cx = self.room.left
+		elseif cx > self.room.right then
+			cx = self.room.right
 		end
-		if self.camera_target.pos.y < self.room.top then
-			self.camera_target.pos.y = self.room.top
-		elseif self.camera_target.pos.y > self.room.bottom then
-			self.camera_target.pos.y = self.room.bottom
-		end
+        if cy < self.room.top then
+            cy = self.room.top
+        elseif cy > self.room.bottom then
+            cy = self.room.bottom
+        end
+        if is_nan(cx) or is_nan(cy) then
+            cx = average_player_x
+            cy = average_player_y
+        end
+
+        self.camera_target:move_to(cx, cy)
     end
 
 	self.border_rainbow_offset = self.border_rainbow_offset + dt / max(20 / self.room.wave, 1)
@@ -1541,6 +1559,7 @@ function GameWorld:update(dt)
     end
 
 
+    modloader:call("world_update", self, dt)
 end
 
 function GameWorld:play_notification(notification)
@@ -1889,6 +1908,14 @@ function GameWorld:draw_floor_canvas()
 end
 
 function GameWorld:draw()
+    
+    if not self.rendering_content then
+        for _, object in self:get_objects_with_tag("cutscene"):ipairs() do
+            self:draw_object(object)
+        end
+        return
+    end
+
 	if self.floor_drawing then
 		self:draw_floor_canvas()
 	end
@@ -1944,9 +1971,9 @@ function GameWorld:draw()
 
 
     -- Draw base game world
-    if self.rendering_content then
-        GameWorld.super.draw(self)
-    end
+    -- if self.rendering_content then
+    GameWorld.super.draw(self)
+    -- end
 
 	-- Draw room bounds on top if needed
 	-- if draw_bounds_over then

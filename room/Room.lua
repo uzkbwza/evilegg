@@ -7,8 +7,8 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = false
-local debug_enemy = "Cuboid"
-local num_debug_enemies = 10
+local debug_enemy = "Hand"
+local num_debug_enemies = 1
 local num_debug_waves = 3
 
 local debug_force_curse_enabled = false
@@ -610,10 +610,15 @@ function Room:is_valid_spawn(spawn, narrative_spawn_group, wave)
     if spawn.valid_chance and not rng:chance(spawn.valid_chance) then return false end
 	if spawn.min_level and self.level < spawn.min_level then return false end
 	if spawn.max_level and self.level > spawn.max_level then return false end
-	if spawn.level > max((self.level + 1) * 0.75, 2) then return false end
+    if spawn.level > max((self.level + 1) * 0.75, 2) then return false end
+    if not truthy_nil(resolve_recursive(spawn.can_spawn, self)) then return false end
     if spawn.initial_wave_only and wave ~= 1 then return false end
 	if table.list_has(narrative_spawn_group or {}, "basic") and spawn.basic_after_level and self.level < spawn.basic_after_level then return false end
 	return true
+end
+
+function Room:get_effective_wave_strength(wave)
+    return max(wave, self.level >= 30 and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= 50 and (wave + 1) or 1))
 end
 
 function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narrative)
@@ -865,7 +870,7 @@ function Room:generate_waves()
         local wave_number = 1
 
         for i = 1, min(#sub_narratives, self.level) do
-            local wave_strength = max(i, self.level >= 30 and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= 50 and (i + 1) or 1))
+            local wave_strength = self:get_effective_wave_strength(i)
             local sub_narrative = sub_narratives[wave_strength]
             print("wave strength: " .. wave_strength)
             if wave_types[sub_narrative.type] ~= nil then
@@ -995,6 +1000,7 @@ function Room:generate_waves()
 		end
 
 		for j = 1, wave_number do
+		-- for j = 1, self:get_effective_wave_strength(wave_number) do
             local rescue = rng:weighted_choice(rescue_pool, rescue_weights)
 			-- print(rescue.name, rescue.spawn_weight)
             if rescue ~= nil then
@@ -1141,24 +1147,25 @@ function Room:generate_waves()
 	
     if game_state.artefacts.transmitter then
 		local num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2 }
-		local rescue = rng:choose(rng:choose(rescue_waves))
-        if self.force_ammo or rng:percent(20) then
-			if self.force_ammo and rng:percent(35) then
-				num_greenoids_with_ammo = 2
-			end
-			for _=1, num_greenoids_with_ammo do
-				for _=1, 100 do
-					if rescue.pickup == nil then
-						rescue.pickup = PickupTable.powerups.AmmoPowerup
-						self:add_spawn_type(rescue.pickup)
-						break
-					end
-					rescue = rng:choose(rng:choose(rescue_waves))
-				end
-			end
+        local rescue = rng:choose(rng:choose(rescue_waves))
+        if rescue then
+            if self.force_ammo or rng:percent(20) then
+                if self.force_ammo and rng:percent(35) then
+                    num_greenoids_with_ammo = 2
+                end
+                for _=1, num_greenoids_with_ammo do
+                    for _=1, 100 do
+                        if rescue.pickup == nil then
+                            rescue.pickup = PickupTable.powerups.AmmoPowerup
+                            self:add_spawn_type(rescue.pickup)
+                            break
+                        end
+                        rescue = rng:choose(rng:choose(rescue_waves))
+                    end
+                end
 
-		end
-	
+            end
+        end
 		
 	end
 	

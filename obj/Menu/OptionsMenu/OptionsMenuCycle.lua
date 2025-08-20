@@ -23,7 +23,7 @@ end
 function OptionsMenuCycle:draw()
     OptionsMenuCycle.super.draw(self)
     local x, y, w, h = self:get_rect_local()
-	local value = self.print_func and self.print_func() or self.get_value_func()
+	local value = self.print_func and self.print_func(self.get_value_func()) or self.get_value_func()
 	local translated_value = (self.translate_options and tr:has_key(value)) and tr[value] or value
     graphics.print(tostring(translated_value):upper(), x + self.option_x, y)
 end

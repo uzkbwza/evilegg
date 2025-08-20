@@ -2,7 +2,8 @@ local MainGame = BaseGame:extend("MainGame")
 local GlobalState = Object:extend("GlobalState")
 GlobalGameState = Object:extend("GlobalGameState")
 local PickupTable = require("obj.pickup_table")
-local LevelBonus = require("levelbonus.LevelBonus")
+local LevelBonus = require("bonus.LevelBonus")
+local EndGameBonus = require("bonus.EndGameBonus")
 
 function MainGame:new()
 	MainGame.super.new(self)
@@ -125,7 +126,6 @@ function GlobalGameState:new()
 	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
 	self.heart_xp_target = self.xp + self.xp_until_heart
     self.artefact_xp_target = self.xp + self.xp_until_artefact
-    
 
 	self.reached_upgrade_xp_at = 0
 	self.reached_heart_xp_at = 0
@@ -138,6 +138,9 @@ function GlobalGameState:new()
     self.cutscene_no_pause = false
 
 	self.egg_rooms_cleared = 0
+
+    self.any_greenoids_hurt = false
+    self.any_greenoids_killed = false
 
 	self.bullet_powerup = nil
 	self.bullet_powerup_time = 0
@@ -176,6 +179,9 @@ function GlobalGameState:new()
 	self.artefacts_destroyed = {
 
 	}
+
+    self.end_game_bonuses = {
+    }
 
 	self.num_spawned_artefacts = 0
 
@@ -227,6 +233,7 @@ function GlobalGameState:new()
         -- savedata:set_save_data("new_version_force_intro", false)
         -- self.skip_intro = false
     -- end
+
     if savedata.new_version_force_intro then
         self.skip_intro = false
         self.unskippable_intro = true
@@ -236,17 +243,17 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
+        local cheat = true
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
-			self:add_score(25000000, "cheat")
+			self:add_score(6000000, "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
-            -- self:gain_artefact(PickupTable.artefacts.BigLaserSecondaryWeapon)
+            self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
@@ -263,7 +270,7 @@ function GlobalGameState:new()
             self.level = 30
             self.hearts = self.max_hearts
 
-            for i = 1, 7 do
+            for i = 1, 0 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do 
                     artefact = self:get_random_available_artefact()
@@ -280,13 +287,9 @@ function GlobalGameState:new()
             end
         end
 
-        -- self.upgrades.fire_rate = self.max_upgrades.fire_rate
-        -- self.upgrades.range = self.max_upgrades.range
-        -- self.upgrades.bullets = self.max_upgrades.bullets
-        -- self.upgrades.damage = self.max_upgrades.damage
-        -- self.upgrades.bullet_speed = self.max_upgrades.bullet_speed
     end
-
+    
+    modloader:call("on_game_started", self)
 end
 
 function GlobalGameState:stop_updating()
@@ -526,7 +529,8 @@ function GlobalGameState:remove_artefact(slot)
 end
 
 function GlobalGameState:on_game_over()
-	self.game_over = true
+    self.game_over = true
+    self.running_clock = false
 	savedata:add_category_death(self.leaderboard_category)
     savedata:set_save_data("death_count", savedata.death_count + 1)
     time_checker:stop()
@@ -602,47 +606,80 @@ function GlobalGameState:queue_level_bonus(bonus)
 end
 
 function GlobalGameState:on_level_start()
-	table.insert(self.level_scores, self.score)
+    table.insert(self.level_scores, self.score)
     self.level = self.level + 1
-	self.room_clear_state = false
-	self.boss_level = false
-	self.any_room_failures = false
+    self.room_clear_state = false
+    self.boss_level = false
+    self.any_room_failures = false
     self.any_damage_taken = false
-	self.bullets_shot_this_level = 0
-	self.bullets_hit_this_level = 0
-	self.aggression_bonus = 0
+    self.bullets_shot_this_level = 0
+    self.bullets_hit_this_level = 0
+    self.aggression_bonus = 0
     self.hit_by_egg_wrath = false
 
-	self.harmed_noid = false
-	self.level_bonuses = {}
-	self.queued_level_bonuses = self.queued_level_bonuses or {}
+    self.harmed_noid = false
+    self.level_bonuses = {}
+    self.queued_level_bonuses = self.queued_level_bonuses or {}
 
-	for k, v in pairs(self.queued_level_bonuses) do
-		for _ = 1, v do
-			self:level_bonus(k)
-		end
-	end
-	self.queued_level_bonuses = {}
-	self.rescues_saved_this_level = 0
-	self.used_secondary_weapon_this_level = false
-	if debug.enabled then
-		print("--- Score Categories ---")
-		local sum = 0
-		for k, v in pairs(self.score_categories) do
-			sum = sum + v
-		end
-		for k, v in pairs(self.score_categories) do
-			local percent = (v / sum) * 100
-			print(string.format("%s: %d (%.2f%%)", k, v, percent))
-		end
-		print("------------------------")
-	end
-	self.bonus_difficulty_modifier = approach(self.bonus_difficulty_modifier, 0,
-		stepify(self.bonus_difficulty_modifier * 0.2, 0.05))
-	if self.secondary_weapon then
-		self:gain_secondary_weapon_ammo(self.secondary_weapon.ammo_gain_per_level)
-	end
+    for k, v in pairs(self.queued_level_bonuses) do
+        for _ = 1, v do
+            self:level_bonus(k)
+        end
+    end
+    self.queued_level_bonuses = {}
+    self.rescues_saved_this_level = 0
+    self.used_secondary_weapon_this_level = false
+    if debug.enabled then
+        print("--- Score Categories ---")
+        local sum = 0
+        for k, v in pairs(self.score_categories) do
+            sum = sum + v
+        end
+        for k, v in pairs(self.score_categories) do
+            local percent = (v / sum) * 100
+            print(string.format("%s: %d (%.2f%%)", k, v, percent))
+        end
+        print("------------------------")
+    end
+    self.bonus_difficulty_modifier = approach(self.bonus_difficulty_modifier, 0,
+        stepify(self.bonus_difficulty_modifier * 0.2, 0.05))
+    if self.secondary_weapon then
+        self:gain_secondary_weapon_ammo(self.secondary_weapon.ammo_gain_per_level)
+    end
 end
+
+function GlobalGameState:end_game_bonus(bonus)
+    if not EndGameBonus[bonus] then
+        return
+    end
+    table.insert(self.end_game_bonuses, EndGameBonus[bonus])
+end
+
+function GlobalGameState:end_game()
+    -- self.running_clock = false
+    self:end_game_bonus("final_room_clear")
+
+    self.good_ending = 1
+
+    if self.twin_saved then
+        self:end_game_bonus("twin_saved")
+        self.good_ending = 2
+    end
+
+    if not self.any_greenoids_killed then
+        self:end_game_bonus("no_greenoid_deaths")
+    end
+    
+    if self.total_damage_taken == 0 then
+        self:end_game_bonus("no_damage_taken")
+    end
+	
+    -- self.cutscene_hide_hud = false 
+    self.final_room_cleared = true
+    self:on_room_clear()
+    self:on_game_over()
+end
+
 
 function GlobalGameState:on_room_clear()
 	if self.aggression_bonus > 0 and not self.boss_level then
@@ -651,15 +688,11 @@ function GlobalGameState:on_room_clear()
 
 	self.room_clear_state = true
 
+    self:level_bonus("room_clear")
+
 	if not self.final_room_cleared then
-		self:level_bonus("room_clear")
 		if self.artefacts.sacrificial_twin then
 			self:level_bonus("twin_protected")
-		end
-	else
-		self:level_bonus("final_room_clear")
-		if self.artefacts.sacrificial_twin then
-			self:level_bonus("twin_saved")
 		end
 	end
 
@@ -700,13 +733,6 @@ function GlobalGameState:on_final_room_entered()
 	self.final_room_entered = true
 end
 
-function GlobalGameState:on_final_room_cleared()
-	self.cutscene_hide_hud = false
-
-	self.final_room_cleared = true
-	self.good_ending = self.artefacts.sacrificial_twin and 2 or 1
-end
-
 local RESCUE_CHAIN_MULTIPLIER_CAP = 20
 
 function GlobalGameState:on_rescue(rescue_object)
@@ -729,6 +755,7 @@ function GlobalGameState:on_rescue_failed()
 	self.rescue_chain = 0
 	self.rescue_chain_bonus = 0
 	self.any_room_failures = true
+	self.any_greenoids_killed = true
 	self:level_bonus("noid_died")
 end
 
@@ -1094,10 +1121,17 @@ function GlobalGameState:get_random_available_upgrade(allow_nil)
 end
 
 function GlobalGameState:use_sacrificial_twin()
-	self:remove_artefact(self.artefacts.sacrificial_twin.slot)
-	self.used_sacrificial_twin = true
-	self:level_bonus("twin_killed")
-	signal.emit(self, "used_sacrificial_twin")
+    local slot = self.artefacts.sacrificial_twin.slot
+	self:remove_artefact(slot)
+    self.selected_artefact_slot = slot
+    self.used_sacrificial_twin = true
+    if not self.game_over then
+        self:level_bonus("twin_killed")
+        signal.emit(self, "used_sacrificial_twin")
+    else
+        self:gain_artefact(PickupTable.artefacts.HatchedTwinArtefact)
+        savedata:add_item_to_codex("HatchedTwinRescue")
+    end
 end
 
 function GlobalGameState:prune_artefact(artefact)
@@ -1152,8 +1186,8 @@ function GlobalGameState:get_random_available_artefact()
 				goto continue
 			end
 
-			if v.can_spawn then
-				if not v.can_spawn(self) then
+			if v.can_spawn ~= nil then
+				if not resolve_recursive(v.can_spawn, self) then
 					goto continue
 				end
 			end
@@ -1327,14 +1361,21 @@ function GlobalGameState:consume_artefact()
 	self.num_queued_artefacts = max(0, self.num_queued_artefacts - 1)
 end
 
-function GlobalGameState:add_score(score, score_category)
-    if self.game_over then return end
+function GlobalGameState:add_score(score, score_category, force)
+    if self.game_over and not force then return end
     -- if score <= 0 then return end
     self.score = self.score + score
     self.score = max(self.score, 0)
+    self.score = stepify_floor(self.score, 10)
     assert(type(score_category) == "string", "score_category must be a string")
     self.score_categories[score_category] = self.score_categories[score_category] or 0
     self.score_categories[score_category] = self.score_categories[score_category] + score
+end
+
+function GlobalGameState:set_score(score)
+    self.score = score
+    self.score = max(self.score, 0)
+    self.score = stepify_floor(self.score, 10)
 end
 
 function GlobalGameState:exit()

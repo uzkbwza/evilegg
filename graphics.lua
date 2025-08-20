@@ -1253,6 +1253,233 @@ function graphics.printp_right_aligned(text, font, palette, offset, end_x, y, r,
 	graphics.printp(text, font, palette, offset, start, y, r, sx, sy, ox, oy, kx, ky)
 end
 
+-- Computes wrapped lines using the full text so that line breaks are stable,
+-- then reveals characters across those fixed lines according to t in [0, 1].
+-- No character will shift lines as t increases.
+function graphics.printf_interpolated(text, font, x, y, limit, align, t)
+	if not text or text == "" then return end
+	align = align or "left"
+	t = t or 1
+	local _, wrapped_lines = font:getWrap(text, limit)
+	local total_chars = 0
+	for i = 1, #wrapped_lines do
+		total_chars = total_chars + utf8.len(wrapped_lines[i])
+	end
+	local reveal = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	local line_height = font:getHeight() * font:getLineHeight()
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal <= 0 then break end
+		local draw_text = reveal >= line_len and full_line or utf8.sub(full_line, 1, reveal)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+		reveal = reveal - line_len
+	end
+end
+
+-- Palettized variant of printf_interpolated. Uses the provided image font palette
+-- and keeps line breaks stable while revealing characters across lines.
+function graphics.printp_interpolated(text, font, palette, offset, x, y, limit, align, t)
+	if not text or text == "" then return end
+	align = align or "left"
+	t = t or 1
+	local texture = graphics.font_images and graphics.font_images[font]
+	local auto_palette = texture and graphics._auto_palette(texture, palette, offset) or nil
+	local _, wrapped_lines = font:getWrap(text, limit)
+	local total_chars = 0
+	for i = 1, #wrapped_lines do
+		total_chars = total_chars + utf8.len(wrapped_lines[i])
+	end
+	local reveal = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	local line_height = font:getHeight() * font:getLineHeight()
+
+	if auto_palette == nil then
+		for i = 1, #wrapped_lines do
+			local full_line = wrapped_lines[i]
+			local line_len = utf8.len(full_line)
+			if reveal <= 0 then break end
+			local draw_text = reveal >= line_len and full_line or utf8.sub(full_line, 1, reveal)
+			local full_line_width = font:getWidth(full_line)
+			local offx = 0
+			if align == "center" then
+				offx = (limit - full_line_width) / 2
+			elseif align == "right" then
+				offx = (limit - full_line_width)
+			end
+			graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+			reveal = reveal - line_len
+		end
+		return
+	end
+
+	graphics.set_shader(auto_palette:get_shader(offset))
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal <= 0 then break end
+		local draw_text = reveal >= line_len and full_line or utf8.sub(full_line, 1, reveal)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+		reveal = reveal - line_len
+	end
+	graphics.set_shader()
+end
+
+-- Outline variant: stable pre-wrap + interpolated reveal with outline around each revealed fragment
+function graphics.printf_interpolated_outline(outline_color, text, font, x, y, limit, align, t)
+	if not text or text == "" then return end
+	align = align or "left"
+	t = t or 1
+	local _, wrapped_lines = font:getWrap(text, limit)
+	local total_chars = 0
+	for i = 1, #wrapped_lines do
+		total_chars = total_chars + utf8.len(wrapped_lines[i])
+	end
+	local reveal = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	local line_height = font:getHeight() * font:getLineHeight()
+
+	graphics.push("all")
+	graphics.set_color(outline_color)
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal <= 0 then break end
+		local draw_text = reveal >= line_len and full_line or utf8.sub(full_line, 1, reveal)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		local dx, dy = x + offx, y + (i - 1) * line_height
+		graphics.print(draw_text, dx + 1, dy + 1)
+		graphics.print(draw_text, dx - 1, dy - 1)
+		graphics.print(draw_text, dx + 1, dy - 1)
+		graphics.print(draw_text, dx - 1, dy + 1)
+		graphics.print(draw_text, dx + 1, dy)
+		graphics.print(draw_text, dx - 1, dy)
+		graphics.print(draw_text, dx, dy + 1)
+		graphics.print(draw_text, dx, dy - 1)
+		reveal = reveal - line_len
+	end
+	graphics.pop()
+
+	-- fill
+	local reveal2 = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal2 <= 0 then break end
+		local draw_text = reveal2 >= line_len and full_line or utf8.sub(full_line, 1, reveal2)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+		reveal2 = reveal2 - line_len
+	end
+end
+
+-- Palettized outline variant for image fonts
+function graphics.printp_interpolated_outline(outline_color, text, font, palette, offset, x, y, limit, align, t)
+	if not text or text == "" then return end
+	align = align or "left"
+	t = t or 1
+	local texture = graphics.font_images and graphics.font_images[font]
+	local auto_palette = texture and graphics._auto_palette(texture, palette, offset) or nil
+	local _, wrapped_lines = font:getWrap(text, limit)
+	local total_chars = 0
+	for i = 1, #wrapped_lines do
+		total_chars = total_chars + utf8.len(wrapped_lines[i])
+	end
+	local reveal = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	local line_height = font:getHeight() * font:getLineHeight()
+
+	-- outline in solid color, no palette
+	graphics.push("all")
+	graphics.set_color(outline_color)
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal <= 0 then break end
+		local draw_text = reveal >= line_len and full_line or utf8.sub(full_line, 1, reveal)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		local dx, dy = x + offx, y + (i - 1) * line_height
+		graphics.print(draw_text, dx + 1, dy + 1)
+		graphics.print(draw_text, dx - 1, dy - 1)
+		graphics.print(draw_text, dx + 1, dy - 1)
+		graphics.print(draw_text, dx - 1, dy + 1)
+		graphics.print(draw_text, dx + 1, dy)
+		graphics.print(draw_text, dx - 1, dy)
+		graphics.print(draw_text, dx, dy + 1)
+		graphics.print(draw_text, dx, dy - 1)
+		reveal = reveal - line_len
+	end
+	graphics.pop()
+
+	-- fill using palette if present
+	local reveal2 = math.max(0, math.min(total_chars, floor((t or 0) * total_chars)))
+	if auto_palette == nil then
+		for i = 1, #wrapped_lines do
+			local full_line = wrapped_lines[i]
+			local line_len = utf8.len(full_line)
+			if reveal2 <= 0 then break end
+			local draw_text = reveal2 >= line_len and full_line or utf8.sub(full_line, 1, reveal2)
+			local full_line_width = font:getWidth(full_line)
+			local offx = 0
+			if align == "center" then
+				offx = (limit - full_line_width) / 2
+			elseif align == "right" then
+				offx = (limit - full_line_width)
+			end
+			graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+			reveal2 = reveal2 - line_len
+		end
+		return
+	end
+
+	graphics.set_shader(auto_palette:get_shader(offset))
+	for i = 1, #wrapped_lines do
+		local full_line = wrapped_lines[i]
+		local line_len = utf8.len(full_line)
+		if reveal2 <= 0 then break end
+		local draw_text = reveal2 >= line_len and full_line or utf8.sub(full_line, 1, reveal2)
+		local full_line_width = font:getWidth(full_line)
+		local offx = 0
+		if align == "center" then
+			offx = (limit - full_line_width) / 2
+		elseif align == "right" then
+			offx = (limit - full_line_width)
+		end
+		graphics.print(draw_text, x + offx, y + (i - 1) * line_height)
+		reveal2 = reveal2 - line_len
+	end
+	graphics.set_shader()
+end
+
 function graphics.printp(text, font, palette, offset, x, y, r, sx, sy, ox, oy, kx, ky)
     local texture = graphics.font_images[font]
     if texture == nil then
@@ -1406,7 +1633,7 @@ function graphics.draw_collision_box(rect, color, alpha)
 end
 
 
-function graphics.axis_quantized_line(x0, y0, x1, y1, width, height, inverted, cap_size, dash, dash_gap, tab)
+function graphics.axis_quantized_line(x0, y0, x1, y1, width, height, inverted, cap_size, dash, dash_gap, tab, dash_t)
 	local points = tab or {}
 
 	table.clear(points)
@@ -1427,12 +1654,12 @@ function graphics.axis_quantized_line(x0, y0, x1, y1, width, height, inverted, c
 			graphics.rectangle("fill", p2_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
 			if inverted then
 				graphics.rectangle("fill", p1_x - cap_size / 2, p2_y - cap_size / 2, cap_size, cap_size)
-				graphics.dashline(p1_x, p1_y, p1_x, p2_y, dash, dash_gap)
-				graphics.dashline(p1_x, p2_y, p2_x, p2_y, dash, dash_gap)
+				graphics.dashline(p1_x, p1_y, p1_x, p2_y, dash, dash_gap, dash_t)
+				graphics.dashline(p1_x, p2_y, p2_x, p2_y, dash, dash_gap, dash_t)
 			else
-				graphics.dashline(p1_x, p1_y, p2_x, p1_y, dash, dash_gap)
+				graphics.dashline(p1_x, p1_y, p2_x, p1_y, dash, dash_gap, dash_t)
 				graphics.rectangle("fill", p2_x - cap_size / 2, p1_y - cap_size / 2, cap_size, cap_size)
-				graphics.dashline(p2_x, p1_y, p2_x, p2_y, dash, dash_gap)
+				graphics.dashline(p2_x, p1_y, p2_x, p2_y, dash, dash_gap, dash_t)
 			end
 			::continue::
 		end

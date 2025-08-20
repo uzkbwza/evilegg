@@ -597,7 +597,7 @@ function CoilBullet:new(x, y, phase, direction_x, direction_y, width, speed)
 	self.direction_x, self.direction_y = direction_x, direction_y
 	self.width = width
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
-	self:add_time_stuff()
+	-- self:add_time_stuff()
 end
 
 function CoilBullet:update(dt)
