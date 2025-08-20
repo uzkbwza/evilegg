@@ -84,6 +84,7 @@ local function generate_stars(seed, width, height, amount)
 end
 
 local function draw_stars(stars, trans_y)
+    trans_y = trans_y or 0
     graphics.push("all")
     
     graphics.translate(0, trans_y * 1 / 4)
