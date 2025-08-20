@@ -102,10 +102,10 @@ local translations = {
         bonus_perfect                  = "FLAWLESS",
         bonus_perfect_codex            = "Cleared a room without you or any Greenoids taking damage.",
 
-        bonus_ammo_saver               = "AMMO SAVER",
+        bonus_ammo_saver               = "FRUGAL",
         bonus_ammo_saver_codex         = "Didn't use any secondary weapon ammo.",
 
-        bonus_ammo_hoarder             = "AMMO HOARDER",
+        bonus_ammo_hoarder             = "HOARDER",
         bonus_ammo_hoarder_codex       = "Didn't use any secondary weapon ammo while at full ammo.",
 
         bonus_harmed_noid              = "NOID INJURY",

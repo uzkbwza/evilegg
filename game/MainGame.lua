@@ -253,7 +253,7 @@ function GlobalGameState:new()
 			self:add_score(6000000, "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
-            self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
@@ -267,10 +267,10 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30
+            self.level = 1
             self.hearts = self.max_hearts
 
-            for i = 1, 0 do
+            for i = 1, 8 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do 
                     artefact = self:get_random_available_artefact()
