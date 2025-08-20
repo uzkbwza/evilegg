@@ -215,7 +215,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 
 			signal.connect(self.egg_boss, "phase4_landing", self, "on_egg_boss_phase4_landing", function()
                 self.phase4_landing = true
-                self.world.room:set_bounds(2048, 2048)
+                self.world.room:set_bounds(1400, 1400)
                 audio.stop_all_object_sfx(self.world.canvas_layer)
                 audio.stop_music()
                 -- self:start_timer("phase4_landing_music", 30, function()
@@ -228,14 +228,14 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 			end, true)
 			
             signal.connect(self.egg_boss, "cutscene1_over", self, "on_egg_boss_cutscene1_over", function()
-                self.world.room.free_camera = true
                 self.world.fog_of_war = true
+                self.world.players[1]:change_state("Cutscene")
                 self.glow_floor = true
                 self.phase4_landing = false
                 game_state.cutscene_hide_hud = false
                 game_state.cutscene_no_cursor = false
                 game_state.cutscene_no_pause = false
-                local dist = 850
+                local dist = 650
                 local tp_to_center = false
                 if debug.enabled and tp_to_center then
                     self.world.players[1]:move_to(0, 0)
@@ -246,9 +246,30 @@ function EggRoomDirector:on_player_choice_made(choice, player)
                 end
 
 
-                self.world.camera_target:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
-                self.world.camera:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
+                -- self.world.camera_target:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
+                -- self.world.camera:move_to(self.world.players[1].pos.x, self.world.players[1].pos.y)
+
+                self.world.camera_target:move_to(0, 0)
+                self.world.camera:move_to(0, 0)
+
+                s:start(function()
+                    s:wait(120)
+
+                    s:tween(function(t)
+                        local cx, cy = self.world.players[1].pos.x, self.world.players[1].pos.y
+                        self.world.camera_target:move_to(vec2_lerp(0, 0, cx, cy, t))
+                        self.world.camera:move_to(vec2_lerp(0, 0, cx, cy, t))
+
+                    end, 0, 1, 180, "inOutCubic")
+
+                    self.world.players[1]:change_state("Walk")
+
+                    self.world.room.free_camera = true
+                    self.egg_boss.phase6_camera_intro = false
+                end)
+
             end, true)
+
 
             signal.connect(self.egg_boss, "phase7_enter", self, "on_egg_boss_phase7_enter", function()
 

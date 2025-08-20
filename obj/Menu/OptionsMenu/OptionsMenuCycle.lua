@@ -5,7 +5,8 @@ function OptionsMenuCycle:new(x, y, text)
     OptionsMenuCycle.super.new(self, x, y, text)
     self.current_option = 1
     self.option_x = self.width - self.height
-	self.width = self.width + 50
+    self.width = self.width + 50
+    self.is_button = false
 end
 
 function OptionsMenuCycle:set_options(options)
@@ -25,7 +26,7 @@ function OptionsMenuCycle:draw()
     local x, y, w, h = self:get_rect_local()
 	local value = self.print_func and self.print_func(self.get_value_func()) or self.get_value_func()
 	local translated_value = (self.translate_options and tr:has_key(value)) and tr[value] or value
-    graphics.print(tostring(translated_value):upper(), x + self.option_x, y)
+    graphics.print(tostring(translated_value):upper(), x + self.option_x, y + 1)
 end
 
 function OptionsMenuCycle:focused_poll(dt)

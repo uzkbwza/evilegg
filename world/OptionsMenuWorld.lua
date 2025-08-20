@@ -553,10 +553,12 @@ function OptionsMenuWorld:show_menu(page)
         { newpage = true },
 		{ "header", text = tr.options_header_other },
         { "skip_intro", item_type = "toggle", skip = savedata.new_version_force_intro },
-        { "retry_cooldown", item_type = "toggle", update_function = function(self, dt)
-            self:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
-            if not self.enabled and not self.gamer_health_timer then
-                self:ref("gamer_health_timer", self:spawn_object(GamerHealthTimer(self.pos.x, self.pos.y, self.width, self.height)))
+        { "retry_cooldown", item_type = "toggle", update_function = function(tab, dt)
+            tab:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
+            if not tab.enabled and not tab.gamer_health_timer and self.current_page == 5 then
+                tab:ref("gamer_health_timer",
+                    tab:spawn_object(GamerHealthTimer(tab.pos.x, tab.pos.y, tab.width, tab.height)))
+                self:ref("gamer_health_timer", tab.gamer_health_timer)
             end
         end },
 		{ "enter_name", item_type = "button", select_func = function()
@@ -750,6 +752,10 @@ function OptionsMenuWorld:update(dt)
 	if input.ui_cancel_pressed then
 		self.back_button:select()
 	end
+
+    if self.current_page ~= 5 and self.gamer_health_timer then
+        self.gamer_health_timer:queue_destroy()
+    end
 
     -- Update displayed values and option lists every frame
     self:recompute_window_and_aspect_options()

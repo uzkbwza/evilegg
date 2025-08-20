@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, true
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -1057,12 +1057,20 @@ function EggBoss:state_Phase6_enter()
             self:spawn_object(EggSentry(vec2_from_polar(500, i * tau / NUM_SENTRIES + self.random_offset)))
         end
     end
+
+    self.phase6_camera_intro = true
+
     -- spawn floor fx manager that follows camera
     local cx, cy = self.world.camera_target.pos.x, self.world.camera_target.pos.y
     -- self:spawn_object(FinalPhaseFloorFx(cx, cy))
 end
 
 function EggBoss:state_Phase6_update(dt)
+
+    if self.phase6_camera_intro then
+        return
+    end
+
     if self.world:get_number_of_objects_with_tag("egg_sentry") == 0 and self.state_tick > 10 then
         self:change_state("Phase7")
         return
@@ -2345,10 +2353,14 @@ function EggTreeFx:new(x, y)
     self:add_time_stuff()
     self.z_index = 0.0
     self.rising_particles = batch_remove_list()
+
 end
 
 function EggTreeFx:enter()
     self:add_tag("to_remove_on_phase7")
+    for i = 1, 100 do
+        self:update_shared(1)
+    end
 end
 
 function EggTreeFx:update(dt)
