@@ -64,8 +64,8 @@ end
 function RingOfLoyaltyBurst:draw()
 
     if self.tick < 3 then
-        graphics.set_color(Color.white)
-        graphics.poly_regular("fill", 0, 0, self:get_radius(), 10, 0)
+        graphics.set_color(Color.grey)
+        graphics.poly_regular("fill", 0, 0, self:get_radius() * 0.6, 10, 0)
     end
     -- if not self.is_new_tick then
         -- return
