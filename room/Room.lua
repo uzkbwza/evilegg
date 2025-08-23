@@ -1045,9 +1045,9 @@ function Room:generate_waves()
 			goto continue
 		end
         pickups_left =
-            -- game_state.num_queued_upgrades > 0 or
+            game_state.num_queued_upgrades > 0 or
             -- -- game_state.num_queued_powerups > 0 or
-            -- game_state.num_queued_hearts > 0 or
+            game_state.num_queued_hearts > 0 or
             true
 
         if not pickups_left then
@@ -1070,16 +1070,42 @@ function Room:generate_waves()
             -- elseif not self.consumed_heart and rng:percent(heart_pickup_chance) then
             --     rescue.pickup = game_state:get_random_heart()
             --     self.consumed_heart = rescue.pickup
-            elseif num_powerups < max_num_powerups and self.level >= min_powerup_level then
-				local powerup_pickup_chance = min(abs(rng:randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance
-				if rng:percent(powerup_pickup_chance) then
-					rescue.pickup = game_state:get_random_powerup()
-					num_powerups = num_powerups + 1
-				end
             end
 			if rescue.pickup ~= nil then
 				self:add_spawn_type(rescue.pickup)
 			end
+        end
+		::continue::
+    end
+
+    for _, wave_number in ipairs(pickup_wave_precedence) do
+		if rescue_waves[wave_number] == nil then
+			goto continue
+		end
+
+
+        local wave = rescue_waves[wave_number]
+        local possible_indices = {}
+        for i = 1, #wave do
+            table.insert(possible_indices, i)
+        end
+        while #possible_indices > 0 do
+            local index = rng:randi(1, #possible_indices)
+            local rescue = wave[possible_indices[index]]
+            table.remove(possible_indices, index)
+
+            if rescue.pickup == nil then
+                if num_powerups < max_num_powerups and self.level >= min_powerup_level then
+                    local powerup_pickup_chance = min(abs(rng:randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance
+                    if rng:percent(powerup_pickup_chance) then
+                        rescue.pickup = game_state:get_random_powerup()
+                        num_powerups = num_powerups + 1
+                    end
+                end
+                if rescue.pickup ~= nil then
+                    self:add_spawn_type(rescue.pickup)
+                end
+            end
         end
 		::continue::
     end

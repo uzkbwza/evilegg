@@ -5,6 +5,9 @@ local PerformanceTestScreen = CanvasLayer:extend("PerformanceWarningScreen")
 local ShaderPerformanceWarningScreen = CanvasLayer:extend("ShaderPerformanceWarningScreen")
 local PauseScreenButton = require("obj.Menu.PauseScreen.PauseScreenButton")
 local MenuRoot = require("obj.Menu.GenericMenuRoot")
+local TrailerScreen = CanvasLayer:extend("TrailerScreen")
+
+local TRAILER = true
 
 PhotosensitivityWarningScreen.kill_time = 360
 ScoreResetWarningScreen.kill_time = 360
@@ -15,6 +18,10 @@ function PreTitleScreen:new(x, y)
     self.screens = {
 		PhotosensitivityWarningScreen,
     }
+
+    if debug.enabled and TRAILER then 
+        table.insert(self.screens, 1, TrailerScreen)
+    end
 
     if not savedata.done_shader_performance_test then
         usersettings:set_setting("screen_shader_preset", "shader_preset_soft")
@@ -219,6 +226,22 @@ function ShaderPerformanceWarningScreen:draw()
 	graphics.printf(tr.shader_performance_warning_text, font2, -width / 2, -16, width, "center")
 end
 
+function TrailerScreen:enter()
+    -- self.cant_progress = true
+end
+
+function TrailerScreen:draw()
+    self:center_translate()
+    local font = fonts.depalettized.image_font1
+    graphics.set_font(font)
+    graphics.set_color(Color.white)
+    local width = conf.viewport_size.x - 20
+    local height = font:getHeight()
+
+    graphics.printf("OCTOBER 30\n\nIVYSLY.COM\nITCH.IO\nSTEAM", font, -width / 2, -24, width, "center")
+
+
+end
 
 function ScoreResetWarningScreen:update(dt)
 	
