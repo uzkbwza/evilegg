@@ -250,10 +250,10 @@ function GlobalGameState:new()
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
 		
         if cheat then
-			self:add_score(6000000, "cheat")
+			self:add_score(rng:randi(6000000, 10000000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
-            self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
@@ -267,7 +267,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 3
+            self.level = 41
             self.hearts = self.max_hearts
 
             for i = 1, 8 do

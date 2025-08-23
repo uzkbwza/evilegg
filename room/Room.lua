@@ -1045,9 +1045,10 @@ function Room:generate_waves()
 			goto continue
 		end
         pickups_left =
-            game_state.num_queued_upgrades > 0 or
-            -- game_state.num_queued_powerups > 0 or
-            game_state.num_queued_hearts > 0
+            -- game_state.num_queued_upgrades > 0 or
+            -- -- game_state.num_queued_powerups > 0 or
+            -- game_state.num_queued_hearts > 0 or
+            true
 
         if not pickups_left then
             break
