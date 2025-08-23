@@ -23,7 +23,7 @@ local translations = {
         room_is_hard = "HARD",
 
         curse_wrath = "WRATH",
-        curse_wrath_desc = "This room is cursed by wrathful thunder.",
+        curse_wrath_desc = "This room is cursed with wrathful thunder.",
 
         curse_penitence = "PENITENCE",
         curse_penitence_desc = "This room is cursed with shame.",
@@ -199,7 +199,7 @@ local translations = {
         artefact_amulet_of_rage_desc   = "Your bullets deal more damage up close.",
         artefact_sacrificial_twin_desc = "What are you willing to sacrifice?",
         artefact_drone_desc            = "A loyal companion.",
-        artefact_ring_of_loyalty_desc  = "Rescuing Greenoids triggers a burst attack.",
+        artefact_ring_of_loyalty_desc  = "Saving Grenoids repels nearby enemies.",
         artefact_boost_damage_desc     = "Faster boost that leaves a trail of fire.",
         artefact_stone_trinket_desc    = "+Random upgrade when you overheal.",
         artefact_crown_of_frenzy_desc  = "+Fire rate when no Greenoids on screen.",
@@ -262,11 +262,14 @@ local translations = {
         options_set_aspect_ratio                     = "Windowed Aspect Ratio",
         options_confine_mouse                        = "Confine Cursor To Window",
         options_window_size_custom                   = "Custom",
+        options_southpaw_mode                        = "Southpaw Joystick Mode",
+        options_remap_inputs                         = "Remap Controls",
+        options_reset_controls_to_default            = "Reset Controls To Default",
 
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",
         options_confine_mouse_never                  = "Never",
-
+        
 
         options_brightness           = "Brightness",
         options_saturation           = "Saturation",
@@ -278,9 +281,23 @@ local translations = {
         options_header_display       = "DISPLAY",
         options_header_audio         = "AUDIO",
         options_header_other         = "OTHER",
+        
+        options_header_input_map = "INPUT MAP",
 
-        -- options_header_cheats = "CHEATS",
-        -- options_header_leaderboard = "LEADERBOARD",
+        options_input_map_shoot = "Shoot",
+        options_input_map_secondary_weapon = "Use Weapon",
+        options_input_map_hover = "Boost",
+        options_input_map_dont_shoot = "Aim",
+        options_input_map_move_left = "Move Left",
+        options_input_map_move_right = "Move Right",
+        options_input_map_move_up = "Move Up",
+        options_input_map_move_down = "Move Down",
+        options_input_map_aim_left_digital = "Shoot Left",
+        options_input_map_aim_right_digital = "Shoot Right",
+        options_input_map_aim_up_digital = "Shoot Up",
+        options_input_map_aim_down_digital = "Shoot Down",
+        options_input_map_skip_bonus_screen = "Skip Bonus Screen",
+        options_input_map_show_hud = "Show Timer",
 
         name_entry_prompt            = "ENTER YOUR NAME",
 
@@ -536,6 +553,9 @@ local translations = {
         artefact_guide_ammo_requirement     = "REQUIRES %s AMMO PER USE",
         artefact_guide_min_ammo_requirement = "REQUIRES %s AMMO TO USE",
         artefact_guide_ammo_gain            = "GAINS %s AMMO PER LEVEL",
+
+        input_remap_prompt                  = "Press a button to map \"%s\".\nPress %s to reset mappings for this action.\nHold %s to clear mappings for this action.",
+        input_remap_prompt_clear            = "Clearing...",
 
         photosensitivity_warning_title      = "PHOTOSENSITIVITY WARNING",
         photosensitivity_warning_text       = "This game contains flashing lights and intense strobe effects.",

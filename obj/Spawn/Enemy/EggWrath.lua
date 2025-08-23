@@ -10,8 +10,8 @@ local LIGHTNING_RESOLUTION = 100
 
 local INDICATOR_HEIGHT_RATIO = 1
 
-EggWrath.damage = 10
 EggWrath.is_egg_wrath = true
+
 
 function EggWrath:new(x, y)
     EggWrath.super.new(self, x, y)
@@ -23,6 +23,7 @@ function EggWrath:new(x, y)
     self.melee_attacking = false
     self.beam_width_t = 0
     self.hit_bubble_radius = 0
+    self.hit_bubble_damage = 10
     self.startup = true
     self:add_tag_on_enter("egg_wrath")
     self.lightning_line = {}
@@ -54,9 +55,9 @@ function EggWrath:enter()
         local height = WRATH_RADIUS * INDICATOR_HEIGHT_RATIO
         local dist = WRATH_RADIUS - height
         if dist > 0 then
-            self:add_hit_bubble(-dist / 2, 0, height, "main", self.damage, dist / 2, 0)
+            self:add_hit_bubble(-dist / 2, 0, height, "main", self.hit_bubble_damage, dist / 2, 0)
         else
-            self:add_hit_bubble(0, 0, height, "main", self.damage)
+            self:add_hit_bubble(0, 0, height, "main", self.hit_bubble_damage)
         end
         self.startup = false
         self:start_stopwatch("lightning")

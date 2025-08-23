@@ -780,7 +780,7 @@ function HUDLayer:pre_world_draw()
 		local input = self:get_input_table()
 
 		if self.after_level_bonus_screen.start_prompt then
-        	graphics.print(string.format(tr.bonus_screen_continue, (input.last_input_device == "gamepad" and control_glyphs.start or control_glyphs.tab)), -0, y + 10)
+        	graphics.print(string.format(tr.bonus_screen_continue, input:get_skip_bonus_screen_prompt()), -0, y + 10)
 		end
         
 		local total_score_text = comma_sep(self.after_level_bonus_screen.total.score)

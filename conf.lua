@@ -14,7 +14,7 @@ else
 	steam = nil
 end
 
-
+TRIGGER_DEADZONE = 0.25
 IS_EXPORT = not pcall(require, "tools.is_debug")
 
 local debugger = true
@@ -90,22 +90,27 @@ local conf = {
 			joystick_axis = { 
 				axis = "triggerright",
 				dir = 1,
-				deadzone = 0.25,
+				deadzone = TRIGGER_DEADZONE,
 			},
+            
+            trigger = true,
 		},
 
 		hover = {
 			keyboard = { "space" },
-			joystick_axis = { 
+			joystick_axis = {
 				axis = "triggerleft",
 				dir = 1,
-				deadzone = 0.25,
+				deadzone = TRIGGER_DEADZONE,
 			},
+            
+            trigger = true,
 		},
 
 		skip_bonus_screen = {
 			keyboard = { "tab", "escape", },
-			joystick = { "start", "a" }
+            joystick = { "start", "a" },
+            allow_inclusive_remap = true,
         },
         
         skip_intro = {
@@ -144,7 +149,7 @@ local conf = {
 				{"lctrl"}, 
 				{"rctrl"},
 			},
-			joystick = {"back", "leftshoulder"}
+			joystick = {"leftshoulder", "back"}
 		},
 
         debug_kill_player = {

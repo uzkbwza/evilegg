@@ -1761,9 +1761,18 @@ function PlayerDrone:update(dt)
         self:queue_destroy()
     end
     -- local offs_x, offs_y = vec2_from_polar(20, self.elapsed / 18)
-	local offs_x, offs_y = 0, 0
-	local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
-    self:move_to(x, y)
+
+    if self.world.big_room and self.player then
+        -- local offs_x, offs_y = 0, 0
+        local offs_x, offs_y = -self.player.real_aim_direction.x * 20, -self.player.real_aim_direction.y * 20
+
+        local x, y = splerp_vec(self.pos.x, self.pos.y, self.target.x + offs_x, self.target.y + offs_y, 200, dt)
+        self:move_to(x, y)
+    else
+        local offs_x, offs_y = 0, 0
+        local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
+        self:move_to(x, y)
+    end
 
 end
 

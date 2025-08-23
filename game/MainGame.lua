@@ -253,7 +253,7 @@ function GlobalGameState:new()
 			self:add_score(6000000, "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
-            -- self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
+            self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
@@ -267,7 +267,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 30
+            self.level = 31
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -278,7 +278,7 @@ function GlobalGameState:new()
                 self:gain_artefact(artefact)
             end
 
-            for i = 1, 6 do
+            for i = 1, self:get_max_number_of_upgrades() - 1 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
 
@@ -362,13 +362,29 @@ function GlobalGameState:on_hatched()
 end
 
 function GlobalGameState:get_upgrade_ratio()
-	local total = 0
-	local max_total = 0
-	for upgrade_type, max_upgrade in pairs(GlobalGameState.max_upgrades) do
-		total = total + self.upgrades[upgrade_type]
-		max_total = max_total + max_upgrade
-	end
-	return total / max_total
+    local total = 0
+    local max_total = 0
+    for upgrade_type, max_upgrade in pairs(GlobalGameState.max_upgrades) do
+        total = total + self.upgrades[upgrade_type]
+        max_total = max_total + max_upgrade
+    end
+    return total / max_total
+end
+
+function GlobalGameState:get_number_of_upgrades()
+    local total = 0
+    for upgrade_type, max_upgrade in pairs(GlobalGameState.max_upgrades) do
+        total = total + self.upgrades[upgrade_type]
+    end
+    return total
+end
+
+function GlobalGameState:get_max_number_of_upgrades()
+    local total = 0
+    for upgrade_type, max_upgrade in pairs(GlobalGameState.max_upgrades) do
+        total = total + max_upgrade
+    end
+    return total
 end
 
 function GlobalGameState:drain_bullet_powerup_time(dt)
@@ -550,6 +566,11 @@ function GlobalGameState:gain_xp(amount)
 	if not self:is_fully_upgraded() then
 		local ratio = remap_clamp(self:get_upgrade_ratio(), 0.0, 5 / 7, 2.0, 0.4)
 		local amount = (amount) * ratio
+        local num_upgrades = self:get_number_of_upgrades()
+        if (num_upgrades + self.num_queued_upgrades) >= self:get_max_number_of_upgrades() - 1 then
+            -- print("limiting upgrade gain")
+            amount = amount * 0.25
+        end
 		-- print(self:get_upgrade_ratio(), ratio)
 		self.xp_until_upgrade = self.xp_until_upgrade - amount
 	end

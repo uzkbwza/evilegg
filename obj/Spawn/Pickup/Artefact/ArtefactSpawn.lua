@@ -224,12 +224,16 @@ function ArtefactSpawn:state_Idle_draw()
         end
 		graphics.drawp_centered(self.artefact.sprite or self.artefact.icon, palette, offset, offsx, sin(elapsed / 20) * 1)
 	end
+    
+    if self.world.paused then return end
+
 	graphics.set_color(Color.black)
 	
 	local name = tr[self.artefact.name]
     local desc = tr[self.artefact.description]:upper()
 	name = name:sub(1, name:len() * self.text_amount)
-	desc = desc:sub(1, desc:len() * self.text_amount)
+    desc = desc:sub(1, desc:len() * self.text_amount)
+    
 	
 	graphics.set_font(self.font2)
 	graphics.print_outline_centered(Color.black, name, self.font2, 0, -16)
@@ -245,8 +249,7 @@ function ArtefactSpawn:state_Idle_draw()
 	
 	
 	if self.artefact.is_secondary_weapon then
-        local tip1 = tr.artefact_guide_use:format(input.last_input_device == "gamepad" and control_glyphs.rt or
-        control_glyphs.rmb)
+        local tip1 = tr.artefact_guide_use:format(input:get_secondary_weapon_prompt())
 		local ammo_count1 = string.fraction(self.artefact.minimum_ammo_needed_to_use_normalized or self.artefact.ammo_needed_per_use_normalized)
 		local ammo_count1_text = self.artefact.minimum_ammo_needed_to_use and tr.artefact_guide_min_ammo_requirement or tr.artefact_guide_ammo_requirement
 		local tip3 = ammo_count1_text:format(ammo_count1)

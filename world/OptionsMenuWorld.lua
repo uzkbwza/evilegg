@@ -201,7 +201,8 @@ end
 function OptionsMenuWorld:new()
     OptionsMenuWorld.super.new(self)
 	self:add_signal("exit_menu_requested")
-	self:add_signal("enter_name_requested")
+    self:add_signal("enter_name_requested")
+    self:add_signal("input_remapping_requested")
 	
     self.draw_sort = self.y_sort
     self.current_page = 1
@@ -332,251 +333,306 @@ function OptionsMenuWorld:show_menu(page)
     -- local base = MENU_ITEM_V_PADDING
     local current_page = 1
 
-    for _, item in ipairs {
-        -- { "header", text = "" },
-        {
-            "header_display",
-            item_type = "button",
-            select_func = function()
-                self:show_menu(2)
-            end
-        },
-        { 
-            "header_controls",
-            item_type = "button",
-            select_func = function()
-			self:show_menu(3)
-            end,
-        },
-        {
-            "header_audio",
-            item_type = "button",
-            select_func = function()
-                self:show_menu(4)
-            end,
-        },
-        {
-            "header_other",
-            item_type = "button",
-            select_func = function()
-                self:show_menu(5)
-            end,
-        },
-        { newpage = true },
-		{ "header", text = tr.options_header_display },
-        { "fullscreen",    item_type = "toggle",            skip = conf.platform_force_fullscreen },
-        -- { "use_screen_shader", item_type = "toggle" },
-
-
-        { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value) self:temporarily_disable_focus_on_hover() end },
-        { "pixel_perfect", item_type = "toggle" },
-        { "set_window_size", item_type = "cycle", options = self.window_size_options, skip = conf.platform_force_fullscreen,
-        set_func = function(value)
-                self.current_window_size = value
-                usersettings:set_setting("fullscreen", false)
-                usersettings:apply_settings()
-                love.window.restore()
-                local s = self.sequencer
-                s:start(function()
-                    s:wait(1)
-                    local cur_w, cur_h = love.window.get_mode()
-                    local pos_x, pos_y = love.window.get_position()
-                    -- Determine target integer scale when starting from a fractional scale
-                    local cur_scale_w = cur_w / conf.viewport_size.x
-                    local cur_scale_h = cur_h / conf.viewport_size.y
-                    local cur_scale = min(cur_scale_w, cur_scale_h)
-                    local target = tonumber(value) or 1
-                    if math.floor(cur_scale) ~= cur_scale then
-                        target = clamp(math.ceil(cur_scale), 1, NUM_WINDOW_SIZES)
-                    end
-                    -- Compute new size keeping aspect
-                    local ratio_w_over_h = cur_w / cur_h
-                    local base_ratio = conf.viewport_size.x / conf.viewport_size.y
-                    local new_w, new_h
-                    if ratio_w_over_h >= base_ratio then
-                        new_h = conf.viewport_size.y * target
-                        new_w = math.floor(new_h * ratio_w_over_h + 0.5)
-                    else
-                        new_w = conf.viewport_size.x * target
-                        new_h = math.floor(new_w / ratio_w_over_h + 0.5)
-                    end
-                    self:apply_window_mode_anchored(new_w, new_h, cur_w, cur_h, pos_x, pos_y)
-                    usersettings:apply_settings()
-                end)
-            end,
-        
-        on_set_function = function(value) self:temporarily_disable_focus_on_hover() end,
-
-        get_func = function()
-            return self.current_window_size
-        end },
-
-		{ "set_aspect_ratio", item_type = "cycle", options = self.aspect_ratio_options, skip = conf.platform_force_fullscreen,
+    local options_table = {
+            -- { "header", text = "" },
+            {
+                "header_display",
+                item_type = "button",
+                select_func = function()
+                    self:show_menu(2)
+                end
+            },
+            { 
+                "header_controls",
+                item_type = "button",
+                select_func = function()
+                self:show_menu(3)
+                end,
+            },
+            {
+                "header_audio",
+                item_type = "button",
+                select_func = function()
+                    self:show_menu(4)
+                end,
+            },
+            {
+                "header_other",
+                item_type = "button",
+                select_func = function()
+                    self:show_menu(5)
+                end,
+            },
+            { newpage = true },
+            { "header", text = tr.options_header_display },
+            { "fullscreen",    item_type = "toggle",            skip = conf.platform_force_fullscreen },
+            -- { "use_screen_shader", item_type = "toggle" },
+    
+    
+            { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value) self:temporarily_disable_focus_on_hover() end },
+            { "pixel_perfect", item_type = "toggle" },
+            { "set_window_size", item_type = "cycle", options = self.window_size_options, skip = conf.platform_force_fullscreen,
             set_func = function(value)
-                self.current_aspect_ratio = value
-                usersettings:set_setting("fullscreen", false)
-                usersettings:apply_settings()
-                love.window.restore()
-                local s = self.sequencer
-                s:start(function()
-                    s:wait(1)
-                    local cur_w, cur_h = love.window.get_mode()
-                    local aw, ah = value:match("^(%d+):(%d+)$")
-                    aw, ah = tonumber(aw), tonumber(ah)
-                    if not (aw and ah) then return end
-                    local min_w, min_h = conf.viewport_size.x, conf.viewport_size.y
-                    local new_w = math.floor(cur_h * aw / ah + 0.5)
-                    local new_h = cur_h
-                    if new_w < min_w then
-                        new_w = min_w
-                        new_h = math.floor(new_w * ah / aw + 0.5)
-                    end
-                    if new_h < min_h then
-                        new_h = min_h
-                        new_w = math.floor(new_h * aw / ah + 0.5)
+                    self.current_window_size = value
+                    usersettings:set_setting("fullscreen", false)
+                    usersettings:apply_settings()
+                    love.window.restore()
+                    local s = self.sequencer
+                    s:start(function()
+                        s:wait(1)
+                        local cur_w, cur_h = love.window.get_mode()
+                        local pos_x, pos_y = love.window.get_position()
+                        -- Determine target integer scale when starting from a fractional scale
+                        local cur_scale_w = cur_w / conf.viewport_size.x
+                        local cur_scale_h = cur_h / conf.viewport_size.y
+                        local cur_scale = min(cur_scale_w, cur_scale_h)
+                        local target = tonumber(value) or 1
+                        if math.floor(cur_scale) ~= cur_scale then
+                            target = clamp(math.ceil(cur_scale), 1, NUM_WINDOW_SIZES)
+                        end
+                        -- Compute new size keeping aspect
+                        local ratio_w_over_h = cur_w / cur_h
+                        local base_ratio = conf.viewport_size.x / conf.viewport_size.y
+                        local new_w, new_h
+                        if ratio_w_over_h >= base_ratio then
+                            new_h = conf.viewport_size.y * target
+                            new_w = math.floor(new_h * ratio_w_over_h + 0.5)
+                        else
+                            new_w = conf.viewport_size.x * target
+                            new_h = math.floor(new_w / ratio_w_over_h + 0.5)
+                        end
+                        self:apply_window_mode_anchored(new_w, new_h, cur_w, cur_h, pos_x, pos_y)
+                        usersettings:apply_settings()
+                    end)
+                end,
+            
+            on_set_function = function(value) self:temporarily_disable_focus_on_hover() end,
+    
+            get_func = function()
+                return self.current_window_size
+            end },
+    
+            { "set_aspect_ratio", item_type = "cycle", options = self.aspect_ratio_options, skip = conf.platform_force_fullscreen,
+                set_func = function(value)
+                    self.current_aspect_ratio = value
+                    usersettings:set_setting("fullscreen", false)
+                    usersettings:apply_settings()
+                    love.window.restore()
+                    local s = self.sequencer
+                    s:start(function()
+                        s:wait(1)
+                        local cur_w, cur_h = love.window.get_mode()
+                        local aw, ah = value:match("^(%d+):(%d+)$")
+                        aw, ah = tonumber(aw), tonumber(ah)
+                        if not (aw and ah) then return end
+                        local min_w, min_h = conf.viewport_size.x, conf.viewport_size.y
+                        local new_w = math.floor(cur_h * aw / ah + 0.5)
+                        local new_h = cur_h
                         if new_w < min_w then
                             new_w = min_w
+                            new_h = math.floor(new_w * ah / aw + 0.5)
                         end
+                        if new_h < min_h then
+                            new_h = min_h
+                            new_w = math.floor(new_h * aw / ah + 0.5)
+                            if new_w < min_w then
+                                new_w = min_w
+                            end
+                        end
+                        local pos_x, pos_y = love.window.get_position()
+                        self:apply_window_mode_anchored(new_w, new_h, cur_w, cur_h, pos_x, pos_y)
+                        self:update_window_size_label_from_dimensions(new_w, new_h)
+                        usersettings:apply_settings()
+                    end)
+                end,
+    
+                on_set_function = function(value) self:temporarily_disable_focus_on_hover() end,
+    
+                get_func = function()
+                    return self.current_aspect_ratio
+                end },
+    
+            { "vsync", item_type = "toggle"},
+            -- { "cap_framerate",        item_type = "toggle" },
+            { "fps_cap", item_type = "slider", slider_start = 60, slider_stop = 660, slider_granularity = 60, slider_mouse_granularity = 60,
+                set_func = function(value)
+                    if value >= 660 then
+                        usersettings:set_setting("cap_framerate", false)
+                    else
+                        usersettings:set_setting("cap_framerate", true)
+                        -- usersettings:set_setting("fps_cap", value)
                     end
-                    local pos_x, pos_y = love.window.get_position()
-                    self:apply_window_mode_anchored(new_w, new_h, cur_w, cur_h, pos_x, pos_y)
-                    self:update_window_size_label_from_dimensions(new_w, new_h)
-                    usersettings:apply_settings()
-                end)
+                    usersettings:set_setting("fps_cap", value)
+                end,
+                
+                -- get_func = function()
+                -- 	if usersettings.cap_framerate then
+                -- 		return usersettings.fps_cap
+                -- 	else
+                -- 		return 660
+                -- 	end
+                -- end,
+                
+                print_func = function(value)
+                    if value < 660 then
+                        return value
+                    else
+                        return tr.options_fps_cap_unlimited
+                    end
+                end
+            },
+        {
+            "show_fps",
+            item_type = "toggle",
+        },
+                
+        { "show_hud", item_type = "toggle", inverse = false},
+        { "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
+    
+            get_func = function()
+                -- if usersettings.use_screen_shader then
+                return usersettings.screen_shader_preset
+                -- end
             end,
-
-            on_set_function = function(value) self:temporarily_disable_focus_on_hover() end,
-
-			get_func = function()
-				return self.current_aspect_ratio
-			end },
-
-		{ "vsync", item_type = "toggle"},
-        -- { "cap_framerate",        item_type = "toggle" },
-		{ "fps_cap", item_type = "slider", slider_start = 60, slider_stop = 660, slider_granularity = 60, slider_mouse_granularity = 60,
             set_func = function(value)
-                if value >= 660 then
-                    usersettings:set_setting("cap_framerate", false)
-                else
-                    usersettings:set_setting("cap_framerate", true)
-                    -- usersettings:set_setting("fps_cap", value)
-                end
-                usersettings:set_setting("fps_cap", value)
+                usersettings:set_screen_shader_preset(value)
             end,
+    
+                translate_options = true },
+    
+            { "shader_quality", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1,
+            set_func = function(value)
+                usersettings:set_setting("shader_quality", value)
+            end,
+            get_func = function()
+                return usersettings.shader_quality
+            end,
+            },
+    
+            { "screen_shake_amount", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1},
             
-            -- get_func = function()
-            -- 	if usersettings.cap_framerate then
-            -- 		return usersettings.fps_cap
-            -- 	else
-            -- 		return 660
-            -- 	end
-            -- end,
-            
-            print_func = function(value)
-                if value < 660 then
-                    return value
-                else
-                    return tr.options_fps_cap_unlimited
-                end
-            end
-        },
-    {
-        "show_fps",
-        item_type = "toggle",
-    },
-    		
-    { "show_hud", item_type = "toggle", inverse = false},
-	{ "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
-
-		get_func = function()
-			-- if usersettings.use_screen_shader then
-			return usersettings.screen_shader_preset
-			-- end
-		end,
-		set_func = function(value)
-			usersettings:set_screen_shader_preset(value)
-		end,
-
-            translate_options = true },
-
-        { "shader_quality", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1,
-        set_func = function(value)
-            usersettings:set_setting("shader_quality", value)
-        end,
-        get_func = function()
-            return usersettings.shader_quality
-        end,
-        },
-
-        { "screen_shake_amount", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1},
         
-	
-		{ "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
-	-- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-        { "hue",                                  item_type = "slider",             slider_start = 0.0,    slider_stop = 1.0, slider_granularity = 0.025 },
-        { "disco_mode", item_type = "toggle", select_func = function()
-            if not usersettings.disco_mode then
-                usersettings:set_setting("hue", 0.5)
-            else
-                usersettings:set_setting("hue", 0.0)
-            end
-            usersettings:set_setting("disco_mode", not usersettings.disco_mode)
-        end,
-        get_func = function()
-            return usersettings.disco_mode
-        end },
-	
-        { "invert_colors", item_type = "toggle" },
+            { "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
+        -- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+            { "hue",                                  item_type = "slider",             slider_start = 0.0,    slider_stop = 1.0, slider_granularity = 0.025 },
+            { "disco_mode", item_type = "toggle", select_func = function()
+                if not usersettings.disco_mode then
+                    usersettings:set_setting("hue", 0.5)
+                else
+                    usersettings:set_setting("hue", 0.0)
+                end
+                usersettings:set_setting("disco_mode", not usersettings.disco_mode)
+            end,
+            get_func = function()
+                return usersettings.disco_mode
+            end },
+        
+            { "invert_colors", item_type = "toggle" },
+    
+            -- { "invert_colors", item_type = "toggle" },
+            { newpage = true },
+            { "header",                               text = tr.options_header_controls },
+            { "use_absolute_aim", item_type = "toggle", inverse = true },
+            { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
+            { "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
+            { "gamepad_plus_mouse",                   item_type = "toggle" },
+            { "confine_mouse", item_type = "cycle", options = { "when_aiming", "always", "never" },
+            set_func = function(value)
+                usersettings:set_setting("confine_mouse", value)
+            end,
+            print_func = function(value)
+                local key = "options_confine_mouse_" .. (value or "")
+                return tr:has_key(key) and tr[key] or "???"
+            end,
+            translate_options = true
+            },
+            { "southpaw_mode", item_type = "toggle", set_func = function()
+                usersettings:set_setting("southpaw_mode", not usersettings.southpaw_mode)
+            end,
+            get_func = function()
+                return usersettings.southpaw_mode
+            end,
+        },
+            { "remap_inputs", item_type = "button", select_func = function()
+                self:show_menu(6)
+                end,
+            },
 
-		-- { "invert_colors", item_type = "toggle" },
-        { newpage = true },
-        { "header",                               text = tr.options_header_controls },
-		{ "use_absolute_aim", item_type = "toggle", inverse = true },
-        { "mouse_sensitivity",    item_type = "slider",             slider_start = 0.0025,                                                                                       slider_stop = 0.1,       slider_granularity = 0.0025 },
-		{ "relative_mouse_aim_snap_to_max_range", item_type = "toggle" },
-        { "gamepad_plus_mouse",                   item_type = "toggle" },
-        { "confine_mouse", item_type = "cycle", options = { "when_aiming", "always", "never" },
-        set_func = function(value)
-            usersettings:set_setting("confine_mouse", value)
-        end,
-        print_func = function(value)
-            local key = "options_confine_mouse_" .. (value or "")
-            return tr:has_key(key) and tr[key] or "???"
-        end,
-        translate_options = true
-    },
-        { newpage = true },
-		{ "header", text = tr.options_header_audio },
-		{ "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-		{ "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-        { "sfx_volume",    item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
-        { newpage = true },
-		{ "header", text = tr.options_header_other },
-        { "skip_intro", item_type = "toggle", skip = savedata.new_version_force_intro },
-        { "retry_cooldown", item_type = "toggle", update_function = function(tab, dt)
-            tab:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
-            if not tab.enabled and not tab.gamer_health_timer and self.current_page == 5 then
-                tab:ref("gamer_health_timer",
-                    tab:spawn_object(GamerHealthTimer(tab.pos.x, tab.pos.y, tab.width, tab.height)))
-                self:ref("gamer_health_timer", tab.gamer_health_timer)
-            end
-        end },
-		{ "enter_name", item_type = "button", select_func = function()
-			self:emit_signal("enter_name_requested")
-        end },
+            { newpage = true },
+            { "header", text = tr.options_header_audio },
+            { "master_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+            { "music_volume", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+            { "sfx_volume",    item_type = "slider",          slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+            { newpage = true },
+            { "header", text = tr.options_header_other },
+            { "skip_intro", item_type = "toggle", skip = savedata.new_version_force_intro },
+            { "retry_cooldown", item_type = "toggle", update_function = function(tab, dt)
+                tab:set_enabled(not (usersettings.retry_cooldown and savedata:get_seconds_until_retry_cooldown_is_over() > 0))
+                if not tab.enabled and not tab.gamer_health_timer and self.current_page == 5 then
+                    tab:ref("gamer_health_timer",
+                        tab:spawn_object(GamerHealthTimer(tab.pos.x, tab.pos.y, tab.width, tab.height)))
+                    self:ref("gamer_health_timer", tab.gamer_health_timer)
+                end
+            end },
+            { "enter_name", item_type = "button", select_func = function()
+                self:emit_signal("enter_name_requested")
+            end },
+    
+    
+            { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
+                debug.enabled = not debug.enabled
+                usersettings:set_setting("debug_enabled", debug.enabled)
+            end,
+            get_func = function()
+                return debug.enabled
+            end },
+    
+            { "enable_leaderboard", item_type = "toggle" },
 
+            { newpage = true },
+            { "header", text = tr.options_header_input_map },
+    
+    }
 
-        { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
-            debug.enabled = not debug.enabled
-            usersettings:set_setting("debug_enabled", debug.enabled)
-        end,
-        get_func = function()
-            return debug.enabled
-        end },
-
-        { "enable_leaderboard", item_type = "toggle" },
-
+    for _, input_action in ipairs {
+        "shoot",
+        "secondary_weapon",
+        "hover",
+        "dont_shoot",
+        "move_left",
+        "move_right",
+        "move_up",
+        "move_down",
+        "aim_left_digital",
+        "aim_right_digital",
+        "aim_up_digital",
+        "aim_down_digital",
+        "skip_bonus_screen",
+        "show_hud",
     } do
+        local input_item = {
+            "input_map_" .. input_action,
+            item_type = "input_button",
+            input_action = input_action,
+            select_func = function()
+                self:emit_signal("input_remapping_requested", input_action)
+            end
+        }
+        table.insert(options_table, input_item)
+    end
+
+
+    table.extend(options_table, {
+        {
+            "reset_controls_to_default",
+            item_type = "button",
+            select_func = function()
+                usersettings:set_setting("input_remapping", {})
+            end
+        }
+    })
+
+    for _, item in ipairs(options_table) do
         if item.newpage then
             current_page = current_page + 1
             goto continue
@@ -652,6 +708,7 @@ function OptionsMenuWorld:add_menu_item(menu_table)
         toggle = O.OptionsMenu.OptionsMenuToggle,
         slider = O.OptionsMenu.OptionsMenuSlider,
         cycle = O.OptionsMenu.OptionsMenuCycle,
+        input_button = O.OptionsMenu.OptionsMenuInputButton,
     }
 
 	local num_items = #self.menu_items
@@ -673,7 +730,10 @@ function OptionsMenuWorld:add_menu_item(menu_table)
 
 	local menu_item
 
-	if menu_table.is_back then
+    if menu_table.item_type == "input_button" then
+        class = O.OptionsMenu.OptionsMenuInputButton
+        menu_item = self:spawn_object(class(self.next_item_x, self.next_item_y, menu_table.name:upper(), menu_table.input_action))
+    elseif menu_table.is_back then
 		class = O.PauseScreen.PauseScreenButton
 		menu_item = self:spawn_object(class(self.next_item_x, self.next_item_y, menu_table.name:upper(), 10, 10, false))
 	else

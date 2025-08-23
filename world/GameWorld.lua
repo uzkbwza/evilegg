@@ -1907,6 +1907,9 @@ function GameWorld:draw_floor_canvas()
     end
 end
 
+
+
+
 function GameWorld:draw()
     
     if not self.rendering_content then
@@ -1962,10 +1965,10 @@ function GameWorld:draw()
 
 		if self.tutorial_state == 1 then
 			-- graphics.print_centered(tr.tutorial_boost2, font, 0, 28)
-			graphics.print_centered(tr.tutorial_boost:format(input.last_input_device == "gamepad" and control_glyphs.lt or control_glyphs.space), font, 0, 16)
+			graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 16)
 		elseif self.tutorial_state == 2 then
-			graphics.print_centered(tr.tutorial_move:format(input.last_input_device == "gamepad" and control_glyphs.l or tr.control_wasd), font, 0, -6)
-			graphics.print_centered(tr.tutorial_shoot:format(input.last_input_device == "gamepad" and control_glyphs.r or control_glyphs.lmb), font, 0, 9)
+			graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -6)
+			graphics.print_centered(tr.tutorial_shoot:format(input:get_shoot_prompt()), font, 0, 9)
 		end
 	end
 

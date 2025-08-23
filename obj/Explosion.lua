@@ -51,7 +51,23 @@ function Explosion:get_death_particle_hit_velocity(target)
 end
 
 function Explosion:get_rect()
-	return self.pos.x - self.size / 2, self.pos.y - self.size / 2, self.size, self.size
+    return self.pos.x - self.size / 2, self.pos.y - self.size / 2, self.size, self.size
+end
+
+function Explosion.apply_explosion_force(obj, self)
+    if obj.is_simple_physics_object and not obj.is_player and not self.ignore_explosion_force:has(obj) then
+        local x, y = obj.pos.x, obj.pos.y
+        while x == self.pos.x and y == self.pos.y do
+            x, y = vec2_add(obj.pos.x, obj.pos.y, rng:randf(-1, 1), rng:randf(-1, 1))
+        end
+        local dist = vec2_distance_squared(self.pos.x, self.pos.y, x, y)
+        if dist <= self.size * self.size then
+            local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, x, y)
+            local force = ((self.size / sqrt(dist)) / 2) * self.force_modifier
+            force = min(force, 2.0)
+            obj:apply_impulse(dx * force, dy * force)
+        end
+    end
 end
 
 function Explosion:enter()
@@ -68,19 +84,7 @@ function Explosion:enter()
     end)
 	
 	local x, y, w, h = self:get_rect()
-    self.world.game_object_grid:each(x, y, w, h, function(obj)
-        if obj.is_simple_physics_object and not obj.is_player and not self.ignore_explosion_force:has(obj) then
-            local x, y = obj.pos.x, obj.pos.y
-			while x == self.pos.x and y == self.pos.y do
-				x, y = vec2_add(obj.pos.x, obj.pos.y, rng:randf(-1, 1), rng:randf(-1, 1))
-			end
-			local dist = vec2_distance(self.pos.x, self.pos.y, x, y)
-			local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, x, y)
-            local force = ((self.size / dist) / 2) * self.force_modifier
-            force = min(force, 2.0)
-			obj:apply_impulse(dx * force, dy * force)
-		end
-	end)
+    self.world.game_object_grid:each_self(x, y, w, h, self.apply_explosion_force, self)
 
 	self:play_sfx(self.explode_sfx, self.explode_sfx_volume)
 

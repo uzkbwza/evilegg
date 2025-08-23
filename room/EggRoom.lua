@@ -232,6 +232,7 @@ function EggRoomDirector:on_player_choice_made(choice, player)
                 self.world.players[1]:change_state("Cutscene")
                 self.glow_floor = true
                 self.phase4_landing = false
+                self.world.big_room = true
                 game_state.cutscene_hide_hud = false
                 game_state.cutscene_no_cursor = false
                 game_state.cutscene_no_pause = false

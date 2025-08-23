@@ -3,6 +3,7 @@ local TopLayer = CanvasLayer:extend("TopLayer")
 
 local debug_start = "game"
 -- local debug_start = "codex_menu"
+-- local debug_start = "options_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
 -- local debug_start = "title_screen"

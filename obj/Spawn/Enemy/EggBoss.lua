@@ -1938,7 +1938,18 @@ function EggShadow:draw()
 	local r, g, b = Palette.egg_blood3:tick_color(self.tick, 0, 3):unpack()
     graphics.set_color(Color.adjust_lightness_unpacked(r, g, b, color_mod))
 	-- graphics.set_color(Palette.rainbow:tick_color(self.tick, 0, 3))
-	graphics.rectangle_centered("line", 0, 0, width, width)
+    graphics.rectangle_centered("line", 0, 0, width, width)
+    if self.oscillating then
+        local max_num_lines = ceil((width) / (8))
+        local num_lines = clamp01(self:get_stopwatch("oscillate_stopwatch").elapsed / 120) * max_num_lines
+        for i = 1, num_lines do
+        -- graphics.set_color(Color.darkpurple)
+            local size = width - (i) * 8
+            if size > 0 then
+                graphics.rectangle_centered("line", 0, 0, size, size)
+            end
+        end
+    end
 
 end
 

@@ -105,6 +105,10 @@ function BaseEnemy:highlight_self()
 	end
 end
 
+function BaseEnemy:get_damage(object)
+    return self.hit_bubble_damage or 1
+end
+
 function BaseEnemy:hit_by(object)
     local damage = 0
 
@@ -143,6 +147,8 @@ function BaseEnemy:hit_by(object)
 		end
     end
 end
+
+
 
 function BaseEnemy:death_sequence(hit_by)
 	self:die(hit_by)

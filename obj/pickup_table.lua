@@ -323,6 +323,11 @@ local Artefacts = {
             local keys = table.keys(game_state.artefacts)
             if #keys == 1 and keys[1] == "sacrificial_twin" then return end
 
+            if game_state.artefacts.stone_trinket and rng:percent(85) then
+                game_state.heart_trade_artefact = game_state.artefacts.stone_trinket
+                return
+            end
+
             local random_key = rng:choose(keys)
             while random_key == "sacrificial_twin" do
                 random_key = rng:choose(keys)

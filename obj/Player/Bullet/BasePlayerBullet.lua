@@ -89,16 +89,21 @@ function BasePlayerBullet:draw()
     local max_bullets = 10
     local num_trail_bullets = min(max(floor(self.trail_distance / trail_dist), 1), max_bullets)
     local start, stop, step = -1, 1, 2
+    local damage = self:get_damage()
+
+    local amulet_of_rage_damage = self.use_artefacts and self:get_amulet_of_rage_damage() or 0
+
 	-- local extra_damage = self:get_damage() - self.damage
-    local bullet_scale = 1 + max((self:get_damage() - 1) * 1.5, 0)
+    local bullet_scale = 1 + max((damage - 1) * 1.5, 0)
 	if self.extra_bullet then
 		bullet_scale = max(bullet_scale * 0.5, 0.75)
 	end
-	if self.extra_bullet then
-		start, stop, step = 0, 0, 1
-	else
-		start, stop, step = -1, 1, 2
-	end
+    if self.extra_bullet then
+        start, stop, step = 0, 0, 1
+    else
+        start, stop, step = -1, 1, 2
+    end
+
     for i = num_trail_bullets - 1, 0, -1 do
         local x, y = self.direction.x * -i * trail_dist, self.direction.y * -i * trail_dist
         if self.dead_position then
@@ -111,12 +116,19 @@ function BasePlayerBullet:draw()
         local color = (self.palette or Palette.rainbow):tick_color(self.start_palette_offset + palette_offset + i)
         local scale = pow(lerp(0.25, 1, 1 - (i / (max_bullets - 1))), 2) * bullet_scale * (self.draw_scale_modifier or 1)
 
-        -- if self.dead then
-        -- 	scale = pow(scale, 2)
-        -- end
+        if game_state.artefacts.amulet_of_rage then
+            graphics.set_color(iflicker(self.tick, 2, 2) and Color.red or color.yellow)
+            local scale2 = (((damage + amulet_of_rage_damage) / damage) - 1.0) * 20
+            if scale2 > 0 then
+                for j = start, stop, step do
+                    local rot_x, rot_y = vec2_rotated(self.direction.x, self.direction.y, tau / 4 * j)
+                    rot_x, rot_y = vec2_normalized(rot_x, rot_y)
+                    graphics.rectangle_centered("line", x + rot_x * 2, y + rot_y * 2, 4 * scale + scale2, 4 * scale + scale2)
+                end
+            end
+        end
         graphics.set_color(color)
-
-
+        
         for j = start, stop, step do
             local rot_x, rot_y = vec2_rotated(self.direction.x, self.direction.y, tau / 4 * j)
             rot_x, rot_y = vec2_normalized(rot_x, rot_y)
@@ -213,12 +225,21 @@ end
 local AMULET_OF_RAGE_DAMAGE_MULTIPLIER = 0.4
 local AMULET_OF_RAGE_DISTANCE = 40
 
+function BasePlayerBullet:get_amulet_of_rage_damage()
+	if not game_state.artefacts.amulet_of_rage then
+		return 0
+	end
+    local extra = 0
+    if game_state.artefacts.amulet_of_rage and self.distance_travelled < AMULET_OF_RAGE_DISTANCE then
+        extra = self.damage * ((extra + smoothstep(1, 0, self.distance_travelled / AMULET_OF_RAGE_DISTANCE) * AMULET_OF_RAGE_DAMAGE_MULTIPLIER))
+    end
+    return extra
+end
+
 function BasePlayerBullet:get_damage()
 	local extra = 0
 	if self.use_artefacts then
-		if game_state.artefacts.amulet_of_rage and self.distance_travelled < AMULET_OF_RAGE_DISTANCE then
-			extra = self.damage * stepify_ceil_safe((extra + smoothstep(1, 0, self.distance_travelled / AMULET_OF_RAGE_DISTANCE) * AMULET_OF_RAGE_DAMAGE_MULTIPLIER), 0.25)
-		end
+        extra = extra + stepify_ceil_safe(self:get_amulet_of_rage_damage(), 0.25)
 	end
 	return self.damage + extra
 end

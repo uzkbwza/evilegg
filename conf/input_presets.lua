@@ -138,10 +138,11 @@ return {
 	twinstick = {
         actions = {
             shoot = {
+                
 				mouse = { "lmb" },
 			},
 
-			menu = {
+            menu = {
 				keyboard = { "escape", },
 				joystick = { "start" }
 			},
@@ -152,7 +153,8 @@ return {
 				joystick_axis = {
 					axis = "lefty",
 					dir = -1
-				}
+				},
+                
 			},
 			
 			move_down = {
@@ -161,7 +163,8 @@ return {
 				joystick_axis = {
 					axis = "lefty",
 					dir = 1
-				}
+				},
+                
 			},
 			
 			move_left = {
@@ -170,7 +173,8 @@ return {
 				joystick_axis = {
 					axis = "leftx",
 					dir = -1
-				}
+				},
+                
 			},
 			
 			move_right = {
@@ -179,7 +183,8 @@ return {
 				joystick_axis = {
 					axis = "leftx",
 					dir = 1
-				}
+				},
+                
 			},
 			
 			aim_up = {
@@ -224,25 +229,27 @@ return {
 			
 			aim_up_digital = {
 				keyboard = { "up" },
-				joystick = { "y" },
-
+                joystick = { "y" },
+                
 			},
 			
 			aim_down_digital = {
 				keyboard = {"down"},
 				joystick = { "a" },
-
+                
 			},
 			
 			aim_left_digital = {
 				keyboard = {"left"},
-				joystick = { "x" },
+                joystick = { "x" },
+                
 			},
 			
 
 			aim_right_digital = {
 				keyboard = {"right"},
-				joystick = { "b" },
+                joystick = { "b" },
+                
 			},
 			
 

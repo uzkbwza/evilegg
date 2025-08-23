@@ -33,19 +33,26 @@ local default_usersettings = {
 	mouse_sensitivity = 0.08,
     gamepad_with_mouse = false,
     confine_mouse = "when_aiming", -- when_aiming, always, never
+    southpaw_mode = false,
+
+    input_remapping = {
+    },
 
     -- misc
     retry_cooldown = false,
     enable_leaderboard = true,
     skip_intro = false,
-
-
 }
 
 local usersettings = {}
 
 local buffer = {}
 local dirty = false
+
+-- New: dedicated buffer for input remapping so API calls are buffered
+local input_buffer = {}
+local input_dirty = false
+local __INPUT_DELETE__ = {}
 
 function usersettings:load()
     local _, u = pcall(require, "_usersettings")
@@ -68,6 +75,27 @@ end
 
 function usersettings:buffer_setting(key, value)
     buffer[key] = value
+end
+
+function usersettings:add_remapping(action, input_type, value)
+    -- keep API same; route to input buffer
+    input_dirty = true
+    if type(value) ~= "table" then
+        value = { value }
+    end
+    if not input_buffer[action] then
+        input_buffer[action] = {}
+    end
+    input_buffer[action][input_type] = value
+end
+
+function usersettings:remove_remapping(action, input_type)
+    -- keep API same; route to input buffer
+    input_dirty = true
+    if not input_buffer[action] then
+        input_buffer[action] = {}
+    end
+    input_buffer[action][input_type] = __INPUT_DELETE__
 end
 
 
@@ -98,11 +126,8 @@ function usersettings:initial_load()
     -- else
     -- end
     self.apply_window_size = true
-
 	self:apply_settings()
-	
 end
-
 
 function usersettings:apply_settings()
     print("applying user settings")
@@ -116,7 +141,8 @@ function usersettings:apply_settings()
     if self.apply_window_size and not self.fullscreen and self.window_size then
         self.apply_window_size = nil
         if self.window_size and self.window_size.x > 0 and self.window_size.y > 0 then
-            love.window.updateMode(self.window_size.x, self.window_size.y)
+            local _, _, flags = love.window.getMode()
+            love.window.updateMode(self.window_size.x, self.window_size.y, flags)
         end
     end
 
@@ -135,6 +161,7 @@ function usersettings:apply_settings()
 		audio.usersettings_update()
 	end
 
+	-- southpaw remapping is now handled during buffer commit
 end
 
 function usersettings:reset_to_default()
@@ -150,23 +177,69 @@ function usersettings:set_setting(key, value)
 	if buffer[key] == value then
 		return
 	end
-
+    buffer[key] = value
+    
 	dirty = true
 
-    buffer[key] = value
 end
 
 function usersettings:is_dirty()
-	return dirty
+	return dirty or input_dirty
 end
 
 function usersettings:apply_buffer()
 
 	dirty = false
+	input_dirty = false
 	
     for k, v in pairs(buffer) do
         self[k] = v
     end
+	-- Apply input buffer into persistent input_remapping
+	for action, tab in pairs(input_buffer) do
+		self.input_remapping[action] = self.input_remapping[action] or {}
+		for input_type, val in pairs(tab) do
+			if val == __INPUT_DELETE__ then
+				if self.input_remapping[action] then
+					self.input_remapping[action][input_type] = nil
+				end
+			else
+				self.input_remapping[action][input_type] = val
+			end
+		end
+	end
+
+	-- Enforce southpaw immediately during commit (no extra frame)
+	if self.southpaw_mode and not (self.input_remapping.move_up and self.input_remapping.move_up.joystick_axis) then
+		self.input_remapping.move_up   = self.input_remapping.move_up   or {}
+		self.input_remapping.move_down = self.input_remapping.move_down or {}
+		self.input_remapping.move_left = self.input_remapping.move_left or {}
+		self.input_remapping.move_right= self.input_remapping.move_right or {}
+		self.input_remapping.aim_up    = self.input_remapping.aim_up    or {}
+		self.input_remapping.aim_down  = self.input_remapping.aim_down  or {}
+		self.input_remapping.aim_left  = self.input_remapping.aim_left  or {}
+		self.input_remapping.aim_right = self.input_remapping.aim_right or {}
+		self.input_remapping.move_up.joystick_axis    = { axis = "righty", dir = -1 }
+		self.input_remapping.move_down.joystick_axis  = { axis = "righty", dir = 1 }
+		self.input_remapping.move_left.joystick_axis  = { axis = "rightx", dir = -1 }
+		self.input_remapping.move_right.joystick_axis = { axis = "rightx", dir = 1 }
+		self.input_remapping.aim_up.joystick_axis     = { axis = "lefty", dir = -1 }
+		self.input_remapping.aim_down.joystick_axis   = { axis = "lefty", dir = 1 }
+		self.input_remapping.aim_left.joystick_axis   = { axis = "leftx", dir = -1 }
+		self.input_remapping.aim_right.joystick_axis  = { axis = "leftx", dir = 1 }
+	elseif not self.southpaw_mode and (self.input_remapping.move_up and self.input_remapping.move_up.joystick_axis) then
+		if self.input_remapping.move_up   then self.input_remapping.move_up.joystick_axis   = nil end
+		if self.input_remapping.move_down then self.input_remapping.move_down.joystick_axis = nil end
+		if self.input_remapping.move_left then self.input_remapping.move_left.joystick_axis = nil end
+		if self.input_remapping.move_right then self.input_remapping.move_right.joystick_axis = nil end
+		if self.input_remapping.aim_up    then self.input_remapping.aim_up.joystick_axis    = nil end
+		if self.input_remapping.aim_down  then self.input_remapping.aim_down.joystick_axis  = nil end
+		if self.input_remapping.aim_left  then self.input_remapping.aim_left.joystick_axis  = nil end
+		if self.input_remapping.aim_right then self.input_remapping.aim_right.joystick_axis = nil end
+	end
+
+	-- Clear input buffer before apply_settings
+	table.clear(input_buffer)
 	self:save()
 	self:apply_settings()
 
