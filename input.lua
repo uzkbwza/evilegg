@@ -237,7 +237,7 @@ function input.process(t)
 		
         local pressed = false
 
-        if debug and not debug.enabled then
+        if mapping.debug and not debug.enabled then
             goto skip
         end
 
