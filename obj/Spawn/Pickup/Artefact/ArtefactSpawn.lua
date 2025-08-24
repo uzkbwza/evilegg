@@ -279,6 +279,7 @@ function ArtefactSpawn:on_pickup(player)
     if self.picked_up then return end
 	self:start_stopwatch("pickup_time")
     game_state:gain_artefact(self.artefact)
+    if player and game_state.artefacts.ring_of_loyalty then player:on_ring_of_loyalty_pickup(self) end
     self.picked_up = true
     self.intangible = true
 	self.z_index = -2

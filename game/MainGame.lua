@@ -243,7 +243,7 @@ function GlobalGameState:new()
     if debug.enabled then
 
 
-        local cheat = false
+        local cheat = true
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -263,14 +263,14 @@ function GlobalGameState:new()
                 PickupTable.artefacts.RailGunSecondaryWeapon,
             })
 
-            -- self.num_queued_artefacts = 10
+            self.num_queued_artefacts = 10
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
             self.level = 31
             self.hearts = self.max_hearts
 
-            for i = 1, 8 do
+            for i = 1, 0 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do 
                     artefact = self:get_random_available_artefact()

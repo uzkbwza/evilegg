@@ -6,7 +6,7 @@ local HurtFlashFx = Effect:extend("HurtFlashFx")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local BaseRescuePickupParticle = Effect:extend("BaseRescuePickupParticle")
 -- local RingOfLoyaltyBullet = require("obj.Player.Bullet.RingOfLoyaltyBullet")
-local RingOfLoyaltyBurst = require("obj.Player.Bullet.RingOfLoyaltyBurst")
+-- local RingOfLoyaltyBurst = require("obj.Player.Bullet.RingOfLoyaltyBurst")
 local WarbellProjectile = require("obj.Player.Bullet.GreenoidSelfDefenseBullet")
 local VulnerabilityParticle = GameObject2D:extend("VulnerabilityParticle")
 
@@ -275,14 +275,6 @@ function BaseRescue:on_pickup()
     self.floor_particle:on_pickup()
     BaseRescue.super.on_pickup(self)
 
-    if game_state.artefacts.ring_of_loyalty then
-		self:play_sfx("pickup_artefact_ring_of_loyalty_trigger2", 1.0)
-		-- local num_bullets = 12 + (game_state.upgrades.bullets) * 2
-        -- for i = 1, num_bullets do
-        local bullet = self:spawn_object(RingOfLoyaltyBurst(bx, by))
-			-- bullet.direction = Vec2.from_angle(tau / num_bullets * i)
-		-- end
-	end
 
 
 	-- for i = 1, 5 do

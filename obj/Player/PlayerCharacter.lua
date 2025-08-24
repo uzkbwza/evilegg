@@ -23,6 +23,7 @@ local TwinDeathEffect = Effect:extend("TwinDeathEffect")
 
 local Explosion = require("obj.Explosion")
 local PrayerKnotChargeEffect = GameObject2D:extend("PrayerKnotChargeEffect")
+local RingOfLoyaltyBurst = require("obj.Player.Bullet.RingOfLoyaltyBurst")
 
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
@@ -1150,7 +1151,16 @@ function PlayerCharacter:alive_update(dt)
 end
 
 function PlayerCharacter:pickup(pickup)
+    
+    if pickup.holding_pickup and game_state.artefacts.ring_of_loyalty then
+        self:on_ring_of_loyalty_pickup(pickup)
+    end
     pickup:on_pickup(self)
+end
+
+function PlayerCharacter:on_ring_of_loyalty_pickup(pickup)
+    self:play_sfx("pickup_artefact_ring_of_loyalty_trigger2", 1.0)
+    local bullet = self:spawn_object(RingOfLoyaltyBurst(self:get_body_center()))
 end
 
 function PlayerCharacter.try_pickup(pickup, self)
