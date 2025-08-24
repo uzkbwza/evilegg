@@ -8,6 +8,9 @@ local ThrashIndicator = Effect:extend("ThrashIndicator")
 local GREENOID_ORBIT_RADIUS = 22
 local ORBIT_SPEED = 0.05
 
+EvilGreenoidBoss.death_cry = "enemy_embryo_death"
+EvilGreenoidBoss.death_cry_volume = 1.0
+
 function EvilGreenoidBoss:new()
     self.max_hp = 20
 	self.terrain_collision_radius = 16

@@ -241,16 +241,14 @@ function GlobalGameState:new()
 
 
     if debug.enabled then
-
-
         local cheat = true
         self.cheat = cheat
 
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
-		
+
         if cheat then
-			self:add_score(rng:randi(6000000, 10000000), "cheat")
+            self:add_score(rng:randi(6000000, 10000000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
             self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
@@ -268,12 +266,12 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 31
+            self.level = 30
             self.hearts = self.max_hearts
 
             for i = 1, 6 do
                 local artefact = self:get_random_available_artefact()
-                while artefact.alternative_gain_function do 
+                while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
                 end
                 self:gain_artefact(artefact)
@@ -287,7 +285,6 @@ function GlobalGameState:new()
                 self:gain_secondary_weapon_ammo(math.huge)
             end
         end
-
     end
     
     modloader:call("on_game_started", self)

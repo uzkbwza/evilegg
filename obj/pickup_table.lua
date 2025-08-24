@@ -172,7 +172,8 @@ local Artefacts = {
 		description = "artefact_sacrificial_twin_desc",
         
 		can_spawn = function()
-			if not game_state then return true end
+            if not game_state then return true end
+            if game_state.egg_rooms_cleared > 0 then return false end
 			return game_state.num_spawned_artefacts >= 1
 		end,
 

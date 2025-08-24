@@ -77,7 +77,8 @@ function GameScreen:get_mouse_mode() -- visible, relative, confine
 
 
     if usersettings.use_absolute_aim then
-        return true, true, true
+        local visible = usersettings.gamepad_plus_mouse or (input.last_input_device ~= "gamepad")
+        return visible, true, true
     end
 
     return false, true, false

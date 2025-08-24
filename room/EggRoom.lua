@@ -197,10 +197,29 @@ function EggRoomDirector:on_player_choice_made(choice, player)
 				s:wait(1)
 				closest_player = self:get_any_player(player)
 			end
-			closest_player:move_to(0, 70)
+            audio.play_music_if_stopped("music_egg_boss_ambience", 1.0)
+            -- closest_player:hide()
+            closest_player:show()
+            closest_player:change_state("Cutscene")
+            closest_player:move_to(0, 70)
+
+            local player_body_height = closest_player.body_height
+            local tween_function2 = function(t)
+                closest_player:set_body_height(lerp(player_body_height, closest_player.base_body_height, t))
+            end
+
+            -- s:start(function()
+                -- s:wait(60)
+                -- s:tween(tween_function2, 0, 1, 150, "outCubic")
+                
+                -- closest_player:change_state("Walk")
+            -- end)
+
+            
+            s:tween(tween_function2, 0, 1, 150, "outCubic")
+            closest_player:change_state("Walk")
 			
 			-- audio.stop_music()\
-            audio.play_music_if_stopped("music_egg_boss_ambience", 1.0)
 			
             signal.connect(self.egg_boss, "cracked", self, "on_egg_boss_cracked", function()
 				self:start_stopwatch("time_since_cracked_egg")
