@@ -4,14 +4,14 @@ local DeathFloorParticle = GameObject2D:extend("DeathFloorParticle")
 local BASE_IMPULSE = 8.0
 local BASE_FORCE = 0.45
 local PUSH_SPEED = 10
-local BASE_RADIUS = 44
+local BASE_RADIUS = 60
 
 function RingOfLoyaltyBurst:new(x, y)
     RingOfLoyaltyBurst.super.new(self, x, y)
 
     self:add_time_stuff()
     self.radius = BASE_RADIUS + game_state.upgrades.range * 4
-    self.damage = 0.9 + game_state.upgrades.damage * 0.1
+    self.damage = 1.5 + game_state.upgrades.damage * 1
     self.force_modifier = 1 + game_state.upgrades.bullet_speed * 0.15
     self.lifetime = 10 + game_state.upgrades.range * 2
     self:start_destroy_timer(self.lifetime)

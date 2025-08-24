@@ -1153,14 +1153,14 @@ end
 function PlayerCharacter:pickup(pickup)
     
     if pickup.holding_pickup and game_state.artefacts.ring_of_loyalty then
-        self:on_ring_of_loyalty_pickup(pickup)
+        self:on_ring_of_loyalty_pickup(pickup, pickup:get_body_center())
     end
     pickup:on_pickup(self)
 end
 
-function PlayerCharacter:on_ring_of_loyalty_pickup(pickup)
+function PlayerCharacter:on_ring_of_loyalty_pickup(pickup, bx, by)
     self:play_sfx("pickup_artefact_ring_of_loyalty_trigger2", 1.0)
-    local bullet = self:spawn_object(RingOfLoyaltyBurst(self:get_body_center()))
+    local bullet = self:spawn_object(RingOfLoyaltyBurst(bx, by))
 end
 
 function PlayerCharacter.try_pickup(pickup, self)
