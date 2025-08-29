@@ -2,7 +2,7 @@ local OptionsMenuWorld = World:extend("OptionsMenuWorld")
 local O = (require "obj")
 local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
 
-local MENU_ITEM_H_PADDING = 12
+local MENU_ITEM_H_PADDING = 15
 local MENU_ITEM_V_PADDING = 6
 local MENU_ITEM_SKEW = 0
 local DISTANCE_BETWEEN_ITEMS = 11
@@ -326,9 +326,17 @@ function OptionsMenuWorld:show_menu(page)
 
     self.next_item_x, self.next_item_y = MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 2
 
-	self:ref("back_button",self:add_menu_item(back_table))
+    if page == 2 and self.canvas_layer.in_game then
+        self.next_item_y = self.next_item_y + 4
+        self:ref("back_button",self:add_menu_item(back_table))
+        self.next_item_y = self.next_item_y - 11
+    else
+        self:ref("back_button",self:add_menu_item(back_table))
+        self.next_item_y = self.next_item_y + 4
+    end
+    
 
-	self.next_item_y = self.next_item_y + 4
+
 
     -- local base = MENU_ITEM_V_PADDING
     local current_page = 1
@@ -513,7 +521,7 @@ function OptionsMenuWorld:show_menu(page)
             
         
             { "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },
-        -- { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
+        { "saturation", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.05 },
             { "hue",                                  item_type = "slider",             slider_start = 0.0,    slider_stop = 1.0, slider_granularity = 0.025 },
             { "disco_mode", item_type = "toggle", select_func = function()
                 if not usersettings.disco_mode then
@@ -717,7 +725,11 @@ function OptionsMenuWorld:add_menu_item(menu_table)
     if menu_table[1] == "header" then
 		self.next_item_x = self.next_item_x + MENU_ITEM_SKEW
         self.next_item_y = self.next_item_y + (menu_table.text ~= "" and HEADER_SPACE or 0)
-        local object = self:spawn_object(O.OptionsMenu.OptionsMenuHeader(self.next_item_x, self.next_item_y,
+        local x_offs = 0
+        if self.current_page == 2 and self.canvas_layer.in_game then
+            x_offs = 12
+        end
+        local object = self:spawn_object(O.OptionsMenu.OptionsMenuHeader(self.next_item_x + x_offs, self.next_item_y,
         menu_table.text))
 		self.next_item_x = self.next_item_x + MENU_ITEM_SKEW
         self.next_item_y = self.next_item_y + DISTANCE_BETWEEN_ITEMS + HEADER_SPACE_UNDER
@@ -823,8 +835,10 @@ end
 
 function OptionsMenuWorld:draw()
 	local font = fonts.depalettized.image_bigfont1
-	graphics.set_font(font)
-	graphics.print(tr.menu_options_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
+    graphics.set_font(font)
+    if not (self.current_page == 2 and self.canvas_layer.in_game) then        
+        graphics.print(tr.menu_options_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
+    end
 	OptionsMenuWorld.super.draw(self)
 end
 

@@ -403,8 +403,8 @@ function HUDLayer:should_show()
 
 	if game_state.cutscene_hide_hud then return false end
 
-    if self:is_paused() then return true end
 	
+    if self:is_paused() and not self.game_layer.world.options_menu_open then return true end
 	if game_state.game_over_screen_force_hud then return true end
 
     if self:is_timer_running("show_hud_held") then return true end

@@ -1,21 +1,23 @@
 local Grid2D = Object:extend("Grid2D")
 
-function Grid2D:new()
-    self.grid = {}
+function Grid2D:new(pairing_func)
+    self.pairing_func = pairing_func or xy_to_pairing_fast
 end
 
 function Grid2D:get(x, y)
-    if not self.grid[y] then
-        return nil
-    end
-    return self.grid[y][x]
+    return self[self.pairing_func(x, y)]
+end
+
+function Grid2D:get_by_id(id)
+    return self[id]
+end
+
+function Grid2D:set_by_id(id, value)
+    self[id] = value
 end
 
 function Grid2D:set(x, y, value)
-    if not self.grid[y] then
-        self.grid[y] = {}
-    end
-    self.grid[y][x] = value
+    self[self.pairing_func(x, y)] = value
 end
 
 function Grid2D:neighbors(x, y, include_self)

@@ -1751,7 +1751,7 @@ end
 function PlayerDrone:new(x, y)
 	PlayerDrone.super.new(self, x, y)
 	self.sprite = textures.player_drone
-	self.z_index = 1000
+	self.z_index = 0
 	self.persist = true
 	self.size = 16
 	self.player = nil
@@ -1764,25 +1764,28 @@ function PlayerDrone:enter()
 end
 
 function PlayerDrone:update(dt)
+    local offs_x, offs_y = 0, 0
     if self.player then
-        self.target.x, self.target.y = self.player.pos.x, self.player.pos.y + self.player.body_height
+        local bx, by = self.player:get_body_center()
+        self.target.x, self.target.y = bx, by + self.player.body_height
 		self:set_visible(self.player.visible and self.player.state ~= "Cutscene")
+        offs_x, offs_y = -self.player.real_aim_direction.x * 10, -self.player.real_aim_direction.y * 10
     else
         self:queue_destroy()
     end
     -- local offs_x, offs_y = vec2_from_polar(20, self.elapsed / 18)
 
-    if self.world.big_room and self.player then
-        -- local offs_x, offs_y = 0, 0
-        local offs_x, offs_y = -self.player.real_aim_direction.x * 20, -self.player.real_aim_direction.y * 20
+    -- if self.world.big_room and self.player then
+    -- local offs_x, offs_y = 0, 0
+    
 
-        local x, y = splerp_vec(self.pos.x, self.pos.y, self.target.x + offs_x, self.target.y + offs_y, 200, dt)
-        self:move_to(x, y)
-    else
-        local offs_x, offs_y = 0, 0
-        local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
-        self:move_to(x, y)
-    end
+    local x, y = splerp_vec(self.pos.x, self.pos.y, self.target.x + offs_x, self.target.y + offs_y, 50, dt)
+    self:move_to(x, y)
+    -- else
+        -- local offs_x, offs_y = 0, 0
+        -- local x, y = splerp_vec(self.pos.x, self.pos.y, -self.target.x + offs_x, -self.target.y + offs_y, 200, dt)
+        -- self:move_to(x, y)
+    -- end
 
 end
 

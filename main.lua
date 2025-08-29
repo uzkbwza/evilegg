@@ -3,7 +3,7 @@
 -- ===========================================================================
 ---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "0.10.5"
+GAME_VERSION = "0.10.6"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -46,6 +46,8 @@ batch_remove_list        = require "datastructure.batch_remove_list"
 array2d                  = require "datastructure.array2d"
 grid2d                   = require "datastructure.grid2d"
 static_spatial_grid      = require "datastructure.static_spatial_grid"
+spatial_grid             = require "datastructure.spatial_grid"
+-- spatial_grid             = require "lib.shash".new
 
 
 ease             = require "lib.ease"

@@ -28,7 +28,7 @@ local STAR_V_SPEED = 0.5
 
 local LENS_FLARE_BURST_DIRECTION = Vec2(-1, 1):normalized()
 
-local SCREENSHOT_MODE = false
+local SCREENSHOT_MODE = true
 
 if not debug.enabled then
 	SCREENSHOT_MODE = false

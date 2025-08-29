@@ -1,6 +1,5 @@
 local Camera = require "obj.camera"
 local bump = require "lib.bump"
-local shash = require "lib.shash"
 local GameMap = require "map.GameMap"
 
 local SkipList = require "datastructure.skiplist"
@@ -218,8 +217,8 @@ function World:get_random_object_with_tag(tag)
     return nil
 end
 
-function World:add_spatial_grid(name, cell_size)
-	self[name] = shash.new(cell_size or DEFAULT_CELL_SIZE)
+function World:add_spatial_grid(name, cell_size, table_pool_size)
+	self[name] = spatial_grid(cell_size or DEFAULT_CELL_SIZE, table_pool_size)
 	return self[name]
 end
 

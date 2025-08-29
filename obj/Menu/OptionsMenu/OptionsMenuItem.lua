@@ -47,7 +47,11 @@ function OptionsMenuItem:draw()
         -- graphics.line(-1, 0, end_x, 0)
         -- graphics.line(-1, end_y, end_x, end_y)
         if not self.is_button then
-            graphics.line(self.font:getWidth(self.text) + 2, line_h, end_x, line_h)
+            local line_x = self.font:getWidth(self.text) + 2
+            if line_x < end_x then
+                -- line_x = end_x
+                graphics.line(line_x, line_h, end_x, line_h)
+            end
         end
     end
 

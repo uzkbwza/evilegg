@@ -1,25 +1,30 @@
 ---@class Pool
----@field new (fun():table, number?):Pool
 local Pool = {}
 Pool.__index = Pool
 
 --- Creates a new pool.
 ---@param constructor function A function that returns a new object for the pool when it's empty.
----@param initial_size? number The initial number of objects to pre-allocate in the pool.
+---@param pool_amount? number The initial number of objects to pre-allocate in the pool.
 ---@return Pool
-function Pool.new(constructor, initial_size)
+function Pool.new(constructor, pool_amount, get_function, release_function)
     local pool = {
         pool = {},
         constructor = constructor or function() return {} end,
+        get_function = get_function or function() end,
+        release_function = release_function or function() end,
         total_created = 0,
-        initial_size = initial_size or 0
+        pool_available_count = 0,
+        pool_amount = pool_amount or 0,
     }
     
-    if initial_size then
-        for _ = 1, initial_size do
+    if pool_amount then
+        for _ = 1, pool_amount do
             table.insert(pool.pool, pool.constructor())
         end
-        pool.total_created = initial_size
+        pool.total_created = pool_amount
+        pool.pool_available_count = pool_amount
+    else
+        pool.pool_amount = math.huge
     end
 
     return setmetatable(pool, Pool)
@@ -27,32 +32,36 @@ end
 
 --- Retrieves an object from the pool. If the pool is empty, it uses the constructor to create a new one.
 ---@return table
-function Pool:get()
-    if #self.pool > 0 then
-        return table.remove(self.pool)
+function Pool:get(...)
+    if self.pool_available_count > 0 then
+        self.pool_available_count = self.pool_available_count - 1
+        local tab = table.remove(self.pool)
+        self.get_function(tab, ...)
+        return tab
     else
         self.total_created = self.total_created + 1
-        return self.constructor()
+        return self.constructor(...)
     end
 end
 
---- Releases an object back into the pool for reuse. If the pool has grown beyond its
---- initial size, this will discard the object to allow the pool to shrink over time.
----@param obj table The object to release.
-function Pool:release(obj)
-    if #self.pool >= self.initial_size then
+-- - Releases an object back into the pool for reuse.
+---@param tab table The object to release.
+function Pool:release(tab)
+
+    self.release_function(tab)
+    -- if the pool is full, just let the tabect get garbage collected
+    if self.pool_available_count >= self.pool_amount then
         self.total_created = self.total_created - 1
-        -- By not re-inserting the object, we allow it to be garbage collected,
-        -- effectively shrinking the pool's total object count.
     else
-        table.insert(self.pool, obj)
+        table.insert(self.pool, tab)
+        self.pool_available_count = self.pool_available_count + 1
     end
 end
 
 --- Returns statistics about the pool's usage.
 ---@return {used: number, available: number, total: number}
 function Pool:get_stats()
-    local available = #self.pool
+    local available = self.pool_available_count
     local total = self.total_created
     return {
         used = total - available,

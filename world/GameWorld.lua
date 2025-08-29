@@ -4,7 +4,6 @@ local EnemySpawns = require("obj.EnemySpawn")
 local SpawnDataTable = require("obj.spawn_data")
 local Room = require("room.Room")
 local EggRoom = require("room.EggRoom")
-local shash = require "lib.shash"
 local ScoreNumberEffect = require("fx.score_number_effect")
 local TextPopupEffect = require("fx.text_popup_effect")
 local XpPickup = require("obj.XpPickup")
@@ -68,14 +67,14 @@ function GameWorld:new(x, y)
 	self:add_spatial_grid("dancer_grid", grid_size)
 
 	self.hurt_bubbles = {}
-	self.hurt_bubbles["player"] = shash.new(grid_size)
-	self.hurt_bubbles["enemy"] = shash.new(grid_size)
-	self.hurt_bubbles["neutral"] = shash.new(grid_size)
+	self.hurt_bubbles["player"] = spatial_grid(grid_size)
+	self.hurt_bubbles["enemy"] = spatial_grid(grid_size)
+	self.hurt_bubbles["neutral"] = spatial_grid(grid_size)
 
 	self.hit_bubbles = {}
-	self.hit_bubbles["player"] = shash.new(grid_size)
-	self.hit_bubbles["enemy"] = shash.new(grid_size)
-	self.hit_bubbles["neutral"] = shash.new(grid_size)
+	self.hit_bubbles["player"] = spatial_grid(grid_size)
+	self.hit_bubbles["enemy"] = spatial_grid(grid_size)
+	self.hit_bubbles["neutral"] = spatial_grid(grid_size)
 
 	self.empty_update_objects = bonglewunch()
 

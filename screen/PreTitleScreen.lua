@@ -238,8 +238,11 @@ function TrailerScreen:draw()
     local width = conf.viewport_size.x - 20
     local height = font:getHeight()
 
-    graphics.printf("OCTOBER 30\n\nIVYSLY.COM\nITCH.IO\nSTEAM", font, -width / 2, -24, width, "center")
-
+    graphics.scale(2, 2)
+    local text = "COMING TO STEAM\nOCTOBER 30\n%s\nWISHLIST NOW"
+    -- local text = "OCTOBER 30\n%s\n\nIVYSLY.COM\nITCH.IO\nSTEAM\n\nWISHLIST NOW"
+    text = string.format(text, self.tick > 10 and self.tick < 40 and iflicker(self.tick + 2, 2, 4) and "" or "100% FREE")
+    graphics.printf(text, font, -width / 2, -18, width, "center")
 
 end
 

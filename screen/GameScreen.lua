@@ -284,6 +284,7 @@ end
 function UILayer:show_options_menu()
     self:ref("options_menu", Screens.OptionsMenuScreen()).in_game = true
     self.handling_input = false
+    self.game_layer.world.options_menu_open = true
     self:push(self.options_menu)
     self.pause_screen.handling_render = false
 
@@ -293,6 +294,7 @@ function UILayer:show_options_menu()
         s:start(function()
             s:wait(1)
             self.handling_input = true
+            self.game_layer.world.options_menu_open = false
             if self.pause_screen then
                 self.pause_screen.handling_render = true
             end

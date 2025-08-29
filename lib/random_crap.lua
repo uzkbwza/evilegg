@@ -141,6 +141,43 @@ function pairing_to_xy(id)
     return x, y
 end
 
+
+-- Fast zigzag + 53-bit-safe pack (26 bits per axis)
+local PAIRING_BASE = 67108864 -- 2^26
+local function _zigzag_encode(n)
+    return (n >= 0) and (n * 2) or (-n * 2 - 1)
+end
+local function _zigzag_decode(u)
+    if (u % 2) == 0 then return u / 2 else return -(u + 1) / 2 end
+end
+
+-- results in giant numbers when you go into the negatives
+function xy_to_pairing_fast(x, y)
+    local ux = _zigzag_encode(x) -- 0 .. 2^26-1 (require |x| < 2^25)
+    local uy = _zigzag_encode(y) -- 0 .. 2^26-1 (require |y| < 2^25)
+    return ux + uy * PAIRING_BASE
+end
+
+function pairing_to_xy_fast(id)
+    local ux = id % PAIRING_BASE
+    local uy = (id - ux) / PAIRING_BASE
+    return _zigzag_decode(ux), _zigzag_decode(uy)
+end
+
+
+-- Non-decodable, unique, and very fast key for integer pairs of any size
+-- Uses a single zero-byte delimiter to avoid ambiguities and minimize length
+-- Suitable for table keys and hashing; not intended for numeric arithmetic
+local _XY_KEY_DELIM = "\0"
+function xy_to_unique_key(x, y)
+    x = floor(x)
+    y = floor(y)
+    -- tostring is C-optimized; concatenation of three short strings is very fast in LuaJIT
+    return tostring(x) .. _XY_KEY_DELIM .. tostring(y)
+end
+
+
+
 function world_to_room_id(x, y)
     return xy_to_pairing(x / conf.room_size.x, y / conf.room_size.y)
 end

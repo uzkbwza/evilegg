@@ -41,7 +41,12 @@ function OptionsMenuScreen:update(dt)
 	-- local input = self:get_input_table()
 	-- if self.in_game and input.ui_cancel_pressed then
 	-- 	self:emit_signal("exit_menu_requested")
-	-- end
+    -- end
+    if self.in_game and self.options_menu_world.current_page == 2 then
+        self.clear_color = Color.transparent
+    else
+        self.clear_color = Color.black
+    end
 end
 
 function OptionsMenuScreen:draw()

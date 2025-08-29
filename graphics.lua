@@ -688,24 +688,6 @@ function graphics.draw_loop()
     graphics.window_size.x = wsx
     graphics.window_size.y = wsy
 
-
-    graphics.set_canvas(graphics.pre_adjustment_canvas)
-	
-    graphics.game_draw()
-    
-	graphics.set_color(1, 1, 1)
-    graphics.set_canvas(graphics.canvas)
-    graphics.set_shader(graphics.shader.adjustment)
-    for arg, value in pairs(graphics.adjustment_shader_options) do
-        if arg == "hue" and usersettings.disco_mode then
-            graphics.shader.adjustment:send(arg, value + gametime.time * remap_pow(usersettings.hue, 0, 1, 0.0002, 0.06, 3))
-        else
-            graphics.shader.adjustment:send(arg, value)
-        end
-    end
-    graphics.draw(graphics.pre_adjustment_canvas, 0, 0)
-
-    graphics.set_canvas()
 	
 
     local process_scale = usersettings.pixel_perfect and math.floor or identity_function
@@ -769,6 +751,33 @@ function graphics.draw_loop()
 	graphics.window_size.x = window_size.x
 	graphics.window_size.y = window_size.y
 
+    graphics.set_canvas(graphics.pre_adjustment_canvas)
+	
+    graphics.game_draw()
+    
+	graphics.set_color(1, 1, 1)
+    graphics.set_canvas(graphics.canvas)
+
+
+    if usersettings.disco_mode
+        or graphics.adjustment_shader_options.invert_colors
+        or graphics.adjustment_shader_options.brightness ~= 1
+        or graphics.adjustment_shader_options.saturation ~= 1
+        or graphics.adjustment_shader_options.hue ~= 0 then
+            
+        graphics.set_shader(graphics.shader.adjustment)
+        for arg, value in pairs(graphics.adjustment_shader_options) do
+            if arg == "hue" and usersettings.disco_mode then
+                graphics.shader.adjustment:send(arg, value + gametime.time * remap_pow(usersettings.hue, 0, 1, 0.0002, 0.06, 3))
+            else
+                graphics.shader.adjustment:send(arg, value)
+            end
+        end
+    end
+    graphics.draw(graphics.pre_adjustment_canvas, 0, 0)
+    graphics.set_shader()
+
+    graphics.set_canvas()
 
     if graphics.pre_canvas_draw_function then
         graphics.pre_canvas_draw_function()
@@ -785,8 +794,7 @@ function graphics.draw_loop()
         start_time = love.timer.getTime()
     end
 
-	if viewport_pixel_scale > 1 then
-		
+	if viewport_pixel_scale > 1 then		
 		for i = 2, #(graphics.screen_shaders or dummy_table) do
 			
             local shader_table = graphics.screen_shaders[i]

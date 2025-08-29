@@ -25,7 +25,7 @@ function RoomObject:new(x, y, room)
 	self.die_alpha = 1
 	self.max_height = 0
 	
-    self.z_index = 1
+    self.z_index = 2
     self.icon_stencil_function = function()
         graphics.circle("fill", 0, 0, PLAYER_DISTANCE)
     end
@@ -436,6 +436,9 @@ function RoomObject:die()
 end
 
 function RoomObject:draw()
+    if self.world.options_menu_open then
+        return
+    end
     self.die_alpha = self.dead and (max(1 - (self.world.elapsed - self.die_time) / 5, 0)) or 1
 		
     if self.floor_object then

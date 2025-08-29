@@ -674,27 +674,30 @@ function input:get_prompt(action, mkb_default, gamepad_default)
     local joystick_mapping = self:resolve_remapping_table(action, "joystick", false)
     local joystick_axis_mapping = self:resolve_remapping_table(action, "joystick_axis", false)
 
+    local prompt
+
     if self.last_input_device == "gamepad" then
         if joystick_mapping and joystick_mapping[1] then
-            return self:get_control_glyph(joystick_mapping[1])
+            prompt = self:get_control_glyph(joystick_mapping[1])
+        elseif joystick_axis_mapping and joystick_axis_mapping.axis then
+            prompt = self:get_control_glyph(joystick_axis_mapping.axis)
+        else
+            prompt = self:get_control_glyph(gamepad_default)
         end
-
-        if joystick_axis_mapping and joystick_axis_mapping.axis then
-            return self:get_control_glyph(joystick_axis_mapping.axis)
-        end
-
-        return self:get_control_glyph(gamepad_default)
     else
         if mouse_mapping and mouse_mapping[1] then
-            return self:get_control_glyph(mouse_mapping[1])
+            prompt = self:get_control_glyph(mouse_mapping[1])
+        elseif kbd_mapping and kbd_mapping[1] then
+            prompt = self:get_control_glyph(kbd_mapping[1])
+        else
+            prompt = self:get_control_glyph(mkb_default)
         end
+    end
 
-        if kbd_mapping and kbd_mapping[1] then
-            return self:get_control_glyph(kbd_mapping[1])
-        end
-
-        return self:get_control_glyph(mkb_default)
-    end 
+    if prompt == nil or prompt == "" then
+        return "?"
+    end
+    return prompt
 end
 
 function input:get_shoot_prompt()
