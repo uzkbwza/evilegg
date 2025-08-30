@@ -80,7 +80,7 @@ function MainMenuScreen:draw_guide_placeholder()
     graphics.set_color(Color.white)
 
 	-- todo: localize
-	local gamepad = input.last_input_device == "gamepad"
+	local gamepad = input:get_prompt_device() == "gamepad"
 
     local controls = {
         { label = gamepad and "LEFT STICK" or "WASD", action = "MOVE"},

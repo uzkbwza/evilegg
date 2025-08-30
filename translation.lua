@@ -46,6 +46,9 @@ local translations = {
         curse_encore = "TOIL",
         curse_encore_desc = "This room lasts an extra wave.",
 
+        curse_spite = "PRESSURE",
+        curse_spite_desc = "It feels like the walls are closing in.",
+
 
         notif_fire_rate                = "FIRE RATE",
         notif_range                    = "RANGE",
@@ -545,7 +548,8 @@ local translations = {
         leaderboard_sort_score              = "SCORE",
         leaderboard_sort_depth              = "DEPTH",
         leaderboard_sort_speed              = "SPEED",
-        leaderboard_sort_score30            = "LVL30",
+        leaderboard_sort_score20            = "LVL20",
+        -- leaderboard_sort_score30            = "LVL30",
         leaderboard_sort_button             = "BOARD",
         leaderboard_period_button           = "PERIOD",
 

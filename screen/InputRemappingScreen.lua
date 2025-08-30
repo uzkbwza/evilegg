@@ -141,7 +141,7 @@ function InputRemappingScreen:draw()
     graphics.set_font(font)
     graphics.set_color(Color.white)
     local width = 128
-    local glyph = input.last_input_device == "gamepad" and control_glyphs.start or control_glyphs.esc
+    local glyph = input:get_prompt_device() == "gamepad" and control_glyphs.start or control_glyphs.esc
     graphics.printf(
     string.format(tr.input_remap_prompt, tr["options_input_map_" .. self.input_name], glyph, glyph):upper(), -width,
         -font:getHeight(""), width * 2, "center")

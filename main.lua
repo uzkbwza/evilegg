@@ -3,7 +3,7 @@
 -- ===========================================================================
 ---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "0.10.6"
+GAME_VERSION = "0.11.0"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -366,12 +366,17 @@ if IS_EXPORT then
     love.errorhandler = require("error")
 end
 
+
 function love.joystickadded(joystick)   input.joystick_added(joystick); input.last_input_device="gamepad" end
 function love.joystickremoved(joystick) input.joystick_removed(joystick)                                       end
 function love.keypressed(key)           input.on_key_pressed(key); input.last_input_device="mkb"             end
 function love.gamepadpressed(g,b)       input.on_joystick_pressed(g,b); input.last_input_device="gamepad"     end
 function love.joystickpressed(j,b)      input.on_joystick_pressed(j,b); input.last_input_device="gamepad"     end
-function love.gamepadaxis()             input.last_input_device="gamepad"                                     end
+function love.gamepadaxis(joystick, axis, value)
+    if abs(value) > TRIGGER_DEADZONE then
+        input.last_input_device = "gamepad"
+    end
+end
 function love.gamepadreleased()         input.last_input_device="gamepad"                                     end
 function love.joystickreleased()        input.last_input_device="gamepad"                                     end
 function love.joystickhat()             input.last_input_device="gamepad"                                     end

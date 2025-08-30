@@ -4,9 +4,14 @@ local XpPickup = require("obj.XpPickup")
 local XP_AMOUNT = 1500
 local PILLAR_HEIGHT = 400
 
+local SKIP_SHOOTING = true
+
 function EggElevator:new(x, y)
 	-- self.max_hp = debug.enabled and 3 or 20
-	self.max_hp = 60
+    self.max_hp = 60
+    if debug.enabled and SKIP_SHOOTING then
+        self.max_hp = 1
+    end
 	self.body_height = 3
     EggElevator.super.new(self, x, y)
 	self.team = "enemy"

@@ -15,13 +15,12 @@ local BeginningCutscene = Cutscene.BeginningCutscene
 local CAMERA_OFFSET_AMOUNT = 20
 local MAX_ENEMIES = 100
 local MAX_HAZARDS = 50
+local SpiteObject = GameObject2D:extend("SpiteObject")
 -- local MAX_ENEMIES = 10000
 
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
-local EGG_ROOM_START = 30
-local EGG_ROOM_PERIOD = 20
 
 local FLOOR_CANVAS_WIDTH = 1024
 local FLOOR_CANVAS_HEIGHT = 1024
@@ -429,6 +428,10 @@ function GameWorld:initialize_room(room)
 
     if self.room.curse then
         savedata:add_item_to_codex(self.room.curse)
+    end
+
+    if self.room.curse_spite then
+        self:ref("spite_object", self:spawn_object(SpiteObject(0, 0)))
     end
 
 	s:start(function()
@@ -2011,8 +2014,8 @@ end
 
 function GameWorld:draw_quick_clear_progress_bar()
     -- Draw quick clear progress bar
-    local left = self.room.left + 61
-    local top = self.room.top
+    local left = -conf.room_size.x / 2 + 61
+    local top = -conf.room_size.y / 2
 
     local quick_clear_ratio = clamp01(self:get_quick_clear_time_left_ratio())
     if quick_clear_ratio > 0 then
@@ -2165,20 +2168,25 @@ function GameWorld:get_border_color()
         end
     end
 
+    
     if self.player_death_fx then
         return Palette.player_death_border:get_color(floor(self.tick / 2))
     end
-
+    
     if self.player_died then
         return Color.red
     end
-
+    
     if self.player_hurt_fx_t > 0 then
         return iflicker(self.tick, 2, 2) and Color.black or Color.red
     end
-
+    
     if self.state == "RoomClear" then
         return Palette.room_clear_border:get_color(floor(gametime.tick / 4))
+    end
+    
+    if self.room.curse_spite then
+        return Color.red
     end
 
     if self.timescaled:is_tick_timer_running("clock_slow") then
@@ -2225,9 +2233,14 @@ function GameWorld:draw_room_bounds()
 
 	local tlx, tly = r.left, r.top
 
+    -- if (self.state ~= "RoomClear") and self.room.curse_spite then
+        -- return
+    -- end
 	
 	local min_t = 1.0
     local color = self:get_border_color()
+
+
 
 	if self.room_clear_fx_t > min_t or self.room_clear_fx_t == -1 then
         local dash_swapped = self:is_border_dash_swapped()
@@ -2239,13 +2252,15 @@ function GameWorld:draw_room_bounds()
 		-- graphics.line(brx, bry, blx, bly)
 		graphics.set_line_width(1)
 		local scale = 0
-		if self.room then
-			local t = clamp(self.room_border_fade_in_time / 30, 0, 1.0)
-			scale = 1.05 - ease("outCubic")(t) * 0.05
-			if t > 0.7 then 
-				scale = 1.0
-			end
-		end
+        
+        if self.room then
+            local t = clamp(self.room_border_fade_in_time / 30, 0, 1.0)
+            scale = 1.05 - ease("outCubic")(t) * 0.05
+            if t > 0.7 then
+                scale = 1.0
+            end
+        end
+
 		local red, green, blue = color.r, color.g, color.b
 		local alpha = ease("outCubic")(clamp(self.room_border_fade_in_time / 20, 0, 1.0))
 		if self.room_clear_fx_t > min_t then
@@ -2375,6 +2390,9 @@ end
 
 
 function GameWorld:state_RoomClear_enter()
+    if self.spite_object then
+        self.spite_object:die()
+    end
 end
 
 function GameWorld:state_RoomClear_exit()
@@ -2535,6 +2553,107 @@ end
 function GameWorld:destroy()
 	GameWorld.super.destroy(self)
 end
+
+
+SpiteObject.colors = {
+    Color.red,
+    Color.orange,
+    Color.yellow,
+}
+
+function SpiteObject:new(x, y)
+    SpiteObject.super.new(self, x, y)
+    self.particles = batch_remove_list()
+    self.z_index = -10000
+    self:add_elapsed_ticks()
+end
+
+local MIN_HEIGHT = 50
+local ROOM_SHRINK_SPEED = 0.05
+
+function SpiteObject:enter()
+    self.base_room_width = self.world.room.room_width
+    self.base_room_height = self.world.room.room_height
+end
+
+function SpiteObject:update(dt)
+    if not self.dead and self.tick > 10 then
+        self:tick_frequency_callback(4, self.add_particle)
+        if self.world.room.room_height > MIN_HEIGHT then
+            self.world.room:set_bounds(self.world.room.room_width - dt * ROOM_SHRINK_SPEED, self.world.room.room_height - dt * ROOM_SHRINK_SPEED)
+        end
+    end
+
+    for _, particle in self.particles:ipairs() do
+        particle.elapsed = particle.elapsed + dt
+        if particle.elapsed > particle.lifetime then
+            self.particles:queue_remove(particle)
+        end
+        particle.x = particle.x + particle.vel_x * dt
+        particle.y = particle.y + particle.vel_y * dt
+        particle.vel_x, particle.vel_y = vec2_drag(particle.vel_x, particle.vel_y, 0.001, dt)
+    end
+
+    self.particles:apply_removals()
+    if self.dead and self.particles:is_empty() then
+        self:queue_destroy()
+    end
+
+
+end
+
+function SpiteObject:die()
+    self.dead = true
+    self.world.room:set_bounds(self.base_room_width, self.base_room_height)
+end
+
+function SpiteObject:add_particle()
+    local x, y = rng:random_point_on_rect_perimeter(self.world.room.left, self.world.room.top, self.world.room
+        .room_width, self.world.room.room_height)
+
+    local vert = x == self.world.room.left or x == self.world.room.right
+    local vel_x, vel_y = rng:random_vec2_times(rng:randfn(0, 0.2))
+    -- x, y = vec2_add(x, y, rng:random_vec2_times(rng:randfn(0, 2)))
+    local particle = {
+        x = x,
+        y = y,
+        vel_x = vel_x,
+        vel_y = vel_y,
+
+        -- angle = rng:randfn(0, 0.1) + (vert and tau / 4 or 0),
+        angle = (vert and tau / 4 or 0),
+
+        -- size = rng:randfn_abs(20, 10),
+        size = rng:randfn_abs(4, 2),
+        color = rng:choose(self.colors),
+        lifetime = rng:randfn_abs(20, 90),
+        elapsed = 0,
+    }
+    self.particles:push(particle)
+end
+
+function SpiteObject:draw()
+
+    
+    -- graphics.set_color(Color.red)
+    -- graphics.rectangle_centered("line", 0, 0, self.world.room.room_width, self.world.room.room_height)
+    for i, particle in self.particles:ipairs() do
+        if (gametime.tick + i) % 2 == 0 then
+            local t = particle.elapsed / particle.lifetime
+            graphics.set_color(particle.color)
+            -- local dx, dy = cos(particle.angle) * particle.size, sin(particle.angle) * particle.size
+            -- dx = dx * 0.5
+            -- dy = dy * 0.5
+            -- graphics.set_line_width((1 - t) * 6)
+            -- graphics.line(particle.x - dx, particle.y - dy, particle.x + dx, particle.y + dy)
+            local size = particle.size * (1 - t)   
+            graphics.rectangle_centered("fill", particle.x, particle.y, size, size)
+            
+        end
+    end
+end
+
+
 
 AutoStateMachine(GameWorld, "Normal")
 

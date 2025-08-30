@@ -51,8 +51,8 @@ function FatigueZone:update(dt)
             for _, ally in self:get_allies():ipairs() do
                 if not (ally.is_invulnerable and ally:is_invulnerable()) then
                     if ally:get_hurt_bubble("main"):collides_with_aabb(self.pos.x - self.size * 0.5, self.pos.y - self.size * 0.5, self.size, self.size) then
-                        ally:start_tick_timer("fatigue", 1)
-                        self:start_tick_timer("fatiguing", 1)
+                        ally:start_tick_timer("fatigue", 2)
+                        self:start_tick_timer("fatiguing", 2)
                     end
                 end
             end

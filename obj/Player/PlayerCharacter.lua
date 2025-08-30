@@ -542,13 +542,15 @@ function PlayerCharacter:handle_input(dt)
     move_amount_y = move_amount_y * magnitude
 	
     if self.state == "Walk" then
+        local modifier = 1
         if self:is_tick_timer_running("fatigue") then
-            move_amount_x = move_amount_x * FATIGUE_MOVE_SPEED_MODIFIER
-            move_amount_y = move_amount_y * FATIGUE_MOVE_SPEED_MODIFIER
+            modifier = FATIGUE_MOVE_SPEED_MODIFIER
         end
 
 		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
-        self:move(move_amount_x * dt * self.speed, move_amount_y * dt * self.speed)
+        self:move(move_amount_x * dt * self.speed * modifier, move_amount_y * dt * self.speed * modifier)
+
+        print(modifier)
         self.move_vel:set(move_amount_x, move_amount_y)
         
         if input.hover_held then
@@ -1148,6 +1150,13 @@ function PlayerCharacter:alive_update(dt)
     self:collide_with_terrain()
 	self:handle_input(dt)
     self:check_pickups()
+end
+
+function PlayerCharacter:collide_with_terrain()
+    local collided = self:constrain_to_room()
+    if collided and self.world and self.world.room and self.world.room.curse_spite and self.world.room.tick > 120 and not self:is_invulnerable() then
+        self:hit_by({damage = 1})
+    end
 end
 
 function PlayerCharacter:pickup(pickup)

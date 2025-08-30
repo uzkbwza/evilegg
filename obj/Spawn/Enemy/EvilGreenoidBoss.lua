@@ -166,7 +166,7 @@ function EvilGreenoidBoss:state_Idle_enter()
 end
 
 function EvilGreenoidBoss:state_Idle_update(dt)
-	self:try_start_targeted_bullet_burst()
+	-- self:try_start_targeted_bullet_burst()
 end
 
 function EvilGreenoidBoss:get_next_attack()
@@ -187,10 +187,14 @@ function EvilGreenoidBoss:get_next_attack()
 			CoilBullets = 20 * self:spawning_bullets_weight(),
 			CoilBullets2 = 20 * self:spawning_bullets_weight(),
 			Idle = 1,
-		}
+        }
+        
+        if game_state.egg_rooms_cleared > 0 then
+            -- dict
+        end
 	end
 
-    if self.last_attack then
+    if self.last_attack and dict[self.last_attack] then
 		dict[self.last_attack] = dict[self.last_attack] * 0.3
 	end
 
@@ -312,7 +316,7 @@ function EvilGreenoidBoss:state_CoilBullets2_enter()
 end
 
 function EvilGreenoidBoss:state_CoilBullets_update(dt)
-	self:try_start_targeted_bullet_burst()
+	-- self:try_start_targeted_bullet_burst()
 end
 
 function EvilGreenoidBoss:spawn_coil_bullets2()

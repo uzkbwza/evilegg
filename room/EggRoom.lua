@@ -404,7 +404,10 @@ function EggRoomDirector:boss_EvilPlayer()
 	local s = self.sequencer
 	local world = self.world
 	self:start_stopwatch("time_since_killed_elevator")
-	local num_guys = 5 + game_state.egg_rooms_cleared
+    local num_guys = 5 + game_state.egg_rooms_cleared
+    if debug.enabled and game_state.skip_shadow_selves then
+        num_guys = 0
+    end
 	for i = 1, num_guys do
 		local angle = i * tau / num_guys + tau / 8
 		local dir = Vec2(1, 0):rotate_in_place(angle)

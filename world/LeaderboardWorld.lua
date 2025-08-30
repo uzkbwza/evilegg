@@ -25,7 +25,7 @@ local LEADERBOARD_CATEGORIES = {
     "score",
     "depth",
     "speed",
-    "score30",
+    "score20",
 }
 
 function LeaderboardWorld:new()
@@ -89,7 +89,7 @@ function LeaderboardWorld:enter()
         score = tr.leaderboard_sort_score,
         depth = tr.leaderboard_sort_depth,
         speed = tr.leaderboard_sort_speed,
-        score30 = tr.leaderboard_sort_score30,
+        score20 = tr.leaderboard_sort_score20,
     }
 
 
@@ -104,12 +104,12 @@ function LeaderboardWorld:enter()
 
     self:ref("period_button",
         self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 10, 12,
-            LEADERBOARD_PERIODS[self.period],
+            LEADERBOARD_PERIODS[self.period] and LEADERBOARD_PERIODS[self.period] or "all_time",
             30, 9, false, Color.green, true, false)))
 
     self:ref("sort_button",
         self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 52, 12,
-            LEADERBOARD_SORT_OPTIONS[self.sort_by],
+            LEADERBOARD_SORT_OPTIONS[self.sort_by] and LEADERBOARD_SORT_OPTIONS[self.sort_by] or "score",
             30, 9, false, Color.green, true, false)))
 
     self:ref("me_button",
@@ -126,12 +126,11 @@ function LeaderboardWorld:enter()
         return self.sort_button.text
     end
 
-    self.sort_button:set_options({ "score", "depth", "speed", "score30" })
+    self.sort_button:set_options({ "score", "depth", "speed", "score20" })
 
 
     self.sort_button.set_value_func = function(value)
         self.sort_button:set_text(LEADERBOARD_SORT_OPTIONS[value])
-
         self.sort_by = value
         self:fetch_page(1)
     end

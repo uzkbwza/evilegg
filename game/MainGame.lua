@@ -87,9 +87,9 @@ GlobalGameState.max_upgrades = {
 
 GlobalGameState.max_artefacts = 8
 GlobalGameState.max_hearts = 2
-GlobalGameState.xp_until_upgrade = 2600
-GlobalGameState.xp_until_heart = 3500
-GlobalGameState.xp_until_artefact = 3000
+GlobalGameState.xp_until_upgrade = floor(2600 * 3/4)
+GlobalGameState.xp_until_heart = floor(3500 * 3/4)
+GlobalGameState.xp_until_artefact = floor(3000 * 3/4)
 
 function GlobalGameState:new()
     self.enable_adaptive_difficulty = false
@@ -121,7 +121,7 @@ function GlobalGameState:new()
 	self.xp_until_heart = 1
 	self.xp_until_upgrade = 1020
 	-- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
-	self.xp_until_artefact = 1800
+	self.xp_until_artefact = 1200
 
 	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
 	self.heart_xp_target = self.xp + self.xp_until_heart
@@ -241,13 +241,18 @@ function GlobalGameState:new()
 
 
     if debug.enabled then
+
+        
+        
         local cheat = true
         self.cheat = cheat
-
+        
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
-
+        
         if cheat then
+            self.skip_shadow_selves = true
+            self.egg_rooms_cleared = 1
             self:add_score(rng:randi(6000000, 10000000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
@@ -266,7 +271,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 91
+            self.level = EGG_ROOM_START + 1
             self.hearts = self.max_hearts
 
             for i = 1, 6 do

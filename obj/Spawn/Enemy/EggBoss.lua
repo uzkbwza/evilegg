@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled

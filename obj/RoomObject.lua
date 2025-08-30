@@ -249,7 +249,7 @@ end
 
 
 local CURSE_COLORS = {
-    curse_wrath = { Color.red, Color.darkmagenta },
+    curse_spite = { Color.red, Color.orange },
     curse_penitence = { Color.skyblue, Color.darkblue },
     -- curse_fatigue = { Color.purple, Color.darkpurple },
     curse_famine = { Color.purple, Color.darkergrey },
@@ -258,6 +258,7 @@ local CURSE_COLORS = {
     curse_hazardous = { Color.yellow, Color.orange },
     curse_vulnerability = { Color.orange, Color.darkred },
     curse_encore = { Color.blue, Color.darkblue },
+    curse_wrath = { Color.red, Color.darkmagenta },
 }
 
 

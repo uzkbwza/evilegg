@@ -11,7 +11,7 @@ local Enemies = {
     
 	Walker = {
         level = 1,
-		max_level = 7,
+		max_level = 4,
         spawn_points = 10,
 		room_select_weight = 2000,
         icon = textures.enemy_base,
@@ -23,7 +23,7 @@ local Enemies = {
 		spawn_points = 15,
 		level = 1,
         extra_score = 10,
-		basic_after_level = 30,
+		basic_after_level = EGG_ROOM_START,
         icon = textures.enemy_walksploder,
 		spawn_group = { "exploder", "basic" },
         basic_select_weight_modifier = 0.2,
@@ -33,7 +33,7 @@ local Enemies = {
 	FastWalker = {
         -- inherit = { "Walker" },
 		level = 1,
-		min_level = 7,
+		min_level = 4,
 		-- room_select_weight = 500,
 		spawn_points = 15,
 		extra_score = 10,
@@ -44,7 +44,7 @@ local Enemies = {
 	BigWalker = {
 		-- inherit = { "Walker" },
 		level = 1,
-		min_level = 13,
+		min_level = 8,
 		room_select_weight = 500,
 		spawn_points = 30,
 		extra_score = 10,
@@ -53,7 +53,7 @@ local Enemies = {
 	
     Roamer = {
         level = 2,
-		max_level = 15,
+		max_level = 10,
         icon = textures.enemy_roamer1,
         spawn_points = 10,
 	},
@@ -61,7 +61,7 @@ local Enemies = {
 	Roamsploder = {
 		-- inherit = { "Roamer" },
 		level = 2,
-		min_level = 7,
+		min_level = 4,
 		icon = textures.enemy_roamsploder1,
 		spawn_points = 25,
         room_select_weight = 500,
@@ -71,8 +71,8 @@ local Enemies = {
 	
 	RoyalRoamer = {
 		-- inherit = { "Roamer" },
-        level = 2,
-        min_level = 30,
+        		level = 2,
+        min_level = EGG_ROOM_START,
 		extra_score = 10,
 		icon = textures.enemy_royalroamer1,
 		spawn_points = 9,
@@ -81,7 +81,7 @@ local Enemies = {
 
     WildRoamer = {
         level = 2,
-        min_level = 8,
+        min_level = 5,
         spawn_points = 30,
         extra_score = 10,
         room_select_weight = 800,
@@ -90,9 +90,9 @@ local Enemies = {
 
     Evader = {
         level = 3,
-        min_level = 6,
+        min_level = 4,
         spawn_points = 45,
-        max_level = 29,
+        max_level = 19,
         -- spawn_weight_modifier = 0.9,
         -- extra_score = 10,
         room_select_weight = 400,
@@ -101,7 +101,7 @@ local Enemies = {
     
     HeavyEvader = {
         level = 3,
-        min_level = 30,
+        min_level = EGG_ROOM_START,
         spawn_points = 60,
         extra_score = 10,
         room_select_weight = 400,
@@ -111,14 +111,14 @@ local Enemies = {
 	Hopper = {
         level = 2,
         spawn_points = 20,
-		max_level = 18,
+		max_level = 12,
         icon = textures.enemy_hopper1,
 
     },
 
 	FastHopper = {
 		level = 2,
-		min_level = 11,
+		min_level = 7,
 		spawn_points = 35,
         room_select_weight = 1000,
 		extra_score = 5,
@@ -129,8 +129,8 @@ local Enemies = {
 	BigHopper = {
         -- inherit = { "Hopper" },
 		level = 4,
-        min_level = 5,
-		max_level = 30,
+        min_level = 3,
+		max_level = EGG_ROOM_START,
 		extra_score = -16,
 		spawn_points = 100,
         spawn_weight_modifier = 0.66,
@@ -141,7 +141,7 @@ local Enemies = {
 
 	Shotgunner = {
 		level = 4,
-		min_level = 13,
+		min_level = 8,
 		spawn_points = 150,
 		extra_score = 9,
 		icon = textures.enemy_shotgunner1,
@@ -150,8 +150,8 @@ local Enemies = {
     
     MiniShotgunner = {
         level = 3,
-        min_level = 6,
-        max_level = 30,
+        min_level = 4,
+        max_level = EGG_ROOM_START,
         spawn_points = 45,
         extra_score = 0,
         room_select_weight = 500,
@@ -172,7 +172,7 @@ local Enemies = {
     Enforcer = {
 		level = 3,
         extra_score = 1,
-		max_level = 70,
+		max_level = 46,
 		spawn_points = 45,
 		icon = textures.enemy_enforcer3,
 		spawn_group = { "basic", "police" },
@@ -182,7 +182,7 @@ local Enemies = {
 		level = 3,
 		extra_score = 50,
         spawn_points = 55,
-		min_level = 30,
+		min_level = EGG_ROOM_START,
         icon = textures.enemy_royalguard3,
         -- room_select_weight = 500,
 		spawn_group = { "basic", "police" },
@@ -196,7 +196,7 @@ local Enemies = {
 		spawn_points = 100,
 		icon = textures.enemy_sniper,
         spawn_group = { "basic", "police" },
-		basic_after_level = 30,
+		basic_after_level = EGG_ROOM_START,
 		basic_select_weight_modifier = 0.2
         -- spawn_group = { "basic", "police" },
 		-- basic_select_weight_modifier = 0.5,
@@ -207,7 +207,7 @@ local Enemies = {
 		
         -- room_select_weight = 1000000,
 		extra_score = 10,
-		min_level = 7,
+		min_level = 4,
         spawn_points = 100,
 		-- room_select_weight = 1000,
 		icon = textures.enemy_turret_icon,
@@ -216,7 +216,7 @@ local Enemies = {
 
     Cultist = {
         level = 4,
-		min_level = 8,
+		min_level = 5,
 		-- room_select_weight = 250,
 		spawn_points = 50,
         spawn_weight_modifier = 0.65,
@@ -226,7 +226,7 @@ local Enemies = {
     
     Lich = {
         level = 4,
-        min_level = 30,
+        min_level = EGG_ROOM_START,
         spawn_points = 100,
         max_spawns = 1,
         spawn_weight_modifier = 0.65,
@@ -239,7 +239,7 @@ local Enemies = {
 
     Gnome = {
         level = 4,
-		min_level = 13,
+		min_level = 8,
 		-- room_select_weight = 250,
 		spawn_points = 150,
         spawn_weight_modifier = 1.5,
@@ -259,7 +259,7 @@ local Enemies = {
 	AcidCharger = {
 		extra_score = 10,
         level = 4,
-        min_level = 14,
+        min_level = 9,
 		room_select_weight = 600,
 		spawn_points = 120,
 		icon = textures.enemy_acidcharger1,
@@ -268,12 +268,12 @@ local Enemies = {
 	Chargesploder = {
 		inherit = { "Charger" },
         level = 4,
-		min_level = 7,
+		min_level = 4,
 		extra_score = 10,
 		spawn_points = 100,
         icon = textures.enemy_chargesploder1,
 		spawn_group = { "exploder", "basic" },
-		basic_after_level = 30,
+		basic_after_level = EGG_ROOM_START,
 		basic_select_weight_modifier = 0.1,
         enemy_spawn_effect = "ExplosiveEnemySpawn",
 	},
@@ -281,14 +281,14 @@ local Enemies = {
 	Mortar = {
         level = 3,
 		extra_score = 2,
-		min_level = 8,
+		min_level = 5,
 		spawn_points = 90,
 		icon = textures.enemy_mortar5,
     },
 
     Cuboid = {
         level = 2,
-		min_level = 14,
+		min_level = 9,
 		extra_score = 20,
 		spawn_points = 120,
 		room_select_weight = 300,
@@ -298,7 +298,7 @@ local Enemies = {
 
     Dancer = {
         level = 3,
-        min_level = 22,
+        min_level = 14,
         extra_score = 30,
         spawn_points = 60,
         spawn_weight_modifier = 0.75,
@@ -334,7 +334,7 @@ local Enemies = {
 		level = 1,
         spawn_points = 35,
 		extra_score = 0,
-		min_level = 8,
+		min_level = 5,
         icon = textures.enemy_eyeball1,
         spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
@@ -345,12 +345,12 @@ local Enemies = {
 		level = 2,
 		extra_score = 20,
         spawn_points = 50,
-		min_level = 8,
+		min_level = 5,
 		icon = textures.enemy_hand1,
 		spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
         basic_select_weight_modifier = 0.1,
-		basic_after_level = 15,
+		basic_after_level = 10,
     },
 	
     Foot = {
@@ -358,40 +358,40 @@ local Enemies = {
 		spawn_points = 50,
 		extra_score = 30,
 		icon = textures.enemy_foot1,
-		min_level = 8,
+		min_level = 5,
 		spawn_group = { "bodypart", "basic" },
 		-- room_select_weight = 1000,
         basic_select_weight_modifier = 0.1,
-		basic_after_level = 15,
+		basic_after_level = 10,
 	},
 	
 	Nose = {
 		level = 3,
 		spawn_points = 65,
-		min_level = 8,
+		min_level = 5,
 		extra_score = 10,
 		spawn_weight_modifier = 0.45,
 		icon = textures.enemy_nose1,
 		spawn_group = { "bodypart" },
 		basic_select_weight_modifier = 0.1,
-		basic_after_level = 30,
+		basic_after_level = EGG_ROOM_START,
     },
 	
 	Mouth = {
 		level = 4,
         extra_score = 50,
-		min_level = 10,
+		min_level = 6,
         spawn_points = 55,
 		spawn_weight_modifier = 0.55,
 		icon = textures.enemy_mouth1,
 		spawn_group = { "bodypart" },
         basic_select_weight_modifier = 0.1,
-		basic_after_level = 30,
+		basic_after_level = EGG_ROOM_START,
     },
 	
 	Rook = {
 		level = 4,
-		min_level = 36,
+		min_level = 24,
         spawn_points = 150,
 		extra_score = 10,
 		spawn_weight_modifier = 0.4,
@@ -404,7 +404,7 @@ local Enemies = {
         spawnable = false,
         icon = textures.enemy_evil_player1,
         boss = true,
-		min_level = 100,
+		min_level = 66,
 	},
 
 	EvilGreenoidBoss = {
@@ -412,12 +412,12 @@ local Enemies = {
 		icon = textures.enemy_evil_greenoid1,
 		codex_sprite = textures.enemy_evil_greenoid_core,
         boss = true,
-		min_level = 101,
+		min_level = 67,
     },
     
     Penitent = {
         -- level = 1,
-        min_level = 102,
+        min_level = 68,
         spawn_points = 100,
         spawnable = false,
         boss = true,
@@ -426,7 +426,7 @@ local Enemies = {
 
     PenitentSoul = {
         -- level = 1,
-        min_level = 103,
+        min_level = 68,
         spawn_points = 100,
         spawnable = false,
         boss=true,
@@ -438,14 +438,14 @@ local Enemies = {
         icon = textures.enemy_egg_sentry,
         boss = true,
         -- codex_hidden = true,
-		min_level = 104,
+		min_level = 69,
     },
 
 	EggBoss = {
 		spawnable = false,
         icon = textures.enemy_egg_boss1,
         boss = true,
-        min_level = 1000,
+        min_level = 666,
 	},
 }
 
@@ -461,7 +461,7 @@ local Hazards = {
 	FastBouncer = {
         initial_wave_only = true,
         level = 2,
-		min_level = 28,
+		min_level = 18,
 		spawn_points = 50,
 		max_spawns = 6,
 		room_select_weight = 500,
@@ -470,7 +470,7 @@ local Hazards = {
 
 	Quark = {
         level = 2,
-		min_level = 3,
+		min_level = 2,
 		spawn_points = 30,
 		icon = textures.hazard_quark,
 	},
@@ -490,7 +490,7 @@ local Hazards = {
 	
 	Exploder = {
         level = 1,
-		min_level = 8,
+		min_level = 5,
         spawn_points = 65,
 		room_select_weight = 300,
 		icon = textures.hazard_exploder,
@@ -501,7 +501,7 @@ local Hazards = {
 
 	Blinker = {
 		level = 1,
-		min_level = 11,
+		min_level = 7,
         spawn_points = 9,
 		room_select_weight = 300,
 		icon = textures.hazard_blinker,
@@ -511,7 +511,7 @@ local Hazards = {
 	Shielder = {
         level = 2,
         spawn_points = 35,
-        min_level = 6,
+        min_level = 4,
         max_spawns = 4,
 		-- extra_score = -50,
         spawn_weight_modifier = 0.19,
@@ -522,7 +522,7 @@ local Hazards = {
     FatigueZone = {
         level = 2,
         spawn_points = 55,
-        min_level = 15,
+        min_level = 10,
         room_select_weight = 200,
         icon = textures.enemy_fatigue,
     },

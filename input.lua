@@ -44,6 +44,51 @@ input.last_input_device = "gamepad"
 
 input.signals = {}
 
+-- Smoothed prompt device tracking (prevents rapid swapping of button prompts)
+input.prompt_device = "mkb" -- "mkb" or "gamepad"
+input._prompt_last_gamepad_time = -math.huge
+input._prompt_last_mkb_time = -math.huge
+input._prompt_switch_threshold = 0.25 -- seconds newer activity required to switch
+input._prompt_coexist_window = 0.5   -- seconds window to consider both devices "active"
+
+function input:record_device_activity(device)
+	local now = love.timer.get_time()
+	if device == "gamepad" then
+		self._prompt_last_gamepad_time = now
+	else
+		self._prompt_last_mkb_time = now
+	end
+end
+
+-- Returns "gamepad" or "mkb" based on recent activity with hysteresis.
+-- If usersettings.gamepad_plus_mouse is true and preferred_device is provided,
+-- prefer it when both devices are recently active.
+function input:get_prompt_device(preferred_device)
+	local now = love.timer.get_time()
+	local g = self._prompt_last_gamepad_time or -math.huge
+	local m = self._prompt_last_mkb_time or -math.huge
+	local current = self.prompt_device or "mkb"
+	local threshold = self._prompt_switch_threshold or 0.5
+	local coexist = self._prompt_coexist_window or 2.0
+
+	if usersettings.gamepad_plus_mouse and preferred_device then
+		local gamepad_recent = (now - g) <= coexist
+		local mkb_recent = (now - m) <= coexist
+		if gamepad_recent and mkb_recent then
+			current = preferred_device
+		end
+	end
+
+	if current == "gamepad" then
+		if (m - g) > threshold then current = "mkb" end
+	else
+		if (g - m) > threshold then current = "gamepad" end
+	end
+
+	self.prompt_device = current
+	return current
+end
+
 function input.load()
     local g = input.generated_action_names
 
@@ -160,7 +205,11 @@ end
 function input.check_input_combo(mapping_table, mapping_type, joystick, input_table)
     local pressed = false
 
-    for _, keycombo in ipairs(mapping_table) do
+
+    for i, keycombo in ipairs(mapping_table) do
+        if type(keycombo) == "table" and #keycombo == 1 then
+            keycombo = keycombo[1]
+        end
         if type(keycombo) == "string" then
             if mapping_type == "keyboard" then
                 local key = love.keyboard.get_key_from_scancode(keycombo)
@@ -179,28 +228,65 @@ function input.check_input_combo(mapping_table, mapping_type, joystick, input_ta
         else
             pressed = true
 
-            for _, key in ipairs(keycombo) do
-                if mapping_type == "keyboard" then
-                    key = love.keyboard.get_key_from_scancode(key)
-                    if not input_table.keyboard_held[key] and not input_table.keyboard_pressed[key] then
-                        pressed = false
-                        break
+            if mapping_type == "keyboard" then
+                local combo_len = #keycombo
+                if combo_len == 0 then
+                    pressed = false
+                else
+                    for j = 1, combo_len - 1 do
+                        local key = love.keyboard.get_key_from_scancode(keycombo[j])
+                        if not input_table.keyboard_held[key] then
+                            pressed = false
+                            break
+                        end
                     end
-                elseif mapping_type == "joystick" then
-                    if not input_table.joystick_held[joystick][key] and not input_table.joystick_pressed[joystick][key] then
-                        pressed = false
-                        break
+                    if pressed then
+                        local last_key = love.keyboard.get_key_from_scancode(keycombo[combo_len])
+                        if not input_table.keyboard_pressed[last_key] then
+                            pressed = false
+                        end
                     end
-                elseif mapping_type == "mouse" then
-                    if not input_table.mouse[key] then
-                        pressed = false
-                        break
+                end
+            elseif mapping_type == "joystick" then
+                local combo_len = #keycombo
+                if combo_len == 0 then
+                    pressed = false
+                else
+                    for j = 1, combo_len - 1 do
+                        local key = keycombo[j]
+                        if not input_table.joystick_held[joystick][key] then
+                            pressed = false
+                            break
+                        end
+                    end
+                    if pressed then
+                        local last_key = keycombo[combo_len]
+                        if not input_table.joystick_pressed[joystick][last_key] then
+                            pressed = false
+                        end
+                    end
+                end
+            elseif mapping_type == "mouse" then
+                local combo_len = #keycombo
+                if combo_len == 0 then
+                    pressed = false
+                else
+                    for j = 1, combo_len - 1 do
+                        local key = keycombo[j]
+                        if not input_table.mouse[key] then
+                            pressed = false
+                            break
+                        end
+                    end
+                    if pressed then
+                        local last_key = keycombo[combo_len]
+                        if not input_table.mouse_pressed[last_key] then
+                            pressed = false
+                        end
                     end
                 end
             end
         end
-
-
 
         if pressed then
             break
@@ -248,10 +334,12 @@ function input.process(t)
 
         if keyboard and input.check_input_combo(keyboard, "keyboard", nil, t) then
             pressed = true
+            input:record_device_activity("mkb")
         end
 
         if mouse and input.check_input_combo(mouse, "mouse", nil, t) then
             pressed = true
+            input:record_device_activity("mkb")
         end
 
 
@@ -264,6 +352,7 @@ function input.process(t)
         for joystick, _ in pairs(input.joysticks) do
             if joystick_button and input.check_input_combo(joystick_button, "joystick", joystick, t) then
                 pressed = true
+                input:record_device_activity("gamepad")
             end
 
 
@@ -278,11 +367,17 @@ function input.process(t)
                     if value > deadzone then
                         pressed = true
                         t[g[action].amount] = abs(value)
+                        if value > 0.5 then
+                            input:record_device_activity("gamepad")
+                        end
                     end
                 else
                     if value < -deadzone then
                         pressed = true
                         t[g[action].amount] = abs(value)
+                        if value < -0.5 then
+                            input:record_device_activity("gamepad")
+                        end
                     end
                 end
                 if not pressed then
@@ -529,7 +624,10 @@ end
 
 function input.update(dt)
     input.process(input)
-
+    -- dbg("last_input_device", input.last_input_device)
+    -- dbg("prompt", input:get_prompt_device())
+    -- dbg("_prompt_last_gamepad_time", input._prompt_last_gamepad_time)
+    -- dbg("_prompt_last_mkb_time", input._prompt_last_mkb_time)
 end
 
 function input.on_key_pressed(key)
@@ -537,6 +635,7 @@ function input.on_key_pressed(key)
         input.keyboard_held[key] = true
         input.keyboard_pressed[key] = true
 		signal.emit(input, "key_pressed", key)
+        input:record_device_activity("mkb")
     -- end
 end
 
@@ -546,6 +645,7 @@ function input.on_joystick_pressed(joystick, button)
         input.joystick_pressed[joystick][button] = true
 
 		signal.emit(input, "joystick_pressed", joystick, button)
+        input:record_device_activity("gamepad")
     -- end
 end
 
@@ -555,6 +655,7 @@ function input.on_mouse_pressed(x, y, button)
             input.mouse.lmb = true
             input.mouse_pressed.lmb = true
             signal.emit(input, "mouse_pressed", x, y, button)
+            input:record_device_activity("mkb")
         -- end
     end
     if button == 2 then
@@ -562,6 +663,7 @@ function input.on_mouse_pressed(x, y, button)
             input.mouse.rmb = true
             input.mouse_pressed.rmb = true
             signal.emit(input, "mouse_pressed", x, y, button)
+            input:record_device_activity("mkb")
         -- end
     end
     if button == 3 then
@@ -569,6 +671,7 @@ function input.on_mouse_pressed(x, y, button)
             input.mouse.mmb = true
             input.mouse_pressed.mmb = true
             signal.emit(input, "mouse_pressed", x, y, button)
+            input:record_device_activity("mkb")
         -- end
     end
 end
@@ -614,6 +717,7 @@ function input.read_mouse_input(x, y, dx, dy, istouch)
         local d_relative_x, d_relative_y = graphics.screen_pos_to_canvas_pos(dx, dy)
 		input.mouse.cached_mouse_data.dxy_relative.y = d_relative_y
 		input.mouse.cached_mouse_data.dxy_relative.x = d_relative_x
+        input:record_device_activity("mkb")
 	end
     input.mouse.cached_mouse_data.istouch = istouch
 end
@@ -653,8 +757,12 @@ local function get_wasd_string()
     return text:upper()
 end
 
-function input:get_move_prompt()
-    return self.last_input_device == "gamepad" and (usersettings.southpaw_mode and control_glyphs.r or control_glyphs.l) or get_wasd_string()
+function input:get_move_prompt(preferred_device)
+    local device = self:get_prompt_device(preferred_device)
+    if device == "gamepad" then
+        return (usersettings.southpaw_mode and control_glyphs.r or control_glyphs.l)
+    end
+    return get_wasd_string()
 end
 
 function input:get_control_glyph(button)
@@ -668,36 +776,31 @@ function input:get_control_glyph(button)
 end
 
 
-function input:get_prompt(action, mkb_default, gamepad_default)
+function input:get_prompt(action, mkb_default, gamepad_default, preferred_device)
     local kbd_mapping = self:resolve_remapping_table(action, "keyboard", false)
     local mouse_mapping = self:resolve_remapping_table(action, "mouse", false)
     local joystick_mapping = self:resolve_remapping_table(action, "joystick", false)
     local joystick_axis_mapping = self:resolve_remapping_table(action, "joystick_axis", false)
 
-    local prompt
+    local device = self:get_prompt_device(preferred_device)
 
-    if self.last_input_device == "gamepad" then
+    if device == "gamepad" then
         if joystick_mapping and joystick_mapping[1] then
-            prompt = self:get_control_glyph(joystick_mapping[1])
-        elseif joystick_axis_mapping and joystick_axis_mapping.axis then
-            prompt = self:get_control_glyph(joystick_axis_mapping.axis)
-        else
-            prompt = self:get_control_glyph(gamepad_default)
+            return self:get_control_glyph(joystick_mapping[1])
         end
+        if joystick_axis_mapping and joystick_axis_mapping.axis then
+            return self:get_control_glyph(joystick_axis_mapping.axis)
+        end
+        return self:get_control_glyph(gamepad_default)
     else
         if mouse_mapping and mouse_mapping[1] then
-            prompt = self:get_control_glyph(mouse_mapping[1])
-        elseif kbd_mapping and kbd_mapping[1] then
-            prompt = self:get_control_glyph(kbd_mapping[1])
-        else
-            prompt = self:get_control_glyph(mkb_default)
+            return self:get_control_glyph(mouse_mapping[1])
         end
-    end
-
-    if prompt == nil or prompt == "" then
-        return "?"
-    end
-    return prompt
+        if kbd_mapping and kbd_mapping[1] then
+            return self:get_control_glyph(kbd_mapping[1])
+        end
+        return self:get_control_glyph(mkb_default)
+    end 
 end
 
 function input:get_shoot_prompt()

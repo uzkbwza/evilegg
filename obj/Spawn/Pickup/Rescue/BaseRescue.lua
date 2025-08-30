@@ -85,7 +85,7 @@ end
 
 function BaseRescue:enter()
     if self.world.room.curse_vulnerability then
-        self:initialize_hp(self.max_hp - 1)
+        self:initialize_hp(min(self.max_hp - 1, 2))
         self:spawn_object(VulnerabilityParticle(self.pos.x, self.pos.y)):ref("parent", self)
     end
     self:add_hurt_bubble(0, 0, self.hurt_bubble_radius, "main")

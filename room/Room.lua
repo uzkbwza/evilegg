@@ -16,15 +16,13 @@ local debug_force_curse = "curse_wrath"
 
 Room.can_highlight_enemies = true
 
-
-
 Room.curses = {
     curse_ignorance = {
         weight = 0,
     },
     curse_wrath = {
         weight = 1000,
-        min_level = 30,
+        min_level = EGG_ROOM_START,
     },
     curse_penitence = {
         weight = 1000,
@@ -43,8 +41,12 @@ Room.curses = {
     },
     curse_encore = {
         weight = 1000,
-        min_level = 30,
-    }
+        min_level = EGG_ROOM_START,
+    },
+    curse_spite = {
+        weight = 1000,
+        -- min_level = EGG_ROOM_START,
+    },
 }
 
 Room.narrative_types = {
@@ -444,7 +446,6 @@ function Room:build(params)
         self.curse = debug_force_curse
     end
 
-
     if self.curse then
         self[self.curse] = true
     end
@@ -618,7 +619,7 @@ function Room:is_valid_spawn(spawn, narrative_spawn_group, wave)
 end
 
 function Room:get_effective_wave_strength(wave)
-    return max(wave, self.level >= 30 and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= 50 and (wave + 1) or 1))
+    return max(wave, self.level >= EGG_ROOM_START and 2 or 1, (self.is_hard) and 3 or 1, min(3, self.level >= (EGG_ROOM_START + EGG_ROOM_PERIOD) and (wave + 1) or 1))
 end
 
 function Room:get_random_spawn_with_type_and_level(spawn_type, level, wave, narrative)
@@ -721,7 +722,15 @@ local NUM_FACTOR = STEP * SCALE
 
 function Room:pool_point_modifier()
     local l = self.level + LEVEL_OFFSET
-    return 1 + NUM_FACTOR * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
+    local num_factor = NUM_FACTOR
+    -- if self.level >= 4 then
+    num_factor = num_factor * (1 + (1/3))
+    -- end
+    local value = 1 + num_factor * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
+    if self.level >= EGG_ROOM_START then
+        value = value + (self.level - EGG_ROOM_START) * 0.005
+    end
+    return value
 end
 
 function Room:generate_waves()
@@ -1201,9 +1210,9 @@ function Room:generate_waves()
 end
 
 if debug.enabled then
-    for i = 1, 200 do
+    for i = 1, 200, 10 do
 		local room = Room(nil, i, 1, {}, 100, 100)
-		-- print("pool point modifier for level " .. i .. ": " .. room:pool_point_modifier())
+		print("pool point modifier for level " .. i .. ": " .. string.format("%.2f", room:pool_point_modifier()))
 	end
 end
 
