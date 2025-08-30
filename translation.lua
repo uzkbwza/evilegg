@@ -212,7 +212,7 @@ local translations = {
         artefact_warbell_desc          = "Greenoids will attack nearby enemies.",
         artefact_useless_desc          = "Too heavy to take with you.",
         artefact_transmitter_desc      = "Greenoids will bring extra ammo.",
-        artefact_heart_trade_desc      = "Trade an artefact for a heart.",
+        artefact_heart_trade_desc      = "Trade an artefact for a heart and upgrade.",
         artefact_blast_armor_desc      = "You are prone to outbursts.",
         artefact_prayer_knot_desc      = "Stop shooting to charge a powerful bullet.",
 
@@ -494,7 +494,7 @@ local translations = {
         "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
 
         codex_glossary_name_upgrade         = "UPGRADE",
-        codex_glossary_desc_upgrade         = "A temporary upgrade to your firepower, carried to you by a Greenoid martyr. A random upgrade is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
+        codex_glossary_desc_upgrade         = "A temporary upgrade to your firepower, carried to you by a Greenoid martyr. A random upgrade you have is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
 
         codex_glossary_name_artefact        = "ARTEFACT",
         codex_glossary_desc_artefact        = "A piece of unique equipment sent to you by thankful Greenoids. Most artefacts occupy one of your 8 artefact slots. Destroying an artefact is typically permanent.",

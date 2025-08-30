@@ -361,7 +361,19 @@ local Artefacts = {
             game_state:set_selected_artefact_slot(artefact.slot)
             game_state:remove_artefact(artefact.slot)
             game_state:gain_heart()
+            
+            if game_state:is_fully_upgraded() then
+                game_state:level_bonus("overflow")
+				signal.emit(game_state, "player_overflowed")
+            else
+                local upgrade = game_state:get_random_available_upgrade(false)
+                if upgrade then
+                    game_state:upgrade(upgrade)
+                end
+            end
             global_game:get_main_screen():play_sfx("pickup_heart", 0.75)
+            global_game:get_main_screen():play_sfx("ally_rescue_holding_pickup_saved", 0.87)
+            -- global_game:get_main_screen():play_sfx("pickup_surgeon", 0.75)
         end,
         -- debug_spawn_weight = 100000000000000000,
     },

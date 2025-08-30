@@ -167,30 +167,35 @@ end
 function BaseEnemy:normal_death_effect(hit_by)
 	local sprite = self:get_sprite()
 	local hit_vel_x, hit_vel_y
-	if self.is_simple_physics_object and self.applying_physics then
-		hit_vel_x, hit_vel_y = self.vel.x * 30, self.vel.y * 30
-	else
-		hit_vel_x, hit_vel_y = 0, 0
-	end
+    if self.is_simple_physics_object and self.applying_physics then
+        hit_vel_x, hit_vel_y = self.vel.x, self.vel.y
+    else
+        hit_vel_x, hit_vel_y = 0, 0
+    end
+    
     local hit_point_x, hit_point_y = self.pos.x, self.pos.y
 	local center_out_velocity_multiplier = self.center_out_velocity_multiplier or 1
     if hit_by then
+        if hit_by.reset_death_particle_hit_velocity then
+            hit_vel_x, hit_vel_y = 0, 0
+        end
         if hit_by.get_death_particle_hit_velocity then
             local extra_vel_x, extra_vel_y = hit_by:get_death_particle_hit_velocity(self)
+
             hit_vel_x = hit_vel_x + extra_vel_x
             hit_vel_y = hit_vel_y + extra_vel_y
         end
 
         if hit_by.center_out_velocity_multiplier then
-			center_out_velocity_multiplier = center_out_velocity_multiplier * hit_by.center_out_velocity_multiplier
-		end
+            center_out_velocity_multiplier = center_out_velocity_multiplier * hit_by.center_out_velocity_multiplier
+        end
 
-		
-		if hit_by.get_death_particle_hit_point then
+
+        if hit_by.get_death_particle_hit_point then
             hit_point_x, hit_point_y = hit_by:get_death_particle_hit_point(self)
         else
-			hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
-		end
+            hit_point_x, hit_point_y = hit_by.pos.x, hit_by.pos.y
+        end
 
         if hit_vel_x == 0 and hit_vel_y == 0 then
             hit_point_x, hit_point_y = self.pos.x, self.pos.y
@@ -199,6 +204,8 @@ function BaseEnemy:normal_death_effect(hit_by)
             hit_vel_y = -diff.y * 10
         end
     end
+    
+    -- print(hit_vel_x, hit_vel_y)
 
 	local bx, by
 

@@ -51,6 +51,7 @@ function Enforcer:new(x, y)
 	self.spawn_sprite2 = textures.enemy_enforcer2
 	self.walk_speed = WALK_SPEED
 	self.normal_sprite = textures.enemy_enforcer3
+    self.time_to_spawn = rng:randi(80, 180)
 end
 
 function Enforcer:state_Spawning_enter()
@@ -62,8 +63,8 @@ function Enforcer:state_Spawning_update(dt)
     local player = self:get_closest_player()
     if player and not self.player then
 		local s = self.sequencer
-		s:start(function()
-			s:wait(rng:randi(80, 180))
+        s:start(function()
+			s:wait(self.time_to_spawn)
 			self:change_state("Normal")
         end)
 		self.player = player
@@ -214,6 +215,27 @@ end
 
 function RoyalGuard:shoot_chance_modifier()
 	return 0.75
+end
+
+function RoyalGuard:get_palette()
+    if self.state == "Spawning" then
+        return nil, self.tick / 3
+    end
+    return self.super.get_palette(self)
+end
+
+function RoyalGuard:draw()
+    graphics.push("all")
+    self:body_translate()
+    if self.state == "Spawning" and gametime.tick % 2 ~= 0 then
+        local t = (self.elapsed / self.time_to_spawn)
+        graphics.set_color(Palette[self:get_sprite()]:tick_color(self.tick / 2))
+        local scale = min(self.elapsed * 2, 12 + (1 - ease("inCubic")(t)) * 6)
+        -- graphics.rotate(ease("inCubic")(t) * tau * 0.5 * (self.random_offset % 2 == 0 and 1 or -1))
+        graphics.rectangle_centered("line", 0, 0, scale, scale)
+    end
+    graphics.pop()
+    self.super.draw(self)
 end
 
 

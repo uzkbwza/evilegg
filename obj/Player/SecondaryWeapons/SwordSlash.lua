@@ -15,6 +15,10 @@ local NUM_HIT_BUBBLES = 16
 local HIT_BUBBLE_SIZE = 7.5
 local ARC_DEGREES = deg2rad(210)
 
+
+SwordSlash.reset_death_particle_hit_velocity = true
+SwordSlash.center_out_velocity_multiplier = 1.0
+
 function SwordSlash:new(x, y, direction, slash_direction)
 	self.hit_cooldown = 90
     self.damage = BASE_DAMAGE
@@ -46,15 +50,69 @@ function SwordSlash:new(x, y, direction, slash_direction)
 	self.vel = Vec2(self.direction.x * self.speed, self.direction.y * self.speed)
 end
 
--- function SwordSlash:get_damage(target)
-    -- if target.is_enemy_bullet then
-	-- 	return 999
-	-- end
-	-- return self.damage
--- end
-
 function SwordSlash:get_death_particle_hit_velocity(target)
-	return vec2_mul_scalar(self.direction.x, self.direction.y, 2)
+	return vec2_mul_scalar(self.direction.x, self.direction.y, 20)
+end
+
+function SwordSlash:get_death_particle_hit_point(other)
+    -- Find overlap center between one of our capsule hitboxes and one of the other's hurtboxes.
+    local obx, oby = other.pos.x, other.pos.y
+    if other.get_body_center then
+        obx, oby = other:get_body_center()
+    end
+
+    local best_x, best_y
+
+    if self.bubbles and self.bubbles.hit and other.bubbles and other.bubbles.hurt then
+        for _, bubble in pairs(self.bubbles.hit) do
+            if bubble.shape_type == "capsule" then
+                local sx, sy = bubble:get_position()
+                local ex, ey = bubble:get_end_position()
+                local sr = bubble.radius
+
+                for _, hurt in pairs(other.bubbles.hurt) do
+                    local hx, hy
+                    if hurt.shape_type == "circle" then
+                        local cx, cy = hurt:get_position()
+                        local cr = hurt.radius
+                        if circle_capsule_collision(cx, cy, cr, sx, sy, ex, ey, sr) then
+                            hx, hy = capsule_circle_overlap_center(sx, sy, ex, ey, sr, cx, cy, cr)
+                        end
+                    elseif hurt.shape_type == "capsule" then
+                        local cx, cy = hurt:get_position()
+                        local dx_, dy_ = hurt:get_end_position()
+                        local cr = hurt.radius
+                        if capsule_capsule_collision(sx, sy, ex, ey, sr, cx, cy, dx_, dy_, cr) then
+                            hx, hy = capsule_capsule_overlap_center(sx, sy, ex, ey, sr, cx, cy, dx_, dy_, cr)
+                        end
+                    elseif hurt.shape_type == "aabb" then
+                        -- Fallback approximation: midpoint between capsule segment and AABB center
+                        local rx, ry, rw, rh = hurt:get_rect()
+                        local rcx, rcy = rx + rw * 0.5, ry + rh * 0.5
+                        local qx, qy = closest_point_on_line_segment(rcx, rcy, sx, sy, ex, ey)
+                        hx, hy = (qx + rcx) * 0.5, (qy + rcy) * 0.5
+                    end
+
+                    if hx then
+                        best_x, best_y = hx, hy
+                        break
+                    end
+                end
+            end
+
+            if best_x then break end
+        end
+    end
+
+    if best_x then
+        -- Convert to local space of other's body center
+        return best_x, best_y
+    end
+
+    -- Fallback: direction away from sword towards target body center, clamped
+    local diff_x, diff_y = vec2_sub(obx, oby, self.pos.x, self.pos.y)
+    local lx, ly = vec2_limit_length(-diff_x, -diff_y, 16)
+    return lx + obx, ly + oby
 end
 
 function SwordSlash:hit_other(target, bubble)

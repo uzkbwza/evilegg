@@ -550,7 +550,7 @@ function PlayerCharacter:handle_input(dt)
 		self.moving = move_amount_x ~= 0 or move_amount_y ~= 0
         self:move(move_amount_x * dt * self.speed * modifier, move_amount_y * dt * self.speed * modifier)
 
-        print(modifier)
+        -- print(modifier)
         self.move_vel:set(move_amount_x, move_amount_y)
         
         if input.hover_held then

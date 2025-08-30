@@ -323,3 +323,64 @@ end
 function aabb_aabb_collision(ax, ay, aw, ah, bx, by, bw, bh)
     return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
 end
+
+
+
+-- Helpers to compute approximate overlap centers without allocating closures
+function capsule_circle_overlap_center(ax, ay, bx, by, ar, cx, cy, cr)
+	-- Closest point on segment AB to circle center C
+	local qx, qy = closest_point_on_line_segment(cx, cy, ax, ay, bx, by)
+	local dx, dy = cx - qx, cy - qy
+	local dist_sq = dx * dx + dy * dy
+	if dist_sq == 0 then
+		-- Degenerate direction; pick segment normal-ish direction
+		local sx, sy = bx - ax, by - ay
+		local len = sqrt(sx * sx + sy * sy)
+		if len == 0 then
+			-- Fully degenerate capsule; just return circle center
+			return cx, cy
+		end
+		-- Perpendicular to segment
+		dx, dy = -sy / len, sx / len
+	else
+		local inv_len = 1 / sqrt(dist_sq)
+		dx, dy = dx * inv_len, dy * inv_len
+	end
+	-- Boundary points along the connecting line
+	local cap_px, cap_py = qx + dx * ar, qy + dy * ar
+	local cir_px, cir_py = cx - dx * cr, cy - dy * cr
+	-- Midpoint between boundaries
+	return (cap_px + cir_px) * 0.5, (cap_py + cir_py) * 0.5
+end
+
+function capsule_capsule_overlap_center(ax, ay, bx, by, ar, cx, cy, dx_, dy_, cr)
+	-- Closest points between segments AB and CD
+	local pabx, paby, pcdx, pcdy = closest_points_on_two_line_segments(ax, ay, bx, by, cx, cy, dx_, dy_)
+	local vx, vy = pcdx - pabx, pcdy - paby
+	local dist_sq = vx * vx + vy * vy
+	local nx, ny
+	if dist_sq == 0 then
+		-- Segments overlap or touch; compute a stable normal from AB (or CD)
+		local sabx, saby = bx - ay + ay - ay, by - ay -- incorrect; fallback to CD if AB zero below
+		local abx, aby = bx - ax, by - ay
+		local len = sqrt(abx * abx + aby * aby)
+		if len == 0 then
+			local cdx, cdy = dx_ - cx, dy_ - cy
+			len = sqrt(cdx * cdx + cdy * cdy)
+			if len == 0 then
+				-- Fully degenerate, return midpoint between segment midpoints
+				return (ax + bx + cx + dx_) * 0.25, (ay + by + cy + dy_) * 0.25
+			end
+			abx, aby = cdx, cdy
+		end
+		-- Perpendicular
+		nx, ny = -aby / len, abx / len
+	else
+		local inv_len = 1 / sqrt(dist_sq)
+		nx, ny = vx * inv_len, vy * inv_len
+	end
+	-- Points on each capsule boundary along the connecting normal
+	local cap1x, cap1y = pabx + nx * ar, paby + ny * ar
+	local cap2x, cap2y = pcdx - nx * cr, pcdy - ny * cr
+	return (cap1x + cap2x) * 0.5, (cap1y + cap2y) * 0.5
+end

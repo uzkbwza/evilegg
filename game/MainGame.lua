@@ -256,8 +256,8 @@ function GlobalGameState:new()
             self:add_score(rng:randi(6000000, 10000000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
 
-            self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
-            self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
@@ -271,10 +271,10 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = EGG_ROOM_START + 1
+            self.level = 21
             self.hearts = self.max_hearts
 
-            for i = 1, 6 do
+            for i = 1, 8 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()

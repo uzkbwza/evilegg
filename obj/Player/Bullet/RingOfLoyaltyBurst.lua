@@ -35,13 +35,16 @@ function RingOfLoyaltyBurst:get_death_particle_hit_velocity(other)
     end
     local dx, dy = vec2_direction_to(self.pos.x, self.pos.y, bx, by)
     local dist = vec2_distance(self.pos.x, self.pos.y, bx, by)
-    local dist_modifier = remap01(dist / self:get_radius(), 1, 0.5)
-    local time_modifier = remap01(clamp01(self.elapsed / self.lifetime), 1.0, 0.25)
-    return dx * 35 * dist_modifier * time_modifier, dy * 35 * dist_modifier * time_modifier
+    local dist_modifier = remap01(dist / self:get_radius(), 1, 0.75)
+    local time_modifier = remap01(clamp01(self.elapsed / self.lifetime), 1.0, 0.95)
+    return dx * 40 * dist_modifier * time_modifier, dy * 40 * dist_modifier * time_modifier
 end
 
 function RingOfLoyaltyBurst:get_death_particle_hit_point(other)
     local bx, by = other.pos.x, other.pos.y
+    if other.get_body_center then
+        bx, by = other:get_body_center()
+    end
     local diff_x, diff_y = vec2_sub(bx, by, self.pos.x, self.pos.y)
     return vec2_add(bx, by, vec2_limit_length(-diff_x, -diff_y, 16))
 end

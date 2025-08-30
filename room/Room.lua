@@ -7,8 +7,8 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = false
-local debug_enemy = "Hand"
-local num_debug_enemies = 300
+local debug_enemy = "RoyalGuard"
+local num_debug_enemies = 6
 local num_debug_waves = 3
 
 local debug_force_curse_enabled = false
