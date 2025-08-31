@@ -72,7 +72,7 @@ vec3 oklab_mix(vec3 lin1, vec3 lin2, float a)
     // lerp
     vec3 lms = mix(lms1, lms2, a);
     // gain in the middle (no oklab anymore, but looks better?)
-    lms *= 1.0 + 0.2 * a * (1.0 - a);
+    // lms *= 1.0 + 0.2 * a * (1.0 - a);
     // cone to rgb
     return kLMStoCONE * (lms * lms * lms);
 }

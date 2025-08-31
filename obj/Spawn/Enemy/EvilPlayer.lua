@@ -125,8 +125,10 @@ function EvilPlayer:state_Awake_update(dt)
             self:spawn_object(EvilPlayerSmallBullet(bx, by)):apply_impulse(impulse_x, impulse_y)
 			self:play_sfx("enemy_evil_player_smallshoot")
         end
+
+        local number_of_big_bullets = self.world:get_number_of_objects_with_tag("evil_player_big_bullet")
 		
-		if not self:is_tick_timer_running("shooting_big_bullet_cooldown") and rng:percent(0.08 + 0.09 * min(self.friends_killed, 5)) then
+		if number_of_big_bullets < 6 and not self:is_tick_timer_running("shooting_big_bullet_cooldown") and rng:percent(0.08 + 0.09 * min(self.friends_killed, 5)) then
             self:start_tick_timer("shooting_big_bullet_cooldown", rng:randi(10, 30))
 			local spread = deg2rad(17)
 			
@@ -263,6 +265,7 @@ end
 function EvilPlayerBigBullet:enter()
 	self.intangible = true
 	self.melee_attack = false
+    self:add_tag("evil_player_big_bullet")
 	local s = self.sequencer
     s:start(function()
 		s:wait(45)

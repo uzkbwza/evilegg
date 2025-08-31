@@ -513,19 +513,19 @@ end
 
 
 function EvilGreenoidBoss:targeted_bullet_burst()
-    local s = self.sequencer
-	local speed = 5.0
-	s:start(function()
-        for i = 1, 8 do
-            local pbx, pby = self:to_local(self:closest_last_player_body_pos())
-            local angle = vec2_angle(pbx, pby)
+    -- local s = self.sequencer
+	-- local speed = 5.0
+	-- s:start(function()
+    --     for i = 1, 8 do
+    --         local pbx, pby = self:to_local(self:closest_last_player_body_pos())
+    --         local angle = vec2_angle(pbx, pby)
 			
-            local bullet = self.world:spawn_object(TargetedBullet(self.pos.x, self.pos.y))
-			bullet:apply_impulse(vec2_from_polar(speed, angle))
-			self:play_sfx("enemy_yolk_shoot1", 0.8, 1.0)
-			s:wait(3)
-		end
-	end)
+    --         local bullet = self.world:spawn_object(TargetedBullet(self.pos.x, self.pos.y))
+	-- 		bullet:apply_impulse(vec2_from_polar(speed, angle))
+	-- 		self:play_sfx("enemy_yolk_shoot1", 0.8, 1.0)
+	-- 		s:wait(3)
+	-- 	end
+	-- end)
 end
 
 function ThrashProjectile:new(x, y)

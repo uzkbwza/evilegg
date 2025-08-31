@@ -10,7 +10,7 @@ function EggElevator:new(x, y)
 	-- self.max_hp = debug.enabled and 3 or 20
     self.max_hp = 60
     if debug.enabled and SKIP_SHOOTING then
-        self.max_hp = 1
+        self.max_hp = 20
     end
 	self.body_height = 3
     EggElevator.super.new(self, x, y)
