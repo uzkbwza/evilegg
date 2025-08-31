@@ -505,7 +505,7 @@ local Hazards = {
 		min_level = 7,
         spawn_points = 9,
 		room_select_weight = 300,
-		icon = textures.hazard_blinker,
+		icon = textures.hazard_blinker, 
     },
 
 	
