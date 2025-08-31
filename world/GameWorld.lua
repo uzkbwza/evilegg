@@ -1106,7 +1106,7 @@ function GameWorld:create_next_rooms()
         end
 		local room = self:create_room({
 			-- bonus_room = game_state.level > 1 and ((next_level) % 3 == 0),
-			bonus_room = game_state.level > 3 and ((next_level) % 5 == 0),
+			bonus_room = next_level >= 5 and ((next_level) % 5 == 0),
 			needs_upgrade = needs_upgrade and i == upgrade_room,
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,

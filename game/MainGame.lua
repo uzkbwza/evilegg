@@ -244,7 +244,7 @@ function GlobalGameState:new()
 
         
         
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
         
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
