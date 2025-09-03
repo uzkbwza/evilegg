@@ -11,7 +11,7 @@ local Enemies = {
     
 	Walker = {
         level = 1,
-		max_level = 4,
+		max_level = 5,
         spawn_points = 10,
 		room_select_weight = 2000,
         icon = textures.enemy_base,
