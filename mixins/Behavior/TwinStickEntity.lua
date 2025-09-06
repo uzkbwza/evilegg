@@ -5,11 +5,10 @@ local HitBubble = require "obj.hit_bubble"
 function TwinStickEntity:__mix_init()
     self.terrain_collision_radius = self.terrain_collision_radius or 4
     self.body_height = self.body_height or 0
-    self.aim_direction = Vec2(1, 0)
-    self.aim_radius = self.aim_radius or 10
+    -- self.aim_direction = Vec2(1, 0)
+    -- self.aim_radius = self.aim_radius or 10
     self.team = self.team or "enemy"
 	self.hitbox_team = self.hitbox_team or self.team
-    self.shadow_radius = self.shadow_radius or 1
 	self.hit_cooldown = self.hit_cooldown or 30
     self:add_elapsed_time()
 	self:add_elapsed_ticks()
@@ -538,15 +537,15 @@ end
 
 function TwinStickEntity:hurt_bubble_rect()
 	local bx, by = self:get_body_center()
-	local x, y, w, h = bx, by, 1, 1
+	local x, y, end_x, end_y = bx, by, bx, by
 	for _, bubble in pairs(self.bubbles.hurt) do
-		local brx, bry, br = bubble:get_rect()
+		local brx, bry, bw, bh = bubble:get_rect()
 		x = min(x, brx)
 		y = min(y, bry)
-		w = max(w, brx + br)
-		h = max(h, bry + br)
+        end_x = max(end_x, brx + bw)
+        end_y = max(end_y, bry + bh)
 	end
-	return x, y, w, h
+	return x, y, end_x - x, end_y - y
 end
 
 function TwinStickEntity:filter_melee_attack(bubble)

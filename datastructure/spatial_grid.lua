@@ -11,13 +11,11 @@ local function default_pairing(x, y)
 	return x + y * 10000000
 end
 
-function SpatialGrid:new(w, h, cell_size, pool_size, pairing_func)
+function SpatialGrid:new(cell_size, pool_size, pairing_func)
     
     -- self.pairing_function = xy_to_pairing_fast
     self.pairing_function = pairing_func or default_pairing
     
-    self.w = w
-    self.h = h
     self.cell_size = cell_size or 64
     self.inv_cell_size = 1 / self.cell_size
     self.grid = grid2d(self.pairing_function)

@@ -87,6 +87,7 @@ function PlayerCharacter:new(x, y)
 
     -- self.damage = 1
 
+    self.aim_direction = Vec2(1, 0)
     self.aim_radius = 12
 
     self.moving_direction = Vec2(rng:random_vec2())

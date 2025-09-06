@@ -12,7 +12,7 @@ function BaseEnemy:new(x, y)
 
 	self.terrain_collision_radius = self.terrain_collision_radius or 2
     self.body_height = self.body_height or 0
-    self.aim_radius = self.aim_radius or 3
+    -- self.aim_radius = self.aim_radius or 3
     self.hurt_bubble_radius = self.hurt_bubble_radius or 5
 	self.hit_bubble_radius = self.hit_bubble_radius or 3
 	self.hit_bubble_damage = self.hit_bubble_damage or 1

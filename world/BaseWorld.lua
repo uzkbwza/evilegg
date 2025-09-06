@@ -217,8 +217,10 @@ function World:get_random_object_with_tag(tag)
     return nil
 end
 
-function World:add_spatial_grid(name, cell_size, table_pool_size)
-	self[name] = spatial_grid(cell_size or DEFAULT_CELL_SIZE, table_pool_size)
+function World:add_spatial_grid(name, cell_size)
+    self[name] = spatial_grid(cell_size or DEFAULT_CELL_SIZE)
+    self.spatial_grids = self.spatial_grids or {}
+    table.insert(self.spatial_grids, self[name])
 	return self[name]
 end
 

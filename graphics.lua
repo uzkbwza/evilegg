@@ -1694,4 +1694,13 @@ function graphics.axis_quantized_line(x0, y0, x1, y1, width, height, inverted, c
 end
 
 
+function graphics.square(mode, x, y, width)
+    love.graphics.rectangle(mode, x, y, width, width)
+end
+
+function graphics.square_centered(mode, x, y, width)
+    love.graphics.rectangle(mode, x - width / 2, y - width / 2, width, width)
+end
+
+
 return graphics

@@ -1982,8 +1982,13 @@ function GameWorld:draw()
 
 	-- Draw room bounds on top if needed
 	-- if draw_bounds_over then
-        -- self:draw_room_bounds()
+    -- self:draw_room_bounds()
         
+    if debug.can_draw_bounds() then
+        for _, grid in ipairs(self.spatial_grids) do
+            self:draw_spatial_grid(grid)
+        end
+    end
 	-- end
 end
 
@@ -2553,6 +2558,40 @@ end
 function GameWorld:destroy()
 	GameWorld.super.destroy(self)
 end
+
+
+function GameWorld:draw_spatial_grid(grid)
+    local screen_w, screen_h = self.canvas_layer.viewport_size.x, self.canvas_layer.viewport_size.y
+    local cell_size = grid.cell_size
+    local hres, vres = floor(screen_w / cell_size), floor(screen_h / cell_size)
+    local camx, camy = self.camera.pos.x, self.camera.pos.y
+    local center_cell_x, center_cell_y = idiv(camx, cell_size), idiv(camy, cell_size)
+    for offsx = -idiv(hres,2), idiv(hres, 2) do
+        for offsy = -idiv(vres,2), idiv(vres, 2) do
+            graphics.set_color(Color.yellow, 0.01)
+            local cell_x = center_cell_x + offsx
+            local cell_y = center_cell_y + offsy
+            local tab = grid:query_cell(cell_x * cell_size, cell_y * cell_size)
+            local populated = false
+            if tab and #tab > 0 then
+                graphics.set_color(Color.red, 0.5)
+                populated = true
+            end
+            graphics.square("line", cell_x * cell_size, cell_y * cell_size, cell_size - 1)
+            
+            if populated then
+                for _, object in ipairs(tab) do
+                    local entity = grid.entities[object]
+                    if entity then
+                        graphics.set_color(Color.magenta)
+                        graphics.rectangle("line", entity[1], entity[2], entity[3], entity[4])
+                    end
+                end
+            end
+        end
+    end
+end
+
 
 
 SpiteObject.colors = {
