@@ -1185,7 +1185,7 @@ function PlayerCharacter:check_pickups()
 end
 
 function PlayerCharacter:get_pickup_rect()
-	local bx, by = self:get_body_center_local()
+	local bx, by = self:get_body_center()
     return bx - PICKUP_RADIUS, by - PICKUP_RADIUS, PICKUP_RADIUS * 2, PICKUP_RADIUS * 2
 end
 

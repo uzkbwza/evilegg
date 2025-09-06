@@ -2583,7 +2583,7 @@ function GameWorld:draw_spatial_grid(grid)
                 for _, object in ipairs(tab) do
                     local entity = grid.entities[object]
                     if entity then
-                        graphics.set_color(Color.magenta)
+                        graphics.set_color(Color.magenta, 0.4)
                         graphics.rectangle("line", entity[1], entity[2], entity[3], entity[4])
                     end
                 end

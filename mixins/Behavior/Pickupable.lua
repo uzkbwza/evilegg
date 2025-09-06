@@ -11,7 +11,7 @@ function Pickupable:pickupable_enter()
 end
 
 function Pickupable:get_pickup_rect()
-	local bx, by = self:get_body_center_local()
+	local bx, by = self:get_body_center()
     return bx - self.pickup_radius, by - self.pickup_radius, self.pickup_radius * 2, self.pickup_radius * 2
 end
 

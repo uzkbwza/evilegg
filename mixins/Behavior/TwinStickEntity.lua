@@ -110,6 +110,8 @@ function TwinStickEntity:add_bubble(bubble_type, x, y, radius, name, x2, y2, ...
         grid:add(b, bx, by, w, h)
     end
 
+    self:emit_signal("moved")
+
 	return b
 end
 
