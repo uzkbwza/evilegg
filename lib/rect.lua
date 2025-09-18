@@ -124,3 +124,9 @@ end
 function rect_perimeter(w, h)
     return w * 2 + h * 2
 end
+
+
+function rect_clamp_point(px, py, rx, ry, rw, rh)
+    return clamp(px, rx, rx + rw), clamp(py, ry, ry + rh)
+end
+

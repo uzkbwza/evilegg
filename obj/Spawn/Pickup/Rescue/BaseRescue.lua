@@ -394,7 +394,7 @@ function BaseRescue:update(dt)
             local valid = {}
             for i = 1, #hurt_bubbles do
                 local bubble = hurt_bubbles[i]
-                if bubble.parent and bubble.parent:has_tag("wave_enemy") then
+                if bubble.parent and bubble.parent:has_tag("wave_enemy") or bubble.parent:has_tag("artefact_kill_fx") then
                     table.insert(valid, bubble)
                 end
             end

@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -831,22 +831,31 @@ function EggBoss:phase2_landing()
                 end
             end
         end)
-        local closest_player = self:get_closest_player()
-        if closest_player then
-            closest_player:change_state("Cutscene")
-        end
-        self:emit_signal("phase4_landing")
-		
-        self.world.object_time_scale = 1.0
-		
-        local cutscene = self.cutscene_object
-        self.cutscene_object = nil
-        self.applying_physics = false
-		-- audio.stop_music()
-		audio.play_music("music_egg_boss3", 1.0)
-		
+
 		local s = self.sequencer
         s:start(function()
+
+
+            local closest_player = self:get_closest_player()
+            while not closest_player do
+                s:wait(1)
+                closest_player = self:get_closest_player()
+            end
+
+            closest_player:change_state("Cutscene")
+
+    
+            self:emit_signal("phase4_landing")
+		
+            self.world.object_time_scale = 1.0
+            
+            local cutscene = self.cutscene_object
+            self.cutscene_object = nil
+            self.applying_physics = false
+            -- audio.stop_music()
+            audio.play_music("music_egg_boss3", 1.0)
+
+
 			s:wait(1)
             self:spawn_object(UnderEggFlash(0, self.pos.y)):ref("parent", self)
             s:wait(163)
@@ -2508,6 +2517,7 @@ function EggSentry:enter()
     -- self:add_hurt_bubble(0, -20, 5, "main2", -10, 20)
     -- self:add_hurt_bubble(0, -20, 5, "main3", 10, 20)
     self:add_tag("egg_sentry")
+    self:add_tag("artefact_kill_fx")
 end
 
 function EggSentry:floor_draw()
@@ -2535,7 +2545,9 @@ end
 function EggSentry:update(dt)
     if self.is_new_tick and not self:is_tick_timer_running("shoot_cooldown") and self.tick > 120 then
         local player_distance = self:get_body_distance_to_player()
-        if player_distance < 200 then
+        local closest_player = self:get_closest_player()
+
+        if player_distance < 200 and closest_player and closest_player.state ~= "Cutscene" then
             local s = self.sequencer
             -- local bx, by = self:get_body_center()
             local bx, by = self.pos.x, self.pos.y - 15

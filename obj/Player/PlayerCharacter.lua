@@ -3,6 +3,7 @@ local PlayerCharacter = GameObject2D:extend("PlayerCharacter")
 local PlayerDrone = GameObject2D:extend("PlayerDrone")
 
 local PlayerBullet = require("obj.Player.Bullet.BasePlayerBullet")
+local PlayerHitscanBullet = require("obj.Player.Bullet.PlayerHitscanBullet")
 local PrayerKnotChargeBullet = require("obj.Player.Bullet.PrayerKnotChargeBullet")
 
 local HoverFx = Effect:extend("HoverFx")
@@ -24,6 +25,9 @@ local TwinDeathEffect = Effect:extend("TwinDeathEffect")
 local Explosion = require("obj.Explosion")
 local PrayerKnotChargeEffect = GameObject2D:extend("PrayerKnotChargeEffect")
 local RingOfLoyaltyBurst = require("obj.Player.Bullet.RingOfLoyaltyBurst")
+
+local CrownOnEffect = GameObject2D:extend("CrownOnEffect")
+local CrownOffEffect = GameObject2D:extend("CrownOffEffect")
 
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
@@ -53,6 +57,7 @@ PlayerCharacter.bullet_powerups = {
 	["BaseBullet"] = PlayerBullet,
 	["powerup_rocket_name"] = RocketBullet,
     ["PrayerKnotChargeBullet"] = PrayerKnotChargeBullet,
+    ["PlayerHitscanBullet"] = PlayerHitscanBullet,
 }
 
 
@@ -115,6 +120,11 @@ function PlayerCharacter:new(x, y)
 	self.real_aim_direction = Vec2(0, -1)
     self.mouse_mode = true
     self.persist = true
+
+    self.crown_effect = false
+
+    self.random_offset = rng:randi()
+    self.irng = rng:new_instance()
 
 
     self:add_signal("died")
@@ -578,7 +588,7 @@ function PlayerCharacter:handle_input(dt)
         local fire_rate = game_state.upgrades.fire_rate
         local modifier = 1
         modifier = modifier - (fire_rate * 0.1) * (cooldown / PlayerBullet.cooldown)
-        if game_state.artefacts.crown_of_frenzy and self.world:get_number_of_objects_with_tag("rescue_object") == 0 then
+        if self.crown_effect then
             modifier = modifier * 0.9
         end
         cooldown = cooldown * modifier
@@ -604,13 +614,15 @@ function PlayerCharacter:handle_input(dt)
     local secondary_stopwatch = self:get_stopwatch("secondary_weapon_held")
     local secondary_weapon = self:get_secondary_weapon()
 
+    
     local weapon = game_state.secondary_weapon
     local not_enough_ammo = weapon and (
         game_state.secondary_weapon_ammo < weapon.ammo_needed_per_use or
         (weapon.minimum_ammo_needed_to_use and game_state.secondary_weapon_ammo < weapon.minimum_ammo_needed_to_use)
     )
 
-    if input.secondary_weapon_pressed and weapon and (not_enough_ammo or self.world.room.curse == "curse_famine") then
+    -- if input.secondary_weapon_pressed and weapon and (not_enough_ammo or self.world.room.curse == "curse_famine") then
+    if input.secondary_weapon_pressed and weapon and (not_enough_ammo) then
         game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
     end
 
@@ -717,9 +729,9 @@ function PlayerCharacter:can_use_secondary_weapon()
         return false
     end
 
-    if self.world.room.curse_famine then
-        return false
-    end
+    -- if self.world.room.curse_famine then
+    --     return false
+    -- end
 
     if game_state.secondary_weapon_ammo < game_state.secondary_weapon.ammo_needed_per_use then
         return false
@@ -742,6 +754,12 @@ end
 
 function PlayerCharacter:fire_current_bullet()
     local class = self.bullet_powerups["BaseBullet"]
+
+    -- local hitscan = false
+    if game_state.artefacts.bullet_speed_stack and game_state:get_bullet_speed_stack_amount() >= 1 and game_state.upgrades.bullet_speed >= 1 then
+        -- hitscan = true
+        class = self.bullet_powerups["PlayerHitscanBullet"]
+    end
 
 
 	game_state:on_bullet_shot()
@@ -990,7 +1008,7 @@ function PlayerCharacter:update(dt)
     elseif self:is_tick_timer_running("prayer_knot") then
         local progress = self:tick_timer_progress("prayer_knot")
         if self.is_new_tick and progress < 0.75 and progress > 0.25 then
-            for i=1, 4 do
+            for i = 1, 4 do
                 local px, py = self.pos.x, self.pos.y
                 local offs_x, offs_y = rng:random_vec2_times(rng:randf(0.1, 80))
 
@@ -1008,7 +1026,7 @@ function PlayerCharacter:update(dt)
                 table.insert(self.prayer_knot_particles, particle)
             end
         end
-        
+
         for i = #self.prayer_knot_particles, 1, -1 do
             local particle = self.prayer_knot_particles[i]
             local dx, dy = vec2_direction_to(particle.x, particle.y, 0, 0)
@@ -1027,15 +1045,29 @@ function PlayerCharacter:update(dt)
                 table.insert(self.prayer_knot_particles_to_remove, particle)
             end
         end
-    
+
         for i = #self.prayer_knot_particles_to_remove, 1, -1 do
             table.erase(self.prayer_knot_particles, self.prayer_knot_particles_to_remove[i])
         end
 
         table.clear(self.prayer_knot_particles_to_remove)
-
-
     end
+    
+
+    local old_crown_effect = self.crown_effect
+    self.crown_effect = game_state.crown_effect
+    
+    -- if self.visible then
+    --     if self.crown_effect and not old_crown_effect then
+    --         -- local bx, by = self:get_body_center()
+    --         self:spawn_object(CrownOnEffect(self.pos.x, self.pos.y)):follow_movement(self)
+    --     elseif old_crown_effect and not self.crown_effect then
+    --         -- local bx, by = self:get_body_center()
+    --         self:spawn_object(CrownOnEffect(self.pos.x, self.pos.y, true)):follow_movement(self)
+    --     end
+    -- end
+
+
     modloader:call("player_update", self, dt)
 end
 
@@ -1125,13 +1157,55 @@ function PlayerCharacter:draw()
     --     self:draw_crosshair()
     -- end
 
+
+    -- if self.crown_effect then
+    --     graphics.push("all")
+    --     local line_width = 1
+    --     graphics.set_line_width(line_width)
+    --     local irng = self.irng
+    --     irng:set_seed(idiv(self.tick, 1) + self.random_offset)
+
+    --     graphics.translate(irng:randf(-1, 1), irng:randf(-1, 1))
+        
+    --     graphics.set_color(iflicker(gametime.tick, 3, 3) and Color.blue or Color.cyan)
+        
+    --     local crown_base_y = 0
+    --     local crown_w, crown_h = 9, 3
+        
+    --     local e = line_width / 2
+
+    --     local x1, y1, x2, y2 = -crown_w / 2, -crown_h / 2 + crown_base_y, crown_w / 2, crown_h / 2 + crown_base_y
+        
+    --     if irng:percent(75) then
+    --         graphics.line(x1-e, y1, x2+e, y1)
+    --     end
+    --     if irng:percent(75) then
+    --         graphics.line(x1, y1-e, x1, y2+e)
+    --     end
+    --     if irng:percent(75) then
+    --         graphics.line(x2, y1-e, x2, y2+e)
+    --     end
+    --     if irng:percent(75) then
+    --         graphics.line(x1-e, y2, x2+e, y2)
+    --     end
+
+        
+    --     for i = 1, irng:randi(1, 17) do
+    --         graphics.set_line_width(irng:randf(1, 3))
+    --         local x, y = irng:random_point_on_rect_perimeter(x1, y1, x2 - x1, y2 - y1)
+    --         if y ~= y2 then
+    --             y = y - 3
+    --             graphics.line(x, y, x, y - irng:randf_pow(1, 6, 3))
+    --         end
+    --     end
+
+    --     graphics.pop()
+    -- end
+
     local palette, offset = self:get_palette()
 	
     graphics.drawp_centered(self:get_sprite(), palette, offset, 0)
 
-    -- if self.mouse_aim_offset.y >= -0.45 then
-    --     self:draw_crosshair()
-    -- end
 end
 
 function PlayerCharacter:draw_crosshair()
@@ -1459,6 +1533,9 @@ end
 
 function PlayerCharacter:secondary_sword_pressed()
     game_state:use_secondary_weapon_ammo()
+    if self.world.room.curse_famine then
+        game_state:use_secondary_weapon_ammo()
+    end
     self.slash_direction = self.slash_direction or 1
 	self.slash_direction = self.slash_direction * -1
 	self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.real_aim_direction, self.slash_direction))
@@ -1467,6 +1544,9 @@ end
 
 function PlayerCharacter:secondary_railgun_pressed()
     game_state:use_secondary_weapon_ammo()
+    if self.world.room.curse_famine then
+        game_state:use_secondary_weapon_ammo()
+    end
 	local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
 
     self:spawn_object(self.secondary_weapon_objects.RailGunProjectile(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x, self.real_aim_direction.y))
@@ -1498,6 +1578,9 @@ function PlayerCharacter:secondary_big_laser_held(dt)
 		if firing_laser_stopwatch then
             if firing_laser_stopwatch.elapsed > FIRE_MIN_DURATION then
                 game_state:use_secondary_weapon_ammo(dt * game_state.secondary_weapon.held_ammo_consumption_rate)
+                if self.world.room.curse_famine then
+                    game_state:use_secondary_weapon_ammo(dt * game_state.secondary_weapon.held_ammo_consumption_rate)
+                end
                 if game_state.secondary_weapon_ammo <= 0 then
                     self:stop_stopwatch("secondary_weapon_held")
                     self:secondary_big_laser_released()
@@ -1505,7 +1588,10 @@ function PlayerCharacter:secondary_big_laser_held(dt)
                 end
             end
         elseif not self:is_tick_timer_running("big_laser_beam_aiming_laser") then
-			game_state:use_secondary_weapon_ammo()
+            game_state:use_secondary_weapon_ammo()
+            if self.world.room.curse_famine then
+                game_state:use_secondary_weapon_ammo()
+            end
             self:start_stopwatch("firing_big_laser")
 			self:start_tick_timer("firing_big_laser_minimum_duration", FIRE_MIN_DURATION)
 			local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
@@ -2129,12 +2215,12 @@ function PrayerKnotChargeEffect:spawn_particle()
         t = 0.0,
         angle = rng:randf(0, tau),
         random_offset = rng:randi(),
-        speed = rng:randf(50, 300),
+        speed = rng:randf_pow(10, 200, 1.2),
         lifetime = rng:randf(20, 200)
     }
 
     if rng:percent(5) then
-        particle.speed = rng:randf(50, 1000)
+        particle.speed = rng:randf_pow(50, 1000, 3)
     end
     table.insert(self.particles, particle)
 end
@@ -2231,7 +2317,7 @@ function PrayerKnotChargeEffect:draw()
     graphics.set_color(iflicker(self.tick, 2, 2) and Color.cyan or Color.yellow)
 
 
-    local size = 16 + 5 * sin(self.elapsed * 0.1)
+    local size = 12 + 3 * sin(self.elapsed * 0.1)
 
     if self:is_timer_running("dissipate") then
         size = size + ((1 - self:timer_progress("dissipate"))) * 50 + 5
@@ -2245,9 +2331,9 @@ function PrayerKnotChargeEffect:draw()
 
 
     if not self.dying then
-        graphics.rectangle_centered("fill", 0, -self.body_height, 8 + sin(self.elapsed * 0.1) * 2, 12 + sin(self.elapsed * 0.1) * 2)
+        graphics.rectangle_centered("fill", 0, -self.body_height + 1, 8 + sin(self.elapsed * 0.1) * 2, 9 + sin(self.elapsed * 0.1) * 2)
         graphics.set_color(Color.white)
-        graphics.rectangle_centered("fill", 0, -self.body_height, 6 + sin(self.elapsed * 0.1) * 2, 10 + sin(self.elapsed * 0.1) * 2)
+        graphics.rectangle_centered("fill", 0, -self.body_height + 1, 6 + sin(self.elapsed * 0.1) * 2, 7 + sin(self.elapsed * 0.1) * 2)
     end
 
 
@@ -2261,15 +2347,108 @@ function PrayerKnotChargeEffect:draw()
         local particle = self.particles[i]
         local x, y = self:to_local(particle.x, particle.y)
         graphics.set_color(iflicker(particle.random_offset + self.tick, 2, 2) and Color.cyan or Color.yellow)
-        local size = 4 * (1 - particle.t) * particle_size
+        local size = (2 * (1 - ease("inOutCubic")(particle.t)) * particle_size)
         graphics.rectangle_centered("fill", x + particle.real_x, y + particle.real_y, size, size)
     end
     for i=1, len do
         local particle = self.particles[i]
         local x, y = self:to_local(particle.x, particle.y)
         graphics.set_color(Color.white)
-        local size = 1 * (1 - particle.t) * particle_size
+        local size = (1 * (1 - ease("inOutCubic")(particle.t)) * particle_size)
         graphics.rectangle_centered("fill", x + particle.real_x, y + particle.real_y, size, size)
+    end
+end
+
+function CrownOnEffect:new(x, y, off)
+    CrownOnEffect.super.new(self, x, y)
+    self.z_index = 1
+    self:add_elapsed_time()
+    self:add_elapsed_ticks()
+    self.lifetime = 15
+    self.irng = rng:new_instance()
+    self.irng2 = rng:new_instance()
+    self.random_offset = rng:randi()
+    -- self.persist = true
+    self.off = off
+end
+
+function CrownOnEffect:update(dt)
+    if self.elapsed > self.lifetime then
+        self:queue_destroy()
+    end
+end
+
+function CrownOnEffect:floor_draw()
+    self:draw_particles(true)
+end
+
+function CrownOnEffect:draw()
+    self:draw_particles(false)
+end
+
+function CrownOnEffect:draw_particles(floor)
+    local color = self.off and Color.blue or Color.cyan
+    local r, g, b = color.r, color.g, color.b
+
+    graphics.set_color(color)
+
+    if floor then
+        if not self.is_new_tick then
+            return
+        end
+        local mod = 0.5
+
+    end
+    
+    local line_lifetime = 10
+    local irng = self.irng
+    local irng2 = self.irng2
+    local num_lines = 24
+
+    for i = 1, num_lines do
+        irng:set_seed(self.random_offset + i)
+        irng2:set_seed(self.random_offset + i + self.tick)
+        local line_amount = irng()
+        local line_height = remap(line_amount, 0, 1, 1, 30)
+        local lifetime = remap(line_amount, 0, 1, 1, line_lifetime)
+        local t2 = ((self.elapsed - 1) / self.lifetime)
+        if self.off then 
+            t2 = 1 - t2
+        end
+        local start_x, start_y = vec2_from_polar(6, i / num_lines * tau + irng:random_angle())
+        local end_y = start_y - line_height
+        local start_time = irng:randf(0, self.lifetime - lifetime)
+        local end_time = start_time + lifetime
+        local floor_rect_chance = irng2:percent(25)
+        local floor_line_chance = irng2:percent(25)
+        if floor and floor_rect_chance then
+            local mod = 0.5
+
+            graphics.set_color(r * mod, g * mod, b * mod)
+            -- if abs(self.elapsed - start_time) <= 1 then
+                -- graphics.set_line_width(1)
+            graphics.points(start_x, start_y)
+            -- end
+        end
+        if floor and floor_line_chance then
+            goto continue
+        end
+
+        if self.elapsed >= start_time and self.elapsed <= end_time then
+            local mod = floor and 0.25 or 1
+            graphics.set_color(r * mod, g * mod, b * mod)
+            local t = remap(self.elapsed, start_time, end_time, 0, 1)
+
+            if self.off then
+                t = 1 - t
+            end
+            -- graphics.set_line_width(floor and 1 or 1)
+            local y1 = lerp(start_y, end_y, ease("outCubic")(t))
+            local y2 = lerp(start_y, end_y, ease("inCubic")(t))
+            graphics.line(start_x, y1, start_x, y2)
+        end
+        
+        ::continue::
     end
 end
 

@@ -327,6 +327,9 @@ function LeaderboardWorld:on_page_fetched(page)
 
     for i = 1, PAGE_LENGTH do
         local run = self.current_page.entries[i]
+        if run.artefacts == nil then
+            run.artefacts = {}
+        end
         if run then
             for j = 1, GlobalGameState.max_artefacts do
                 local artefact = self.artefact_map[run.artefacts[j]]
@@ -629,8 +632,8 @@ function LeaderboardWorld:draw_leaderboard()
         local run = self.current_page.entries[i]
         if run then
             local is_self = run.uid == savedata:get_uid()
-            local name = run.name
-            local score = run.score
+            local name = run.name or ""
+            local score = run.score or 0
 
 
 
@@ -703,7 +706,7 @@ function LeaderboardWorld:draw_leaderboard()
 
             
             if self.sort_by == "speed" then
-                score_text = format_hhmmssms(run.game_time)
+                score_text = format_hhmmssms(run.game_time or 0)
             else
                 score_text = comma_sep(score)
             end

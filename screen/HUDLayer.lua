@@ -677,15 +677,29 @@ function HUDLayer:pre_world_draw()
             if not flashing then
                 for j = max_level, 1, -1 do
                     local height = upgrade_height / max_level
+
+                    local j2 = j
+
                     graphics.set_color(Color.darkergrey)
+
+                    local color1 = upgrade.color1
+                    local color2 = upgrade.color2
+
+                    -- if game_state.crown_effect and upgrade.name == "fire_rate" and iflicker(self.tick, 2, 2) then
+                    --     j2 = j2 - 1
+                    --     if game_state.upgrades[upgrade.name] > 0 then
+                    --         color1 = upgrade.color3
+                    --         color2 = upgrade.color4
+                    --     end
+                    -- end
 
                     local top_height = max((height - (upgrade_separation)) * .6)
                     local bottom_height = height - top_height - upgrade_separation
-                    if j <= game_state.upgrades[upgrade.name] then
-                        graphics.set_color(upgrade.color1)
+                    if j2 <= game_state.upgrades[upgrade.name] then
+                        graphics.set_color(color1)
                         graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
                             (max_level - j) * (height), upgrade_width, top_height)
-                        graphics.set_color(upgrade.color2)
+                        graphics.set_color(color2)
                         graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
                             (max_level - j) * (height) + top_height, upgrade_width, bottom_height)
                     else
@@ -880,6 +894,8 @@ function HUDLayer:create_persistent_ui()
 			name = "fire_rate",
 			color1 = Color.cyan,
 			color2 = Color.skyblue,
+            color3 = Color.white,
+            color4 = Color.cyan,
 		},
 		{
             name = "bullet_speed",

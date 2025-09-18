@@ -250,10 +250,10 @@ function ArtefactSpawn:state_Idle_draw()
 	
 	if self.artefact.is_secondary_weapon then
         local tip1 = tr.artefact_guide_use:format(input:get_secondary_weapon_prompt())
-		local ammo_count1 = string.fraction(self.artefact.minimum_ammo_needed_to_use_normalized or self.artefact.ammo_needed_per_use_normalized)
+		local ammo_count1 = (self.artefact.minimum_ammo_needed_to_use_normalized or self.artefact.ammo_needed_per_use_normalized)
 		local ammo_count1_text = self.artefact.minimum_ammo_needed_to_use and tr.artefact_guide_min_ammo_requirement or tr.artefact_guide_ammo_requirement
 		local tip3 = ammo_count1_text:format(ammo_count1)
-		local tip2 = tr.artefact_guide_ammo_gain:format(string.fraction(self.artefact.ammo_gain_per_level_normalized))
+		local tip2 = tr.artefact_guide_ammo_gain:format((self.artefact.ammo_gain_per_level_normalized))
 		
 		tip1 = string.interpolate(tip1, self.text_amount2)
 		tip2 = string.interpolate(tip2, self.text_amount3)

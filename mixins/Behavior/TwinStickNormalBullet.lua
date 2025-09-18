@@ -15,7 +15,7 @@ function TwinStickNormalBullet:__mix_init()
 		if not self.dead then
 			self:collide_with_terrain()
 
-			if self.elapsed > self.lifetime then
+			if self.tick > self.lifetime then
 				self:defer(function() self:die() end)
 			end
 		end
@@ -109,7 +109,12 @@ function TwinStickNormalBullet:constrain_to_room()
 		collided = true
     end
 
-	if collided then
+    if collided then
+            
+        local off = (self.radius / 2)
+        self:move_to(rect_clamp_point(self.pos.x, self.pos.y, self.world.room.bullet_bounds.x + off, self.world.room.bullet_bounds.y + off, self.world.room.bullet_bounds.width - off * 2, self.world.room.bullet_bounds.height - off * 2))
+
+
 		self:on_terrain_collision(normal_x, normal_y)
 	end
 	return collided

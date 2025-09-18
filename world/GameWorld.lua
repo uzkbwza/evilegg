@@ -15,7 +15,7 @@ local BeginningCutscene = Cutscene.BeginningCutscene
 local CAMERA_OFFSET_AMOUNT = 20
 local MAX_ENEMIES = 100
 local MAX_HAZARDS = 50
-local SpiteObject = GameObject2D:extend("SpiteObject")
+local PressureObject = GameObject2D:extend("PressureObject")
 -- local MAX_ENEMIES = 10000
 
 local ROOM_CHOICE = true
@@ -123,6 +123,17 @@ function GameWorld:enter()
         if game_state.bullet_powerup and self.draining_bullet_powerup then
             game_state:drain_bullet_powerup_time(dt)
         end
+
+        
+        -- if self.draining_bullet_powerup then
+        --     game_state:drain_bullet_speed_stack(dt)
+        -- end
+
+        -- if debug.enabled then
+        --     dbg("bullet_speed_stack_amount", game_state.bullet_speed_stack_amount, Color.yellow)
+        -- end
+        
+
 
         self.world.room.elapsed_scaled = self.world.room.elapsed_scaled + dt
         self.world.room.tick_scaled = floor(self.world.room.elapsed_scaled)
@@ -431,7 +442,7 @@ function GameWorld:initialize_room(room)
     end
 
     if self.room.curse_spite then
-        self:ref("spite_object", self:spawn_object(SpiteObject(0, 0)))
+        self:ref("spite_object", self:spawn_object(PressureObject(0, 0)))
     end
 
 	s:start(function()
@@ -708,7 +719,8 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
     signal.connect(enemy_object, "died", self, "enemies_to_kill_table_on_enemy_died", function()
         local bx, by = enemy_object:get_body_center()
 
-		self:add_score_object(bx, by, enemy_object:get_score(), "kills")
+        self:add_score_object(bx, by, enemy_object:get_score(), "kills")
+        
 
 		local closest_player
 		local closest_distance = math.huge
@@ -734,8 +746,11 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
 
         self.enemies_to_kill[enemy_object] = nil
         game_state:add_kill()
+        if game_state.artefacts.bullet_speed_stack then
+            game_state:gain_bullet_speed_stack()
+        end
 
-        if self.room.curse_penitence and rng:percent(8 * (enemy_object.max_hp or 1)) then
+        if self.room.curse_penitence and rng:percent(8 * (enemy_object.max_hp or 1)) and self:get_number_of_objects_with_tag("penitent_soul") < 5 then
             self:register_non_wave_enemy_required_kill(self:spawn_object(PenitentSoul(bx, by)))
         end
     end)
@@ -1431,6 +1446,10 @@ function GameWorld:always_update(dt)
 
         -- self.camera_target:move_to(vec2_approach(self.camera_target.pos.x, self.camera_target.pos.y, target_x, target_y, dt * 0.5))
     end
+
+    game_state.crown_effect = self:get_number_of_objects_with_tag("rescue_object") == 0 and game_state.artefacts.crown_of_frenzy
+
+
     if debug.enabled then
         dbg("quick_clear_time_left_ratio", self:get_quick_clear_time_left_ratio(), Color.yellow)
         dbg("wave_timer", self.timescaled:tick_timer_time_left("wave_timer"), Color.yellow)
@@ -1559,6 +1578,7 @@ function GameWorld:update(dt)
             self:spawn_object(FatigueZone(self:get_random_position_in_room()))
         end
     end
+
 
 
     modloader:call("world_update", self, dt)
@@ -1951,7 +1971,9 @@ function GameWorld:draw()
 	-- Handle room bounds drawing based on clear effect
 	-- local draw_bounds_over = self.room_clear_fx_t < 0.45 and self.room_clear_fx_t > 0
     -- if not draw_bounds_over then
+    graphics.push"all"
     self:draw_room_bounds()
+    graphics.pop()
         -- self:draw_top_info()
     -- end
     
@@ -2191,7 +2213,7 @@ function GameWorld:get_border_color()
     end
     
     if self.room.curse_spite then
-        return Color.red
+        return iflicker(gametime.tick, 3, 2) and Color.red or Color.orange
     end
 
     if self.timescaled:is_tick_timer_running("clock_slow") then
@@ -2249,13 +2271,17 @@ function GameWorld:draw_room_bounds()
 
 	if self.room_clear_fx_t > min_t or self.room_clear_fx_t == -1 then
         local dash_swapped = self:is_border_dash_swapped()
-		local solid_color = self.state == "RoomClear" or self.player_hurt_fx_t < 0.5 and self.player_hurt_fx_t > 0
+        local solid_color = self.state == "RoomClear" or self.player_hurt_fx_t < 0.5 and self.player_hurt_fx_t > 0
+        solid_color = solid_color or self.room.curse_spite
 		-- graphics.rectangle("line", tlx, tly, r.right - r.left + 1, r.bottom - r.top + 1)
 		-- graphics.points(tlx, tly, trx, try, brx, bry, blx, bly)
 		-- graphics.line(tlx, tly, trx, try)
 		-- -- graphics.line(trx, try, brx, bry)
 		-- graphics.line(brx, bry, blx, bly)
-		graphics.set_line_width(1)
+        graphics.set_line_width(1)
+        if self.room.curse_spite and self.state ~= "RoomClear" then
+            graphics.set_line_width(2)
+        end
 		local scale = 0
         
         if self.room then
@@ -2594,14 +2620,14 @@ end
 
 
 
-SpiteObject.colors = {
+PressureObject.colors = {
     Color.red,
     Color.orange,
     Color.yellow,
 }
 
-function SpiteObject:new(x, y)
-    SpiteObject.super.new(self, x, y)
+function PressureObject:new(x, y)
+    PressureObject.super.new(self, x, y)
     self.particles = batch_remove_list()
     self.z_index = -10000
     self:add_elapsed_ticks()
@@ -2610,12 +2636,12 @@ end
 local MIN_HEIGHT = 50
 local ROOM_SHRINK_SPEED = 0.05
 
-function SpiteObject:enter()
+function PressureObject:enter()
     self.base_room_width = self.world.room.room_width
     self.base_room_height = self.world.room.room_height
 end
 
-function SpiteObject:update(dt)
+function PressureObject:update(dt)
     if not self.dead and self.tick > 10 then
         self:tick_frequency_callback(4, self.add_particle)
         if self.world.room.room_height > MIN_HEIGHT then
@@ -2630,7 +2656,7 @@ function SpiteObject:update(dt)
         end
         particle.x = particle.x + particle.vel_x * dt
         particle.y = particle.y + particle.vel_y * dt
-        particle.vel_x, particle.vel_y = vec2_drag(particle.vel_x, particle.vel_y, 0.001, dt)
+        particle.vel_x, particle.vel_y = vec2_drag(particle.vel_x, particle.vel_y, 0.01, dt)
     end
 
     self.particles:apply_removals()
@@ -2641,17 +2667,17 @@ function SpiteObject:update(dt)
 
 end
 
-function SpiteObject:die()
+function PressureObject:die()
     self.dead = true
     self.world.room:set_bounds(self.base_room_width, self.base_room_height)
 end
 
-function SpiteObject:add_particle()
-    local x, y = rng:random_point_on_rect_perimeter(self.world.room.left, self.world.room.top, self.world.room
-        .room_width, self.world.room.room_height)
+function PressureObject:add_particle()
+    local x, y = rng:random_point_on_rect_perimeter(self.world.room.left - 1, self.world.room.top - 1, self.world.room
+        .room_width + 2, self.world.room.room_height + 2)
 
     local vert = x == self.world.room.left or x == self.world.room.right
-    local vel_x, vel_y = rng:random_vec2_times(rng:randfn(0, 0.2))
+    local vel_x, vel_y = rng:randf_pow(0, 0.5, 4) * sign(x), rng:randf_pow(0, 0.5, 4) * sign(y)
     -- x, y = vec2_add(x, y, rng:random_vec2_times(rng:randfn(0, 2)))
     local particle = {
         x = x,
@@ -2665,13 +2691,13 @@ function SpiteObject:add_particle()
         -- size = rng:randfn_abs(20, 10),
         size = rng:randfn_abs(4, 2),
         color = rng:choose(self.colors),
-        lifetime = rng:randfn_abs(20, 90),
+        lifetime = rng:randfn_abs(10, 40),
         elapsed = 0,
     }
     self.particles:push(particle)
 end
 
-function SpiteObject:draw()
+function PressureObject:draw()
 
     
     -- graphics.set_color(Color.red)
@@ -2685,7 +2711,7 @@ function SpiteObject:draw()
             -- dy = dy * 0.5
             -- graphics.set_line_width((1 - t) * 6)
             -- graphics.line(particle.x - dx, particle.y - dy, particle.x + dx, particle.y + dy)
-            local size = particle.size * (1 - t)   
+            local size = particle.size * (1 - t)
             graphics.rectangle_centered("fill", particle.x, particle.y, size, size)
             
         end

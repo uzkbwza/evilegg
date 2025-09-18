@@ -301,7 +301,8 @@ local Artefacts = {
 		infinite_spawns = true,
 		repeats_allowed = true,
         destroy_score = 750,
-		destroy_xp = 600,
+		-- destroy_xp = 600,
+		destroy_xp = 450,
     },
 
     HeartTradeArtefact = {
@@ -386,6 +387,14 @@ local Artefacts = {
         spawn_weight = 1000,
         explode_on_destroy = true,
     },
+
+    -- BulletSpeedStackArtefact = {
+    --     icon = textures.pickup_artefact_bullet_speed_stack,
+	-- 	key = "bullet_speed_stack",
+	-- 	name = "artefact_bullet_speed_stack_name",
+	-- 	description = "artefact_bullet_speed_stack_desc",
+    --     spawn_weight = 1000,
+    -- },
     
 	
 	-- Secondary Weapons
@@ -461,7 +470,7 @@ local Artefacts = {
         is_secondary_weapon = true,
 		
 		ammo = 48,
-		ammo_gain_per_level = 8,
+		ammo_gain_per_level = 12,
         ammo_needed_per_use = 8,
 		ammo_powerup_gain = 4,
 		
@@ -483,6 +492,7 @@ local Artefacts = {
         codex_hidden = true,
         no_codex = true,
     },
+
 }
 
 

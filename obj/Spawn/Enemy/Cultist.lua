@@ -785,6 +785,7 @@ function PhylacteryParticles:new(x, y)
     for i = 1, 40 do
         self:spawn_particle2()
     end
+    self.z_index = 1
 
     self.exploded_yet = false
 end

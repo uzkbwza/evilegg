@@ -151,7 +151,11 @@ function GlobalGameState:new()
 
 	self.used_sacrificial_twin = false
 
+    -- self.bullet_speed_stack_amount = 0
+
 	self.hearts = 1
+
+    self.crown_effect = false
 
 	self.total_damage_taken = 0
 
@@ -244,7 +248,7 @@ function GlobalGameState:new()
 
         
         
-        local cheat = false
+        local cheat = true
         self.cheat = cheat
         
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -254,7 +258,7 @@ function GlobalGameState:new()
             self.skip_shadow_selves = false
             self.egg_rooms_cleared = 1
             self:add_score(rng:randi(6000000, 10000000), "cheat")
-            -- self:gain_artefact(PickupTable.artefacts.RicochetArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
             -- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
@@ -271,7 +275,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 20
+            self.level = 21
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -397,6 +401,33 @@ function GlobalGameState:drain_bullet_powerup_time(dt)
 		self.bullet_powerup = nil
 	end
 end
+
+-- local MAX_BULLET_SPEED_STACK_AMOUNT = 4.5
+-- local MAX_EFFECTIVE_BULLET_SPEED_STACK_AMOUNT = 3
+-- local BULLET_SPEED_STACK_DRAIN_RATE = 1 / 50
+-- local BULLET_SPEED_STACK_GAIN_RATE = 1/2.5
+
+-- function GlobalGameState:drain_bullet_speed_stack(dt)
+--     self.bullet_speed_stack_amount = self.bullet_speed_stack_amount - dt * BULLET_SPEED_STACK_DRAIN_RATE
+--     if self.bullet_speed_stack_amount < 0 then
+--         self.bullet_speed_stack_amount = 0
+--     end
+-- end
+
+-- function GlobalGameState:get_bullet_speed_stack_amount()
+--     if debug.enabled then return 1 end
+--     if not self.artefacts.bullet_speed_stack then
+--         return 0
+--     end
+--     return min(self.bullet_speed_stack_amount, MAX_EFFECTIVE_BULLET_SPEED_STACK_AMOUNT) / MAX_EFFECTIVE_BULLET_SPEED_STACK_AMOUNT
+-- end
+
+-- function GlobalGameState:gain_bullet_speed_stack()
+--     self.bullet_speed_stack_amount = self.bullet_speed_stack_amount + BULLET_SPEED_STACK_GAIN_RATE
+--     if self.bullet_speed_stack_amount > MAX_BULLET_SPEED_STACK_AMOUNT then
+--         self.bullet_speed_stack_amount = MAX_BULLET_SPEED_STACK_AMOUNT
+--     end
+-- end
 
 function GlobalGameState:level_bonus(bonus_name)
     if not LevelBonus[bonus_name] then

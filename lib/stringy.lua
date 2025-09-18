@@ -183,4 +183,12 @@ function stringy.fraction(decimal_num, max_denominator)
     return is_negative and "-" .. result or result
 end
 
+
+function stringy.proper_fraction(decimal_num, max_denominator)
+    local integer_part = floor(decimal_num)
+    local fractional_part = decimal_num - integer_part
+    return integer_part .. string.fraction(fractional_part)
+end
+
+
 return stringy

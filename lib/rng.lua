@@ -92,11 +92,22 @@ function rng:random_point_in_circle(radius)
 end
 
 function rng:choose(...)
-    local args = { ... }
-    if #args == 1 and type(args[1]) == "table" then
-        return args[1][self(1, #args[1])]
+    local n = select('#', ...)
+    if n == 1 then
+        local a = ...
+        if type(a) == "table" then
+            return a[self(1, #a)]
+        else
+            return a
+        end
     else
-        return args[self(1, #args)]
+        local idx = self(1, n)
+        for i = 1, n do
+            if i == idx then
+                local v = select(i, ...)
+                return v
+            end
+        end
     end
 end
 

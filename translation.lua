@@ -38,7 +38,7 @@ local translations = {
         curse_hazardous_desc = "This room is cursed with excess hazards.",
 
         curse_famine = "FAMINE",
-        curse_famine_desc = "This room disables the use of your secondary weapon.",
+        curse_famine_desc = "Your secondary weapon consumes twice as much ammo in this room.",
 
         curse_vulnerability = "FRAILTY",
         curse_vulnerability_desc = "This room weakens Greenoid defenses.",
@@ -191,6 +191,7 @@ local translations = {
         artefact_heart_trade_name      = "DISPOSABLE SURGEON",
         artefact_blast_armor_name      = "BLAST ARMOR",
         artefact_prayer_knot_name      = "PRAYER KNOT",
+        artefact_bullet_speed_stack_name = "BULLET SPEED STACK",
 
         weapon_sword_name              = "EXECUTIONER'S SWORD",
         weapon_big_laser_name          = "PLASMA CANNON",
@@ -205,7 +206,7 @@ local translations = {
         artefact_ring_of_loyalty_desc  = "Grab pickups to repel nearby enemies.",
         artefact_boost_damage_desc     = "Faster boost that leaves a trail of fire.",
         artefact_stone_trinket_desc    = "+Random upgrade when you overheal.",
-        artefact_crown_of_frenzy_desc  = "+Fire rate when no Greenoids on screen.",
+        artefact_crown_of_frenzy_desc  = "+Fire rate when no Greenoids are present.",
         artefact_death_cap_desc        = "Fungi are sympathetic to your mission.",
         artefact_clock_desc            = "Chain rescues to increasingly slow enemies.",
         -- artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
@@ -215,6 +216,7 @@ local translations = {
         artefact_heart_trade_desc      = "Trade an artefact for a heart and upgrade.",
         artefact_blast_armor_desc      = "You are prone to outbursts.",
         artefact_prayer_knot_desc      = "Stop shooting to charge a powerful bullet.",
+        artefact_bullet_speed_stack_desc = "Temporary +bullet speed on every kill.",
 
 
         weapon_sword_desc                            = "This is the line of division.",

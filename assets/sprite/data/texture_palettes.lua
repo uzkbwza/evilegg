@@ -70,6 +70,7 @@ return {
 	},
 	[22] = {
 		[1] = "assets/sprite/cutscene/egg_from_below.png",
+		[2] = "assets/sprite/pickup/artefact_bullet_speed_stack.png",
 	},
 	[23] = {
 		[1] = "assets/sprite/cutscene/egg_pillar.png",

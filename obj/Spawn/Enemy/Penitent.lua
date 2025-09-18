@@ -38,6 +38,8 @@ function Penitent:enter()
     if self.harboring_soul then
         self:add_tag("penitent_soul")
     end
+    
+    self:add_tag("artefact_kill_fx")
 end
 
 function Penitent:update(dt)
@@ -229,6 +231,7 @@ function PenitentSoul:enter()
         self:set_hurt_bubble_radius(10)
     end)
 
+    self:add_tag("artefact_kill_fx")
 end
 
 function PenitentSoul:update(dt)

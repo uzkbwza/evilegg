@@ -11,37 +11,37 @@ BasePlayerBullet.h_offset = 6.5
 BasePlayerBullet.is_player_bullet = true
 
 function BasePlayerBullet:new(x, y, extra_bullet)
-	BasePlayerBullet.super.new(self, x, y)
-	self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
-	self.radius = self.radius or 5
-	self:add_elapsed_ticks()
+    BasePlayerBullet.super.new(self, x, y)
+    self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
+    self.radius = self.radius or 5
+    self:add_elapsed_ticks()
     self.speed = self.speed or 6
-	self.sprite = self.sprite or textures.bullet_player_base
-	self.distance_travelled = 0
+    self.sprite = self.sprite or textures.bullet_player_base
+    self.distance_travelled = 0
     self.trail_distance = 0
-	self.start_palette_offset = self.start_palette_offset or gametime.tick * 4
+    self.start_palette_offset = self.start_palette_offset or gametime.tick * 4
     self.hit_vel_multip = self.hit_vel_multip or 30
     self.push_modifier = self.push_modifier or 0.75
-	self.z_index = 1
+    self.z_index = 1
 
-	if self.use_artefacts == nil then
-		self.use_artefacts = true
-	end
+    if self.use_artefacts == nil then
+        self.use_artefacts = true
+    end
     if self.use_upgrades == nil then
         self.use_upgrades = true
     end
-	
-    self.damage = self.damage or 1
-	self.lifetime = self.lifetime or 16
 
-	self:mix_init(TwinStickNormalBullet)
-	
+    self.damage = self.damage or 1
+    self.lifetime = self.lifetime or 16
+
+    self:mix_init(TwinStickNormalBullet)
+
 
     self.extra_bullet = extra_bullet
-	if self.extra_bullet then
-		self.lifetime = self.lifetime * 0.9
-	end
-	
+    if self.extra_bullet then
+        self.lifetime = self.lifetime * 0.9
+    end
+
     if self.use_upgrades then
         -- self.radius = self.radius * (1 + (game_state.upgrades.range) * 0.15)
         if extra_bullet then
@@ -50,18 +50,20 @@ function BasePlayerBullet:new(x, y, extra_bullet)
             self.push_modifier = self.push_modifier * 0.1
             self.radius = self.radius * 0.5
         end
+
+        -- local bullet_speed_stack_amount = game_state:get_bullet_speed_stack_amount()
+
         self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.2)
-        self.push_modifier = self.push_modifier * (1 + (game_state.upgrades.bullet_speed) * 0.4)
-        self.hit_vel_multip = self.hit_vel_multip * (1 + (game_state.upgrades.bullet_speed) * 0.4)
         local base_speed = self.speed
         self.base_speed = self.speed
         -- self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
-        self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.5)
-        -- if game_state.upgrades.range == 1 then
-        --     self.lifetime = self.lifetime * (26 / 16)
-        -- elseif game_state.upgrades.range >= 2 then
-        --     self.lifetime = self.lifetime * ((36 / 16) + ((game_state.upgrades.range - 2) * 10))
-        -- end
+        self.push_modifier = self.push_modifier *
+        (1 + (game_state.upgrades.bullet_speed) * (0.4))
+        self.hit_vel_multip = self.hit_vel_multip *
+        (1 + (game_state.upgrades.bullet_speed) * (0.4))
+        self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * (0.5))
+
+
         if game_state.upgrades.range == 1 then
             self.lifetime = self.lifetime * (26 / 16)
         elseif game_state.upgrades.range >= 2 then
@@ -76,8 +78,14 @@ function BasePlayerBullet:new(x, y, extra_bullet)
             self.ricochet = true
         end
     end
-	
-	self.base_lifetime = self.lifetime
+
+    self.base_lifetime = self.lifetime
+    self.base_lifetime = floor(self.base_lifetime)
+    self.lifetime = floor(self.lifetime)
+end
+
+function BasePlayerBullet:get_trail_distance()
+    return 4
 end
 
 function BasePlayerBullet:draw()
@@ -85,7 +93,7 @@ function BasePlayerBullet:draw()
     if floor(self.tick / 2) % 2 == 0 then
         palette_offset = palette_offset + 5
     end
-    local trail_dist = 4
+    local trail_dist = self:get_trail_distance()
     local max_bullets = 10
     local num_trail_bullets = min(max(floor(self.trail_distance / trail_dist), 1), max_bullets)
     local start, stop, step = -1, 1, 2
@@ -151,6 +159,7 @@ end
 
 function BasePlayerBullet:on_terrain_collision(normal_x, normal_y)
     local dx, dy = self.direction.x, self.direction.y
+
     if vec2_dot(dx, dy, normal_x, normal_y) > 0 then
         return
     end
@@ -159,11 +168,12 @@ function BasePlayerBullet:on_terrain_collision(normal_x, normal_y)
         self.ignore_grappling_hook = true
 		self:play_sfx("player_ricochet", 0.5)
         self.ricochet_count = self.ricochet_count - 1
-		local bounce_x, bounce_y = vec2_bounce(self.direction.x, self.direction.y, normal_x, normal_y)
+        local bounce_x, bounce_y = vec2_bounce(self.direction.x, self.direction.y, normal_x, normal_y)
+
 		self.direction.x, self.direction.y = vec2_normalized(bounce_x, bounce_y)
         self:move(bounce_x * self.speed, bounce_y * self.speed)
 		self.num_ricochets = self.num_ricochets and self.num_ricochets + 1 or 1
-        self.lifetime = self.elapsed + (self.base_lifetime / (self.num_ricochets + 1))
+        self.lifetime = floor(ceil(self.elapsed) + (self.base_lifetime / (self.num_ricochets + 1)))
     else
 		self:defer(function() self:die() end)
 	end
@@ -174,7 +184,7 @@ function BasePlayerBullet:get_death_particle_hit_velocity()
 end
 
 function BasePlayerBullet:update(dt)
-	local move_x, move_y = self.direction.x * dt * self.speed, self.direction.y * dt * self.speed
+    local move_x, move_y = self.direction.x * dt * self.speed, self.direction.y * dt * self.speed
 	if self.dead then
 		move_x = move_x * 0.45
 		move_y = move_y * 0.45
@@ -182,7 +192,28 @@ function BasePlayerBullet:update(dt)
 	local dist = vec2_magnitude(move_x, move_y)
 	self.distance_travelled = self.distance_travelled + dist
 	self.trail_distance = self.trail_distance + dist
-	self:move(move_x, move_y)
+    local next_x, next_y = self.pos.x + move_x, self.pos.y + move_y
+    
+    -- local collided = false
+
+    -- if not self.dead then
+    --     local off = (self.radius / 2) - 1
+
+    --     local intersect_x, intersect_y = line_rect_intersection(self.pos.x, self.pos.y, next_x, next_y, self.world.room.bullet_bounds.x + off, self.world.room.bullet_bounds.y + off, self.world.room.bullet_bounds.width - off * 2, self.world.room.bullet_bounds.height - off * 2)
+    
+    --     if intersect_x and intersect_y then
+    --         next_x, next_y = intersect_x, intersect_y
+    --         collided = true
+    --     end
+    -- end
+
+
+    
+	self:move_to(next_x, next_y)
+
+    -- if collided then
+    --     self:constrain_to_room()
+    -- end
 
 	-- if self.use_artefacts then
 		-- if game_state.artefacts.damage_over_distance then
