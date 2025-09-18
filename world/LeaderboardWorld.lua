@@ -327,9 +327,6 @@ function LeaderboardWorld:on_page_fetched(page)
 
     for i = 1, PAGE_LENGTH do
         local run = self.current_page.entries[i]
-        if run.artefacts == nil then
-            run.artefacts = {}
-        end
         if run then
             for j = 1, GlobalGameState.max_artefacts do
                 local artefact = self.artefact_map[run.artefacts[j]]
@@ -337,6 +334,9 @@ function LeaderboardWorld:on_page_fetched(page)
                     self.run_tables[i].hatch_particles = batch_remove_list()
                     break
                 end
+            end
+            if run.artefacts == nil then
+                run.artefacts = {}
             end
         end
     end
