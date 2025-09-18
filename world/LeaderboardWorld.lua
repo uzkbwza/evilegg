@@ -328,6 +328,9 @@ function LeaderboardWorld:on_page_fetched(page)
     for i = 1, PAGE_LENGTH do
         local run = self.current_page.entries[i]
         if run then
+            if run.artefacts == nil then
+                run.artefacts = {}
+            end
             for j = 1, GlobalGameState.max_artefacts do
                 local artefact = self.artefact_map[run.artefacts[j]]
                 if artefact and artefact.name == "HatchedTwinArtefact" then
@@ -335,9 +338,7 @@ function LeaderboardWorld:on_page_fetched(page)
                     break
                 end
             end
-            if run.artefacts == nil then
-                run.artefacts = {}
-            end
+
         end
     end
 
