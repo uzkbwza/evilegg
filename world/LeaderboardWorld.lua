@@ -299,7 +299,86 @@ function LeaderboardWorld:get_period()
     return self.period
 end
 
+function LeaderboardWorld:validate_and_sanitize_run(run)
+    -- Ensure run is a table
+    if type(run) ~= "table" then
+        error("Invalid run data: expected table, got " .. type(run))
+    end
+    
+    -- Validate and sanitize artefacts array
+    if run.artefacts == nil or type(run.artefacts) ~= "table" then
+        run.artefacts = {}
+    else
+        -- Ensure artefacts array contains only valid string keys or nil
+        for j = 1, GlobalGameState.max_artefacts do
+            if run.artefacts[j] ~= nil and type(run.artefacts[j]) ~= "string" then
+                run.artefacts[j] = nil
+            end
+        end
+    end
+    
+    -- Validate and sanitize numeric fields
+    if type(run.rescues) ~= "number" then
+        run.rescues = 0
+    end
+    
+    if type(run.level) ~= "number" then
+        run.level = 0
+    end
+    
+    if type(run.kills) ~= "number" then
+        run.kills = 0
+    end
+    
+    if type(run.score) ~= "number" then
+        run.score = 0
+    end
+    
+    if type(run.game_time) ~= "number" then
+        run.game_time = 0
+    end
+    
+    -- Validate and sanitize string fields
+    if type(run.name) ~= "string" then
+        run.name = ""
+    end
+    
+    if type(run.uid) ~= "string" then
+        run.uid = ""
+    end
+    
+    if type(run.secondary_weapon) ~= "string" and run.secondary_weapon ~= nil then
+        run.secondary_weapon = nil
+    end
+    
+    -- Validate and sanitize boolean/numeric fields that should be specific values
+    if run.good_ending ~= nil and type(run.good_ending) ~= "number" then
+        run.good_ending = nil
+    elseif run.good_ending ~= nil then
+        -- Ensure good_ending is a valid value (0, 1, or 2)
+        if run.good_ending ~= 0 and run.good_ending ~= 1 and run.good_ending ~= 2 then
+            run.good_ending = nil
+        end
+    end
+    
+    -- Ensure numeric fields are within reasonable bounds to prevent overflow issues
+    run.rescues = math.max(0, math.min(run.rescues, 999999999))
+    run.level = math.max(0, math.min(run.level, 999999999))
+    run.kills = math.max(0, math.min(run.kills, 999999999))
+    run.score = math.max(0, math.min(run.score, 999999999999))
+    run.game_time = math.max(0, math.min(run.game_time, 999999999))
+end
+
 function LeaderboardWorld:on_page_fetched(page)
+    -- Validate page structure
+    if type(page) ~= "table" then
+        self.error = true
+        return
+    end
+    
+    if type(page.entries) ~= "table" then
+        page.entries = {}
+    end
     
     if #page.entries == 0 and self.changing_page_number then
         self:fetch_page(self.current_page_number)
@@ -328,12 +407,13 @@ function LeaderboardWorld:on_page_fetched(page)
     for i = 1, PAGE_LENGTH do
         local run = self.current_page.entries[i]
         if run then
-            if run.artefacts == nil then
-                run.artefacts = {}
-            end
+            -- Comprehensive validation and sanitization of run data
+            self:validate_and_sanitize_run(run)
+            
             for j = 1, GlobalGameState.max_artefacts do
-                local artefact = self.artefact_map[run.artefacts[j]]
-                if artefact and artefact.name == "HatchedTwinArtefact" then
+                local artefact_key = run.artefacts and run.artefacts[j]
+                local artefact = artefact_key and self.artefact_map[artefact_key]
+                if artefact and type(artefact) == "table" and artefact.name == "HatchedTwinArtefact" then
                     self.run_tables[i].hatch_particles = batch_remove_list()
                     break
                 end
@@ -448,7 +528,7 @@ function LeaderboardWorld:draw()
     -- graphics.print(comma_sep(hi_score_run and hi_score_run.score or 0), font2, font2:getWidth(hi_score_text), 0)
     -- graphics.pop()
 
-    if self.waiting or self.error or self.current_page == nil then
+    if self.waiting or self.error or self.current_page == nil or type(self.current_page) ~= "table" or type(self.current_page.entries) ~= "table" then
         graphics.set_color(Color.white)
         graphics.print_centered((self.error and tr.leaderboard_error or tr.leaderboard_loading):upper(), font2,
             conf.viewport_size.x / 2, conf.viewport_size.y / 2)
@@ -502,6 +582,9 @@ function LeaderboardWorld:draw_leaderboard()
         local run_table = self.run_tables[i]
         local run = self.current_page.entries[i]
         if run then
+            -- Ensure run data is validated before accessing
+            self:validate_and_sanitize_run(run)
+            
             local is_self = run.uid == savedata:get_uid()
             local line_color = Color.darkergrey
 
@@ -574,8 +657,9 @@ function LeaderboardWorld:draw_leaderboard()
                 graphics.translate(LINE_WIDTH - 41 - (j - 1) * 13, RANKING_LINE_HEIGHT - 14)
 
                 graphics.draw(textures.hud_artefact_slot1, 0, 0, 0, 1, 1)
-                local artefact = self.artefact_map[run.artefacts[j]]
-                if artefact and artefact ~= "none" and j <= t * GlobalGameState.max_artefacts then
+                local artefact_key = run.artefacts and run.artefacts[j]
+                local artefact = artefact_key and self.artefact_map[artefact_key]
+                if artefact and type(artefact) == "table" and artefact ~= "none" and j <= t * GlobalGameState.max_artefacts then
                     local palette, offset = nil, 0
                     if artefact.name == "HatchedTwinArtefact" then
                         -- palette = Palette.rankings_hatched_twin
@@ -632,6 +716,9 @@ function LeaderboardWorld:draw_leaderboard()
         end
         local run = self.current_page.entries[i]
         if run then
+            -- Ensure run data is validated before drawing
+            self:validate_and_sanitize_run(run)
+            
             local is_self = run.uid == savedata:get_uid()
             local name = run.name or ""
             local score = run.score or 0
@@ -644,7 +731,9 @@ function LeaderboardWorld:draw_leaderboard()
 
             if secondary_weapon and self.artefact_map[secondary_weapon] then
                 local artefact = self.artefact_map[secondary_weapon]
-                secondary_weapon_sprite = artefact.sprite or artefact.icon
+                if artefact and type(artefact) == "table" then
+                    secondary_weapon_sprite = artefact.sprite or artefact.icon
+                end
             end
             if secondary_weapon_sprite then
                 graphics.push("all")

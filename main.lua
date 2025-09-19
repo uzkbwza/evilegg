@@ -3,7 +3,7 @@
 -- ===========================================================================
 ---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "0.12.2" 
+GAME_VERSION = "0.12.3"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
@@ -134,6 +134,17 @@ end
 
 
 function love.run()
+    if jit then
+        jit.opt.start("3", "+fma")
+        local s = { jit.status() }
+        print("LuaJIT on:", s[1], "arch:", jit.arch, "os:", jit.os, "ver:", jit.version)
+        local flags = {}
+        for i = 2, #s do flags[#flags+1] = s[i] end
+        print("LuaJIT flags:", table.concat(flags, " "))
+        local has_fma = false
+        for i = 2, #s do if s[i] == "fma" then has_fma = true end end
+        print("FMA enabled:", has_fma)
+    end
     if love.math then love.math.set_random_seed(os.time()) end
     if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
     if love.timer then love.timer.step() end
