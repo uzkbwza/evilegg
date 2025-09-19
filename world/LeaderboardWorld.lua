@@ -299,17 +299,14 @@ function LeaderboardWorld:get_period()
     return self.period
 end
 
-function LeaderboardWorld:validate_and_sanitize_run(run)
-    -- Ensure run is a table
+function LeaderboardWorld:sanitize_run(run)
     if type(run) ~= "table" then
-        error("Invalid run data: expected table, got " .. type(run))
+        run = {}
     end
     
-    -- Validate and sanitize artefacts array
     if run.artefacts == nil or type(run.artefacts) ~= "table" then
         run.artefacts = {}
     else
-        -- Ensure artefacts array contains only valid string keys or nil
         for j = 1, GlobalGameState.max_artefacts do
             if run.artefacts[j] ~= nil and type(run.artefacts[j]) ~= "string" then
                 run.artefacts[j] = nil
@@ -317,7 +314,6 @@ function LeaderboardWorld:validate_and_sanitize_run(run)
         end
     end
     
-    -- Validate and sanitize numeric fields
     if type(run.rescues) ~= "number" then
         run.rescues = 0
     end
@@ -338,9 +334,8 @@ function LeaderboardWorld:validate_and_sanitize_run(run)
         run.game_time = 0
     end
     
-    -- Validate and sanitize string fields
     if type(run.name) ~= "string" then
-        run.name = ""
+        run.name = "ERROR"
     end
     
     if type(run.uid) ~= "string" then
@@ -351,22 +346,21 @@ function LeaderboardWorld:validate_and_sanitize_run(run)
         run.secondary_weapon = nil
     end
     
-    -- Validate and sanitize boolean/numeric fields that should be specific values
     if run.good_ending ~= nil and type(run.good_ending) ~= "number" then
         run.good_ending = nil
     elseif run.good_ending ~= nil then
-        -- Ensure good_ending is a valid value (0, 1, or 2)
         if run.good_ending ~= 0 and run.good_ending ~= 1 and run.good_ending ~= 2 then
             run.good_ending = nil
         end
     end
     
-    -- Ensure numeric fields are within reasonable bounds to prevent overflow issues
     run.rescues = math.max(0, math.min(run.rescues, 999999999))
     run.level = math.max(0, math.min(run.level, 999999999))
     run.kills = math.max(0, math.min(run.kills, 999999999))
-    run.score = math.max(0, math.min(run.score, 999999999999))
+    run.score = math.max(0, math.min(run.score, 999999999999999))
     run.game_time = math.max(0, math.min(run.game_time, 999999999))
+
+    return run
 end
 
 function LeaderboardWorld:on_page_fetched(page)
@@ -405,10 +399,10 @@ function LeaderboardWorld:on_page_fetched(page)
     end
 
     for i = 1, PAGE_LENGTH do
+        -- local run = self.current_page.entries[i]
         local run = self.current_page.entries[i]
         if run then
-            -- Comprehensive validation and sanitization of run data
-            self:validate_and_sanitize_run(run)
+            run = self:sanitize_run(run)
             
             for j = 1, GlobalGameState.max_artefacts do
                 local artefact_key = run.artefacts and run.artefacts[j]
@@ -582,8 +576,8 @@ function LeaderboardWorld:draw_leaderboard()
         local run_table = self.run_tables[i]
         local run = self.current_page.entries[i]
         if run then
-            -- Ensure run data is validated before accessing
-            self:validate_and_sanitize_run(run)
+
+            run = self:sanitize_run(run)
             
             local is_self = run.uid == savedata:get_uid()
             local line_color = Color.darkergrey
@@ -714,10 +708,10 @@ function LeaderboardWorld:draw_leaderboard()
         if t == 0 then
             break
         end
+        -- local run = {}
         local run = self.current_page.entries[i]
         if run then
-            -- Ensure run data is validated before drawing
-            self:validate_and_sanitize_run(run)
+            run = self:sanitize_run(run)
             
             local is_self = run.uid == savedata:get_uid()
             local name = run.name or ""
