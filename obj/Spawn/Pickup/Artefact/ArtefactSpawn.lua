@@ -317,6 +317,9 @@ function ArtefactSpawner:new(x, y)
 		self:stop_sfx("pickup_artefact_spawn")
         self:play_sfx("pickup_artefact_boom")
         self.world.camera:start_rumble(2, 12, nil, false, true)
+        input.start_rumble(function(t)
+            return 0.9 * (1 - ease("outQuad")(ease("outExpo")(t)))
+        end, 60)
         self:spawn_object(Splatter(self.pos.x, self.pos.y, 40, 40, 2)).z_index = -1
 		local flash_size = 100
 		-- self:spawn_object(ArtefactSpawnerFlashEffect(self.pos.x, self.pos.y))

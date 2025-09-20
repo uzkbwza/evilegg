@@ -236,7 +236,7 @@ function PlayerCharacter:state_GameStart_exit()
 	-- self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, 0, 0, 0, 0, 2.0))
     self:emit_signal("hatched")
     input.start_rumble(function(t)
-        return 0.25 * (1 - t)
+        return 0.25 * (1 - ease("outQuad")(t))
     end, 25)
     self.egg_offset = nil
 end
