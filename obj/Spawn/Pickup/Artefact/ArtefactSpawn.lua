@@ -132,6 +132,10 @@ function ArtefactSpawn:hit_by(other)
     if self.hp <= 0 then
         self:queue_destroy()
 
+        input.start_rumble(function(t)
+            return 0.3 * (1 - (t))
+        end, 10)
+
         self.world:add_score_object(self.pos.x, self.pos.y, self:get_destroy_score(), "artefact_destruction")
 
         self:spawn_object(XpPickup(self.pos.x, self.pos.y, self:get_destroy_xp()))
