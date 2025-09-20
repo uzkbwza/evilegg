@@ -1561,7 +1561,7 @@ end
 
 
 local sword_rumble_func = function(t)
-    return 0.5 * (1 - (t))
+    return 0.5 * (1 -  ease("outQuad")(t))
 end
 
 local railgun_rumble_func = function(t)
@@ -1581,7 +1581,7 @@ function PlayerCharacter:secondary_sword_pressed()
 	self.slash_direction = self.slash_direction * -1
     self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.real_aim_direction,
     self.slash_direction))
-    input.start_rumble(sword_rumble_func, 5)
+    input.start_rumble(sword_rumble_func, 12)
 	self:start_secondary_weapon_cooldown()
 end
 
