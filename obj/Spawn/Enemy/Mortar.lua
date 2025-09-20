@@ -176,7 +176,10 @@ function MortarProjectile:explode()
 		melee_both_teams = true,
 		-- particle_count_modifier = 0.95,
 		-- explode_sfx = "explosion3",
-	}
+    }
+    input.start_rumble(function(t)
+        return 0.6 * (1 - ease("outQuad")(t))
+    end, 20)
     self:spawn_object(Explosion(self.pos.x, self.pos.y, params))
 	self:die()
 end

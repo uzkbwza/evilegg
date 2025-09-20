@@ -22,6 +22,9 @@ end
 
 function RingOfLoyaltyBurst:enter()
     self:spawn_object(DeathFloorParticle(self.pos.x, self.pos.y, self:get_radius()))
+    input.start_rumble(function(t)
+        return 0.5 * (1 - t)
+   end, 10)
 end
 
 function RingOfLoyaltyBurst:get_radius()

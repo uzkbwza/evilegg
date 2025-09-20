@@ -293,7 +293,10 @@ function EggBoss:crack_shell()
         return
     end
 	
-	self:play_sfx("enemy_evil_egg_crack")
+    self:play_sfx("enemy_evil_egg_crack")
+    input.start_rumble(function(t)
+        return 0.6 * (1 - t)
+    end, 20)
 
 	self.world.camera:start_rumble(3, 15, ease("linear"), true, false)
 
@@ -770,6 +773,9 @@ end
 function EggBoss:phase2_landing()
     -- self:play_sfx("enemy_evil_egg_phase2_landing", 0.8)
     if not (self.phase2_started_twice or (SKIP_PHASE_3 and SKIP_PHASE_4)) then
+        input.start_rumble(function(t)
+            return 0.7 * (1 - ease("outExpo")(t))
+        end, 600)
 		self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
 		self:spawn_object(Explosion(self.pos.x, self.pos.y, {
 			size = LAND_EXPLOSION_SIZE,
@@ -1418,13 +1424,17 @@ function BloodSpawner:end_zap_sequence()
 
 end
 
+local zap_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
 function BloodSpawner:zap(target)
 	
 	local s = self.sequencer
 	
 	self:stop_sfx("enemy_evil_egg_zap_charge")
     self:play_sfx("enemy_evil_egg_blood_zap", 0.8)
-	
+    input.start_rumble(zap_rumble_func, 5)
 	s:start(function()
 		self:unref("zap_target")
         if target == nil then return end
@@ -2542,6 +2552,10 @@ function EggSentry:get_palette()
     return nil, self.irng:percent(80) and self.irng:randi() or 0
 end
 
+local egg_sentry_rumble_func = function(t)
+    return 0.35 * (1 - t)
+end
+
 function EggSentry:update(dt)
     if self.is_new_tick and not self:is_tick_timer_running("shoot_cooldown") and self.tick > 120 then
         local player_distance = self:get_body_distance_to_player()
@@ -2566,6 +2580,7 @@ function EggSentry:update(dt)
                             local bullet = EggSentryBullet(bx + direction_x * 20, by + direction_y * 20, direction_x, direction_y, 1.0)
                             self.world:spawn_object(bullet)
                         end
+                        input.start_rumble(egg_sentry_rumble_func, 10)
                         self:play_sfx("enemy_egg_sentry_shoot", 1, 1.0)
                         s:wait(TIME_BETWEEN_SHOTS)
                     end
@@ -2588,6 +2603,9 @@ function EggSentry:die()
     end
     EggSentry.super.die(self)
     self.world.camera:start_rumble(2, 120, "linear", true, true)
+    input.start_rumble(function(t)
+        return 0.7 * (1 - t)
+    end, 120)
     self.world:spawn_object(EggSentryDeathFx(0, 0))
 end
 

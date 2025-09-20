@@ -238,12 +238,19 @@ function BaseEnemy:die(hit_by)
 	self:queue_destroy()
 end
 
+local enemy_dead_rumble_func = function(t)
+    return 0.5 * (1 - (t))
+end
+
+
 function BaseEnemy:death_effect(hit_by) 
     self:normal_death_effect(hit_by)
     if self.death_sfx then
         self:play_sfx(self.death_sfx, self.death_sfx_volume or 1.0, self.death_sfx_pitch or 1.0)
     else
         if self:has_tag("wave_enemy") then
+            input.start_rumble(enemy_dead_rumble_func, 5)
+
             self:play_sfx("enemy_death", 0.5, 1.0)
 			self:play_sfx("enemy_death3", 0.35, 1.0)
             self:play_sfx("enemy_death2", 1.0, 1.0)

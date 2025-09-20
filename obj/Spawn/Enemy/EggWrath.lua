@@ -47,6 +47,10 @@ function EggWrath:new(x, y)
     self:start_destroy_timer(400)
 end
 
+local wrath_thunder_rumble_func = function(t)
+    return 0.8 * (1 - ease("outQuad")(t))
+end
+
 function EggWrath:enter()
     self:play_sfx("enemy_egg_wrath_startup", 0.7)
     self:interpolate_property_between_times("beam_width_t", 0, 1, 0, STARTUP_TIME)
@@ -63,8 +67,10 @@ function EggWrath:enter()
         self:start_stopwatch("lightning")
         self:spawn_object(EggWrathParticle(self.pos.x, self.pos.y))
         self.world.camera:start_rumble(4, 30, nil, false, true)
+        input.start_rumble(wrath_thunder_rumble_func, 25)
         self:play_sfx("enemy_egg_wrath_blast", 1)
         self:stop_sfx("enemy_egg_wrath_startup")
+
     end)
     self:start_tick_timer("hurt_bubble", STARTUP_TIME + 2, function()
         self:remove_hit_bubble("main")

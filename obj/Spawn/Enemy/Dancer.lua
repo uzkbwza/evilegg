@@ -117,6 +117,11 @@ function Dancer:get_palette()
     -- return nil, 0
 end
 
+
+local step_rumble_func = function(t)
+    return 1.0 * (1 - ease("outQuad")(t))
+end
+
 function Dancer:state_Walk_update(dt)
     if not self.walking and self.is_new_tick and self.tick % 7 == 0 then
         self.step = self.step + 1
@@ -245,6 +250,7 @@ function Dancer:state_Attack_update(dt)
                     self.step = 1
                 end
                 self:play_sfx("enemy_dancer_dance", 1)
+                input.start_rumble(step_rumble_func, 15)
                 s:start(function()
                     self:set_hit_bubble_radius("main", 18)
                     s:wait(1)

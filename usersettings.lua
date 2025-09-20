@@ -34,6 +34,7 @@ local default_usersettings = {
     gamepad_plus_mouse = false,
     confine_mouse = "when_aiming", -- when_aiming, always, never
     southpaw_mode = false,
+    rumble_intensity = 1.0,
 
     input_remapping = {
     },

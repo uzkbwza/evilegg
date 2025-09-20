@@ -741,6 +741,7 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
 			end
 		end
 
+
         self:spawn_object(XpPickup(bx, by, enemy_object:get_xp()))
         -- game_state:level_bonus("kill")
 

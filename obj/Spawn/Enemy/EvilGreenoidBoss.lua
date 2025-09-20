@@ -319,6 +319,10 @@ function EvilGreenoidBoss:state_CoilBullets_update(dt)
 	-- self:try_start_targeted_bullet_burst()
 end
 
+local function coil_bullets_rumble(t)
+    return 0.25 * (1 - t)
+end
+
 function EvilGreenoidBoss:spawn_coil_bullets2()
 	local s = self.sequencer
 	
@@ -352,7 +356,8 @@ function EvilGreenoidBoss:spawn_coil_bullets2()
 				local shot_type = 1
 				for j = 1, burst_length do
 
-					self:play_sfx("enemy_yolk_shoot2", 1, 1.0)
+                    self:play_sfx("enemy_yolk_shoot2", 1, 1.0)
+                    input.start_rumble(coil_bullets_rumble, 2)
                     if i == num_waves or (i - 2) % 3 == 0 then
 						if shot_type == 1 or shot_type == 3 then
 							local bullet1 = self.world:spawn_object(CoilBullet(self.pos.x, self.pos.y, 0,
@@ -413,7 +418,9 @@ function EvilGreenoidBoss:spawn_coil_bullets(bursts)
 			
 			for i = 1, num_waves do
 				local stopwatch = self:get_stopwatch("coil_bullets")
-				self:play_sfx("enemy_yolk_shoot2", 1, 1.0)
+                self:play_sfx("enemy_yolk_shoot2", 1, 1.0)
+                input.start_rumble(coil_bullets_rumble, 4)
+
 				for j = 1, num_bullets do
                     local angle = j * angle_offset + random_angle + turn_direction * 0.016 * stopwatch.elapsed
 					if not (self.state == "Thrash" and self.thrash_started) then
@@ -442,6 +449,9 @@ function EvilGreenoidBoss:on_terrain_collision(normal_x, normal_y)
         self:terrain_collision_bounce(normal_x, normal_y)
 		if self.thrash_started and self.can_wall_slam then
             self:change_state("Idle")
+            input.start_rumble(function(t)
+                return 0.9 * (1 - t)
+            end, 24)
 			-- print("here")
 		end
     else
@@ -503,6 +513,13 @@ function EvilGreenoidBoss:floor_draw()
 			graphics.pop()
         end
 	end
+end
+
+function EvilGreenoidBoss:die(...)
+    EvilGreenoidBoss.super.die(self, ...)
+    input.start_rumble(function(t)
+        return 0.9 * (1 - t)
+    end, 50)
 end
 
 function EvilGreenoidBoss:draw_greenoid(greenoid)

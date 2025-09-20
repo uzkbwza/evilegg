@@ -234,7 +234,10 @@ function PlayerCharacter:state_GameStart_exit()
 	self:spawn_object(DeathFlash(bx, by, textures.player_egg, 0.25, nil, nil, false))
 	self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, vel_x, vel_y, 0, 0, 3.0))
 	-- self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, 0, 0, 0, 0, 2.0))
-	self:emit_signal("hatched")
+    self:emit_signal("hatched")
+    input.start_rumble(function(t)
+        return 0.25 * (1 - t)
+    end, 25)
     self.egg_offset = nil
 end
 
@@ -778,6 +781,9 @@ function PlayerCharacter:fire_current_bullet()
                 class = self.bullet_powerups["PrayerKnotChargeBullet"]
                 self.prayer_knot_charged = false
                 default = false
+                input.start_rumble(function(t)
+                    return 0.5 * (1 - t)
+                end, 15)
             else
                 table.clear(self.prayer_knot_particles)
                 self:start_prayer_knot_charge()
@@ -795,6 +801,8 @@ function PlayerCharacter:fire_current_bullet()
 	self:play_sfx(class.shoot_sfx or "player_shoot", class.shoot_sfx_volume or 0.45, 1)
 
     if default then
+
+
         if game_state.upgrades.damage >= 1 then
             self:play_sfx("player_damage_upgrade_1", 0.25)
         end
@@ -811,6 +819,7 @@ function PlayerCharacter:fire_current_bullet()
             self:play_sfx("player_range_upgrade_2", 0.25)
         end
 
+
         if game_state.upgrades.bullet_speed >= 1 then
             self:play_sfx("player_bullet_speed_upgrade_1", 0.2)
         end
@@ -822,6 +831,7 @@ function PlayerCharacter:fire_current_bullet()
                 self:play_sfx("player_bullets_upgrade_1", 0.35)
             end
         end
+
     end
 	
 	local spread = class.spread
@@ -933,7 +943,7 @@ function PlayerCharacter:hit_by(by, force)
         -- if rng:percent(percent) then
         game_state:random_downgrade()
         -- end
-        
+
         self:emit_signal("got_hurt")
     elseif game_state.artefacts.sacrificial_twin then
         game_state:use_sacrificial_twin()
@@ -946,10 +956,23 @@ function PlayerCharacter:hit_by(by, force)
                 self:spawn_twin_death_effect()
             end
         end)
-
     else
         dead = true
         self:damage(1)
+    end
+    
+    if dead then
+       input.start_rumble(function(t)
+            return 0.9 * (1 - t)
+       end, 60)
+    else
+        input.start_rumble(function(t)
+            t = t * 5
+
+            local result = round(t) % 3 == 0 and 0.0 or 1.0
+            -- print(t)
+            return result
+        end, 20)
     end
     
 
@@ -1411,19 +1434,26 @@ function PlayerCharacter:state_Hover_update(dt)
 	-- end
 
 
+    local bounced = false
     if self.bounce_sfx_horizontal then
         if abs(self.hover_vel.x) > 0.3 then
-            self:play_sfx("entity_bounce")
+            bounced = true
         end
 		self.bounce_sfx_horizontal = false
 	end
 	if self.bounce_sfx_vertical then
 		if abs(self.hover_vel.y) > 0.3 then
-			self:play_sfx("entity_bounce")
+            bounced = true
 		end
 		self.bounce_sfx_vertical = false
 	end
-
+    
+    if bounced then
+        self:play_sfx("entity_bounce")
+        input.start_rumble(function(t)
+            return 0.5 * (1 - t)
+        end, 3)
+    end
 end
 
 function PlayerCharacter:state_Hover_exit()
@@ -1530,6 +1560,17 @@ end
 --------------------------------------------------------------------------------------------------------------
 
 
+local sword_rumble_func = function(t)
+    return 0.5 * (1 - (t))
+end
+
+local railgun_rumble_func = function(t)
+    return 0.8 * (1 - ease("outQuad")(t))
+end
+
+local big_laser_rumble_func = function(t)
+    return 0.8
+end
 
 function PlayerCharacter:secondary_sword_pressed()
     game_state:use_secondary_weapon_ammo()
@@ -1538,7 +1579,9 @@ function PlayerCharacter:secondary_sword_pressed()
     end
     self.slash_direction = self.slash_direction or 1
 	self.slash_direction = self.slash_direction * -1
-	self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.real_aim_direction, self.slash_direction))
+    self:spawn_object(self.secondary_weapon_objects.SwordSlash(self.pos.x, self.pos.y, self.real_aim_direction,
+    self.slash_direction))
+    input.start_rumble(sword_rumble_func, 5)
 	self:start_secondary_weapon_cooldown()
 end
 
@@ -1550,6 +1593,7 @@ function PlayerCharacter:secondary_railgun_pressed()
 	local shoot_pos_x, shoot_pos_y = self:get_shoot_position()
 
     self:spawn_object(self.secondary_weapon_objects.RailGunProjectile(shoot_pos_x, shoot_pos_y, self.real_aim_direction.x, self.real_aim_direction.y))
+    input.start_rumble(railgun_rumble_func, 30)
 	self:start_secondary_weapon_cooldown()
 end
 
@@ -1599,6 +1643,7 @@ function PlayerCharacter:secondary_big_laser_held(dt)
 		end
 
         if self.big_laser_beam then
+            input.start_rumble(big_laser_rumble_func, 2)
             self.big_laser_beam:move_to(self:get_body_center())
             self.big_laser_beam:set_direction(self.real_aim_direction.x, self.real_aim_direction.y)
         end

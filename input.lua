@@ -126,6 +126,7 @@ function input.load()
     input.mouse_released = { lmb = false, mmb = false, rmb = false }
     input.dummy.mouse_pressed = table.deepcopy(input.mouse_pressed)
     input.dummy.mouse_released = table.deepcopy(input.mouse_released)
+    input.rumble_objects = {}
     input.dummy.dummy = input.dummy
 	
 
@@ -176,17 +177,20 @@ function input.load()
     input.dummy.mouse_pressed = table.deepcopy(input.mouse_pressed)
     input.dummy.mouse_released = table.deepcopy(input.mouse_released)
 
-
-	for k, v in pairs(input) do
-		if type(v) == "function" then
-			input.dummy[k] = dummy_function
-		end
-	end
+    for k, v in pairs(input) do
+        if type(v) == "function" then
+            input.dummy[k] = dummy_function
+        end
+    end
+    
+    input.sequencer = Sequencer()
 end
 
 function input.get_mouse_position()
-	return input.mouse.cached_mouse_data.x, input.mouse.cached_mouse_data.y, input.mouse.cached_mouse_data.dx, input.mouse.cached_mouse_data.dy
+    return input.mouse.cached_mouse_data.x, input.mouse.cached_mouse_data.y, input.mouse.cached_mouse_data.dx,
+    input.mouse.cached_mouse_data.dy
 end
+
 
 function input.joystick_added(joystick)
     input.joysticks[joystick] = true
@@ -353,6 +357,7 @@ function input.process(t)
             if joystick_button and input.check_input_combo(joystick_button, "joystick", joystick, t) then
                 pressed = true
                 input:record_device_activity("gamepad")
+                input.last_joystick = joystick
             end
 
 
@@ -369,6 +374,7 @@ function input.process(t)
                         t[g[action].amount] = abs(value)
                         if value > 0.5 then
                             input:record_device_activity("gamepad")
+                            input.last_joystick = joystick
                         end
                     end
                 else
@@ -377,6 +383,7 @@ function input.process(t)
                         t[g[action].amount] = abs(value)
                         if value < -0.5 then
                             input:record_device_activity("gamepad")
+                            input.last_joystick = joystick
                         end
                     end
                 end
@@ -622,12 +629,58 @@ function input.post_process(t)
 end
 
 
+local _to_remove = {}
+
 function input.update(dt)
     input.process(input)
-    -- dbg("last_input_device", input.last_input_device)
-    -- dbg("prompt", input:get_prompt_device())
-    -- dbg("_prompt_last_gamepad_time", input._prompt_last_gamepad_time)
-    -- dbg("_prompt_last_mkb_time", input._prompt_last_mkb_time)
+    input.sequencer:update(dt)
+
+    table.clear(_to_remove)
+
+    if input.last_input_device == "gamepad" or usersettings.gamepad_plus_mouse then
+        local highest = 0
+
+        for _, obj in pairs(input.rumble_objects) do
+            local amount = obj.func(obj.elapsed / obj.duration)
+            if amount > highest then
+                highest = amount
+            end
+            obj.elapsed = obj.elapsed + dt
+            if obj.elapsed >= obj.duration then
+                table.insert(_to_remove, obj)
+            end
+        end
+
+        for _, obj in pairs(_to_remove) do
+            table.erase(input.rumble_objects, obj)
+        end
+
+        -- if highest > 0 then
+        highest = highest * usersettings.rumble_intensity
+
+        if input.last_joystick then
+            input.last_joystick:setVibration(highest, highest)
+        end
+        -- end
+    else
+        for joystick, _ in pairs(input.joysticks) do
+            joystick:setVibration(0, 0)
+        end
+    end
+end
+
+function input.start_rumble(func, duration)
+    local obj = {
+        func = func,
+        duration = duration,
+        elapsed = 0
+    }
+    table.insert(input.rumble_objects, obj)
+end
+
+function input.add_rumble_function(func)
+    local s = input.sequencer
+    s:start(func)
 end
 
 function input.on_key_pressed(key)
@@ -646,6 +699,7 @@ function input.on_joystick_pressed(joystick, button)
 
 		signal.emit(input, "joystick_pressed", joystick, button)
         input:record_device_activity("gamepad")
+        input.last_joystick = joystick
     -- end
 end
 

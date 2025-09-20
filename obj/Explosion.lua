@@ -75,6 +75,12 @@ function Explosion:enter()
 	self.active = true
     local s = self.sequencer
 
+    local rumble_amount = inverse_lerp_clamp(self.size, 1, 64)
+
+    input.start_rumble(function(t)
+        return remap_pow(rumble_amount, 0.0, 1.0, 0.3, 1.0, 0.5) * (1 - ease("outQuad")(t))
+    end, remap_pow(rumble_amount, 0.0, 1.0, 10, 50, 0.5))
+
     s:start(function()
 		s:wait(1)
 		self:add_hit_bubble(0, 0, self.size, "main", self.hit_bubble_damage)

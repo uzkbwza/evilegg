@@ -173,6 +173,9 @@ function Cuboid:death_sequence()
         self:spawn_bullet(-1, 1)
 		self:play_sfx("enemy_cube_explode", 0.6)
         self:die()
+        input.start_rumble(function(t)
+            return 0.5 * (1 - t)
+       end, 15)
 	end)
 end
 

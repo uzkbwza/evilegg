@@ -270,6 +270,7 @@ local translations = {
         options_southpaw_mode                        = "Southpaw Joystick Mode",
         options_remap_inputs                         = "Remap Controls",
         options_reset_controls_to_default            = "Reset Controls To Default",
+        options_rumble_intensity                     = "Rumble Intensity",
 
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",

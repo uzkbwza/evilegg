@@ -423,7 +423,10 @@ function EggElevator:on_damaged(amount)
     self:start_timer("hurt_flash", 10)
 	self:play_sfx("object_egg_elevator_hurt", 0.7)
 	if self.hp <= self.max_hp - 10 then
-		if not self.accepting_player then
+        if not self.accepting_player then
+            input.start_rumble(function(t)
+                return 0.35 * (1 - t)
+            end, 10)
 			self:on_door_opened()
 		end
 	end
@@ -446,6 +449,11 @@ function EggElevator:on_health_reached_zero()
 end
 
 function EggElevator:die(killed)
+
+    input.start_rumble(function(t)
+        return 0.4 * (1 - t)
+    end, 15)
+
     if killed == nil then
         killed = true
 	end

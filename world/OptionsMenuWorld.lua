@@ -561,6 +561,7 @@ function OptionsMenuWorld:show_menu(page)
                 return usersettings.southpaw_mode
             end,
         },
+            { "rumble_intensity", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
             { "remap_inputs", item_type = "button", select_func = function()
                 self:show_menu(6)
                 end,
