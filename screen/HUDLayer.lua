@@ -791,10 +791,8 @@ function HUDLayer:pre_world_draw()
         end
         graphics.print(tr.bonus_screen_total, -0, y)
 
-		local input = self:get_input_table()
-
 		if self.after_level_bonus_screen.start_prompt then
-        	graphics.print(string.format(tr.bonus_screen_continue, input:get_skip_bonus_screen_prompt()), -0, y + 10)
+        	graphics.print(string.format(tr.bonus_screen_continue, input:get_skip_bonus_screen_prompt() or "???"), -0, y + 10)
 		end
         
 		local total_score_text = comma_sep(self.after_level_bonus_screen.total.score)
