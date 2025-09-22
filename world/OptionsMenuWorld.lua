@@ -488,7 +488,21 @@ function OptionsMenuWorld:show_menu(page)
                         return tr.options_fps_cap_unlimited
                     end
                 end
-            },
+        },
+        { "fullscreen_mode", item_type = "cycle", options = { "desktop", "exclusive" }, skip = conf.platform_force_fullscreen,
+            set_func = function(value)
+                usersettings:set_setting("fullscreen_mode", value)
+                usersettings:set_setting("fullscreen", true)
+            end,
+            get_func = function()
+                return usersettings.fullscreen_mode
+            end,
+            print_func = function(value)
+                return tr["options_fullscreen_mode_" .. value] or "???"
+            end,
+            translate_options = true,
+            
+        },
         {
             "show_fps",
             item_type = "toggle",

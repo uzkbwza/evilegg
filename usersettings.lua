@@ -18,6 +18,7 @@ local default_usersettings = {
     shader_quality = 0.5,
     window_size = { x = 0, y = 0 },
     screen_shake_amount = 1,
+    fullscreen_mode = "desktop",
 	
     -- audio
 	master_volume = 1.0,
@@ -134,9 +135,10 @@ function usersettings:apply_settings()
     print("applying user settings")
 
 	if conf.platform_force_fullscreen then
-		self.fullscreen = true
+        self.fullscreen = true
+        self.fullscreen_mode = "exclusive"
     else
-		love.window.setFullscreen(self.fullscreen)
+		love.window.setFullscreen(self.fullscreen, self.fullscreen_mode)
 	end
 
     if self.apply_window_size and not self.fullscreen and self.window_size then

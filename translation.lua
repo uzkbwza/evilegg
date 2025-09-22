@@ -271,11 +271,14 @@ local translations = {
         options_remap_inputs                         = "Remap Controls",
         options_reset_controls_to_default            = "Reset Controls To Default",
         options_rumble_intensity                     = "Rumble Intensity",
+        options_fullscreen_mode                      = "Fullscreen Mode",
 
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",
         options_confine_mouse_never                  = "Never",
-        
+
+        options_fullscreen_mode_desktop               = "Desktop",
+        options_fullscreen_mode_exclusive             = "Exclusive",
 
         options_brightness           = "Brightness",
         options_saturation           = "Saturation",
