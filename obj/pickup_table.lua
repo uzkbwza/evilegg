@@ -469,7 +469,7 @@ local Artefacts = {
 		fire_rate_upgrade_cooldown_reduction = 10,
         is_secondary_weapon = true,
 		
-		ammo = 48,
+		ammo = 64,
 		ammo_gain_per_level = 12,
         ammo_needed_per_use = 8,
 		ammo_powerup_gain = 4,
