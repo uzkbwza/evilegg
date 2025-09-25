@@ -13,6 +13,7 @@ local default_savedata = {
     leaderboard_version = GAME_LEADERBOARD_VERSION,
     leaderboard_sort_index = 1,
     leaderboard_period = "daily",
+    leaderboard_wep_filter = "all",
     done_shader_performance_test = false,
     has_seen_title_screen = false,
     -- update_force_cutscene = true,

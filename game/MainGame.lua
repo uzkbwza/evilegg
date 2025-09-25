@@ -265,11 +265,11 @@ function GlobalGameState:new()
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
-            self:gain_artefact(rng:choose {
-                PickupTable.artefacts.BigLaserSecondaryWeapon,
-                PickupTable.artefacts.SwordSecondaryWeapon,
-                PickupTable.artefacts.RailGunSecondaryWeapon,
-            })
+            -- self:gain_artefact(rng:choose {
+                -- PickupTable.artefacts.BigLaserSecondaryWeapon,
+                -- PickupTable.artefacts.SwordSecondaryWeapon,
+                -- PickupTable.artefacts.RailGunSecondaryWeapon,
+            -- })
 
             -- self.num_queued_artefacts = 10
             self.rescue_chain = 20
@@ -289,6 +289,8 @@ function GlobalGameState:new()
             for i = 1, self:get_max_number_of_upgrades() - 1 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
+
+            self.secondary_weapon = nil
 
             if self.secondary_weapon then
                 self:gain_secondary_weapon_ammo(math.huge)

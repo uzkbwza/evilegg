@@ -16,7 +16,6 @@ local RANKING_LINE_HEIGHT = 20
 local LINE_WIDTH = 220
 local LINE_Y = 20
 
-
 local GreenoidTextPalette = Palette{Color.black, Color.black, Color.darkergreen, Color.darkgreen, Color.darkgreen, Color.green}
 local KillsTextPalette = Palette{Color.black, Color.black, Color.red, Color.red, Color.orange, Color.yellow}
 local LevelTextPalette = Palette{Color.black, Color.black, Color.darkblue, Color.darkblue, Color.darkblue, Color.white}
@@ -42,6 +41,7 @@ function LeaderboardWorld:new()
 
     self.sort_by = savedata.leaderboard_sort or "score"
     self.period = savedata.leaderboard_period or "daily"
+    self.wep_filter = savedata.leaderboard_wep_filter or "all"
 
 	self.run_t_values = {}
     for i = 1, PAGE_LENGTH do
@@ -92,6 +92,14 @@ function LeaderboardWorld:enter()
         score20 = tr.leaderboard_sort_score20,
     }
 
+    local LEADERBOARD_WEAPON_FILTER = {
+        all = "",
+        sword = "",
+        railgun = "",
+        big_laser = "",
+        none = "",
+    }
+
 
     self.camera:move(conf.viewport_size.x / 2, conf.viewport_size.y / 2)
 
@@ -103,24 +111,30 @@ function LeaderboardWorld:enter()
             10, 10, false, nil, false, false))):focus()
 
     self:ref("period_button",
-        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 10, 12,
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 14, 12,
             LEADERBOARD_PERIODS[self.period] and LEADERBOARD_PERIODS[self.period] or "all_time",
             30, 9, false, Color.green, true, false)))
 
     self:ref("sort_button",
-        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 52, 12,
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING - 54, 12,
             LEADERBOARD_SORT_OPTIONS[self.sort_by] and LEADERBOARD_SORT_OPTIONS[self.sort_by] or "score",
             30, 9, false, Color.green, true, false)))
 
+    self:ref("wep_button",
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuCycle(start_x + MENU_ITEM_H_PADDING + 25, 12,
+        "",
+            26, 9, false, Color.green, true, false)))
+
     self:ref("me_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 30, 4,
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 53, 12,
             tr.leaderboard_me_button,
-            25, 15, false, Color.green, true, true)))
+            20, 9, false, Color.green, true, false)))
 
     self:ref("top_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 56, 4,
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 53, 3,
             tr.leaderboard_top_button,
-            25, 15, false, Color.green, true, true)))
+            20, 9, false, Color.green, true, false)))
+
 
     self.sort_button.get_value_func = function()
         return self.sort_button.text
@@ -148,6 +162,39 @@ function LeaderboardWorld:enter()
         self:fetch_page(1)
     end
 
+    local function set_wep_filter_texture(value)
+        if value == "all" then
+            self.wep_filter_texture = textures.pickup_allweapons
+        elseif value == "big_laser" then
+            self.wep_filter_texture = textures.pickup_weapon_big_laser_icon
+        elseif value == "railgun" then
+            self.wep_filter_texture = textures.pickup_weapon_railgun_icon_leaderboard_filter
+        elseif value == "sword" then
+            self.wep_filter_texture = textures.pickup_weapon_sword_icon
+        elseif value == "none" then
+            self.wep_filter_texture = textures.pickup_noweapon
+        end
+    end
+
+    self.wep_button.set_value_func = function(value)
+        self.wep_button:set_text(LEADERBOARD_WEAPON_FILTER[value])
+        self.wep_filter = value
+        self.wep_filter_texture = nil
+        set_wep_filter_texture(value)
+        self:fetch_page(1)
+    end
+
+    set_wep_filter_texture(self.wep_filter)
+
+    self.wep_button.get_value_func = function()
+        return self.wep_button.text
+    end
+
+    self.wep_button:set_options({ "all", "sword", "railgun", "big_laser", "none" })
+
+
+    self.wep_button:cycle_to_value(self.wep_filter)
+
     self.period_button:cycle_to_value(self.period)
     self.sort_button:cycle_to_value(self.sort_by)
 
@@ -174,17 +221,24 @@ function LeaderboardWorld:enter()
 
     self.page_left_button:add_neighbor(self.page_right_button, "right", true)
     self.page_left_button:add_neighbor(self.back_button, "up", true)
-    self.page_right_button:add_neighbor(self.top_button, "up", true)
-    self.me_button:add_neighbor(self.page_right_button, "down")
+    -- self.page_right_button:add_neighbor(self.me_button, "up", true)
+
+
+
+    self.me_button:add_neighbor(self.top_button, "up", true)
     self.period_button:add_neighbor(self.page_right_button, "down")
     self.sort_button:add_neighbor(self.page_right_button, "down")
+    self.wep_button:add_neighbor(self.page_right_button, "down")
+    self.me_button:add_neighbor(self.page_right_button, "down")
 
 
     self.back_button:add_neighbor(self.sort_button, "right", true)
     self.sort_button:add_neighbor(self.period_button, "right", true)
-    self.period_button:add_neighbor(self.me_button, "right", true)
-    self.me_button:add_neighbor(self.top_button, "right", true)
+    self.period_button:add_neighbor(self.wep_button, "right", true)
+    self.wep_button:add_neighbor(self.me_button, "right", true)
+    self.wep_button:add_neighbor(self.top_button, "right", true)
     self.top_button:add_neighbor(self.back_button, "right", true)
+    self.me_button:add_neighbor(self.back_button, "right")
 
 
     signal.connect(self.back_button, "selected", self, "exit_menu_requested", function()
@@ -244,6 +298,7 @@ end
 function LeaderboardWorld:exit()
     savedata:set_save_data("leaderboard_period", self.period)
     savedata:set_save_data("leaderboard_sort", self.sort_by)
+    savedata:set_save_data("leaderboard_wep_filter", self.wep_filter)
 end
 
 function LeaderboardWorld:death_count_update_loop()
@@ -266,8 +321,8 @@ end
 function LeaderboardWorld:fetch_user(uid)
 	self.waiting = true
     self.error = false
-    
-    leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, self.sort_by, self:get_period(), false, function(ok, res)
+
+	leaderboard.lookup(uid, PAGE_LENGTH, self.current_category, self.wep_filter, self.sort_by, self:get_period(), false, function(ok, res)
 		if self.is_destroyed then
 			return
 		end
@@ -289,7 +344,7 @@ function LeaderboardWorld:fetch_page(page)
     end
 	self.waiting = true
 	self.error = false
-	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, self.sort_by, self:get_period(), false, self.wait_function)
+	leaderboard.fetch(page, PAGE_LENGTH, self.current_category, self.wep_filter, self.sort_by, self:get_period(), false, self.wait_function)
 end
 
 function LeaderboardWorld:get_period()
@@ -501,13 +556,26 @@ function LeaderboardWorld:draw()
     local font = fonts.depalettized.image_bigfont1
     local font2 = fonts.depalettized.image_font2
     graphics.set_font(font)
-    graphics.print(tr.main_menu_leaderboard_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
+    graphics.print(tr.main_menu_leaderboard_button, font, 26, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
     graphics.set_font(font2)
     graphics.set_color(Color.white)
-    graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 11, 3)
-    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 52, 3)
+    graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 16, 3)
+    graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
     LeaderboardWorld.super.draw(self)
+    graphics.print(tr.leaderboard_wep_button, 170 + MENU_ITEM_H_PADDING + 29, 3)
 
+    graphics.push"all"
+
+    graphics.set_stencil_mode("draw", 1)
+
+    local start_x = 170
+
+    graphics.rectangle("fill", start_x + MENU_ITEM_H_PADDING + 25, 12, 26, 9)
+    graphics.set_stencil_mode("test", 1)
+
+    graphics.draw_centered(self.wep_filter_texture, 170 + MENU_ITEM_H_PADDING + 38, 18)
+
+    graphics.pop()
 
     -- local hi_score_text = (tr.leaderboard_hi_score .. ": "):upper()
 
@@ -693,7 +761,7 @@ function LeaderboardWorld:draw_leaderboard()
         graphics.set_line_width(line_width)
         graphics.translate(-10 -extra - 1, me_y - extra)
         graphics.set_color(Palette.leaderboard_me_rect:tick_color(self.tick, 0, 1))
-        graphics.dashrect(0, 0, LINE_WIDTH + extra * 2 - (line_width - 1) + 2, RANKING_LINE_HEIGHT + extra * 2 - (line_width - 1), 2, 2, -self.elapsed * 0.08)
+        -- graphics.dashrect(0, 0, LINE_WIDTH + extra * 2 - (line_width - 1) + 2, RANKING_LINE_HEIGHT + extra * 2 - (line_width - 1), 2, 2, -self.elapsed * 0.08)
         -- graphics.set_color(Color.darkergrey)
         -- graphics.dashrect(1, 1, LINE_WIDTH + extra, RANKING_LINE_HEIGHT - 2, 4, 4, -self.elapsed * 0.06)
         graphics.pop()

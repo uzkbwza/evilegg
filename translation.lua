@@ -555,9 +555,12 @@ local translations = {
         leaderboard_sort_depth              = "DEPTH",
         leaderboard_sort_speed              = "SPEED",
         leaderboard_sort_score20            = "LVL20",
+        leaderboard_wep_all                 = "ANY",
+        leaderboard_wep_none                 = "NONE",
         -- leaderboard_sort_score30            = "LVL30",
         leaderboard_sort_button             = "BOARD",
-        leaderboard_period_button           = "PERIOD",
+        leaderboard_period_button          = "PERIOD",
+        leaderboard_wep_button             = "WEP",
 
         artefact_guide_use                  = "USE WITH %s",
         artefact_guide_ammo_requirement     = "REQUIRES %s AMMO PER USE",
