@@ -562,7 +562,7 @@ function LeaderboardWorld:draw()
     graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 16, 3)
     graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
     LeaderboardWorld.super.draw(self)
-    graphics.print(tr.leaderboard_wep_button, 170 + MENU_ITEM_H_PADDING + 29, 3)
+    graphics.print(tr.leaderboard_wep_button, 170 + MENU_ITEM_H_PADDING + 28, 3)
 
     graphics.push"all"
 
@@ -605,7 +605,7 @@ function LeaderboardWorld:draw()
             end
             graphics.set_color(color)
             graphics.print(tr.leaderboard_deaths:upper() .. ": " .. comma_sep(self.death_count), font2,
-            MENU_ITEM_H_PADDING, conf.viewport_size.y - font2:getHeight() - 7)
+            MENU_ITEM_H_PADDING - 1, conf.viewport_size.y - font2:getHeight() - 7)
 
         end
     end
@@ -761,7 +761,7 @@ function LeaderboardWorld:draw_leaderboard()
         graphics.set_line_width(line_width)
         graphics.translate(-10 -extra - 1, me_y - extra)
         graphics.set_color(Palette.leaderboard_me_rect:tick_color(self.tick, 0, 1))
-        -- graphics.dashrect(0, 0, LINE_WIDTH + extra * 2 - (line_width - 1) + 2, RANKING_LINE_HEIGHT + extra * 2 - (line_width - 1), 2, 2, -self.elapsed * 0.08)
+        graphics.dashrect(0, 0, LINE_WIDTH + extra * 2 - (line_width - 1) + 2, RANKING_LINE_HEIGHT + extra * 2 - (line_width - 1), 2, 2, -self.elapsed * 0.08)
         -- graphics.set_color(Color.darkergrey)
         -- graphics.dashrect(1, 1, LINE_WIDTH + extra, RANKING_LINE_HEIGHT - 2, 4, 4, -self.elapsed * 0.06)
         graphics.pop()
