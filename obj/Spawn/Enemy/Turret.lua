@@ -62,13 +62,19 @@ end
 
 
 local SPREAD = deg2rad(5)
+
+local function turret_shoot_rumble(t)
+    return (1 - ease("outCubic")(t)) * 0.5
+end
+
 function Turret:shoot()
     local shoot_x, shoot_y = vec2_rotated(self.aim_dir_x, self.aim_dir_y, rng:randfn(0, SPREAD))
     local bx, by = self:get_body_center()
 	local bulletx, bullety = bx + shoot_x * self.shoot_distance, by + shoot_y * self.shoot_distance
     local bullet = self:spawn_object(TurretBullet(bulletx, bullety))
     bullet:apply_impulse(shoot_x * self.shoot_speed, shoot_y * self.shoot_speed)
-	self:play_sfx("enemy_turret_shoot", 0.75)
+    self:play_sfx("enemy_turret_shoot", 0.75)
+    input.start_rumble(turret_shoot_rumble, 12)
 	for i = 1, 3 do
 		self:spawn_object(MuzzleFlashSmoke(bulletx, bullety, rng:randi(50, 120), abs(rng:randfn(12, 3)), Palette.muzzle_flash_smoke, rng:randf(0.15, 0.7), self.aim_dir_x, self.aim_dir_y, rng:randf(0, 60)))
 	end

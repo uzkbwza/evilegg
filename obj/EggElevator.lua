@@ -6,6 +6,14 @@ local PILLAR_HEIGHT = 400
 
 local SKIP_SHOOTING = true
 
+local elevator_door_opened_rumble_func = function(t)
+    return 0.35 * (1 - t)
+end
+
+local elevator_die_rumble_func = function(t)
+    return 0.4 * (1 - t)
+end
+
 function EggElevator:new(x, y)
 	-- self.max_hp = debug.enabled and 3 or 20
     self.max_hp = 60
@@ -424,9 +432,7 @@ function EggElevator:on_damaged(amount)
 	self:play_sfx("object_egg_elevator_hurt", 0.7)
 	if self.hp <= self.max_hp - 10 then
         if not self.accepting_player then
-            input.start_rumble(function(t)
-                return 0.35 * (1 - t)
-            end, 10)
+            input.start_rumble(elevator_door_opened_rumble_func, 10)
 			self:on_door_opened()
 		end
 	end
@@ -450,9 +456,7 @@ end
 
 function EggElevator:die(killed)
 
-    input.start_rumble(function(t)
-        return 0.4 * (1 - t)
-    end, 15)
+    input.start_rumble(elevator_die_rumble_func, 15)
 
     if killed == nil then
         killed = true

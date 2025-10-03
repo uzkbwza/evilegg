@@ -87,6 +87,19 @@ end
 
 -- print(DIALOGUE)
 
+-- Rumble easing functions for EggBoss-related events (avoid per-call allocations)
+local egg_boss_crack_rumble_func = function(t)
+    return 0.6 * (1 - t)
+end
+
+local egg_boss_phase2_landing_rumble_func = function(t)
+    return 0.7 * (1 - ease("outExpo")(t))
+end
+
+local egg_sentry_die_rumble_func = function(t)
+    return 0.7 * (1 - t)
+end
+
 function EggBoss:new()
     self.cutscene_object = Cutscenes.EndingCutscene1(0, 0)
     self:add_signal("cracked")
@@ -294,9 +307,7 @@ function EggBoss:crack_shell()
     end
 	
     self:play_sfx("enemy_evil_egg_crack")
-    input.start_rumble(function(t)
-        return 0.6 * (1 - t)
-    end, 20)
+    input.start_rumble(egg_boss_crack_rumble_func, 20)
 
 	self.world.camera:start_rumble(3, 15, ease("linear"), true, false)
 
@@ -773,9 +784,7 @@ end
 function EggBoss:phase2_landing()
     -- self:play_sfx("enemy_evil_egg_phase2_landing", 0.8)
     if not (self.phase2_started_twice or (SKIP_PHASE_3 and SKIP_PHASE_4)) then
-        input.start_rumble(function(t)
-            return 0.7 * (1 - ease("outExpo")(t))
-        end, 600)
+        input.start_rumble(egg_boss_phase2_landing_rumble_func, 600)
 		self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
 		self:spawn_object(Explosion(self.pos.x, self.pos.y, {
 			size = LAND_EXPLOSION_SIZE,
@@ -2603,9 +2612,7 @@ function EggSentry:die()
     end
     EggSentry.super.die(self)
     self.world.camera:start_rumble(2, 120, "linear", true, true)
-    input.start_rumble(function(t)
-        return 0.7 * (1 - t)
-    end, 120)
+    input.start_rumble(egg_sentry_die_rumble_func, 120)
     self.world:spawn_object(EggSentryDeathFx(0, 0))
 end
 

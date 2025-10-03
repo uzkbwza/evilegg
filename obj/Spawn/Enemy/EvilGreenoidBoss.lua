@@ -33,6 +33,11 @@ function EvilGreenoidBoss:new()
 	self.greenoids = {}
 end
 
+-- Rumble easing functions for EvilGreenoidBoss impacts
+local evil_greenoid_impact_rumble_func = function(t)
+    return 0.9 * (1 - t)
+end
+
 function EvilGreenoidBoss:update(dt)
     EvilGreenoidBoss.super.update(self, dt)
     for i, greenoid in ipairs(self.greenoids) do
@@ -449,9 +454,7 @@ function EvilGreenoidBoss:on_terrain_collision(normal_x, normal_y)
         self:terrain_collision_bounce(normal_x, normal_y)
 		if self.thrash_started and self.can_wall_slam then
             self:change_state("Idle")
-            input.start_rumble(function(t)
-                return 0.9 * (1 - t)
-            end, 24)
+            input.start_rumble(evil_greenoid_impact_rumble_func, 24)
 			-- print("here")
 		end
     else
@@ -517,9 +520,7 @@ end
 
 function EvilGreenoidBoss:die(...)
     EvilGreenoidBoss.super.die(self, ...)
-    input.start_rumble(function(t)
-        return 0.9 * (1 - t)
-    end, 50)
+    input.start_rumble(evil_greenoid_impact_rumble_func, 50)
 end
 
 function EvilGreenoidBoss:draw_greenoid(greenoid)

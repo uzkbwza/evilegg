@@ -6,6 +6,10 @@ local BASE_FORCE = 0.45
 local PUSH_SPEED = 10
 local BASE_RADIUS = 60
 
+local ring_of_loyalty_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
 function RingOfLoyaltyBurst:new(x, y)
     RingOfLoyaltyBurst.super.new(self, x, y)
 
@@ -22,9 +26,7 @@ end
 
 function RingOfLoyaltyBurst:enter()
     self:spawn_object(DeathFloorParticle(self.pos.x, self.pos.y, self:get_radius()))
-    input.start_rumble(function(t)
-        return 0.5 * (1 - t)
-   end, 10)
+    input.start_rumble(ring_of_loyalty_rumble_func, 10)
 end
 
 function RingOfLoyaltyBurst:get_radius()

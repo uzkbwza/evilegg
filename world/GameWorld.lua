@@ -1388,6 +1388,8 @@ function GameWorld:on_room_clear()
 
 		self:emit_signal("all_spawns_cleared")
 
+        self:start_tick_timer("artefact_delay", 36)
+
         while self.waiting_on_bonus_screen do
             s:wait(1)
         end
@@ -1401,13 +1403,14 @@ function GameWorld:on_room_clear()
 			return
 		end
 
-        game_state.last_spawned_artefacts = {}
 
-        while self:get_number_of_objects_with_tag("xp_pickup") > 0 do
+        while self:is_tick_timer_running("artefact_delay") do
             s:wait(1)
         end
 
-        -- spawn artefacts
+
+        game_state.last_spawned_artefacts = {}
+
         if self.room.artefacts then
             for _, artefact in ipairs(self.room.artefacts) do
                 game_state.last_spawned_artefacts[artefact.key] = true

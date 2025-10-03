@@ -11,6 +11,14 @@ local XpPickup = require("obj.XpPickup")
 
 local ARTEFACT_XP = 1500
 
+local artefact_destroy_rumble_func = function(t)
+    return 0.3 * (1 - (t))
+end
+
+local artefact_spawn_boom_rumble_func = function(t)
+    return 0.9 * (1 - ease("outQuad")(ease("outExpo")(t)))
+end
+
 function ArtefactSpawn:new(x, y, artefact)
     ArtefactSpawn.super.new(self, x, y)
 	game_state.num_spawned_artefacts = game_state.num_spawned_artefacts + 1
@@ -132,9 +140,7 @@ function ArtefactSpawn:hit_by(other)
     if self.hp <= 0 then
         self:queue_destroy()
 
-        input.start_rumble(function(t)
-            return 0.3 * (1 - (t))
-        end, 10)
+        input.start_rumble(artefact_destroy_rumble_func, 10)
 
         self.world:add_score_object(self.pos.x, self.pos.y, self:get_destroy_score(), "artefact_destruction")
 
@@ -321,9 +327,7 @@ function ArtefactSpawner:new(x, y)
 		self:stop_sfx("pickup_artefact_spawn")
         self:play_sfx("pickup_artefact_boom")
         self.world.camera:start_rumble(2, 12, nil, false, true)
-        input.start_rumble(function(t)
-            return 0.9 * (1 - ease("outQuad")(ease("outExpo")(t)))
-        end, 60)
+        input.start_rumble(artefact_spawn_boom_rumble_func, 60)
         self:spawn_object(Splatter(self.pos.x, self.pos.y, 40, 40, 2)).z_index = -1
 		local flash_size = 100
 		-- self:spawn_object(ArtefactSpawnerFlashEffect(self.pos.x, self.pos.y))

@@ -6,8 +6,8 @@ local PickupTable = require("obj.pickup_table")
 local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
-local debug_enemy_enabled = false
-local debug_enemy = "Lich"
+local debug_enemy_enabled = true
+local debug_enemy = "Turret"
 local num_debug_enemies = 1
 local num_debug_waves = 3
 

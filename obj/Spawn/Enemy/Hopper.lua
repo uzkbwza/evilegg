@@ -6,6 +6,10 @@ local HopperBullet = BaseEnemy:extend("HopperBullet")
 Hopper.max_hp = 1
 FastHopper.max_hp = 2
 BigHopper.max_hp = 9
+Hopper.land_rumble_duration = 5
+BigHopper.land_rumble_function = function(t) return (1 - ease("outCubic")(t)) * 0.75 end
+BigHopper.land_rumble_duration = 30
+Hopper.land_rumble_function = function(t) return (1 - ease("outCubic")(t)) * 0.24 end
 
 function Hopper:new(x, y)
     Hopper.super.new(self, x, y)
@@ -74,6 +78,7 @@ function Hopper:state_Hopping_exit()
 			bullet:apply_impulse(cos(angle) * self.bullet_speed, sin(angle) * self.bullet_speed * 0.75)
 			bullet.bullet_index = floor(i / self.number_hop_bullets)
 		end
+        input.start_rumble(self.land_rumble_function, self.land_rumble_duration)
 	-- end
 end
 
@@ -145,7 +150,9 @@ function BigHopper:state_Hopping_exit()
 	BigHopper.super.state_Hopping_exit(self)
     self.drag = 0.05
 
-	local num_hoppers = rng:randi(2, 7)
+    local num_hoppers = rng:randi(2, 7)
+    
+    self.world.camera:start_rumble(2, 16, nil, false, true)
 
 	if not game_state.game_over then
 		for i = 1, num_hoppers do

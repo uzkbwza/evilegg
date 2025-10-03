@@ -26,6 +26,17 @@ local not_enough_ammo_rumble_func = function(t)
     return 0.4
 end
 
+local gained_ammo_rumble_func = function(t)
+    t = round(t * 20)
+    if t >= 10 and t < 15 then
+        return 0.4
+    end
+    if t >= 0 and t < 5 then
+        return 0.2
+    end
+    return 0.0
+end
+
 function SecondaryWeapon:on_tried_to_use_secondary_weapon_with_no_ammo()
 	if game_state.secondary_weapon then
 		self:play_sfx("player_not_enough_ammo")
@@ -80,17 +91,7 @@ function SecondaryWeapon:on_secondary_weapon_ammo_gained(amount, old, new)
 	if new == game_state.secondary_weapon.ammo or (old <= new and not (game_state.secondary_weapon.minimum_ammo_needed_to_use and new < game_state.secondary_weapon.minimum_ammo_needed_to_use)	) then
 		self:play_sfx("player_gained_ammo", 0.7)
         self:start_timer("gained_ammo_flash", 10)
-        input.start_rumble(function(t)
-            t = round(t * 20)
-            if t >= 10 and t < 15 then
-                return 0.4
-            end
-            if t >= 0 and t < 5 then
-                return 0.2     
-            end
-            return 0.0
-
-        end, 12)
+        input.start_rumble(gained_ammo_rumble_func, 12)
     else
 		self:play_sfx("player_gained_ammo_partial", 0.7)
 		

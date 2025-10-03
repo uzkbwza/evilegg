@@ -248,7 +248,7 @@ function GlobalGameState:new()
 
         
         
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
         
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -265,17 +265,17 @@ function GlobalGameState:new()
             -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
             -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
 
-            -- self:gain_artefact(rng:choose {
-                -- PickupTable.artefacts.BigLaserSecondaryWeapon,
-                -- PickupTable.artefacts.SwordSecondaryWeapon,
-                -- PickupTable.artefacts.RailGunSecondaryWeapon,
-            -- })
+            self:gain_artefact(rng:choose {
+                PickupTable.artefacts.BigLaserSecondaryWeapon,
+                PickupTable.artefacts.SwordSecondaryWeapon,
+                PickupTable.artefacts.RailGunSecondaryWeapon,
+            })
 
-            -- self.num_queued_artefacts = 10
+            self.num_queued_artefacts = 10
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 21
+            self.level = 3
             self.hearts = self.max_hearts
 
             for i = 1, 8 do

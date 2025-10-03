@@ -48,6 +48,28 @@ local PICKUP_RADIUS = 8
 local SECONDARY_BUFFER_TIME = 3
 local PRAYER_KNOT_CHARGE_TIME = 65
 
+-- Rumble easing functions (avoids per-call allocations)
+local player_egg_hatch_rumble_func = function(t)
+    return 0.25 * (1 -  ease("outQuad")(t))
+end
+
+local player_prayer_knot_shot_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
+local player_dead_rumble_func = function(t)
+    return 0.9 * (1 - t)
+end
+
+local player_hurt_glitch_rumble_func = function(t)
+    t = t * 5
+    return (round(t) % 3 == 0) and 0.0 or 1.0
+end
+
+local player_bounce_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
 local FATIGUE_MOVE_SPEED_MODIFIER = 0.45
 
 
@@ -235,9 +257,7 @@ function PlayerCharacter:state_GameStart_exit()
 	self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, vel_x, vel_y, 0, 0, 3.0))
 	-- self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, 0, 0, 0, 0, 2.0))
     self:emit_signal("hatched")
-    input.start_rumble(function(t)
-        return 0.25 * (1 - ease("outQuad")(t))
-    end, 25)
+    input.start_rumble(player_egg_hatch_rumble_func, 25)
     self.egg_offset = nil
 end
 
@@ -781,9 +801,7 @@ function PlayerCharacter:fire_current_bullet()
                 class = self.bullet_powerups["PrayerKnotChargeBullet"]
                 self.prayer_knot_charged = false
                 default = false
-                input.start_rumble(function(t)
-                    return 0.5 * (1 - t)
-                end, 15)
+                input.start_rumble(player_prayer_knot_shot_rumble_func, 15)
             else
                 table.clear(self.prayer_knot_particles)
                 self:start_prayer_knot_charge()
@@ -962,17 +980,9 @@ function PlayerCharacter:hit_by(by, force)
     end
     
     if dead then
-       input.start_rumble(function(t)
-            return 0.9 * (1 - t)
-       end, 60)
+       input.start_rumble(player_dead_rumble_func, 60)
     else
-        input.start_rumble(function(t)
-            t = t * 5
-
-            local result = round(t) % 3 == 0 and 0.0 or 1.0
-            -- print(t)
-            return result
-        end, 20)
+        input.start_rumble(player_hurt_glitch_rumble_func, 20)
     end
     
 
@@ -1450,9 +1460,7 @@ function PlayerCharacter:state_Hover_update(dt)
     
     if bounced then
         self:play_sfx("entity_bounce")
-        input.start_rumble(function(t)
-            return 0.5 * (1 - t)
-        end, 3)
+        input.start_rumble(player_bounce_rumble_func, 3)
     end
 end
 
@@ -1559,6 +1567,27 @@ end
 --------------------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------------------
 
+
+local player_egg_hatch_rumble_func = function(t)
+    return 0.25 * (1 -  ease("outQuad")(t))
+end
+
+local player_prayer_knot_shot_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
+local player_dead_rumble_func = function(t)
+    return 0.9 * (1 - t)
+end
+
+local player_hurt_glitch_rumble_func = function(t)
+    t = t * 5
+    return (round(t) % 3 == 0) and 0.0 or 1.0
+end
+
+local player_bounce_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
 
 local sword_rumble_func = function(t)
     return 0.5 * (1 -  ease("outQuad")(t))

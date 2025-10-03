@@ -43,6 +43,10 @@ Cuboid.spawn_cry_volume = 0.6
 
 local BODY_HEIGHT = 5
 
+local cuboid_explode_rumble_func = function(t)
+    return 0.5 * (1 - t)
+end
+
 function Cuboid:new(x, y)
     self.hurt_bubble_radius = 9
     self.hit_bubble_radius = 7
@@ -173,9 +177,7 @@ function Cuboid:death_sequence()
         self:spawn_bullet(-1, 1)
 		self:play_sfx("enemy_cube_explode", 0.6)
         self:die()
-        input.start_rumble(function(t)
-            return 0.5 * (1 - t)
-       end, 15)
+        input.start_rumble(cuboid_explode_rumble_func, 15)
 	end)
 end
 

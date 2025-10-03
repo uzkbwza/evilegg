@@ -166,8 +166,13 @@ function Shotgunner:update(dt)
 	end
 end
 
+local shoot_rumble_func = function(t)
+    return (1 - t) * 0.65
+end
+
 function Shotgunner:shoot()
-	local bx, by = self:get_body_center()
+    local bx, by = self:get_body_center()
+    input.start_rumble(shoot_rumble_func, 10)
 	local offset_x, offset_y = vec2_mul_scalar(self.aim_direction.x, self.aim_direction.y, 24)
     self:spawn_object(ShotgunnerMuzzleFlash(bx + offset_x, by + offset_y))
     self:play_sfx("enemy_shotgunner_shoot")

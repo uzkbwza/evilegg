@@ -30,6 +30,10 @@ local walk_sprites = {
 	textures.enemy_mortar4,
 }
 
+local mortar_explode_rumble_func = function(t)
+    return 0.6 * (1 - ease("outQuad")(t))
+end
+
 function Mortar:get_sprite()
     if self.state == "Normal" then
         return walk_sprites[floor(self.tick / 10) % #walk_sprites + 1]
@@ -177,9 +181,7 @@ function MortarProjectile:explode()
 		-- particle_count_modifier = 0.95,
 		-- explode_sfx = "explosion3",
     }
-    input.start_rumble(function(t)
-        return 0.6 * (1 - ease("outQuad")(t))
-    end, 20)
+    input.start_rumble(mortar_explode_rumble_func, 20)
     self:spawn_object(Explosion(self.pos.x, self.pos.y, params))
 	self:die()
 end
