@@ -57,7 +57,7 @@ local translations = {
         notif_damage                   = "DAMAGE",
         notif_boost                    = "BOOST",
 
-        notif_famine                   = "FAMINE",
+        -- notif_famine                   = "FAMINE",
 
         notif_running_out_of_ammo      = "LOW AMMO",
         notif_out_of_ammo              = "NEED AMMO",
@@ -566,6 +566,7 @@ local translations = {
         artefact_guide_ammo_requirement     = "REQUIRES %s AMMO PER USE",
         artefact_guide_min_ammo_requirement = "REQUIRES %s AMMO TO USE",
         artefact_guide_ammo_gain            = "GAINS %s AMMO PER LEVEL",
+        artefact_guide_aim                  = "AIM WITH %s",
 
         input_remap_prompt                  = "Press a button to map \"%s\".\nPress %s to reset mappings for this action.\nHold %s to clear mappings for this action.",
         input_remap_prompt_clear            = "Clearing...",

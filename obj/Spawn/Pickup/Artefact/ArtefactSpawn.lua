@@ -257,6 +257,12 @@ function ArtefactSpawn:state_Idle_draw()
 	self.desc_palette_stack:set_palette_offset(3, tick / 3)
     graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, 0, 16)
 	
+    if self.artefact.aim_prompt and input:get_prompt_device("gamepad") == "gamepad" then
+        graphics.set_font(fonts.depalettized.image_font2)
+        graphics.set_color(Color.white)
+        local aim_prompt = string.interpolate(tr.artefact_guide_aim:format(input:get_prompt("aim", "", "┍")), self.text_amount2)
+        graphics.print_centered(aim_prompt, fonts.depalettized.image_font2, 0, 25)
+    end
 	
 	if self.artefact.is_secondary_weapon then
         local tip1 = tr.artefact_guide_use:format(input:get_secondary_weapon_prompt())

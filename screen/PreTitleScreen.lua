@@ -7,7 +7,7 @@ local PauseScreenButton = require("obj.Menu.PauseScreen.PauseScreenButton")
 local MenuRoot = require("obj.Menu.GenericMenuRoot")
 local TrailerScreen = CanvasLayer:extend("TrailerScreen")
 
-local TRAILER = true
+local TRAILER = false
 
 PhotosensitivityWarningScreen.kill_time = 360
 ScoreResetWarningScreen.kill_time = 360
@@ -63,6 +63,10 @@ function PreTitleScreen:start_sub_screen(screen)
             screen.ready_to_progress = true
         end)
     end
+end
+
+function PreTitleScreen:get_mouse_mode()
+    return false, false, false
 end
 
 function PreTitleScreen:update(dt)

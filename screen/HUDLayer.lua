@@ -1,6 +1,6 @@
 local HUDLayer = CanvasLayer:extend("HUDLayer")
 local LevelBonus = require("bonus.LevelBonus")
-local ALWAYS_SHOW_BONUS_DETAILS = true
+local ALWAYS_SHOW_BONUS_DETAILS = false
 
 function HUDLayer:new()
     HUDLayer.super.new(self)

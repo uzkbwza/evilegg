@@ -28,7 +28,7 @@ local STAR_V_SPEED = 0.5
 
 local LENS_FLARE_BURST_DIRECTION = Vec2(-1, 1):normalized()
 
-local SCREENSHOT_MODE = true
+local SCREENSHOT_MODE = false
 
 if not debug.enabled then
 	SCREENSHOT_MODE = false
@@ -43,53 +43,63 @@ local press_start_color = Color.white
 
 
 function TitleScreen:new()
-	-- self.expand_viewport = false
+    -- self.expand_viewport = false
     TitleScreen.super.new(self)
-	-- self:add_world(TitleScreenWorld(), "world")
-	self.clear_color = Color.black
+    -- self:add_world(TitleScreenWorld(), "world")
+    self.clear_color = Color.black
     self:add_signal("start_main_menu_requested")
     self.state = "start"
 
     self.egg_pos = Vec2(0, 22)
-	self.real_egg_pos = self.egg_pos:clone()
+    self.real_egg_pos = self.egg_pos:clone()
     self.sun_pos = Vec2(-0, -28)
     self.start_offset_amount = 0
 
-	self.title_line_offset_amount = 1.0
-	
+    self.title_line_offset_amount = 1.0
+
     self.flash_amount = 1.0
-	
+
     self.showing_title_text = false
-	
+
     self.showing_lens_flare1 = true
     self.showing_lens_flare2 = false
-	
-	self.lens_flare1_start = Vec2(-1, 1)
-	self.lens_flare1_end = Vec2(1, -1)
 
-	self.showing_title_text_background = false
+    self.lens_flare1_start = Vec2(-1, 1)
+    self.lens_flare1_end = Vec2(1, -1)
 
-	self.title_bg_height_amount = 0
+    self.showing_title_text_background = false
+
+    self.title_bg_height_amount = 0
 
     self.title_lines = {}
 
     self.star_elapsed = 0
     self.stars_move_speed = 0
-	self.show_stars_at_distance = 0.0
-	self.moving_quads = false
+    self.show_stars_at_distance = 0.0
+    self.moving_quads = false
 
-	self.show_press_start = false
+    self.show_press_start = false
 
     self.star_rotation_elapsed = 0
-	self.star_rotation_speed = 0.05
+    self.star_rotation_speed = 0.05
 
     self.stars = {}
-	
-	self.lens_flare_starburst_lines = {}
+
+    self.lens_flare_starburst_lines = {}
 
     self:generate_stars()
-	
-	self:generate_title_lines()
+
+    self:generate_title_lines()
+end
+
+
+function TitleScreen:get_mouse_mode()
+    return self:can_show_cursor(), false, false
+end
+
+
+function TitleScreen:can_show_cursor()
+    return self.show_press_start
 end
 
 function TitleScreen:generate_title_lines()

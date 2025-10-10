@@ -19,7 +19,11 @@ end
 
 function SecondaryWeapon:on_secondary_weapon_gained(artefact)
     self:play_sfx("pickup_secondary_weapon_gained", 0.8)
-	self:start_timer("gained_weapon_flash", 20)
+    self:start_timer("gained_weapon_flash", 16, function()
+        self:stop_stopwatch("gained_weapon_flash_stopwatch")
+    end)
+    self:start_stopwatch("gained_weapon_flash_stopwatch")
+    -- self:start_timer("gained_weapon_effect", 24)
 end
 
 local not_enough_ammo_rumble_func = function(t)
@@ -100,14 +104,16 @@ function SecondaryWeapon:on_secondary_weapon_ammo_gained(amount, old, new)
 end
 
 function SecondaryWeapon:draw()
+    
     graphics.set_color(Color.darkergrey)
+
 
 	graphics.rectangle("line", 0, 0, self.width, self.height)
 	if not game_state.secondary_weapon then
 		return
 	end
 
-	if self:is_timer_running("gained_weapon_flash") and iflicker(self.tick, 3, 2) then
+	if self:is_timer_running("gained_weapon_flash") and iflicker(self.tick, 1, 6) then
 		return
 	end
 
@@ -142,9 +148,9 @@ function SecondaryWeapon:draw()
     local unfireable_color = Color.grey
     local fireable_color = game_state.secondary_weapon.ammo_color
 
-    -- if self.world.room.curse_famine then
-    --     fireable_color = Color.red
-    -- end
+    if game_state.current_curse == "curse_famine" then
+        fireable_color = Color.purple
+    end
 
 	if self:is_timer_running("gained_ammo_flash") and iflicker(self.tick, 2, 2) then
         fireable_color = self.tick % 2 == 0 and Color.white or Color.grey
@@ -157,9 +163,24 @@ function SecondaryWeapon:draw()
 		unfireable_color = Color.orange
     end
 
-	graphics.set_color(hud_icon_color)
+    graphics.set_color(hud_icon_color)
 
-    graphics.draw(game_state.secondary_weapon.hud_icon, -1, -1)
+    if self:is_timer_running("gained_weapon_flash") then
+        local stopwatch = self:get_stopwatch("gained_weapon_flash_stopwatch")
+        if stopwatch and iflicker(stopwatch.tick, 1, 4) then
+            local tick = floor(stopwatch.tick / 4)
+            graphics.drawp(game_state.secondary_weapon.hud_icon, Palette[game_state.secondary_weapon.sprite], tick, -1, -1)
+            -- empty_color = Palette[game_state.secondary_weapon.sprite]:get_color(tick)
+            graphics.push"all"
+            graphics.set_color(Palette[game_state.secondary_weapon.sprite]:get_color(tick + 1))
+            graphics.rectangle("line", 0, 0, self.width, self.height)
+            graphics.pop()
+        end
+
+    else
+        graphics.draw(game_state.secondary_weapon.hud_icon, -1, -1)
+    end
+
 
 
 	local low_ammo_threshold = self:low_ammo_threshold()
@@ -268,8 +289,7 @@ function SecondaryWeapon:draw()
 		end
 	end
 	
-	graphics.set_color(Color.white)
-
+    graphics.set_color(Color.white)
 
 end
 

@@ -223,9 +223,11 @@ function GameWorld:enter()
     end)
 
     signal.connect(game_state, "tried_to_use_secondary_weapon_with_no_ammo", self, "on_player_out_of_ammo", function()
-		self:quick_notify(
-			self.room.curse_famine and tr.notif_famine or tr.notif_out_of_ammo,
-            self.room.curse_famine and "notif_famine" or "notif_no_ammo",
+        self:quick_notify(
+            tr.notif_out_of_ammo,
+            "notif_no_ammo",
+			-- self.room.curse_famine and tr.notif_famine or tr.notif_out_of_ammo,
+            -- self.room.curse_famine and "notif_famine" or "notif_no_ammo",
             nil,
             0,
             30,
@@ -440,6 +442,8 @@ function GameWorld:initialize_room(room)
     if self.room.curse then
         savedata:add_item_to_codex(self.room.curse)
     end
+    
+    game_state.current_curse = self.room.curse
 
     if self.room.curse_spite then
         self:ref("spite_object", self:spawn_object(PressureObject(0, 0)))

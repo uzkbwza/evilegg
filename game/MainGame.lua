@@ -116,6 +116,7 @@ function GlobalGameState:new()
 	self.level_bonuses = {}
 	self.all_bonuses = {}
 	self.level_scores = {}
+    self.current_curse = nil
 
 	self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
 	self.xp_until_heart = 1
@@ -275,7 +276,7 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 3
+            self.level = 50
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -290,7 +291,7 @@ function GlobalGameState:new()
                 self:upgrade(self:get_random_available_upgrade(false))
             end
 
-            self.secondary_weapon = nil
+            -- self.secondary_weapon = nil
 
             if self.secondary_weapon then
                 self:gain_secondary_weapon_ammo(math.huge)

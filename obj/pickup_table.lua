@@ -288,6 +288,8 @@ local Artefacts = {
 		name = "artefact_prayer_knot_name",
 		description = "artefact_prayer_knot_desc",
         spawn_weight = 1000,
+        aim_prompt = true,
+        -- debug_spawn_weight = 1000000000,
     },
 
 	UselessArtefact = {
@@ -434,7 +436,6 @@ local Artefacts = {
 		name = "weapon_big_laser_name",
 		description = "weapon_big_laser_desc",
         spawn_weight = 1000,
-        -- debug_spawn_weight = 1000000000,
 
 		is_secondary_weapon = true,
 		ammo = 750,
