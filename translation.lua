@@ -306,7 +306,8 @@ local translations = {
         options_input_map_aim_up_digital = "Shoot Up",
         options_input_map_aim_down_digital = "Shoot Down",
         options_input_map_skip_bonus_screen = "Skip Bonus Screen",
-        options_input_map_show_hud = "Show Timer",
+        options_input_map_show_hud                   = "Show Timer",
+        options_allow_windowed_mode_on_steam_deck    = "Steam Deck Window Options",
 
         name_entry_prompt            = "ENTER YOUR NAME",
 

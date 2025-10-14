@@ -44,6 +44,7 @@ local default_usersettings = {
     retry_cooldown = false,
     enable_leaderboard = true,
     skip_intro = false,
+    allow_windowed_mode_on_steam_deck = false,
 }
 
 local usersettings = {}
@@ -134,12 +135,11 @@ end
 function usersettings:apply_settings()
     print("applying user settings")
 
-	if conf.platform_force_fullscreen then
+	if conf:should_platform_force_fullscreen() then
         self.fullscreen = true
         self.fullscreen_mode = "exclusive"
-    else
-		love.window.setFullscreen(self.fullscreen, self.fullscreen_mode)
 	end
+    love.window.setFullscreen(self.fullscreen, self.fullscreen_mode)
 
     if self.apply_window_size and not self.fullscreen and self.window_size then
         self.apply_window_size = nil

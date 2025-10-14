@@ -337,11 +337,26 @@ if IS_EXPORT then
     conf.input_actions.secondary_weapon.keyboard = { "lshift" }
 end
 
+conf.should_platform_force_fullscreen = function(self)
+    if self.platform == "steamdeck" then
+        if usersettings and usersettings.allow_windowed_mode_on_steam_deck then
+            return false
+        end
+        return true
+    end
+    return false
+end
+
+conf.platform = "windows"
+
 -- console stuff
 if steam and steam.utils.isSteamRunningOnSteamDeck() then
-	conf.platform_force_fullscreen = true
 	conf.platform = "steamdeck"
 end
+
+-- if debug.enabled then
+--     conf.platform = "steamdeck"
+-- end
 
 local function load_input_preset(preset)
 	for k, v in pairs(preset.actions) do
@@ -409,7 +424,7 @@ function love.conf(t)
 	t.window.fullscreentype = "desktop"
 	
 	
-	if conf.platform_force_fullscreen then
+	if conf:should_platform_force_fullscreen() then
         t.window.fullscreen = true
         t.window.width = 0
 		

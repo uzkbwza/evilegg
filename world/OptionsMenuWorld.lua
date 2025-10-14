@@ -341,6 +341,8 @@ function OptionsMenuWorld:show_menu(page)
     -- local base = MENU_ITEM_V_PADDING
     local current_page = 1
 
+    local force_fullscreen = conf:should_platform_force_fullscreen()
+
     local options_table = {
             -- { "header", text = "" },
             {
@@ -373,13 +375,13 @@ function OptionsMenuWorld:show_menu(page)
             },
             { newpage = true },
             { "header", text = tr.options_header_display },
-            { "fullscreen",    item_type = "toggle",            skip = conf.platform_force_fullscreen },
+            { "fullscreen",    item_type = "toggle",            skip = force_fullscreen },
             -- { "use_screen_shader", item_type = "toggle" },
     
     
             { "zoom_level", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.025, on_set_function = function(value) self:temporarily_disable_focus_on_hover() end },
             { "pixel_perfect", item_type = "toggle" },
-            { "set_window_size", item_type = "cycle", options = self.window_size_options, skip = conf.platform_force_fullscreen,
+            { "set_window_size", item_type = "cycle", options = self.window_size_options, skip = force_fullscreen,
             set_func = function(value)
                     self.current_window_size = value
                     usersettings:set_setting("fullscreen", false)
@@ -420,7 +422,7 @@ function OptionsMenuWorld:show_menu(page)
                 return self.current_window_size
             end },
     
-            { "set_aspect_ratio", item_type = "cycle", options = self.aspect_ratio_options, skip = conf.platform_force_fullscreen,
+            { "set_aspect_ratio", item_type = "cycle", options = self.aspect_ratio_options, skip = force_fullscreen,
                 set_func = function(value)
                     self.current_aspect_ratio = value
                     usersettings:set_setting("fullscreen", false)
@@ -489,7 +491,7 @@ function OptionsMenuWorld:show_menu(page)
                     end
                 end
         },
-        { "fullscreen_mode", item_type = "cycle", options = { "desktop", "exclusive" }, skip = conf.platform_force_fullscreen,
+        { "fullscreen_mode", item_type = "cycle", options = { "desktop", "exclusive" }, skip = force_fullscreen,
             set_func = function(value)
                 usersettings:set_setting("fullscreen_mode", value)
                 usersettings:set_setting("fullscreen", true)
@@ -610,7 +612,9 @@ function OptionsMenuWorld:show_menu(page)
                 return debug.enabled
             end },
     
-            { "enable_leaderboard", item_type = "toggle" },
+        { "enable_leaderboard", item_type = "toggle" },
+            
+        { "allow_windowed_mode_on_steam_deck", item_type = "toggle", skip = conf.platform ~= "steamdeck" },
 
             { newpage = true },
             { "header", text = tr.options_header_input_map },
