@@ -5,8 +5,9 @@ local Explosion = require("obj.Explosion")
 local AcidCharger = Charger:extend("AcidCharger")
 local AcidPuddle = BaseEnemy:extend("AcidPuddle")
 
-Chargesploder:implement(Mixins.Behavior.ExploderEnemy)
-
+Chargesploder:implement(Mixins.Behavior .ExploderEnemy)
+Charger.spawn_cry = "enemy_charger_spawn"
+Charger.spawn_cry_volume = 0.80
 local CHARGE_SPEED = 0.12
 
 local ChargerIndicator = Effect:extend("ChargerIndicator")
@@ -106,6 +107,7 @@ function Charger:charge(time)
         self:start_tick_timer("effect", wait_time - 5, function()
             self.pdx, self.pdy = self:get_body_direction_to_player()
             
+            self:stop_sfx("enemy_charger_spawn")
             self:play_sfx("enemy_charger_warning", 0.75, 1.0)
             local bx, by = self:get_body_center()
             self:spawn_object(ChargerIndicator(bx + self.pdx * 8, by + self.pdy * 8, self.pdx, self.pdy))

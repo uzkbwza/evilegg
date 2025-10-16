@@ -350,7 +350,7 @@ end
 conf.platform = "windows"
 
 -- console stuff
-if steam and steam.utils.isSteamRunningOnSteamDeck() then
+if steam and steam.utils and steam.utils.isSteamRunningOnSteamDeck and steam.utils.isSteamRunningOnSteamDeck() then
 	conf.platform = "steamdeck"
 end
 

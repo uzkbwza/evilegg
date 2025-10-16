@@ -7,7 +7,7 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = false
-local debug_enemy = "Turret"
+local debug_enemy = "Charger"
 local num_debug_enemies = 1
 local num_debug_waves = 3
 
