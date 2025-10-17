@@ -54,7 +54,7 @@ local mouse = {
 function InputRemappingScreen:update(dt)
     if self.finished then return end
 
-    if self.tick < 2 then return end
+    if self.tick < 10 then return end
 
     if input.keyboard_held["escape"] or input:any_joystick_held("start") then
         self.cancel_time = self.cancel_time + dt
