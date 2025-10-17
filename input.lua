@@ -416,9 +416,6 @@ function input.process(t)
 
 
     for k, dirs in pairs(t.vectors) do
-
-		
-		
         local v = t[k]
         v.x = 0
         v.y = 0

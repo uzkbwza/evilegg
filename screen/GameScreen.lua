@@ -77,7 +77,7 @@ function GameScreen:get_mouse_mode() -- visible, relative, confine
 
 
     if usersettings.use_absolute_aim then
-        local visible = usersettings.gamepad_plus_mouse or (input.last_input_device ~= "gamepad")
+        local visible = not game_state.digital_input_hide_crosshair and (usersettings.gamepad_plus_mouse or (input.last_input_device ~= "gamepad"))
         return visible, true, true
     end
 

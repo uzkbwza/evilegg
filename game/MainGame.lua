@@ -152,6 +152,8 @@ function GlobalGameState:new()
 
 	self.used_sacrificial_twin = false
 
+    self.digital_input_hide_crosshair = true
+
     -- self.bullet_speed_stack_amount = 0
 
 	self.hearts = 1

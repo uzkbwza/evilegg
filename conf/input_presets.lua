@@ -188,8 +188,7 @@ return {
 			},
 			
 			aim_up = {
-				keyboard = { "up" },
-				joystick = { "y" },
+
 				joystick_axis = {
 					axis = "righty",
                     deadzone = 0.0,
@@ -198,8 +197,7 @@ return {
 			},
 			
 			aim_down = {
-				keyboard = {"down"},
-				joystick = { "a" },
+
 				joystick_axis = {
 					axis = "righty",
                     dir = 1,
@@ -208,8 +206,7 @@ return {
 			},
 			
 			aim_left = {
-				keyboard = {"left"},
-				joystick = { "x" },
+
 				joystick_axis = {
                     axis = "rightx",
 					deadzone = 0.0,
@@ -218,8 +215,7 @@ return {
 			},
 			
 			aim_right = {
-				keyboard = {"right"},
-				joystick = { "b" },
+
 				joystick_axis = {
 					axis = "rightx",
 					dir = 1,

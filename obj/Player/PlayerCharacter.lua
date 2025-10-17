@@ -490,16 +490,29 @@ function PlayerCharacter:handle_input(dt)
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
     local aim_x_digital, aim_y_digital = input.aim_digital_clamped.x, input.aim_digital_clamped.y
 
+
     local aim_magnitude = vec2_magnitude(aim_x, aim_y)
     local aim_deadzone = 0.5
     local digital_aim_input = aim_x_digital ~= 0 or aim_y_digital ~= 0
 
+    if digital_aim_input then
+        aim_x = aim_x_digital
+        aim_y = aim_y_digital
+        self.mouse_mode = false
+        aim_magnitude = 1.0
+        game_state.digital_input_hide_crosshair = true
+    end
 
     if input.mouse.dxy_absolute.x ~= 0 or input.mouse.dxy_absolute.y ~= 0 then
         self.mouse_mode = true
+        game_state.digital_input_hide_crosshair = false
     elseif aim_magnitude > aim_deadzone then
         self.mouse_mode = false
     end
+
+
+
+
 
     self.shooting = false
 
