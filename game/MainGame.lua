@@ -235,22 +235,14 @@ function GlobalGameState:new()
 	self.score_categories = {}
 
 	self.skip_intro = usersettings.skip_intro or self.level > 1 or global_state.restarting
-    -- if savedata.update_force_cutscene then
-        -- savedata:set_save_data("update_force_cutscene", false)
-        -- savedata:set_save_data("new_version_force_intro", false)
-        -- self.skip_intro = false
-    -- end
 
     if savedata.new_version_force_intro then
         self.skip_intro = false
         self.unskippable_intro = true
     end
 
-
     if debug.enabled then
 
-        
-        
         local cheat = true
         self.cheat = cheat
         
@@ -292,8 +284,6 @@ function GlobalGameState:new()
             for i = 1, self:get_max_number_of_upgrades() - 1 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
-
-            -- self.secondary_weapon = nil
 
             if self.secondary_weapon then
                 self:gain_secondary_weapon_ammo(math.huge)

@@ -730,6 +730,7 @@ function Room:pool_point_modifier()
     if self.level >= EGG_ROOM_START then
         value = value + (self.level - EGG_ROOM_START) * 0.005
     end
+
     return value
 end
 
