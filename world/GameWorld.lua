@@ -1131,7 +1131,7 @@ function GameWorld:create_next_rooms()
 			needs_artefact = needs_artefact and i == artefact_room,
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
-			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
+			hard_room = (i == hard_room and (game_state.level >= EGG_ROOM_START)) or next_level >= 100,
 			force_ammo = i == ammo_room and game_state.level,
             cursed_room = cursed,
             allow_ignorance = not (force_cursed and i ~= cursed_room),
