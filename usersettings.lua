@@ -45,6 +45,7 @@ local default_usersettings = {
     enable_leaderboard = true,
     skip_intro = false,
     allow_windowed_mode_on_steam_deck = false,
+    highlight_new_codex_entries = true,
 }
 
 local usersettings = {}

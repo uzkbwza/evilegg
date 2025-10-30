@@ -181,7 +181,10 @@ function MainMenuWorld:create_buttons()
             func = function()
                 self:emit_signal("codex_menu_requested")
 				
-			end },
+            end,
+            codex = true
+        },
+
 		
         {name = tr.menu_options_button, func = function() self:emit_signal("options_menu_requested") end},
         -- {name = tr.main_menu_credits_button, func = function() end},
@@ -202,7 +205,9 @@ function MainMenuWorld:create_buttons()
     for i, menu_table in ipairs(menu_items) do
         local v_offset = (i - 1) * distance_between_items
 		local h_offset = (i - 1) * MENU_ITEM_SKEW
-		local menu_item = self:spawn_object(O.MainMenu.MainMenuButton(base_x + h_offset, base_y + v_offset, menu_table.name:upper()))
+        local menu_item = self:spawn_object(O.MainMenu.MainMenuButton(base_x + h_offset, base_y + v_offset,
+        menu_table.name:upper()))
+        menu_item.is_codex = menu_table.codex
         signal.connect(menu_item, "selected", self, "on_menu_item_selected", function()
 			self:on_menu_item_selected(menu_item, menu_table.func)
 		end)

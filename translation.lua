@@ -272,7 +272,10 @@ local translations = {
         options_reset_controls_to_default            = "Reset Controls To Default",
         options_rumble_intensity                     = "Rumble Intensity",
         options_fullscreen_mode                      = "Fullscreen Mode",
-
+        options_highlight_new_codex_entries          = "Show Codex Notifications",
+        
+        options_enable_leaderboard_pausing_tip       = "Disables pausing.",
+        
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",
         options_confine_mouse_never                  = "Never",

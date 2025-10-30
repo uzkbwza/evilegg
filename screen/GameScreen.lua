@@ -216,10 +216,7 @@ end
 
 function UILayer:state_PlayerDeath_enter()
 	self:add_world(Worlds.PlayerDeathScreenWorld(0, 0), "player_death_screen_world")
-	signal.connect(self.player_death_screen_world, "covering_screen", self, "on_death_world_covering_screen", function()
-		-- self.blocks_render = true
-		-- self.blocks_logic = true
-		-- self.blocks_input = true
+    signal.connect(self.player_death_screen_world, "covering_screen", self, "on_death_world_covering_screen", function()
 		-- self.game_layer:hide()
         -- self.game_layer.handling_logic = false
         self.game_layer.muted = true
@@ -257,7 +254,10 @@ end
 
 function UILayer:state_Paused_enter()
 	self.blocks_input = true
-    -- self.blocks_logic = true
+
+    if not usersettings.enable_leaderboard then
+        self.blocks_logic = true
+    end
 	self.game_layer.world.paused = true
 	-- self.game_layer.handling_logic = false
 	
@@ -325,7 +325,7 @@ function UILayer:state_Paused_exit()
 	self.game_layer.world.paused = false
 	self.game_layer.handling_logic = true
     self.blocks_input = false
-    -- self.blocks_logic = false
+    self.blocks_logic = false
     -- self.blocks_render = false
 	if self.pause_screen then
 		self.pause_screen:queue_destroy()

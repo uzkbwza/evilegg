@@ -299,7 +299,6 @@ function GlobalGameState:stop_updating()
     time_checker:stop()
 end
 
-
 function GlobalGameState:update(dt)
     if self.stopped_updating then
         return
@@ -319,17 +318,6 @@ function GlobalGameState:update(dt)
     end
 
     if debug.enabled then
-		-- dbg("xp", self.xp)
-		-- dbg("xp_until_upgrade", self.xp_until_upgrade)
-		-- dbg("xp_until_heart", self.xp_until_heart)
-		-- dbg("xp_until_artefact", self.xp_until_artefact)
-		-- dbg("num_queued_upgrades", self.num_queued_upgrades)
-		-- dbg("num_queued_hearts", self.num_queued_hearts)
-		-- dbg("num_queued_artefacts", self.num_queued_artefacts)
-		-- dbg("difficulty_modifier", self:get_difficulty_modifier())
-		-- dbg("bonus_difficulty_modifier", self.bonus_difficulty_modifier)
-		-- dbg("aggression_bonus", self.aggression_bonus)
-        -- dbg("average_fps", time_checker:get_average_fps(), Color.cyan)
         dbg("relative_game_speed", time_checker:get_relative_game_speed(), Color.red)
         local min_speed, max_speed = time_checker:get_relative_game_speed_bounds()
         dbg("min_game_speed", min_speed, Color.red)

@@ -612,12 +612,14 @@ function OptionsMenuWorld:show_menu(page)
                 return debug.enabled
             end },
     
-        { "enable_leaderboard", item_type = "toggle" },
+        { "enable_leaderboard", item_type = "toggle", tip="enable_leaderboard_pausing_tip", skip=self.canvas_layer.in_game },
             
         { "allow_windowed_mode_on_steam_deck", item_type = "toggle", skip = conf.platform ~= "steamdeck" },
 
-            { newpage = true },
-            { "header", text = tr.options_header_input_map },
+        { "highlight_new_codex_entries", item_type = "toggle"},
+
+        { newpage = true },
+        { "header", text = tr.options_header_input_map },
     
     }
 
@@ -776,6 +778,18 @@ function OptionsMenuWorld:add_menu_item(menu_table)
     if menu_table.select_func then
         signal.connect(menu_item, "selected", self, "on_menu_item_selected", menu_table.select_func)
     end
+
+    if menu_table.tip then
+        signal.connect(menu_item, "focused", self, "on_menu_item_focused", function()
+            self.tip_text = menu_table.tip
+        end)
+
+        signal.connect(menu_item, "unfocused", self, "on_menu_item_focused", function()
+            if self.tip_text == menu_table.tip then
+                self.tip_text = nil
+            end
+        end)
+    end
 	
     if menu_item:is(O.OptionsMenu.OptionsMenuToggle) then
         local get_func = menu_table.get_func or function() return usersettings[menu_table.usersettings_toggle] end
@@ -858,7 +872,12 @@ function OptionsMenuWorld:draw()
     if not (self.current_page == 2 and self.canvas_layer.in_game) then        
         graphics.print(tr.menu_options_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
     end
-	OptionsMenuWorld.super.draw(self)
+    OptionsMenuWorld.super.draw(self)
+    if self.tip_text then
+        graphics.set_font(fonts.depalettized.image_font1)
+        graphics.set_color(Color.darkgrey)
+        graphics.print(tr["options_" .. self.tip_text]:upper(), MENU_ITEM_H_PADDING, conf.viewport_size.y / 2 + self.canvas_layer.viewport_size.y / 2 - MENU_ITEM_V_PADDING - 13)
+    end
 end
 
 return OptionsMenuWorld

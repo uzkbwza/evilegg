@@ -14,6 +14,7 @@ function MainMenuButton:new(x, y, text)
     self.text_width = self.font:getWidth(self.text)
     self.press_mode = "press"
     self.letter_disappear_offset = 0
+    -- self.z_index = 2
     -- self.width = max(self.width, self.text_width * 1.25)
 end
 
@@ -31,6 +32,11 @@ function MainMenuButton:enter()
 		width = self.font:getWidth(self.text:sub(1, i))
         self:ref_array_push("letters", letter).z_index = self.z_index + 0.1
 		self:bind_destruction(letter)
+	end
+
+
+    if self.is_codex then
+        self.letters[#self.letters].codex_notif = true
 	end
 
 	self:move(-WIDTH / 2, 0)
@@ -146,6 +152,14 @@ function MainMenuButtonLetter:draw()
     graphics.set_font(self.font)
 	-- local y = 0.7 * sin(self.elapsed * 0.2 + self.random_offset1 * 100)
     graphics.printp(self.text, self.font, self.palette_stack, 0, 0, 0)
+
+    if self.codex_notif and usersettings.highlight_new_codex_entries and not table.is_empty(savedata.new_codex_items) then
+		graphics.set_color(Color.red)
+        graphics.set_font(fonts.depalettized.image_font2)
+		graphics.print("?", 12, -2 + sin(self.tick * 0.35) * 1, 0, 1, 1)
+		graphics.set_color(Color.white)
+    end
+
 end
 
 return MainMenuButton

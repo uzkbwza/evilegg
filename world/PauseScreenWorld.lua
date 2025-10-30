@@ -64,6 +64,12 @@ function PauseScreenWorld:draw()
     -- graphics.set_font(font)
     -- graphics.print_centered("PAUSEHOLDER PLACEMENU", font, 0, -40)
     PauseScreenWorld.super.draw(self)
+    if usersettings.highlight_new_codex_entries and not table.is_empty(savedata.new_codex_items) then
+        graphics.set_color(Color.red)
+        graphics.set_font(fonts.depalettized.image_font2)
+		graphics.print("?", -20, -8 + sin(self.tick * 0.35) * 1, 0, 1, 1)
+		graphics.set_color(Color.white)
+    end
 
 end
 

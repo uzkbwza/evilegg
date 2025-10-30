@@ -229,7 +229,7 @@ function LeaderboardWorld:enter()
     self.period_button:add_neighbor(self.page_right_button, "down")
     self.sort_button:add_neighbor(self.page_right_button, "down")
     self.wep_button:add_neighbor(self.page_right_button, "down")
-    self.me_button:add_neighbor(self.page_right_button, "down")
+    self.me_button:add_neighbor(self.page_right_button, "down", true)
 
 
     self.back_button:add_neighbor(self.sort_button, "right", true)

@@ -21,6 +21,7 @@ function CodexMenuCycle:set_options(options)
 	end
 end
 
+
 function CodexMenuCycle:draw()
     -- CodexMenuCycle.super.draw(self)
     -- local x, y, w, h = self:get_rect_local()

@@ -37,6 +37,7 @@ function CodexWorld:new(x, y)
     self:add_signal("exit_menu_requested")
     self.object_buttons = {}
     self.page_number = 1
+    self.category_new_items = false
     self.category_index_selected = 1
     self.category_selected = PAGE_CATEGORY_ORDER[self.category_index_selected]
     self.spawn_tables = {}
@@ -104,13 +105,27 @@ function CodexWorld:update(dt)
     
 	self.focused_on_entry = self.menu_root.focused_child and self.menu_root.focused_child.is_codex_entry_button
 	
-	if input.ui_cancel_pressed then
+    if input.ui_cancel_pressed then
         if self.focused_on_entry and input.last_input_device == "gamepad" then
-			self.cycle_category_button:focus()
+            self.cycle_category_button:focus()
         else
             self.back_button:select()
-		end
-	end
+        end
+    end
+    
+
+    self.category_new_items = false
+    local spawns = self.spawn_tables[self.category_selected]
+    local len = #spawns
+
+    for i = 1, len do
+        local spawn = spawns[i]
+        if spawn and savedata:is_new_codex_item(spawn.codex_save_name) then
+            self.category_new_items = true
+            break
+        end
+    end
+
 end
 
 
@@ -874,7 +889,14 @@ function CodexWorld:draw()
     local font = fonts.depalettized.image_bigfont1
 	graphics.set_font(font)
 	graphics.print(tr.menu_codex_button, font, 28, MENU_ITEM_V_PADDING - 3, 0, 1, 1)
-	CodexWorld.super.draw(self)
+    CodexWorld.super.draw(self)
+    
+    if self.category_new_items and self.cycle_category_button and usersettings.highlight_new_codex_entries then
+        graphics.set_color(Color.red)
+        graphics.set_font(fonts.depalettized.image_font2)
+		graphics.print("?", self.cycle_category_button.pos.x + self.cycle_category_button.width - 2, self.cycle_category_button.pos.y -2 + sin(self.tick * 0.35) * 1, 0, 1, 1)
+		graphics.set_color(Color.white)
+    end
 end
 
 return CodexWorld
