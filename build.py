@@ -268,6 +268,10 @@ def package_for_windows(love_file: str, build_type: str) -> None:
     if os.path.isfile(credits_src):
         shutil.copy(credits_src, os.path.join(win_build_dir, 'credits.txt'))
 
+    version = os.path.join('version.txt')
+    if os.path.isfile(version):
+        shutil.copy(version, os.path.join(win_build_dir, 'version.txt'))
+
     # Handle icon embedding
     if os.path.isfile(ICON_SOURCE):
         temp_ico = os.path.join(BUILD_DIR, '_tmp_icon.ico')
