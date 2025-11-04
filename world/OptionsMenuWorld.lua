@@ -533,7 +533,7 @@ function OptionsMenuWorld:show_menu(page)
             end,
             },
     
-            { "screen_shake_amount", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1},
+            -- { "screen_shake_amount", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1},
             
         
             { "brightness", item_type = "slider", slider_start = 0.5, slider_stop = 1.0, slider_granularity = 0.05 },

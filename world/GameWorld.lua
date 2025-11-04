@@ -890,9 +890,9 @@ function GameWorld:create_player(player_id)
 			self:room_border_fade("in")
             self:soft_room_clear()
 			s:start(function()
-				self.tutorial_state = nil
+				-- self.tutorial_state = nil
 				local level = game_state.level
-                s:wait(45)
+                -- s:wait(15)
 				if game_state.level == level then
 					self.tutorial_state = 2
 				end
@@ -908,7 +908,7 @@ function GameWorld:create_player(player_id)
 		self.tutorial_sequence = s:start(function()
 			s:wait(5)
 			self:room_border_fade("in", 3)
-			self.tutorial_state = nil
+			-- self.tutorial_state = nil
             -- s:wait(25)
 			s:wait(45)
             self.tutorial_state = 2
@@ -1990,18 +1990,23 @@ function GameWorld:draw()
     graphics.pop()
 
 	-- Draw tutorial text if active
-	if self.tutorial_state and not self.paused then
+    if self.tutorial_state and not self.paused then
+        graphics.push("all")
+        graphics.translate(0, -2)
 		graphics.set_color(Color.green)
 		local font = fonts.depalettized.image_font2
         graphics.set_font(font)
 
-		if self.tutorial_state == 1 then
-			-- graphics.print_centered(tr.tutorial_boost2, font, 0, 28)
-			graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 16)
-		elseif self.tutorial_state == 2 then
-			graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -6)
-			graphics.print_centered(tr.tutorial_shoot:format(input:get_shoot_prompt()), font, 0, 9)
-		end
+        if self.tutorial_state == 1 then
+            -- graphics.print_centered(tr.tutorial_boost2, font, 0, 28)
+            graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -11)
+            graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 11)
+        elseif self.tutorial_state == 2 then
+            graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -11)
+            graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 11)
+            graphics.print_centered(tr.tutorial_shoot:format(input:get_shoot_prompt()), font, 0, 0)
+        end
+        graphics.pop()
 	end
 
 

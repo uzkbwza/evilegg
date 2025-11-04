@@ -30,6 +30,7 @@ function BaseEnemy:new(x, y)
     self.random_offset = rng:randi(0, 255)
 	self.random_offset_ratio = self.random_offset / 255
     self.flip = 1
+    self.last_hurt_sfx_tick = -math.huge
 
     self:add_signal("died")
 	if self.auto_state_machine then
@@ -136,14 +137,16 @@ function BaseEnemy:hit_by(object)
         self:death_sequence(object)
 		self:stop_timer("damage_flash")
 	else
-		if self.started_death_sequence then
-			-- self:play_sfx("enemy_exploder_beep", 0.5)
-		elseif self.hurt_sfx and not invuln then
-			self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
-		elseif not (self:has_tag("enemy_bullet") or self:has_tag("hazard")) and not invuln then
-            self:play_sfx("enemy_hurt", 0.25, 1.0)
-        elseif invuln then
-			self:play_sfx("enemy_shield_hit", 0.7, 1.0)
+        if not self.started_death_sequence and self.last_hurt_sfx_tick < self.tick then
+            self.last_hurt_sfx_tick = self.tick
+                -- self:play_sfx("enemy_exploder_beep", 0.5)
+            if self.hurt_sfx and not invuln then
+                self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
+            elseif not (self:has_tag("enemy_bullet") or self:has_tag("hazard")) and not invuln then
+                self:play_sfx("enemy_hurt", 0.25, 1.0)
+            elseif invuln then
+                self:play_sfx("enemy_shield_hit", 0.7, 1.0)
+            end
 		end
     end
 end

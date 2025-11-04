@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, false, true, true
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -239,8 +239,9 @@ function EggBoss:hit_by(object)
 
 	if object.cannot_hit_egg then return end
 
-	if self.state == "Phase3" or self.state == "Phase5" then
+	if self.state == "Phase3" or self.state == "Phase5" and self.can_take_damage then
 		self:start_timer("shadow_hurt_flash", 1)
+        -- self:start_stopwatch("shadow_hurt_flash")
 	end
 
 	EggBoss.super.hit_by(self, object)
@@ -495,6 +496,7 @@ end
 
 function EggBoss:get_palette()
     if self:is_timer_running("shadow_hurt_flash") then
+        -- return Palette.dark_egg_flash, idiv(self:get_stopwatch("shadow_hurt_flash").tick, 3)
         return Palette.dark_egg_flash, idiv(self.tick, 3)
     end
 
@@ -684,12 +686,12 @@ function EggBoss:state_Phase2_enter()
 
                 self:spawn_greenoid(pickup)
                 -- for j = 1, (self.phase2_started_twice and rng:randi(1, 2) or 2) do
-                -- for j = 1, (self.phase2_started_twice and 2 or (1 + i % 2)) do
-                for j = 1, (1 + i % 2) do
+                for j = 1, (self.phase2_started_twice and (1 + (i % 3 == 0 and 1 or 0)) or (1 + i % 2)) do
+                    -- print(j .. " guards")
+                -- for j = 1, (1 + i % 2) do
                 -- for j = 1, (2) do
-
-				if self.phase2_started_twice or i >= num_greenoids / 2 then
-					self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
+				    if self.phase2_started_twice or i >= num_greenoids / 2 then
+					    self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
 							self:spawn_wave_enemy(object)
 						end)
 					end
@@ -784,6 +786,8 @@ end
 function EggBoss:phase2_landing()
     -- self:play_sfx("enemy_evil_egg_phase2_landing", 0.8)
     if not (self.phase2_started_twice or (SKIP_PHASE_3 and SKIP_PHASE_4)) then
+        
+
         input.start_rumble(egg_boss_phase2_landing_rumble_func, 600)
 		self.world.camera:start_rumble(5, 20, ease("linear"), false, true)
 		self:spawn_object(Explosion(self.pos.x, self.pos.y, {
@@ -979,13 +983,15 @@ function EggBoss:state_Phase3_enter()
                     end
                     palette_index = palette_index + 1
                 end
-                -- self.egg_blood_palette:add_color(table.get_circular(colors, palette_index), palette_index)
+                -- self.egg_blood_palet te:add_color(table.get_circular(colors, palette_index), palette_index)
                 if colornum % 5 == 0 then
                     s:wait(5)
                 end
             end
 
             self.can_take_damage = true
+            self.hurt_sfx = "enemy_evil_egg_hurt"
+            self.hurt_sfx_volume = 0.45
         end)
 
         s:wait(100)
@@ -1939,7 +1945,7 @@ function EggShadow:draw()
 	local color_mod = 1.0
 
 	if activating then
-		color_mod = 0.25
+		color_mod = 0.45
 	end
 
 	if not iflicker(gametime.tick, 1, 3) then

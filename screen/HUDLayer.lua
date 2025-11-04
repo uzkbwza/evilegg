@@ -60,6 +60,14 @@ function HUDLayer:is_paused()
     return self.parent.ui_layer.state == "Paused" or self.game_layer.world.paused
 end
 
+local function tick_rumble(t)
+    return (1 - ease("outQuad")(t)) * 0.1
+end
+
+local function bonus_rumble(t)
+    return (1 - ease("outQuad")(t)) * 0.3
+end
+
 function HUDLayer:start_after_level_bonus_screen()
 	self.skipping_bonus_screen = false
 	if not self.game_layer.world then
@@ -206,7 +214,8 @@ function HUDLayer:start_after_level_bonus_screen()
 
 				-- if b.count == 0 then
 					-- self:play_sfx("ui_bonus_screen_beep3", 0.5)
-				-- else
+                -- else
+                -- input.start_rumble(tick_rumble, 2)
 				self:play_sfx("ui_bonus_screen_beep", 0.5)
 				-- end
 
@@ -285,10 +294,12 @@ function HUDLayer:start_after_level_bonus_screen()
 				end
                 b.score_highlight_coroutine = s:start(function()
 					b.score_apply_highlight_amount = 1
-					s:tween_property(b, "score_apply_highlight_amount", 1, 0, 12, "outCubic")
+                    s:tween_property(b, "score_apply_highlight_amount", 1, 0, 12, "outCubic")
 				end)
 
-                if not self.skipping_bonus_screen then 
+                
+                input.start_rumble(bonus_rumble, 10)
+                if not self.skipping_bonus_screen then
                     self:play_sfx("ui_bonus_screen_beep2", 0.75)
                 end
                 if wait_for_bonus(b) then
@@ -311,8 +322,10 @@ function HUDLayer:start_after_level_bonus_screen()
 			table.remove(self.after_level_bonus_screen.bonuses, i)
             s:wait(2)
 
+            
             -- if self:should_show() then
 			self:play_sfx("ui_bonus_screen_beep", 0.5)
+            -- input.start_rumble(tick_rumble, 2)
 			-- end
 			
 		end

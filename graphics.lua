@@ -656,7 +656,8 @@ function graphics.frame_rumble(intensity)
         s:stop(graphics.rumble_coroutine)
     end
 	local func = function()	
-        s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, 1, "constant0")
+        -- s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, 1, "constant0")
+        s:tween_property(graphics, "screen_rumble_intensity", intensity, 0, 1, "constant0")
         graphics.rumble_coroutine = nil
 		graphics.screen_rumble_intensity = 0
     end
@@ -671,7 +672,8 @@ function graphics.start_rumble(intensity, duration, easing_function)
 
     easing_function = easing_function or ease("outQuad")
     local func = function()
-        s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, duration,
+        -- s:tween_property(graphics, "screen_rumble_intensity", intensity * usersettings.screen_shake_amount, 0, duration,
+        s:tween_property(graphics, "screen_rumble_intensity", intensity, 0, duration,
             easing_function)
         graphics.rumble_coroutine = nil
         graphics.screen_rumble_intensity = 0

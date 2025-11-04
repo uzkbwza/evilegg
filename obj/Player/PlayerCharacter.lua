@@ -214,9 +214,11 @@ function PlayerCharacter:state_GameStart_update(dt)
 	end
 
 	local input = self:get_input_table()
-    if input.hover_held then
+    if input.hover_pressed then
+        -- if not (game_state.skip_intro and self.state_tick < 10) then
         self:change_state("Hover")
         return
+        -- end
     end
     
 	local ix, iy = input.move_normalized.x, input.move_normalized.y

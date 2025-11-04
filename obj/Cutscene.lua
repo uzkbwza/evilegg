@@ -1365,6 +1365,14 @@ function FinalScoreCutscene:new(x, y)
     self.dark = true
 end
 
+local function tick_rumble(t)
+    return (1 - ease("outQuad")(t)) * 0.1
+end
+
+local function impact_rumble(t)
+    return (1 - ease("linear")(t)) * 0.8
+end
+
 function FinalScoreCutscene:enter()
     local s = self.sequencer
     s:start(function()
@@ -1389,6 +1397,7 @@ function FinalScoreCutscene:enter()
             self.displayed_score = lerp(0, self.start_score, t)
             if old_displayed_score ~= self.displayed_score and self.is_new_tick and self.tick % 2 == 0 then
                 self:play_sfx("ui_game_over_stat_display_tick")
+                -- input.start_rumble(tick_rumble, 5)
             end
         end, 0, 1, 100, "linear")
         self.current_score = self.displayed_score
@@ -1411,12 +1420,14 @@ function FinalScoreCutscene:enter()
             local last = i == #self.end_game_bonuses
 
             self.between_bonuses = true
+            
             s:tween(function(t)
                 self.next_t = t
                 local old_displayed_score = self.displayed_score
                 self.displayed_score = lerp(self.current_score, self.next_score, t)
                 if old_displayed_score ~= self.displayed_score and self.is_new_tick and self.tick % 4 == 0 then
                     self:play_sfx("ui_end_bonus_tick", 0.6)
+                    input.start_rumble(tick_rumble, 5)
                 end
                 game_state:set_score(self.displayed_score)
             end, 0, 1, last and 150 or 120, "linear")
@@ -1424,8 +1435,10 @@ function FinalScoreCutscene:enter()
 
             if last then
                 self:play_sfx("ui_end_bonus_final_impact", 1.0)
+                input.start_rumble(impact_rumble, 45)
             else
                 self:play_sfx("ui_end_bonus_impact", 1.0)
+                input.start_rumble(impact_rumble, 35)
             end
 
             self.current_ones = self.next_ones
