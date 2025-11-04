@@ -70,9 +70,24 @@ function graphics.load_textures(texture_atlas)
 
 	local texture_count = 0
 
+    local try_readback = true
+
+    local readback = function(path)
+        local tex = graphics.new_image(path, image_settings)
+        local data = graphics.readback_texture(tex)
+        return tex, data
+    end
+
 	for _, path in ipairs(sprite_paths) do
-		local tex = graphics.new_image(path, image_settings)
-		local data = graphics.readback_texture(tex)
+        local success, tex, data
+        if try_readback then
+            success, tex, data = pcall(readback, path)
+            try_readback = success
+        end
+        if not success then -- deprecated(?) fallback
+            data = graphics.new_image_data(path)
+            tex = graphics.new_image(data, image_settings)
+        end
         local name = filesystem.filename_to_asset_name(path, "png", "sprite_")
 		if textures[name] then
 			asset_collision_error(name, path, texture_paths[name])
