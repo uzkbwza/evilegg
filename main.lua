@@ -3,7 +3,7 @@
 -- ===========================================================================
 ---@diagnostic disable: lowercase-global
 
-GAME_VERSION = "1.0.2" 
+GAME_VERSION = require "version"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
 print("Game version: " .. GAME_VERSION)
