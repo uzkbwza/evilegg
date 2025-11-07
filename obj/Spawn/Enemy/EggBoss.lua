@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, false, true, true
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, true
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -991,7 +991,7 @@ function EggBoss:state_Phase3_enter()
 
             self.can_take_damage = true
             self.hurt_sfx = "enemy_evil_egg_hurt"
-            self.hurt_sfx_volume = 0.45
+            self.hurt_sfx_volume = 0.35
         end)
 
         s:wait(100)

@@ -118,6 +118,11 @@ local conf = {
             joystick = { "start", "a" },
             mouse = { "lmb" }
         },
+
+        show_codex = {
+            keyboard = { "g" },
+            joystick = { "back" },
+        },
 		
 		-- restart = {
 		-- 	keyboard = { "r" },

@@ -16,6 +16,7 @@ local default_savedata = {
     leaderboard_wep_filter = "all",
     done_shader_performance_test = false,
     has_seen_title_screen = false,
+    has_pressed_codex_category_button = false,
     -- update_force_cutscene = true,
 }
 

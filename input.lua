@@ -858,6 +858,10 @@ function input:get_shoot_prompt()
     return self:get_prompt("shoot", "lmb", usersettings.southpaw_mode and "l" or "r")
 end
 
+function input:get_codex_prompt()
+    return self:get_prompt("show_codex", "g", "back")
+end
+
 function input:get_boost_prompt()
     return self:get_prompt("hover", "space", "lt")
 end

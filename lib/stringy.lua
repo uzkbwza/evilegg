@@ -15,6 +15,12 @@ function stringy.interpolate(s, ratio)
     return result
 end
 
+function stringy.display_num_characters(s, num)
+    local len = utf8.len(s) or 0
+    local result = utf8.sub(s, 1, min(len, num))
+    return result
+end
+
 function stringy.strip_whitespace(s, left, right)
 	if left == nil then
 		left = true

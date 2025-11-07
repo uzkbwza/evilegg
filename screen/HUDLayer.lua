@@ -387,9 +387,12 @@ function HUDLayer:update(dt)
 	end 
 
 	for i, meter in ipairs(self.xp_bars) do
-		if meter.xp < game_state.xp then
-			meter.xp = approach(meter.xp, game_state.xp, dt * 30)
+		if meter.xp > game_state[meter.start] then
+            meter.xp = approach(meter.xp, game_state[meter.start], dt * 100)
+        else
+            meter.xp = game_state[meter.start]
 		end
+        
 	end
     if self.is_new_tick and self.tick % 4 == 0 then
         local first = self.xp_bars[1]
@@ -648,9 +651,8 @@ function HUDLayer:pre_world_draw()
         -- table.sort(self.xp_bars, self.bar_sort)
 
         for i, bar in ipairs(self.xp_bars) do
-            local xp_start = game_state[bar.start]
             local xp_end = game_state[bar.name]
-            local ratio = max(remap_clamp(bar.xp, xp_start, xp_end, 0, 1), 1 / (bar_end - bar_start))
+            local ratio = max(remap(xp_end - bar.xp, 0, xp_end, 0, 1), 1 / (bar_end - bar_start))
             -- if i == 2 then
             -- print(xp_start, xp_end, game_state.xp)
             -- end
@@ -928,7 +930,7 @@ function HUDLayer:create_persistent_ui()
 	self.xp_bars = {
 		{
 			name = "upgrade_xp_target",
-			start = "reached_upgrade_xp_at",
+            start = "xp_until_upgrade",
 			color = Color.cyan,
 			xp = 0,
 			x = 0,
@@ -936,7 +938,7 @@ function HUDLayer:create_persistent_ui()
 		},
 		{
 			name = "heart_xp_target",
-			start = "reached_heart_xp_at",
+			start = "xp_until_heart",
 			color = Color.magenta,
 			xp = 0,
 			x = 0,
@@ -944,7 +946,7 @@ function HUDLayer:create_persistent_ui()
 		},
 		{
 			name = "artefact_xp_target",
-			start = "reached_artefact_xp_at",
+            start = "xp_until_artefact",
 			color = Color.yellow,
 			xp = 0,
 			x = 0,

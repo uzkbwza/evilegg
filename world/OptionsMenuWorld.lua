@@ -510,7 +510,8 @@ function OptionsMenuWorld:show_menu(page)
             item_type = "toggle",
         },
                 
-        { "show_hud", item_type = "toggle", inverse = false},
+        { "show_hud", item_type = "toggle", inverse = false },
+        { "enable_tutorial", item_type = "toggle"},
         { "screen_shader_preset", item_type = "cycle", options = self:get_screen_shader_presets(),
     
             get_func = function()
@@ -599,11 +600,16 @@ function OptionsMenuWorld:show_menu(page)
                     self:ref("gamer_health_timer", tab.gamer_health_timer)
                 end
             end },
+            
+            
+            { "enable_leaderboard", item_type = "toggle", tip="enable_leaderboard_pausing_tip", skip=self.canvas_layer.in_game },
+            
+            { "allow_windowed_mode_on_steam_deck", item_type = "toggle", skip = conf.platform ~= "steamdeck" },
+            
+            { "highlight_new_codex_entries",       item_type = "toggle" },
             { "enter_name", item_type = "button", select_func = function()
                 self:emit_signal("enter_name_requested")
             end },
-    
-    
             { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
                 debug.enabled = not debug.enabled
                 usersettings:set_setting("debug_enabled", debug.enabled)
@@ -611,14 +617,10 @@ function OptionsMenuWorld:show_menu(page)
             get_func = function()
                 return debug.enabled
             end },
-    
-        { "enable_leaderboard", item_type = "toggle", tip="enable_leaderboard_pausing_tip", skip=self.canvas_layer.in_game },
             
-        { "allow_windowed_mode_on_steam_deck", item_type = "toggle", skip = conf.platform ~= "steamdeck" },
-
-        { "highlight_new_codex_entries", item_type = "toggle"},
-
-        { newpage = true },
+            
+            
+            { newpage = true },
         { "header", text = tr.options_header_input_map },
     
     }
@@ -637,6 +639,7 @@ function OptionsMenuWorld:show_menu(page)
         "aim_up_digital",
         "aim_down_digital",
         "skip_bonus_screen",
+        "show_codex",
         "show_hud",
     } do
         local input_item = {

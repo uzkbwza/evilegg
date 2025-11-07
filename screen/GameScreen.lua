@@ -206,6 +206,10 @@ end
 function UILayer:state_Playing_update(dt)
 	local input = self:get_input_table()
     if input.menu_pressed and self:can_pause() then
+        self.showing_codex = false
+        self:change_state("Paused")
+    elseif input.show_codex_pressed and self:can_pause() then
+        self.showing_codex = true
         self:change_state("Paused")
     end
 end
@@ -279,6 +283,10 @@ function UILayer:state_Paused_enter()
 	signal.connect(self.pause_screen, "codex_menu_requested", self, "on_codex_menu_requested",
         function() self:show_codex_menu() end)
 
+    if self.showing_codex then
+        self:show_codex_menu()
+    end
+
 end
 
 function UILayer:show_options_menu()
@@ -317,11 +325,15 @@ function UILayer:show_codex_menu()
 			if self.pause_screen then
 				self.pause_screen.handling_render = true
 			end
-		end)
+        end)
+        if self.showing_codex then
+            self:change_state("Playing")
+        end
     end)
 end
 
 function UILayer:state_Paused_exit()
+    self.showing_codex = false
 	self.game_layer.world.paused = false
 	self.game_layer.handling_logic = true
     self.blocks_input = false

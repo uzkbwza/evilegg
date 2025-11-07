@@ -10,7 +10,7 @@ local TrailerScreen = CanvasLayer:extend("TrailerScreen")
 local TRAILER = false
 
 PhotosensitivityWarningScreen.kill_time = 360
-ScoreResetWarningScreen.kill_time = 360
+ScoreResetWarningScreen.kill_time = 7200
 PerformanceTestScreen.kill_time = 60
 
 function PreTitleScreen:new(x, y)
@@ -121,7 +121,13 @@ function ScoreResetWarningScreen:enter()
     self.cant_progress = true
     self:start_tick_timer("progress_timer", 120, function()
 		self.cant_progress = false
-	end)
+    end)
+    self.text2 = tr.score_reset_warning_text2
+    if false then
+        self.text2 = self.text2 .. "\n\n" .. tr.score_reset_warning_text_steam
+    else
+        self.text2 = self.text2 .. "\n\n" .. tr.score_reset_warning_text_nosteam
+    end
 end
 
 function ScoreResetWarningScreen:draw()
@@ -140,9 +146,10 @@ function ScoreResetWarningScreen:draw()
 		graphics.print_centered(tr.score_reset_warning_title, font, 0, -8)
 	end
     graphics.set_color(Color.white)
-	graphics.set_font(font2)
-	graphics.printf(tr.score_reset_warning_text:format(savedata.old_leaderboard_version), font2, -width / 2, 8, width, "center")
-	graphics.printf(tr.score_reset_warning_text2, font2, -width / 2, 40 + height, width, "center")
+    graphics.set_font(font2)
+    local version = savedata.old_leaderboard_version or GAME_LEADERBOARD_VERSION
+	graphics.printf(tr.score_reset_warning_text:gsub("<VERSION>", version), font2, -width / 2, 8, width, "center")
+	graphics.printf(self.text2:gsub("<VERSION>", version), font2, -width / 2, 40 + height, width, "center")
 end
 
 function PerformanceTestScreen:enter()

@@ -3,7 +3,7 @@ local PauseScreenButton = require("obj.Menu.MenuButton"):extend("PauseScreenButt
 local WIDTH = 100
 local HEIGHT = 12
 
-function PauseScreenButton:new(x, y, text, width, height, center, color, center_text, outline)
+function PauseScreenButton:new(x, y, text, width, height, center, color, center_text, outline, right_line)
     if center == nil then
         center = true
     end
@@ -23,6 +23,7 @@ function PauseScreenButton:new(x, y, text, width, height, center, color, center_
 	self.color = color
     self.center_text = center_text
     self.outline = outline
+    self.right_line = right_line
 
 
 end
@@ -49,11 +50,18 @@ function PauseScreenButton:draw_text(text)
 	local col = self.color or Color.green
 	
 	
-	if self.outline and not self.focused then
-		graphics.set_color(col)
-		graphics.rectangle("line", 1, 1, self.width - 1, self.height - 1)
-	end
-	
+    if not self.focused then
+        if self.outline then
+            graphics.set_color(col)
+            graphics.rectangle("line", 1, 1, self.width - 1, self.height - 1)
+        elseif self.right_line then
+            graphics.set_color(col)
+            graphics.line(self.width, 0, self.width, self.height)
+            graphics.line(self.width - 4, self.height, self.width, self.height)
+            graphics.line(self.width - 4, 1, self.width, 1)
+        end
+    end
+
 	graphics.set_color(self.focused and col or Color.transparent)
 	graphics.rectangle("fill", 0, 0, self.width, self.height)
     -- graphics.set_color(self.focused and Color.white or Color.black)

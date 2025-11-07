@@ -15,6 +15,8 @@ local translations = {
         tutorial_move = "MOVE WITH %s",
         tutorial_shoot = "SHOOT WITH %s",
 
+        tutorial_codex = "PRESS %s TO OPEN THE CODEX",
+
         bonus_screen_total = "TOTAL",
         bonus_screen_continue = "PRESS %s TO CONTINUE",
 
@@ -273,6 +275,7 @@ local translations = {
         options_rumble_intensity                     = "Rumble Intensity",
         options_fullscreen_mode                      = "Fullscreen Mode",
         options_highlight_new_codex_entries          = "Show Codex Notifications",
+        options_enable_tutorial                      = "Show Tutorial Prompts",
         
         options_enable_leaderboard_pausing_tip       = "Disables pausing.",
         
@@ -310,6 +313,7 @@ local translations = {
         options_input_map_aim_down_digital = "Shoot Down",
         options_input_map_skip_bonus_screen = "Skip Bonus Screen",
         options_input_map_show_hud                   = "Show Timer",
+        options_input_map_show_codex                   = "Open Codex",
         options_allow_windowed_mode_on_steam_deck    = "Steam Deck Window Options",
 
         name_entry_prompt            = "ENTER YOUR NAME",
@@ -518,6 +522,8 @@ local translations = {
         codex_level_bonus_score_multiplier  = "Score Multiplier: %-3.2f",
         codex_item_xp                       = "XP: %s",
 
+
+        codex_category_label                = "%s",
         codex_key_all                       = "ALL",
         codex_key_enemy                     = "ENEMIES",
         codex_key_hazard                    = "HAZARDS",
@@ -579,12 +585,14 @@ local translations = {
         photosensitivity_warning_text       = "This game contains flashing lights and intense strobe effects.",
 
         score_reset_warning_title           = "ATTENTION",
-        score_reset_warning_text            = "You have loaded a save file from a different major version of Evil Egg [%s]. High scores and rankings from that version will not be displayed.",
-        score_reset_warning_text2           = "To view those rankings, please use a corresponding version of the game.",
+        score_reset_warning_text            = "Your last save was from Evil Egg version <VERSION>, which doesn't match the running version. High scores and leaderboards from <VERSION> won't appear.",
+        score_reset_warning_text2           = "To view old scores/rankings, run any copy of Evil Egg with a version number starting with <VERSION>.",
+        score_reset_warning_text_steam      = "On Steam, access other Evil Egg versions via beta branches in the game's properties.",
+        score_reset_warning_text_nosteam    = "Old versions may be found at ivysly.com.",
 
         shader_performance_warning_title    = "WARNING",
         shader_performance_warning_text     =
-        "This game uses a screen shader effect that may degrade performance on your device. Would you like to disable it? You may later adjust this in the options menu.",
+        "This game uses a screen shader effect that may be degrading performance on your device. Would you like to disable it? You may later adjust this in the options menu.",
 
         performance_test_text               = "one moment...",
 

@@ -1022,7 +1022,6 @@ function Room:generate_waves()
 		table.insert(rescue_waves, rescue_wave)
 	end
 
-
     -- here we decide which rescues will have pickups, if any
 	-- 2 is the most chaotic wave so we will try to put pickups in that one first
     -- TODO: generalize this for levels with more or less than 3 waves
@@ -1044,6 +1043,10 @@ function Room:generate_waves()
 	end
 	
     local upgrade_pickup_chance = abs(rng:randfn(30 + max(game_state.num_queued_upgrades, 0) * 10, 1)) + hard_chance
+
+    if (self.artefacts and (table.list_has(self.artefacts, PickupTable.artefacts.SacrificialTwinArtefact) or table.list_has(self.artefacts, PickupTable.artefacts.StoneTrinketArtefact))) and game_state.num_spawned_artefacts < 3 then
+        upgrade_pickup_chance = 100
+    end
 	-- local heart_pickup_chance = abs(rng:randfn(10, 5)) + hard_chance
 
 	-- print(game_state.num_queued_upgrades, game_state.num_queued_hearts, game_state.num_queued_artefacts)
@@ -1106,7 +1109,7 @@ function Room:generate_waves()
 
             if rescue.pickup == nil then
                 if num_powerups < max_num_powerups and self.level >= min_powerup_level then
-                    local powerup_pickup_chance = min(abs(rng:randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance
+                    local powerup_pickup_chance = min(abs(rng:randfn(30, 20)) * (self.level - min_powerup_level) * 0.01, 5) + 2 + hard_chance / 2
                     if rng:percent(powerup_pickup_chance) then
                         rescue.pickup = game_state:get_random_powerup()
                         num_powerups = num_powerups + 1
@@ -1156,14 +1159,14 @@ function Room:generate_waves()
     elseif self.wants_heart and game_state.total_damage_taken == 0 and (self.artefacts and (table.list_has(self.artefacts, PickupTable.artefacts.SacrificialTwinArtefact) or table.list_has(self.artefacts, PickupTable.artefacts.StoneTrinketArtefact))) and game_state.num_spawned_artefacts < 3 then
         should_have_heart = true
     elseif self.wants_heart then
-        should_have_heart = rng:percent(90)
+        should_have_heart = rng:percent(90 + hard_chance)
 
 		if self.consumed_upgrade then
-			should_have_heart = should_have_heart and rng:percent(5)
+			should_have_heart = should_have_heart and rng:percent(5 + hard_chance)
 		end
 
         if self.consumed_artefact then
-            should_have_heart = should_have_heart and rng:percent(5)
+            should_have_heart = should_have_heart and rng:percent(5 + hard_chance)
         end
 	end
 

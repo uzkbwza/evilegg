@@ -124,13 +124,13 @@ function GlobalGameState:new()
 	-- self.xp_until_powerup = GlobalGameState.xp_until_powerup / 2
 	self.xp_until_artefact = 1200
 
-	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
-	self.heart_xp_target = self.xp + self.xp_until_heart
-    self.artefact_xp_target = self.xp + self.xp_until_artefact
+	self.upgrade_xp_target = self.xp_until_upgrade
+	self.heart_xp_target = self.xp_until_heart
+    self.artefact_xp_target = self.xp_until_artefact
 
-	self.reached_upgrade_xp_at = 0
-	self.reached_heart_xp_at = 0
-	self.reached_artefact_xp_at = 0
+	-- self.reached_upgrade_xp_at = 0
+	-- self.reached_heart_xp_at = 0
+	-- self.reached_artefact_xp_at = 0
 
 	self.num_queued_upgrades = 0
 	self.num_queued_artefacts = 0
@@ -243,7 +243,7 @@ function GlobalGameState:new()
 
     if debug.enabled then
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
         
         -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
@@ -266,11 +266,11 @@ function GlobalGameState:new()
                 PickupTable.artefacts.RailGunSecondaryWeapon,
             })
 
-            self.num_queued_artefacts = 10
+            -- self.num_queued_artefacts = 10
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 20
+            self.level = 21
             self.hearts = self.max_hearts
 
             for i = 1, 8 do
@@ -582,19 +582,20 @@ function GlobalGameState:gain_xp(amount)
 
 	if not self:is_fully_upgraded() then
 		local ratio = remap_clamp(self:get_upgrade_ratio(), 0.0, 5 / 7, 2.0, 0.4)
-		local amount = (amount) * ratio
         local num_upgrades = self:get_number_of_upgrades()
         if (num_upgrades + self.num_queued_upgrades) >= self:get_max_number_of_upgrades() - 1 then
             -- print("limiting upgrade gain")
-            amount = amount * 0.25
+            -- ratio = ratio * 0.75
         end
-		-- print(self:get_upgrade_ratio(), ratio)
-		self.xp_until_upgrade = self.xp_until_upgrade - amount
+		local amt = (amount) * ratio
+		-- print(amount, amt, self.xp_until_upgrade)
+		self.xp_until_upgrade = self.xp_until_upgrade - amt
 	end
 	self.xp_until_heart = self.xp_until_heart - amount
 	-- self.xp_until_powerup = self.xp_until_powerup - amount
-	self.xp_until_artefact = self.xp_until_artefact - amount
-	if self.xp_until_upgrade <= 0 then
+    self.xp_until_artefact = self.xp_until_artefact - amount
+    
+    if self.xp_until_upgrade <= 0 then
 		self.xp_until_upgrade = self.xp_until_upgrade + (GlobalGameState.xp_until_upgrade + rng:randi(-100, 100))
 		self:on_upgrade_xp_threshold_reached()
 	end
@@ -956,6 +957,11 @@ function GlobalGameState:upgrade(upgrade)
 		signal.emit(self, "player_upgraded", upgrade)
 	end
 
+    -- if self:is_fully_upgraded() then
+    --     self.xp_until_upgrade = (GlobalGameState.xp_until_upgrade + rng:randi(-100, 100))
+    --     self.upgrade_xp_target = self.xp_until_upgrade
+    -- end
+
 	if debug.enabled then
 		-- for k, v in pairs(self.upgrades) do
 		-- 	dbg("upgrade_" .. tostring(k), v)
@@ -991,8 +997,8 @@ end
 
 function GlobalGameState:on_upgrade_xp_threshold_reached()
 	self.num_queued_upgrades = self.num_queued_upgrades + 1
-	self.upgrade_xp_target = self.xp + self.xp_until_upgrade
-	self.reached_upgrade_xp_at = self.xp
+	self.upgrade_xp_target = self.xp_until_upgrade
+	-- self.reached_upgrade_xp_at = self.xp
 
 	if not self:is_fully_upgraded() then
 		signal.emit(self, "xp_threshold_reached", "upgrade")
@@ -1001,8 +1007,8 @@ end
 
 function GlobalGameState:on_heart_xp_threshold_reached()
 	self.num_queued_hearts = self.num_queued_hearts + 1
-	self.heart_xp_target = self.xp + self.xp_until_heart
-	self.reached_heart_xp_at = self.xp
+	self.heart_xp_target = self.xp_until_heart
+	-- self.reached_heart_xp_at = self.xp
 	signal.emit(self, "xp_threshold_reached", "heart")
 end
 
@@ -1013,8 +1019,8 @@ end
 
 function GlobalGameState:on_artefact_xp_threshold_reached()
 	self.num_queued_artefacts = self.num_queued_artefacts + 1
-	self.artefact_xp_target = self.xp + self.xp_until_artefact
-	self.reached_artefact_xp_at = self.xp
+	self.artefact_xp_target = self.xp_until_artefact
+	-- self.reached_artefact_xp_at = self.xp
 	signal.emit(self, "xp_threshold_reached", "artefact")
 end
 

@@ -335,13 +335,13 @@ function GameWorld:enter()
             end)
             s:wait(35)
             if not game_state.hatched then
-                self.tutorial_state = 1
+                self:start_tutorial(1)
             end
             s:wait_for_signal(player, "egg_ready")
             -- end)
         elseif game_state.skip_intro then
             audio.play_music_if_stopped("music_drone")
-            self.tutorial_state = 1
+            self:start_tutorial(1)
         end
     end)
 
@@ -427,6 +427,11 @@ function GameWorld:initialize_room(room)
 	self.enemies_to_kill = {}
 
 	game_state:on_level_start()
+
+    if self:get_stopwatch("tutorial_1") then self:stop_stopwatch("tutorial_1") end
+    if self:get_stopwatch("tutorial_2") then self:stop_stopwatch("tutorial_2") end
+    if self:get_stopwatch("tutorial_3") then self:stop_stopwatch("tutorial_3") end
+
 
     self.room = room
     
@@ -891,10 +896,10 @@ function GameWorld:create_player(player_id)
             self:soft_room_clear()
 			s:start(function()
 				-- self.tutorial_state = nil
-				local level = game_state.level
-                -- s:wait(15)
+                local level = game_state.level
+                s:wait(20)
 				if game_state.level == level then
-					self.tutorial_state = 2
+                    self:start_tutorial(2)
 				end
 			end)
 			return
@@ -911,7 +916,7 @@ function GameWorld:create_player(player_id)
 			-- self.tutorial_state = nil
             -- s:wait(25)
 			s:wait(45)
-            self.tutorial_state = 2
+            self:start_tutorial(2)
 			s:wait(70)
 			-- self.tutorial_state = nil
             self:soft_room_clear()
@@ -1397,6 +1402,13 @@ function GameWorld:on_room_clear()
         while self.waiting_on_bonus_screen do
             s:wait(1)
         end
+
+        -- if game_state.level == 1 then
+        --     s:start(function()
+        --         s:wait(20)
+        --         self.tutorial_state = 3
+        --     end)
+        -- end
 
 		self.room_clear_nopause = false
 		
@@ -1937,11 +1949,23 @@ function GameWorld:draw_floor_canvas()
     end
 end
 
+function GameWorld:start_tutorial(state)
+    self.tutorial_state = state
+    self:start_stopwatch("tutorial_" .. state)
+    if usersettings.enable_tutorial then
+        self:play_sfx("ui_ranking_tick", 0.35)
+    end
+end
 
-
+function GameWorld:get_tutorial_text(text, stopwatch_to_check)
+    local stopwatch = self:get_stopwatch(stopwatch_to_check)
+    if not stopwatch then
+        return text
+    end
+    return string.display_num_characters(text, stopwatch.tick)
+end
 
 function GameWorld:draw()
-    
     if not self.rendering_content then
         for _, object in self:get_objects_with_tag("cutscene"):ipairs() do
             self:draw_object(object)
@@ -1990,7 +2014,7 @@ function GameWorld:draw()
     graphics.pop()
 
 	-- Draw tutorial text if active
-    if self.tutorial_state and not self.paused then
+    if self.tutorial_state and usersettings.enable_tutorial and not self.paused then
         graphics.push("all")
         graphics.translate(0, -2)
 		graphics.set_color(Color.green)
@@ -1999,12 +2023,16 @@ function GameWorld:draw()
 
         if self.tutorial_state == 1 then
             -- graphics.print_centered(tr.tutorial_boost2, font, 0, 28)
-            graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -11)
-            graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 11)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_move:format(input:get_move_prompt():upper()), "tutorial_1"), font, 0, -11)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_boost:format(input:get_boost_prompt():upper()),"tutorial_1"), font, 0, 11)
         elseif self.tutorial_state == 2 then
-            graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -11)
-            graphics.print_centered(tr.tutorial_boost:format(input:get_boost_prompt()), font, 0, 11)
-            graphics.print_centered(tr.tutorial_shoot:format(input:get_shoot_prompt()), font, 0, 0)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_move:format(input:get_move_prompt():upper()), "tutorial_1"), font, 0, -11)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_boost:format(input:get_boost_prompt():upper()),"tutorial_1"), font, 0, 11)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_shoot:format(input:get_shoot_prompt():upper()), "tutorial_2"), font, 0, 0)
+        elseif self.tutorial_state == 3 then
+            -- graphics.print_centered(tr.tutorial_move:format(input:get_move_prompt()), font, 0, -11)
+            graphics.print_centered(self:get_tutorial_text(tr.tutorial_codex:format(input:get_codex_prompt():upper()), "tutorial_3"), font, 0, 0)
+            -- graphics.print_centered(tr.tutorial_shoot:format(input:get_shoot_prompt()), font, 0, 0)
         end
         graphics.pop()
 	end
@@ -2447,7 +2475,10 @@ function GameWorld:state_RoomClear_update(dt)
 	if self.waiting_on_rooms then
 		self.next_rooms = self:create_next_rooms()
 		self:spawn_room_objects()
-		self.waiting_on_rooms = false
+        self.waiting_on_rooms = false
+        if game_state.level == 2 then
+            self:start_tutorial(3)
+        end
 	end
 end
 

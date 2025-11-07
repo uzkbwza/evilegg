@@ -1,7 +1,7 @@
 return {
     final_room_clear = {
         text_key = "end_bonus_final_room_clear",
-        multiplier = 0.5,
+        multiplier = 1.0,
     },
     twin_saved = {
         text_key = "end_bonus_twin_saved",

@@ -1402,14 +1402,17 @@ function FinalScoreCutscene:enter()
         end, 0, 1, 100, "linear")
         self.current_score = self.displayed_score
 
+        print(self.next_ones, self.next_tenths, self.next_multiplier, self.start_score)
+
         for i = 1, #self.end_game_bonuses do
             s:wait(45)
             self.next_t = 0
             local bonus = self.end_game_bonuses[i]
             self.next_ones = floor(self.current_multiplier + bonus.multiplier)
-            self.next_tenths = floor((self.current_multiplier + bonus.multiplier - self.next_ones) * 10)
+            self.next_tenths = round((self.current_multiplier + bonus.multiplier - self.next_ones) * 10)
             self.next_multiplier = self.current_multiplier + bonus.multiplier
             self.next_score = self.start_score * self.next_multiplier
+            print(self.next_ones, self.next_tenths, self.next_multiplier, self.next_score)
 
             -- s:start(function()
             self:start_stopwatch("bonus_t")

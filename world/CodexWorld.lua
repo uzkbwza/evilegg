@@ -83,13 +83,16 @@ function CodexWorld:enter()
 
 	self:ref("cycle_category_button",
         self:add_menu_item(O.CodexMenu.CodexMenuCycle(MENU_ITEM_H_PADDING + 17, MENU_ITEM_V_PADDING + 14, "",
-            ICON_SIZE * NUM_OBJECT_COLUMNS - 37, 10, false)))
+            ICON_SIZE * NUM_OBJECT_COLUMNS - 39, 9, false, nil, nil, false, true)))
 		
 	self.cycle_category_button.get_value_func = function()
-		return tr["codex_key_" .. self.category_selected]
+		return (tr["codex_key_" .. self.category_selected])
 	end
 	self.cycle_category_button.set_value_func = function(value)
-		self:open_page(value, 1)
+        self:open_page(value, 1)
+        if self.tick > 5 then
+            savedata:set_save_data("has_pressed_codex_category_button", true)
+        end
 	end
 	self.cycle_category_button:set_options(PAGE_CATEGORY_ORDER)
 
@@ -337,7 +340,7 @@ function CodexWorld:_open_page(page_category, page_number)
 	local previous_focused = self.previous_page_button and self.previous_page_button.focused
 	local next_focused = self.next_page_button and self.next_page_button.focused
 
-	local cycle_category_width = ICON_SIZE * NUM_OBJECT_COLUMNS
+	local cycle_category_width = ICON_SIZE * NUM_OBJECT_COLUMNS - 2
 	local cycle_category_x = MENU_ITEM_H_PADDING
 
 	if self.previous_page_button then
@@ -380,7 +383,7 @@ function CodexWorld:_open_page(page_category, page_number)
 		
     else
 		self:ref("previous_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 14, "←", 15, 10, false)))
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING + 14, "← ", 15, 9, false, nil, true, true)))
 		
 		signal.connect(self.previous_page_button, "selected", self, "previous_page", function() self:cycle_page(-1) end)
 		
@@ -392,8 +395,8 @@ function CodexWorld:_open_page(page_category, page_number)
 		self.previous_page_button:add_neighbor(self.cycle_category_button, "right")
 		self.previous_page_button:add_neighbor(self.back_button, "up")
 
-		cycle_category_x = cycle_category_x + 17
-		cycle_category_width = cycle_category_width - 37/2
+		cycle_category_x = cycle_category_x + 16
+		cycle_category_width = cycle_category_width - 16
 
     end
 
@@ -402,7 +405,7 @@ function CodexWorld:_open_page(page_category, page_number)
 
     else
 		self:ref("next_page_button",
-        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 18, MENU_ITEM_V_PADDING + 14, " →", 15, 10, false)))
+        self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING + ICON_SIZE * NUM_OBJECT_COLUMNS - 17, MENU_ITEM_V_PADDING + 14, "→", 15, 9, false, nil, true, true)))
 
 		signal.connect(self.next_page_button, "selected", self, "next_page", function() self:cycle_page(1) end)
 
@@ -414,7 +417,7 @@ function CodexWorld:_open_page(page_category, page_number)
             self.next_page_button:focus()
         end
 		
-		cycle_category_width = cycle_category_width - 37/2
+		cycle_category_width = cycle_category_width - 16
     end
 
     -- if self.previous_page_button.focusable then
@@ -897,6 +900,16 @@ function CodexWorld:draw()
 		graphics.print("?", self.cycle_category_button.pos.x + self.cycle_category_button.width - 2, self.cycle_category_button.pos.y -2 + sin(self.tick * 0.35) * 1, 0, 1, 1)
 		graphics.set_color(Color.white)
     end
+
+    -- if (debug.enabled or not savedata.has_pressed_codex_category_button) then
+    --     local num_arrows = 6
+
+    --     for i=1, num_arrows do
+    --         graphics.set_color(Color.white)
+    --         local yoffs = (iflicker(gametime.tick, 4, 7) or iflicker(gametime.tick + 10, 4, 7)) and 1 or 0
+    --         graphics.draw(textures.ui_codex_button_arrow, floor(lerp(90, 129, (i-1)/(num_arrows-1))), 7 + yoffs)
+    --     end
+    -- end
 end
 
 return CodexWorld
