@@ -239,6 +239,11 @@ function PenitentSoul:update(dt)
     self:apply_force(dx * self.speed, dy * self.speed)
 end
 
+function PenitentSoul:die(...)
+    PenitentSoul.super.die(self, ...)
+    self:stop_sfx("enemy_penitent_soul_spawn")
+end
+
 function PenitentSoul:get_sprite()
     return self.tick > self.emerge_time and textures.enemy_penitent_soul1 or textures.enemy_penitent_soul2
 end
