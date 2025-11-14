@@ -25,9 +25,7 @@ function World:new(x, y)
 
 	self.id_counter = 0x00000000
 	self.id_to_object = setmetatable({}, { __mode = "v" })
-	function GameObject:get_object(id)
-		return self.id_to_object[id]
-	end
+
 
     self.world = self
 
@@ -65,6 +63,9 @@ function World:new(x, y)
 	
 end
 
+function World:get_object_by_id(id)
+	return self.id_to_object[id]
+end
 
 function World:new_object_id()
     local id = self.id_counter

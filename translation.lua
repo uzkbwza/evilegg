@@ -462,14 +462,8 @@ local translations = {
         codex_name_minishotgunner    = "Patrol Officer",
         codex_desc_minishotgunner    = "Looks for trouble.",
 
-        -- codex_name_hookworm         = "Hook Worm",
-        -- codex_desc_hookworm         = "Hungry!",
-
         codex_name_penitentsoul      = "Shamed Spirit",
         codex_desc_penitentsoul      = "It's not good enough to apologize. You have to change.",
-
-        -- codex_name_skull             = "Skull",
-        -- codex_desc_skull             = "Chatters on.",
 
         codex_name_evader            = "Jester",
         codex_desc_evader            = "Runs away from its problems.",
@@ -485,10 +479,6 @@ local translations = {
 
         codex_name_eggsentry = "Watch Tower",
         codex_desc_eggsentry = "Emboldened by thick fortification and proximity to royalty.",
-
-        -- codex_name_heavypatrol       = "Heavy Patrol",
-        -- codex_desc_heavypatrol       = "Employs excessive use of force.",
-
 
         codex_glossary_room_has_max_points  = "This room has the highest potential point value from enemies and Greenoids.",
         codex_glossary_room_is_hard         = "This room is extra difficult.",

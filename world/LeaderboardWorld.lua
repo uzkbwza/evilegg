@@ -42,7 +42,7 @@ function LeaderboardWorld:new()
     self.sort_by = savedata.leaderboard_sort or "score"
     self.period = savedata.leaderboard_period or "daily"
     self.wep_filter = savedata.leaderboard_wep_filter or "all"
-
+    
 	self.run_t_values = {}
     for i = 1, PAGE_LENGTH do
         self.run_t_values[i] = 0
@@ -354,6 +354,13 @@ function LeaderboardWorld:get_period()
     return self.period
 end
 
+function LeaderboardWorld:get_ranking_entry_position(index)
+    local center_x = conf.viewport_size.x / 2
+    local x = center_x - LINE_WIDTH / 2
+    local y = RANKING_V_PADDING + (index - 1) * RANKING_LINE_HEIGHT
+    return x, y
+end
+
 function LeaderboardWorld:sanitize_run(run)
     if type(run) ~= "table" then
         run = {}
@@ -419,7 +426,6 @@ function LeaderboardWorld:sanitize_run(run)
 end
 
 function LeaderboardWorld:on_page_fetched(page)
-    -- Validate page structure
     if type(page) ~= "table" then
         self.error = true
         return
@@ -449,16 +455,23 @@ function LeaderboardWorld:on_page_fetched(page)
     for i = 1, PAGE_LENGTH do
         self.run_tables[i] = {
             hatch_particles = nil,
-            random_offset = rng:randi()
+            random_offset = rng:randi(),
+            irng = rng:new_instance(),
         }
     end
+
+    for _, button in (self:get_objects_with_tag("leaderboard_entry_button"):ipairs()) do
+        button:queue_destroy()
+    end
+    
+    self.run_associations = {}
 
     for i = 1, PAGE_LENGTH do
         -- local run = self.current_page.entries[i]
         local run = self.current_page.entries[i]
         if run then
             run = self:sanitize_run(run)
-            
+
             for j = 1, GlobalGameState.max_artefacts do
                 local artefact_key = run.artefacts and run.artefacts[j]
                 local artefact = artefact_key and self.artefact_map[artefact_key]
@@ -467,7 +480,13 @@ function LeaderboardWorld:on_page_fetched(page)
                     break
                 end
             end
-
+            -- local x, y = self:get_ranking_entry_position(i)
+            -- local button = O.LeaderboardMenu.LeaderboardEntryButton(floor(x), floor(y))
+            -- button:add_tag_on_enter("leaderboard_entry_button")
+            -- self:add_menu_item(button)
+            -- self:defer(function()
+            --     self.run_associations[i] = button.id
+            -- end)
         end
     end
 
@@ -516,6 +535,13 @@ end
 
 function LeaderboardWorld:update(dt)
 	LeaderboardWorld.super.update(self, dt)
+
+    if self.waiting then    
+        for _, button in (self:get_objects_with_tag("leaderboard_entry_button"):ipairs()) do
+            button:queue_destroy()
+        end
+    end
+
     if not self:is_timer_running("death_count") and self.death_count < self.target_death_count then
         self.death_count = self.death_count + 1
         self:start_timer("death_count_flash", 30)
@@ -561,7 +587,6 @@ function LeaderboardWorld:draw()
     graphics.set_color(Color.white)
     graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 16, 3)
     graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
-    LeaderboardWorld.super.draw(self)
     graphics.print(tr.leaderboard_wep_button, 170 + MENU_ITEM_H_PADDING + 28, 3)
 
     graphics.push"all"
@@ -613,6 +638,8 @@ function LeaderboardWorld:draw()
 
     graphics.print_right_aligned(GAME_LEADERBOARD_VERSION, font2,
         conf.viewport_size.x - MENU_ITEM_H_PADDING, conf.viewport_size.y - font2:getHeight() - 7)
+
+    LeaderboardWorld.super.draw(self)
 end
 
 local function spell_out(text, t, max_length)
@@ -637,6 +664,7 @@ function LeaderboardWorld:draw_leaderboard()
 	graphics.push("all")
 	local dont_draw_next_top_line = false
     for i = 1, PAGE_LENGTH do
+        local entry_x, entry_y = self:get_ranking_entry_position(i)
         local t = self.run_t_values[i]
         if t == 0 then
             break
@@ -646,10 +674,16 @@ function LeaderboardWorld:draw_leaderboard()
         if run then
 
             run = self:sanitize_run(run)
-            
-            local is_self = run.uid == savedata:get_uid()
             local line_color = Color.darkergrey
 
+            local button = self:get_object_by_id(self.run_associations[i])
+            local is_focused = false
+            if button and button.focused then
+                is_focused = true
+                line_color = Color.darkgrey
+            end
+            
+            local is_self = run.uid == savedata:get_uid()
 
             if is_self then
                 me_y = y_tracker
@@ -689,23 +723,105 @@ function LeaderboardWorld:draw_leaderboard()
             graphics.line(center_x - LINE_WIDTH / 2, LINE_Y, center_x + LINE_WIDTH / 2, LINE_Y)
             -- end
 
-
-            -- local ending_image = run.good_ending and textures.ui_leaderboard_good_ending or textures.ui_leaderboard_bad_ending
-
             graphics.push("all")
             local line_width = 7
             graphics.set_line_width(line_width - 2)
             graphics.set_color(Color.nearblack)
             graphics.line(center_x - LINE_WIDTH / 2, line_width / 2, LINE_WIDTH - 28, line_width / 2)
-            graphics.set_line_width(11)
             local end_x = LINE_WIDTH - 41 - (GlobalGameState.max_artefacts - 1) * 13
-            graphics.dashline(1 + center_x - LINE_WIDTH / 2, line_width / 2 + 9, end_x, line_width / 2 + 9, 1, 1, t * 10)
+            -- graphics.set_line_width(11)
+            -- graphics.dashline(1 + center_x - LINE_WIDTH / 2, line_width / 2 + 9, end_x, line_width / 2 + 9, 1, 1, t * 10)
+            graphics.set_line_width(1)
+            local liney1 = line_width / 2 + 9 - 11 / 2
+            local liney2 = line_width / 2 + 9 + 11 / 2
+            local liney3 = line_width / 2 + 11
+            local irng = run_table.irng
+            -- irng:set_seed(run_table.random_offset)
+
+            local start_x = 2 + center_x - LINE_WIDTH / 2
+
+            local dark = run.good_ending == 1 and Color.darkblue or Color.darkpurple
+            local middle = run.good_ending == 1 and Color.darkblue or Color.darkpurple
+            local bright = run.good_ending == 1 and Color.blue or Color.purple
+            local line_height_multiplier = run.good_ending == 1 and 0.85 or 1.0
+            local line_pow = 0.5
+            -- local max_line_height = 0.20
+            -- local max_line_height_top = 0.0
+            local line_width2 = 11
+
+            for linex = start_x, end_x, 2 do
+
+                
+                local color = line_color
+
+                graphics.set_color(color)
+                graphics.line(linex, liney1, linex, liney2)
+                
+                if run.good_ending then
+
+                    -- local total = 0
+                    -- local num_octaves = 1
+                    -- local total_amplitude = 0
+                    -- local amplitude = 1
+                    -- local persistence = 0.50
+                    -- local lacunarity = 2.0
+                    -- local frequency = 10.37
+                    -- local speed = 0.0007
+                    -- local speed2 = 0.000
+                    -- local last_value = 0
+
+                    -- for j = 1, num_octaves do
+                    --     local v = love.math.simplex_noise(10000 * i + frequency * (linex - self.elapsed * speed2), frequency * (self.elapsed * speed))
+                    --     total = total + v * amplitude
+                    --     total_amplitude = total_amplitude + amplitude
+                    --     last_value = v
+                    --     amplitude = amplitude * persistence
+                    --     frequency = frequency * lacunarity
+                    -- end
+                    
+                    local t2 = sin01(-self.elapsed * 0.165 + linex * 0.36)
+
+                    -- local minimum = 0.5
+                    -- local maximum = 1.0
+                    -- t2 = remap_pow(t2, minimum, maximum, 0.0, 1.0, line_pow)
+                    
+                    t2 = stepify_floor(t2, 0.05)
+
+
+                    if t2 < 0.0 then
+                        color = line_color
+                    elseif t2 < 0.40 then
+                        color = dark
+                    elseif t2 < 0.70 then
+                        color = middle
+                    else
+                        color = bright
+                    end
+
+                    t2 = t2 * 0.4 + 0.6
+
+                    if t2 > 1 then
+                        t2 = 1
+                    end
+
+                    t2 = remap01_lower(ease("outCubic")(inverse_lerp(end_x, start_x, linex)), 0.25) * t2
+                     
+
+    
+                    if t2 > 0 then
+                        graphics.set_color(color)
+                        -- graphics.line(linex, lerp(liney2, liney1, t2 * max_line_height), linex, liney2)
+                        graphics.line(linex, liney2 - t2 * line_width2, linex, liney2 )
+                        
+                    end
+                end
+            end
 
             graphics.pop()
 
 
 
-            graphics.set_color(Color.darkergrey)
+            graphics.set_color(is_focused and Color.darkgrey or Color.darkergrey)
             graphics.push("all")
             graphics.translate(LINE_WIDTH - 18, RANKING_LINE_HEIGHT / 2)
             graphics.rectangle_centered("line", 0, 0, RANKING_LINE_HEIGHT - 4, RANKING_LINE_HEIGHT - 4)
@@ -781,10 +897,17 @@ function LeaderboardWorld:draw_leaderboard()
         if run then
             run = self:sanitize_run(run)
             
+            local run_table = self.run_tables[i]
+
             local is_self = run.uid == savedata:get_uid()
             local name = run.name or ""
             local score = run.score or 0
 
+            local button = self:get_object_by_id(self.run_associations[i])
+            local is_focused = false
+            if button and button.focused then
+                is_focused = true
+            end
 
 
             local secondary_weapon = run.secondary_weapon
@@ -810,7 +933,6 @@ function LeaderboardWorld:draw_leaderboard()
 
 
             if is_self then
-
                 palette_stack:set_color(3, Color.magenta)
                 palette_stack:set_color(2, Color.blue)
             else
@@ -865,14 +987,68 @@ function LeaderboardWorld:draw_leaderboard()
 
             graphics.printp(spell_out(comma_sep(rank * 1) .. ". " .. name, t, 30), font, palette_stack, 0, -12, 0)
             if not is_special then
-                palette_stack:set_color(3, Palette.rainbow:tick_color(self.tick, -i, 2))
-                palette_stack:set_color(2, Color.purple)
+                local top_color = Palette.rainbow:tick_color(self.tick, -i, 2)
+                palette_stack:set_color(3, top_color)
+                dark = Color.darkergrey
+                light = Color.darkgrey
+                if run.good_ending == 2 then
+                    dark = Color.darkpurple
+                    light = Color.purple
+                elseif run.good_ending == 1 then
+                    dark = Color.darkblue
+                    light = Color.blue
+                end
+                if run.good_ending then
+                    -- if iflicker(gametime.tick, 2, 6) then
+                    --     palette_stack:set_color(3, Color.white)
+                    -- end
+                    -- palette_stack:set_color(2, light)
+                -- else
+                    -- palette_stack:set_color(2, (top_color.b >= 0.35 and top_color.r <= 0.8 and top_color.g <= 0.5) and dark or light)
+                end
+                palette_stack:set_color(2, (top_color.b >= 0.35 and top_color.r <= 0.8 and top_color.g <= 0.5) and dark or light)
             end
 
             graphics.push("all")
             graphics.translate(0, 9)
 
-            graphics.printp(spell_out(score_text, t, 18), font, palette_stack, 0, -6, 0)
+            local text = spell_out(score_text, t, 18)
+            -- local total_width = 0
+
+            -- local irng = run_table.irng
+
+            -- local lerp_time = 10
+            -- local dist = 1
+            
+            
+            -- for charindex = 1, utf8.len(text) do
+            --     local tx, ty = 0, 0
+            
+            --     if run.good_ending then
+            --         -- irng:set_seed(floor((self.elapsed) / lerp_time) + charindex * run_table.random_offset)
+            --         -- local start_x, start_y = irng:randf(-dist, dist), irng:randf(-dist, dist)
+            --         -- -- start_x = start_x * irng:randf(1.0, 1.0)
+            --         -- -- start_y = start_y * irng:randf(1.0, 1.0)
+            --         -- irng:set_seed(floor((self.elapsed + lerp_time) / lerp_time) + charindex * run_table.random_offset)
+            --         -- local end_x, end_y = irng:randf(-dist, dist), irng:randf(-dist, dist)
+            --         -- -- end_x = end_x * irng:randf(1.0, 1.0)
+            --         -- -- end_y = end_y * irng:randf(1.0, 1.0)
+            --         -- local t2 = inverse_lerp(stepify_floor(self.elapsed, lerp_time), stepify_floor(self.elapsed + lerp_time, lerp_time), self.elapsed)
+            --         -- tx = lerp(start_x, end_x, t2)
+            --         -- ty = lerp(start_y, end_y, t2)
+            --         -- ty = sin01(self.elapsed * 0.12 + charindex * tau / 17) * -2
+            --         -- rand = irng:randi()
+            --     end
+                
+
+            --     local char = utf8.sub(text, charindex, charindex)
+            --     local cwidth = font:getWidth(char)
+            --     total_width = total_width + cwidth
+            --     graphics.printp(char, font, palette_stack, 0, tx-6, ty)
+            --     graphics.translate(cwidth, 0)
+            -- end
+            graphics.printp(text, font, palette_stack, 0, -6, 0)
+
             graphics.pop()
 
             graphics.push("all")

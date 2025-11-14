@@ -761,7 +761,8 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
         end
 
         if self.room.curse_penitence and rng:percent(8 * (enemy_object.max_hp or 1)) and self:get_number_of_objects_with_tag("penitent_soul") < 5 then
-            self:register_non_wave_enemy_required_kill(self:spawn_object(PenitentSoul(bx, by)))
+            -- self:register_non_wave_enemy_required_kill()
+            self:spawn_object(PenitentSoul(bx, by))
         end
     end)
 
@@ -795,10 +796,14 @@ end
 function GameWorld:on_wave_cleared()
 	self.wave_started = false
 
-	local s = self.timescaled.sequencer
+    local s = self.timescaled.sequencer
+    
+    for _, object in self:get_objects_with_tag("penitent_soul"):ipairs() do
+        object:die()
+    end
+
 	s:start(function()
 		if game_state.game_over then return end
-
 		if self.room.wave == self.room.last_wave then
 			-- s:wait(10)
 			if self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
