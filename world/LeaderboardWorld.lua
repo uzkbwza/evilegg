@@ -588,8 +588,13 @@ function LeaderboardWorld:draw()
     graphics.print(tr.leaderboard_period_button, 170 + MENU_ITEM_H_PADDING - 16, 3)
     graphics.print(tr.leaderboard_sort_button, 170 + MENU_ITEM_H_PADDING - 54, 3)
     graphics.print(tr.leaderboard_wep_button, 170 + MENU_ITEM_H_PADDING + 28, 3)
+    
+    LeaderboardWorld.super.draw(self)
+
 
     graphics.push"all"
+
+
 
     graphics.set_stencil_mode("draw", 1)
 
@@ -597,6 +602,7 @@ function LeaderboardWorld:draw()
 
     graphics.rectangle("fill", start_x + MENU_ITEM_H_PADDING + 25, 12, 26, 9)
     graphics.set_stencil_mode("test", 1)
+
 
     graphics.draw_centered(self.wep_filter_texture, 170 + MENU_ITEM_H_PADDING + 38, 18)
 
@@ -639,7 +645,6 @@ function LeaderboardWorld:draw()
     graphics.print_right_aligned(GAME_LEADERBOARD_VERSION, font2,
         conf.viewport_size.x - MENU_ITEM_H_PADDING, conf.viewport_size.y - font2:getHeight() - 7)
 
-    LeaderboardWorld.super.draw(self)
 end
 
 local function spell_out(text, t, max_length)
