@@ -168,7 +168,7 @@ local translations = {
         heart_base_desc                = "Restores 1 heart. If you are damaged with no hearts left, you will typically die. Max 2.",
 
         powerup_rocket_name            = "MISSILE",
-        powerup_rocket_desc            = "High-powered rocket-propelled missiles. Lasts for 6 seconds. Duration stacks.",
+        powerup_rocket_desc            = "High-powered rocket-propelled missiles. Lasts for 5 seconds. Duration stacks.",
 
         -- powerup_shield_name            = "BARRIER",
         -- powerup_shield_desc            = "A temporary shield made of orbiting projectiles.",

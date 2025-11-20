@@ -18,7 +18,8 @@ LB.host, LB.port    = "168.235.104.144", 5000
 LB.default_category = (debug.enabled and "debug" or "normal")
 
 LB.categories = {
-	"normal",
+    "normal",
+    "unstable",
 }
 
 if debug.enabled then

@@ -61,7 +61,8 @@ local Powerups = {
 		icon = textures.pickup_powerup_placeholder,
         spawn_weight = 1000,
 		bullet_powerup = false,
-		bullet_powerup_time = 10,
+        bullet_powerup_time = 10,
+        bullet_priority = 0,
 		name = "powerup_base_name",
 		description = "powerup_base_desc",
 	},
@@ -69,6 +70,7 @@ local Powerups = {
 	RocketPowerup = {
 		icon = textures.pickup_powerup_rocket1,
         spawn_weight = 1000,
+        bullet_priority = 10,
 		textures = {
 			textures.pickup_powerup_rocket1,
 			textures.pickup_powerup_rocket2,
@@ -77,7 +79,8 @@ local Powerups = {
         bullet_powerup = true,
 		bullet_powerup_time = 6,
 		name = "powerup_rocket_name",
-		description = "powerup_rocket_desc",
+        description = "powerup_rocket_desc",
+        timer_color = Color.red,
     },
     
     -- ShieldPowerup = {

@@ -145,7 +145,6 @@ function GlobalGameState:new()
 
     self.bullet_powerups = {}
     self.bullet_powerup_order = {}
-    self.bullet_powerup_index = 0
 
 	self.game_over = false
 
@@ -404,10 +403,6 @@ function GlobalGameState:drain_bullet_powerup_time(dt)
         self.bullet_powerups[name] = nil
         table.erase(self.bullet_powerup_order, name)
     end
-
-    if self.bullet_powerup_index > #self.bullet_powerup_order then
-        self.bullet_powerup_index = #self.bullet_powerup_order
-    end
 end
 
 function GlobalGameState:add_or_refresh_bullet_powerup(powerup)
@@ -419,16 +414,12 @@ function GlobalGameState:add_or_refresh_bullet_powerup(powerup)
     local existing = self.bullet_powerups[powerup.name]
 
     if existing then
-        existing.time = time_left
+        existing.time = existing.time + time_left
         table.erase(self.bullet_powerup_order, powerup.name)
     end
 
     self.bullet_powerups[powerup.name] = { powerup = powerup, time = time_left }
     table.insert(self.bullet_powerup_order, powerup.name)
-
-    if self.bullet_powerup_index == 0 then
-        self.bullet_powerup_index = 1
-    end
 end
 
 function GlobalGameState:has_bullet_powerups()
@@ -444,6 +435,27 @@ function GlobalGameState:get_active_bullet_powerups()
         end
     end
     return active
+end
+
+function GlobalGameState:get_bullet_powerup_priority(powerup)
+    if not powerup then return -math.huge end
+    return powerup.bullet_priority or 0
+end
+
+function GlobalGameState:sort_bullet_powerups_by_priority()
+    table.sort(self.bullet_powerup_order, function(a, b)
+        local entry_a = self.bullet_powerups[a]
+        local entry_b = self.bullet_powerups[b]
+        if not entry_a or not entry_b then
+            return entry_b ~= nil
+        end
+        local pa = self:get_bullet_powerup_priority(entry_a.powerup)
+        local pb = self:get_bullet_powerup_priority(entry_b.powerup)
+        if pa == pb then
+            return a < b
+        end
+        return pa > pb
+    end)
 end
 
 -- local MAX_BULLET_SPEED_STACK_AMOUNT = 4.5
@@ -988,26 +1000,21 @@ function GlobalGameState:gain_powerup(powerup)
 end
 
 function GlobalGameState:get_bullet_powerup()
-    local count = #self.bullet_powerup_order
-    if count == 0 then
-        return nil
-    end
+    local best_entry = nil
+    local best_priority = -math.huge
 
-    if self.bullet_powerup_index == 0 then
-        self.bullet_powerup_index = 1
-    end
-
-    for i = 1, count do
-        local index = ((self.bullet_powerup_index + i - 2) % count) + 1
-        local name = self.bullet_powerup_order[index]
+    for _, name in ipairs(self.bullet_powerup_order) do
         local entry = self.bullet_powerups[name]
         if entry then
-            self.bullet_powerup_index = index % count + 1
-            return entry.powerup
+            local priority = self:get_bullet_powerup_priority(entry.powerup)
+            if priority > best_priority then
+                best_priority = priority
+                best_entry = entry
+            end
         end
     end
 
-    return nil
+    return best_entry and best_entry.powerup or nil
 end
 
 function GlobalGameState:get_score_breakdown()

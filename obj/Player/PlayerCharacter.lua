@@ -830,7 +830,6 @@ function PlayerCharacter:fire_current_bullet()
         class = self.bullet_powerups["PlayerHitscanBullet"]
     end
 
-
 	game_state:on_bullet_shot()
 
     
@@ -2042,6 +2041,7 @@ end
 
 function PlayerShadow:draw(elapsed)
     local almost_dead = false
+
 	if not self.target then
         if iflicker(self.random_offset + gametime.tick, 2, 2) then
             return
@@ -2051,10 +2051,82 @@ function PlayerShadow:draw(elapsed)
     else
 		almost_dead = game_state.hearts <= 0 and iflicker(gametime.tick, 5, 2)
 	end
+
+    
 	
 
     local color = self.dead and Color.red or (iflicker(gametime.tick, 2, 2) and (almost_dead and Color.red or Color.skyblue) or (almost_dead and Color.yellow or Color.green))
     local size = max(self.size + min(-self.size + self.elapsed * 0.2, 0), 1)
+
+
+    local bullet_powerups = game_state:get_active_bullet_powerups()
+    if self.target and not table.is_empty(bullet_powerups) then
+        graphics.push("all")
+        
+        local font = fonts.main_font_bold
+        graphics.set_font(font)
+        
+        graphics.set_line_width(2)
+
+        local rect_size = size + 8
+
+        for i, entry in ipairs(bullet_powerups) do
+            local max_time = seconds_to_frames(entry.powerup.bullet_powerup_time - 1)
+            local time_left = entry.time
+            local total_time_ratio = time_left / max_time
+            local num_loops = ceil(total_time_ratio)
+            graphics.set_color(entry.powerup.timer_color)
+
+            while total_time_ratio > 0.001 do
+                local time_ratio = min(total_time_ratio, 1.0)
+                total_time_ratio = total_time_ratio - time_ratio
+                -- print(time_ratio)
+                rect_size = rect_size + 3
+                local rect_width = rect_size
+                local rect_height = rect_size * 0.75
+                local rect_perimeter = (2 * rect_height) + (2 * rect_width)
+                local perimeter_to_cover = rect_perimeter * time_ratio
+                local halfwidth = rect_width * 0.5
+                local halfheight = rect_height * 0.5
+                if perimeter_to_cover > 0 then
+                    local line_length = min(perimeter_to_cover, halfwidth)
+                    graphics.line(0, halfheight, halfwidth * line_length / halfwidth, halfheight)
+                    perimeter_to_cover = perimeter_to_cover - line_length
+                end
+                if perimeter_to_cover > 0 then
+                    local line_length = min(perimeter_to_cover, rect_height)
+                    graphics.line(halfwidth, halfheight, halfwidth, lerp(halfheight, -halfheight, line_length / rect_height))
+                    perimeter_to_cover = perimeter_to_cover - line_length
+                end
+                if perimeter_to_cover > 0 then
+                    local line_length = min(perimeter_to_cover, rect_width)
+                    graphics.line(halfwidth, -halfheight, lerp(halfwidth, -halfwidth, line_length / rect_width), -halfheight)
+                    perimeter_to_cover = perimeter_to_cover - line_length
+                end
+                if perimeter_to_cover > 0 then
+                    local line_length = min(perimeter_to_cover, rect_height)
+                    graphics.line(-halfwidth, -halfheight, -halfwidth, lerp(-halfheight, halfheight, line_length / rect_height))
+                    perimeter_to_cover = perimeter_to_cover - line_length
+                end
+                if perimeter_to_cover > 0 then
+                    local line_length = min(perimeter_to_cover, halfwidth)
+                    graphics.line(halfwidth, halfheight, -halfwidth * line_length / halfwidth, halfheight)
+                    perimeter_to_cover = perimeter_to_cover - line_length
+                end
+            end
+            
+            local time_text = string.format("%02d", floor(frames_to_seconds(entry.time)))
+            local label = tr[entry.powerup.name] or entry.powerup.name or ""
+            local text = string.format("%s %s", label, time_text)
+            local width = font:getWidth(text)
+            graphics.set_color(Color.white)
+            graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2 + (i - 1) * font:getHeight())
+        end
+        graphics.pop()
+    end
+
+
+
     graphics.set_color(color)
 	graphics.set_line_width(1)
 	-- if almost_dead then
@@ -2137,6 +2209,7 @@ function PlayerShadow:draw(elapsed)
 		graphics.line(x5, y5, x6, y6)
 
 	end
+
 end
 
 
@@ -2178,20 +2251,6 @@ function AimDraw:draw()
 
 
     graphics.set_color(Color.white)
-
-    local bullet_powerups = game_state:get_active_bullet_powerups()
-    if not table.is_empty(bullet_powerups) then
-        local font = fonts.main_font_bold
-        graphics.set_font(font)
-        for i, entry in ipairs(bullet_powerups) do
-            local time_text = string.format("%02d", floor(frames_to_seconds(entry.time)))
-            local label = tr[entry.powerup.name] or entry.powerup.name or ""
-            local text = string.format("%s %s", label, time_text)
-            local width = font:getWidth(text)
-            graphics.set_color(Color.white)
-            graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2 + (i - 1) * font:getHeight())
-        end
-    end
 
     if self.player.mouse_mode and usersettings.use_absolute_aim then
         local global_mouse_x, global_mouse_y = self.player.mouse_pos_x, self.player.mouse_pos_y
