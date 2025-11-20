@@ -422,7 +422,7 @@ end
 
 function EggElevator:hit_by(bubble)
     if not self:is_tick_timer_running("hit_cooldown") then
-        self:damage(1)
+        self:damage(bubble.damage)
         self:start_tick_timer("hit_cooldown", 2)
     end
 end

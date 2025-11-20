@@ -119,8 +119,8 @@ function GameWorld:enter()
 	self.timescaled.persist = true
 	self.timescaled:add_elapsed_ticks()
     self.timescaled:add_sequencer()
-	self.timescaled.update = function(self, dt)
-        if game_state.bullet_powerup and self.draining_bullet_powerup then
+	self.timescaled.update = function(me, dt)
+        if game_state:has_bullet_powerups() and self.draining_bullet_powerup then
             game_state:drain_bullet_powerup_time(dt)
         end
 
@@ -254,12 +254,15 @@ function GameWorld:enter()
         )
     end)
 
-	-- signal.connect(game_state, "player_powerup_gained", self, "on_player_powerup_gained", function(powerup_type)
-	-- 	self:quick_notify(
-	-- 		"+NOTHING",
-	-- 		"notif_upgrade_available"
-	-- 	)
-	-- end)
+	signal.connect(game_state, "player_powerup_gained", self, "on_player_powerup_gained", function(powerup_type)
+		-- self:quick_notify(
+		-- 	"+NOTHING",
+		-- 	"notif_upgrade_available"
+        -- )
+        for _, player in pairs(self.players) do
+            player:on_powerup_gained(powerup_type)
+        end
+	end)
 
 
 	local threshold_notifs = {

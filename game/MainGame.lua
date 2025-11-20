@@ -143,8 +143,9 @@ function GlobalGameState:new()
     self.any_greenoids_hurt = false
     self.any_greenoids_killed = false
 
-	self.bullet_powerup = nil
-	self.bullet_powerup_time = 0
+    self.bullet_powerups = {}
+    self.bullet_powerup_order = {}
+    self.bullet_powerup_index = 0
 
 	self.game_over = false
 
@@ -250,9 +251,10 @@ function GlobalGameState:new()
         -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
         
         if cheat then
+            self.cheat = true
             self.skip_shadow_selves = false
-            self.egg_rooms_cleared = 1
-            self:add_score(rng:randi(6000000, 10000000), "cheat")
+            -- self.egg_rooms_cleared = 1
+            -- self:add_score(rng:randi(00000, 100000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
 
             -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
@@ -266,14 +268,18 @@ function GlobalGameState:new()
                 PickupTable.artefacts.RailGunSecondaryWeapon,
             })
 
+            -- self:gain_powerup(PickupTable.powerups.ShieldPowerup)
+
             -- self.num_queued_artefacts = 10
+            self.num_queued_upgrades = 1
+            self.num_queued_hearts = 1
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 21
+            self.level = 11
             self.hearts = self.max_hearts
 
-            for i = 1, 8 do
+            for i = 1, 2 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
@@ -281,9 +287,11 @@ function GlobalGameState:new()
                 self:gain_artefact(artefact)
             end
 
-            for i = 1, self:get_max_number_of_upgrades() - 1 do
+            for i = 1, self:get_max_number_of_upgrades()-4 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
+
+            self.upgrades.bullets = 1
 
             if self.secondary_weapon then
                 self:gain_secondary_weapon_ammo(math.huge)
@@ -378,11 +386,64 @@ function GlobalGameState:get_max_number_of_upgrades()
 end
 
 function GlobalGameState:drain_bullet_powerup_time(dt)
-	self.bullet_powerup_time = self.bullet_powerup_time - dt
-	if self.bullet_powerup_time < 0 then
-		self.bullet_powerup_time = 0
-		self.bullet_powerup = nil
-	end
+    if table.is_empty(self.bullet_powerup_order) then
+        return
+    end
+
+    local expired = {}
+    for name, data in pairs(self.bullet_powerups) do
+        data.time = data.time - dt
+        if data.time < 0 then
+            data.time = 0
+            table.insert(expired, name)
+        end
+    end
+
+    for i = #expired, 1, -1 do
+        local name = expired[i]
+        self.bullet_powerups[name] = nil
+        table.erase(self.bullet_powerup_order, name)
+    end
+
+    if self.bullet_powerup_index > #self.bullet_powerup_order then
+        self.bullet_powerup_index = #self.bullet_powerup_order
+    end
+end
+
+function GlobalGameState:add_or_refresh_bullet_powerup(powerup)
+    if not powerup then
+        return
+    end
+
+    local time_left = seconds_to_frames(powerup.bullet_powerup_time - 1)
+    local existing = self.bullet_powerups[powerup.name]
+
+    if existing then
+        existing.time = time_left
+        table.erase(self.bullet_powerup_order, powerup.name)
+    end
+
+    self.bullet_powerups[powerup.name] = { powerup = powerup, time = time_left }
+    table.insert(self.bullet_powerup_order, powerup.name)
+
+    if self.bullet_powerup_index == 0 then
+        self.bullet_powerup_index = 1
+    end
+end
+
+function GlobalGameState:has_bullet_powerups()
+    return not table.is_empty(self.bullet_powerup_order)
+end
+
+function GlobalGameState:get_active_bullet_powerups()
+    local active = {}
+    for _, name in ipairs(self.bullet_powerup_order) do
+        local entry = self.bullet_powerups[name]
+        if entry then
+            table.insert(active, entry)
+        end
+    end
+    return active
 end
 
 -- local MAX_BULLET_SPEED_STACK_AMOUNT = 4.5
@@ -919,20 +980,34 @@ function GlobalGameState:gain_heart(heart)
 end
 
 function GlobalGameState:gain_powerup(powerup)
-	if powerup.bullet_powerup then
-		if powerup == self.bullet_powerup then
-			self.bullet_powerup_time = self.bullet_powerup_time + seconds_to_frames(powerup.bullet_powerup_time - 1)
-		else
-			self.bullet_powerup = powerup
-			self.bullet_powerup_time = seconds_to_frames(powerup.bullet_powerup_time - 1)
-		end
-	end
+    if powerup.bullet_powerup then
+        self:add_or_refresh_bullet_powerup(powerup)
+    end
 	if powerup.gained_function then powerup.gained_function(self) end
 	signal.emit(self, "player_powerup_gained", powerup)
 end
 
 function GlobalGameState:get_bullet_powerup()
-	return self.bullet_powerup
+    local count = #self.bullet_powerup_order
+    if count == 0 then
+        return nil
+    end
+
+    if self.bullet_powerup_index == 0 then
+        self.bullet_powerup_index = 1
+    end
+
+    for i = 1, count do
+        local index = ((self.bullet_powerup_index + i - 2) % count) + 1
+        local name = self.bullet_powerup_order[index]
+        local entry = self.bullet_powerups[name]
+        if entry then
+            self.bullet_powerup_index = index % count + 1
+            return entry.powerup
+        end
+    end
+
+    return nil
 end
 
 function GlobalGameState:get_score_breakdown()
@@ -1376,7 +1451,13 @@ function GlobalGameState:get_random_powerup()
 		table.insert(tab, v)
 		::continue::
 	end
-	local v = rng:weighted_choice(tab, "spawn_weight")
+    local v = rng:weighted_choice(tab, function(item)
+        local weight = resolve(item.spawn_weight)
+        if debug.enabled and item.debug_spawn_weight then
+			weight = resolve(item.debug_spawn_weight)
+		end
+        return weight
+    end)
 
 	return v
 end

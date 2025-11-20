@@ -955,159 +955,171 @@ return {
 		[1] = "assets/sprite/pickup/artefact_warbell.png",
 	},
 	[317] = {
-		[1] = "assets/sprite/pickup/empty_heart_icon.png",
+		[1] = "assets/sprite/pickup/disc1.png",
 	},
 	[318] = {
-		[1] = "assets/sprite/pickup/heart_icon.png",
+		[1] = "assets/sprite/pickup/disc2.png",
 	},
 	[319] = {
-		[1] = "assets/sprite/pickup/heart_icon2.png",
+		[1] = "assets/sprite/pickup/empty_heart_icon.png",
 	},
 	[320] = {
-		[1] = "assets/sprite/pickup/heart_placeholder.png",
+		[1] = "assets/sprite/pickup/heart_icon.png",
 	},
 	[321] = {
-		[1] = "assets/sprite/pickup/item_placeholder.png",
+		[1] = "assets/sprite/pickup/heart_icon2.png",
 	},
 	[322] = {
-		[1] = "assets/sprite/pickup/placeholder.png",
+		[1] = "assets/sprite/pickup/heart_placeholder.png",
 	},
 	[323] = {
-		[1] = "assets/sprite/pickup/powerup_ammo1.png",
+		[1] = "assets/sprite/pickup/item_placeholder.png",
 	},
 	[324] = {
-		[1] = "assets/sprite/pickup/powerup_ammo2.png",
+		[1] = "assets/sprite/pickup/placeholder.png",
 	},
 	[325] = {
-		[1] = "assets/sprite/pickup/powerup_lightning1.png",
+		[1] = "assets/sprite/pickup/powerup_ammo1.png",
 	},
 	[326] = {
-		[1] = "assets/sprite/pickup/powerup_lightning2.png",
+		[1] = "assets/sprite/pickup/powerup_ammo2.png",
 	},
 	[327] = {
-		[1] = "assets/sprite/pickup/powerup_placeholder.png",
+		[1] = "assets/sprite/pickup/powerup_lightning1.png",
 	},
 	[328] = {
-		[1] = "assets/sprite/pickup/powerup_rocket1.png",
+		[1] = "assets/sprite/pickup/powerup_lightning2.png",
 	},
 	[329] = {
-		[1] = "assets/sprite/pickup/powerup_rocket2.png",
+		[1] = "assets/sprite/pickup/powerup_placeholder.png",
 	},
 	[330] = {
-		[1] = "assets/sprite/pickup/upgrade_boost_icon.png",
+		[1] = "assets/sprite/pickup/powerup_rocket1.png",
 	},
 	[331] = {
-		[1] = "assets/sprite/pickup/upgrade_bullet_speed_icon.png",
+		[1] = "assets/sprite/pickup/powerup_rocket2.png",
 	},
 	[332] = {
-		[1] = "assets/sprite/pickup/upgrade_damage_icon.png",
+		[1] = "assets/sprite/pickup/powerup_shield1.png",
 	},
 	[333] = {
-		[1] = "assets/sprite/pickup/upgrade_fire_rate_icon.png",
+		[1] = "assets/sprite/pickup/powerup_shield2.png",
 	},
 	[334] = {
-		[1] = "assets/sprite/pickup/upgrade_num_bullets_icon.png",
+		[1] = "assets/sprite/pickup/upgrade_boost_icon.png",
 	},
 	[335] = {
-		[1] = "assets/sprite/pickup/upgrade_range_icon.png",
+		[1] = "assets/sprite/pickup/upgrade_bullet_speed_icon.png",
 	},
 	[336] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser.png",
+		[1] = "assets/sprite/pickup/upgrade_damage_icon.png",
 	},
 	[337] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser_hud.png",
+		[1] = "assets/sprite/pickup/upgrade_fire_rate_icon.png",
 	},
 	[338] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser_icon.png",
+		[1] = "assets/sprite/pickup/upgrade_num_bullets_icon.png",
 	},
 	[339] = {
-		[1] = "assets/sprite/pickup/weapon_railgun.png",
+		[1] = "assets/sprite/pickup/upgrade_range_icon.png",
 	},
 	[340] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_hud.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser.png",
 	},
 	[341] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_icon.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser_hud.png",
 	},
 	[342] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_icon_leaderboard_filter.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser_icon.png",
 	},
 	[343] = {
-		[1] = "assets/sprite/pickup/weapon_repulsion_field.png",
+		[1] = "assets/sprite/pickup/weapon_railgun.png",
 	},
 	[344] = {
-		[1] = "assets/sprite/pickup/weapon_sword.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_hud.png",
 	},
 	[345] = {
-		[1] = "assets/sprite/pickup/weapon_sword_hud.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_icon.png",
 	},
 	[346] = {
-		[1] = "assets/sprite/pickup/weapon_sword_icon.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_icon_leaderboard_filter.png",
 	},
 	[347] = {
-		[1] = "assets/sprite/pickup/xp.png",
+		[1] = "assets/sprite/pickup/weapon_repulsion_field.png",
 	},
 	[348] = {
-		[1] = "assets/sprite/player/character.png",
+		[1] = "assets/sprite/pickup/weapon_sword.png",
 	},
 	[349] = {
-		[1] = "assets/sprite/player/egg.png",
+		[1] = "assets/sprite/pickup/weapon_sword_hud.png",
 	},
 	[350] = {
-		[1] = "assets/sprite/player/hover_fx.png",
+		[1] = "assets/sprite/pickup/weapon_sword_icon.png",
 	},
 	[351] = {
-		[1] = "assets/sprite/player/rocket1.png",
+		[1] = "assets/sprite/pickup/xp.png",
 	},
 	[352] = {
-		[1] = "assets/sprite/player/rocket2.png",
+		[1] = "assets/sprite/player/character.png",
 	},
 	[353] = {
-		[1] = "assets/sprite/player/rocket3.png",
+		[1] = "assets/sprite/player/egg.png",
 	},
 	[354] = {
-		[1] = "assets/sprite/title/egg.png",
+		[1] = "assets/sprite/player/hover_fx.png",
 	},
 	[355] = {
-		[1] = "assets/sprite/title/egg1.png",
+		[1] = "assets/sprite/player/rocket1.png",
 	},
 	[356] = {
-		[1] = "assets/sprite/title/egg2.png",
+		[1] = "assets/sprite/player/rocket2.png",
 	},
 	[357] = {
-		[1] = "assets/sprite/title/egg3.png",
+		[1] = "assets/sprite/player/rocket3.png",
 	},
 	[358] = {
-		[1] = "assets/sprite/title/egg4.png",
+		[1] = "assets/sprite/title/egg.png",
 	},
 	[359] = {
-		[1] = "assets/sprite/title/sun.png",
+		[1] = "assets/sprite/title/egg1.png",
 	},
 	[360] = {
-		[1] = "assets/sprite/title/sun1.png",
+		[1] = "assets/sprite/title/egg2.png",
 	},
 	[361] = {
-		[1] = "assets/sprite/title/sun2.png",
+		[1] = "assets/sprite/title/egg3.png",
 	},
 	[362] = {
-		[1] = "assets/sprite/title/title_text.png",
+		[1] = "assets/sprite/title/egg4.png",
 	},
 	[363] = {
-		[1] = "assets/sprite/title/title_text_mockup.png",
+		[1] = "assets/sprite/title/sun.png",
 	},
 	[364] = {
-		[1] = "assets/sprite/ui/codex_unknown.png",
+		[1] = "assets/sprite/title/sun1.png",
 	},
 	[365] = {
-		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+		[1] = "assets/sprite/title/sun2.png",
 	},
 	[366] = {
-		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+		[1] = "assets/sprite/title/title_text.png",
 	},
 	[367] = {
-		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+		[1] = "assets/sprite/title/title_text_mockup.png",
 	},
 	[368] = {
+		[1] = "assets/sprite/ui/codex_unknown.png",
+	},
+	[369] = {
+		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+	},
+	[370] = {
+		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+	},
+	[371] = {
+		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+	},
+	[372] = {
 		[1] = "assets/sprite/ui/leaderboard_good_ending.png",
 	},
 }

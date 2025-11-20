@@ -98,6 +98,8 @@ function RingOfLoyaltyBurst:filter_object(obj)
 
     if obj.intangible then return false end
 
+    if obj.avoid_player_bullets then return false end
+
     if obj.is_egg_boss or obj.is_egg_wrath or obj.is_egg_sentry then
         return false
     end
@@ -150,11 +152,11 @@ function RingOfLoyaltyBurst.affect_object(obj, self, dt)
 end
 
 function RingOfLoyaltyBurst:get_damage(target)
-    -- local dist = vec2_distance(self.pos.x, self.pos.y, target.pos.x, target.pos.y)
-    -- local dist_modifier = remap_clamp((dist / BASE_RADIUS), 0, 1, 1, 0.5)
-    dist_modifier = 1
+    local dist = vec2_distance(self.pos.x, self.pos.y, target.pos.x, target.pos.y)
+    local dist_modifier = remap_clamp(pow((max(dist - 15, 0) / (self.radius)), 1.2), 0, 1, 1.25, 0.35)
+    -- local dist_modifier = 1
     local damage = (self.damage * dist_modifier)
-    -- print("burst damage", damage)
+    -- print("burst modifier/damage", dist_modifier, damage)
     return damage
 end
 

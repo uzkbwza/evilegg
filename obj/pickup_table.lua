@@ -79,6 +79,21 @@ local Powerups = {
 		name = "powerup_rocket_name",
 		description = "powerup_rocket_desc",
     },
+    
+    -- ShieldPowerup = {
+	-- 	icon = textures.pickup_powerup_shield1,
+    --     spawn_weight = 250,
+    --     -- debug_spawn_weight = 250000,
+	-- 	textures = {
+	-- 		textures.pickup_powerup_shield1,
+	-- 		textures.pickup_powerup_shield2,
+	-- 		-- textures.pickup_powerup_shield3,
+    --     },
+    --     bullet_powerup = false,
+	-- 	-- bullet_powerup_time = 6,
+	-- 	name = "powerup_shield_name",
+	-- 	description = "powerup_shield_desc",
+    -- },
 	
 	AmmoPowerup = {
 		icon = textures.pickup_powerup_ammo1,
@@ -522,6 +537,7 @@ local function process_pickup_table(tab, subtype, base_name)
         v.icon = v.icon or textures.pickup_placeholder
         v.textures = v.textures or { v.icon, v.icon, v.icon }
         v.type = "pickup"
+        v.key = v.key or k
         v.subtype = subtype
 
         if subtype == "artefact" and v.is_secondary_weapon then

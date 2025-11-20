@@ -29,6 +29,8 @@ local RingOfLoyaltyBurst = require("obj.Player.Bullet.RingOfLoyaltyBurst")
 local CrownOnEffect = GameObject2D:extend("CrownOnEffect")
 local CrownOffEffect = GameObject2D:extend("CrownOffEffect")
 
+local Disc = require("obj.Player.Bullet.Disc")
+
 local SHOOT_DISTANCE = 6
 local SHOOT_INPUT_DELAY = 1
 
@@ -158,6 +160,8 @@ function PlayerCharacter:new(x, y)
     signal.connect(game_state, "player_artefact_gained", self, "on_artefact_gained")
     signal.connect(game_state, "player_artefact_removed", self, "on_artefact_removed")
 
+    self.discs = {}
+
 	self.base_body_height = self.body_height
 
     self.on_prayer_knot_charged = function()
@@ -200,6 +204,33 @@ function PlayerCharacter:state_GameStart_enter()
 	self.sprite = nil
 end
 
+local num_discs = 5
+
+function PlayerCharacter:on_powerup_gained(powerup_type)
+    if powerup_type.key == "ShieldPowerup" then
+        self:play_sfx("pickup_barrier_spawn")
+        for i = 1, num_discs do
+            if self.discs[i] then
+                signal.disconnect(self.discs[i], "destroyed", self, "on_disc_destroyed")
+                self.discs[i]:queue_destroy()
+                self.discs[i] = nil
+            end
+            local bx, by = self:get_body_center()
+            local disc = self:spawn_object(Disc(bx, by, i, num_discs))
+            disc.disc_id = i
+            disc:ref("player", self)
+            signal.connect(disc, "destroyed", self, "on_disc_destroyed")
+            self.discs[i] = disc
+        end
+    end
+end
+
+function PlayerCharacter:on_disc_destroyed(disc)
+    if self.discs[disc.disc_id] == disc then
+        self.discs[disc.disc_id] = nil
+    end
+end
+
 function PlayerCharacter:state_GameStart_draw()
     -- self:body_translate()
     local texture = textures.player_egg
@@ -214,7 +245,7 @@ function PlayerCharacter:state_GameStart_update(dt)
 	end
 
 	local input = self:get_input_table()
-    if input.hover_pressed then
+    if input.hover_pressed or (debug.enabled and input.hover_held) then
         -- if not (game_state.skip_intro and self.state_tick < 10) then
         self:change_state("Hover")
         return
@@ -1278,13 +1309,15 @@ end
 function PlayerCharacter:collide_with_terrain()
     local collided = self:constrain_to_room()
     if collided and self.world and self.world.room and self.world.room.curse_spite and self.world.room.tick > 120 and not self:is_invulnerable() then
-        self:hit_by({damage = 1})
+        self:hit_by({ damage = 1 })
     end
 end
 
+local force_loyalty = false
+
 function PlayerCharacter:pickup(pickup)
     
-    if pickup.holding_pickup and game_state.artefacts.ring_of_loyalty then
+    if (pickup.holding_pickup or (debug.enabled and force_loyalty)) and game_state.artefacts.ring_of_loyalty then
         self:on_ring_of_loyalty_pickup(pickup, pickup:get_body_center())
     end
     pickup:on_pickup(self)
@@ -2146,13 +2179,18 @@ function AimDraw:draw()
 
     graphics.set_color(Color.white)
 
-    if game_state.bullet_powerup then
-        graphics.set_color(Color.white)
+    local bullet_powerups = game_state:get_active_bullet_powerups()
+    if not table.is_empty(bullet_powerups) then
         local font = fonts.main_font_bold
         graphics.set_font(font)
-        local text = string.format("%02d", floor(frames_to_seconds(game_state.bullet_powerup_time)))
-        local width = font:getWidth(text)
-        graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2)
+        for i, entry in ipairs(bullet_powerups) do
+            local time_text = string.format("%02d", floor(frames_to_seconds(entry.time)))
+            local label = tr[entry.powerup.name] or entry.powerup.name or ""
+            local text = string.format("%s %s", label, time_text)
+            local width = font:getWidth(text)
+            graphics.set_color(Color.white)
+            graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2 + (i - 1) * font:getHeight())
+        end
     end
 
     if self.player.mouse_mode and usersettings.use_absolute_aim then

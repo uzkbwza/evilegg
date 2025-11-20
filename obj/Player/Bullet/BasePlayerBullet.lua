@@ -247,7 +247,9 @@ function BasePlayerBullet.try_hit(bubble, self)
 
 			self:add_to_hit_objects(parent)
 		end
-		return
+        return
+    elseif parent.avoid_player_bullets then
+        return
 	end
 
 	TwinStickNormalBullet.try_hit(bubble, self)

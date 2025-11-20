@@ -170,6 +170,9 @@ local translations = {
         powerup_rocket_name            = "MISSILE",
         powerup_rocket_desc            = "High-powered rocket-propelled missiles. Lasts for 6 seconds. Duration stacks.",
 
+        -- powerup_shield_name            = "BARRIER",
+        -- powerup_shield_desc            = "A temporary shield made of orbiting projectiles.",
+
         powerup_ammo_name              = "EXTRA AMMO",
         powerup_ammo_desc              = "Useful for power hungry equipment.",
         -- artefact_more_bullets_name = "MORE BULLETS",
