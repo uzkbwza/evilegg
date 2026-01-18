@@ -14,6 +14,7 @@ function NameEntryScreen:on_name_selected(name)
 	-- self:emit_signal("name_selected", name)
 	self.handling_input = false
 	savedata:set_save_data("name", name)
+    A2Web.set_user(self.name)
 	local s = self.sequencer
 	s:start(function()
 		s:wait(5)

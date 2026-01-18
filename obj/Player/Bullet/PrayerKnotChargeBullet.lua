@@ -19,10 +19,10 @@ function PrayerKnotChargeBullet:new(x, y, extra_bullet)
     self.speed = self.speed * 1.25
     -- self.lifetime = self.lifetime / (1.25)
 
-    self.damage = 6 + game_state.upgrades.damage
+    self.damage = 5.5 + game_state.upgrades.damage
     if extra_bullet then
         self.radius = 5
-        self.damage = 1.5 + game_state.upgrades.damage * 0.5
+        self.damage = 1.0 + game_state.upgrades.damage * 0.5
     end
  
     self.hp = 1 + min(1, game_state.upgrades.range)

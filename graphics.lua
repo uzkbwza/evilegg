@@ -375,21 +375,33 @@ function graphics.initialize_screen_shader_presets()
         },
 
         {
-
             "shader_preset_soft",
-            -- graphics.shader.basic
+            {
+                shader = graphics.shader.soft_combined,
+                args = {
+                    blur_size = slider(0.08, 0.06),
+                    blur_samples = slider(2, 7, true),
+                    aberration_amount = 0.1,
+                    aberration_strength = 0.6,
+                    aberration_blur_samples = slider(2, 7, true),
+                    glow_size = slider(0.5, 0.2),
+                    glow_samples = slider(2, 8, true),
+                    glow_intensity = threshold(0.5, 0.55, 0.25),
+                    glow_curve = 1.5,
+                    glow_boost = 0.025,
+                },
+            },
+        },
+
+        {
+            "shader_preset_soft_hq",
             {
                 shader = sblur_threshold(0.5),
                 args = {
                     pre_blur_size = slider(0.08, 0.06),
                     pre_blur_samples = threshold(2, slider(2, 7, true)),
-                    -- pre_blur_size = 0.06,
-                    -- pre_blur_samples = 7,
                 },
             },
-
-            -- { shader = graphics.shader.screenfilter, args = {} },sor
-            -- { shader = graphics.shader.lcd, args = { pixel_texture = graphics.textures.pixeltexture2, effect_strength = 0.3, brightness = 1.8 } },
             {
                 shader = graphics.shader.aberration,
                 args = {
@@ -402,9 +414,6 @@ function graphics.initialize_screen_shader_presets()
                     pre_blur_size = slider(0.5, 0.2), pre_blur_samples = slider(2, 8, true), intensity = threshold(0.5, 0.55, 0.25), glow_curve = 1.5, glow_boost = 0.025,
                 },
             },
-
-            -- { shader = graphics.shader.blur, args = {} },
-            -- graphics.shader.lcd,
         },
 
         {

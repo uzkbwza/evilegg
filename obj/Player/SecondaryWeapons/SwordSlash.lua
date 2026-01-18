@@ -15,6 +15,8 @@ local NUM_HIT_BUBBLES = 16
 local HIT_BUBBLE_SIZE = 7.5
 local ARC_DEGREES = deg2rad(210)
 
+SwordSlash.invuln_hit_sound = true
+
 
 SwordSlash.reset_death_particle_hit_velocity = true
 SwordSlash.center_out_velocity_multiplier = 1.0

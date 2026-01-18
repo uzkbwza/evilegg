@@ -3,6 +3,7 @@ local O = require("obj")
 local SpawnDataTable = require("obj.spawn_data")
 local PickupDataTable = require("obj.pickup_table")
 local LevelBonus = require("bonus.LevelBonus")
+local EndGameBonus = require("bonus.EndGameBonus")
 local Room = require("room.Room")
 
 
@@ -27,19 +28,87 @@ local SPAWN_CATEGORY_ORDER = {
     "secondary_weapon",
 }
 
+-- Glossary entries defined here so they can be referenced by StatsWorld
+local GLOSSARY_ENTRIES = {
+    {
+        name = "codex_glossary_name_lvl",
+        description = "codex_glossary_desc_lvl",
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_wave",
+        description = "codex_glossary_desc_wave",
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_upgrade",
+        description = "codex_glossary_desc_upgrade",
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_artefact",
+        description = "codex_glossary_desc_artefact",
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_earned_x",
+        description = "codex_glossary_desc_earned_x",
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_xp",
+        description = "codex_glossary_desc_xp",
+        start_unlocked = true,
+    },
+    {
+        name = "room_has_max_points",
+        description = "codex_glossary_room_has_max_points",
+        start_unlocked = true,
+    },
+    {
+        name = "room_is_hard",
+        description = "codex_glossary_room_is_hard",
+    },
+    {
+        name = "codex_glossary_name_time_warning",
+        description = "codex_glossary_desc_time_warning",
+        start_unlocked = true,
+    },
+}
+
+-- Export helper functions for StatsWorld
+CodexWorld.get_glossary_entries = function()
+    return GLOSSARY_ENTRIES
+end
+
+CodexWorld.get_start_unlocked_glossary_names = function()
+    local names = {}
+    for _, entry in ipairs(GLOSSARY_ENTRIES) do
+        if entry.start_unlocked then
+            table.insert(names, entry.name)
+        end
+    end
+    return names
+end
+
 -- local PAGE_CATEGORY_ORDER = table.extend({"all"}, SPAWN_CATEGORY_ORDER)
 -- local START_PAGE = 1
-local PAGE_CATEGORY_ORDER = table.extend({"all", "glossary", "levelbonus"}, SPAWN_CATEGORY_ORDER)
-local START_PAGE = 3
+local PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus", "endgamebonus"})
 
 function CodexWorld:new(x, y)
+    if savedata.has_beaten_game then 
+        PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus", "endgamebonus"})
+    else
+        PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus"})
+    end
     CodexWorld.super.new(self, x, y)
     self:add_signal("exit_menu_requested")
     self.object_buttons = {}
     self.page_number = 1
     self.category_new_items = false
     self.category_index_selected = 1
-    self.category_selected = PAGE_CATEGORY_ORDER[self.category_index_selected]
+    self.category_selected = nil -- nil means we're on the index page
+    self.on_index_page = true
     self.spawn_tables = {}
     for _, page_category in ipairs(PAGE_CATEGORY_ORDER) do
         self.spawn_tables[page_category] = {}
@@ -72,35 +141,128 @@ function CodexWorld:enter()
         self:add_menu_item(O.PauseScreen.PauseScreenButton(MENU_ITEM_H_PADDING, MENU_ITEM_V_PADDING, "⮌",
             10, 10, false))):focus()
 
-    signal.connect(self.back_button, "selected", self, "exit_menu_requested", function()
-		local s = self.sequencer
-		s:start(function()
-			self.handling_input = false
-			s:wait(1)
-			self:emit_signal("exit_menu_requested")
-		end)
+    signal.connect(self.back_button, "selected", self, "back_button_selected", function()
+        if self.on_index_page then
+            local s = self.sequencer
+            s:start(function()
+                self.handling_input = false
+                s:wait(1)
+                self:emit_signal("exit_menu_requested")
+            end)
+        else
+            self:show_index_page()
+        end
     end)
 
-	self:ref("cycle_category_button",
+    self:ref_array("category_buttons")
+    self:show_index_page()
+end
+
+function CodexWorld:show_index_page()
+    self.on_index_page = true
+    self.category_selected = nil
+    
+    -- Clear existing category buttons
+    for _, button in ipairs(self.category_buttons or {}) do
+        button:queue_destroy()
+    end
+    self:ref_array_clear("category_buttons")
+    
+    -- Clear spawn buttons
+    for i = 1, #self.object_buttons do
+        self.object_buttons[i]:queue_destroy()
+    end
+    table.clear(self.object_buttons)
+    
+    -- Clear page buttons
+    if self.previous_page_button then
+        self.previous_page_button:queue_destroy()
+        self:unref("previous_page_button")
+    end
+    if self.next_page_button then
+        self.next_page_button:queue_destroy()
+        self:unref("next_page_button")
+    end
+    if self.cycle_category_button then
+        self.cycle_category_button:queue_destroy()
+        self:unref("cycle_category_button")
+    end
+    
+    -- Clear description
+    self:clear_spawn_description()
+    
+    local BUTTON_SPACING = 11
+    local current_y = MENU_ITEM_V_PADDING + 14
+    
+    for i, page_category in ipairs(PAGE_CATEGORY_ORDER) do
+        local button_name = tr["codex_key_" .. page_category] or page_category:upper()
+        local button = self:add_menu_item(O.OptionsMenu.OptionsMenuButton(MENU_ITEM_H_PADDING, current_y, button_name:upper()))
+        
+        local category = page_category
+        signal.connect(button, "selected", self, "category_selected_" .. category, function()
+            self:open_category(category)
+        end)
+        
+        self:ref_array_push("category_buttons", button)
+        
+        -- Set up navigation
+        if i == 1 then
+            self.back_button:add_neighbor(button, "down")
+            button:add_neighbor(self.back_button, "up")
+        else
+            local prev_button = self.category_buttons[i - 1]
+            prev_button:add_neighbor(button, "down")
+            button:add_neighbor(prev_button, "up")
+        end
+        
+        current_y = current_y + BUTTON_SPACING
+    end
+    
+    -- Wrap navigation
+    if #self.category_buttons > 0 then
+        self.category_buttons[1]:add_neighbor(self.category_buttons[#self.category_buttons], "up")
+        self.category_buttons[#self.category_buttons]:add_neighbor(self.category_buttons[1], "down")
+    end
+    
+    -- Focus first category button
+    if #self.category_buttons > 0 then
+        self.category_buttons[1]:focus()
+    end
+end
+
+function CodexWorld:open_category(page_category)
+    self.on_index_page = false
+    self.category_selected = page_category
+    
+    -- Clear category buttons
+    for _, button in ipairs(self.category_buttons or {}) do
+        button:queue_destroy()
+    end
+    self:ref_array_clear("category_buttons")
+    
+    -- Create cycle category button for this view
+    self:ref("cycle_category_button",
         self:add_menu_item(O.CodexMenu.CodexMenuCycle(MENU_ITEM_H_PADDING + 17, MENU_ITEM_V_PADDING + 14, "",
             ICON_SIZE * NUM_OBJECT_COLUMNS - 39, 9, false, nil, nil, false, true)))
-		
-	self.cycle_category_button.get_value_func = function()
-		return (tr["codex_key_" .. self.category_selected])
-	end
-	self.cycle_category_button.set_value_func = function(value)
+        
+    self.cycle_category_button.get_value_func = function()
+        return (tr["codex_key_" .. self.category_selected])
+    end
+    self.cycle_category_button.set_value_func = function(value)
         self:open_page(value, 1)
         if self.tick > 5 then
             savedata:set_save_data("has_pressed_codex_category_button", true)
         end
-	end
-	self.cycle_category_button:set_options(PAGE_CATEGORY_ORDER)
+    end
+    self.cycle_category_button:set_options(PAGE_CATEGORY_ORDER)
 
     self.cycle_category_button:add_neighbor(self.back_button, "up")
     self.back_button:add_neighbor(self.cycle_category_button, "down")
 
-	self.cycle_category_button:quiet_cycle(START_PAGE)
-    -- self:open_page(self.category_selected, self.page_number)
+    -- Find the index of the requested category and cycle to it
+    -- quiet_cycle takes a delta, and current_option starts at 1, so we need (index - 1)
+    local category_index = table.find(PAGE_CATEGORY_ORDER, page_category) or 1
+    self.cycle_category_button:quiet_cycle(category_index - 1)
 end
 
 function CodexWorld:update(dt)
@@ -109,23 +271,25 @@ function CodexWorld:update(dt)
 	self.focused_on_entry = self.menu_root.focused_child and self.menu_root.focused_child.is_codex_entry_button
 	
     if input.ui_cancel_pressed then
-        if self.focused_on_entry and input.last_input_device == "gamepad" then
+        if self.focused_on_entry and input.last_input_device == "gamepad" and self.cycle_category_button then
             self.cycle_category_button:focus()
         else
             self.back_button:select()
         end
     end
     
-
     self.category_new_items = false
-    local spawns = self.spawn_tables[self.category_selected]
-    local len = #spawns
+    
+    if self.category_selected then
+        local spawns = self.spawn_tables[self.category_selected]
+        local len = #spawns
 
-    for i = 1, len do
-        local spawn = spawns[i]
-        if spawn and savedata:is_new_codex_item(spawn.codex_save_name) then
-            self.category_new_items = true
-            break
+        for i = 1, len do
+            local spawn = spawns[i]
+            if spawn and savedata:is_new_codex_item(spawn.codex_save_name) then
+                self.category_new_items = true
+                break
+            end
         end
     end
 
@@ -232,7 +396,7 @@ function CodexWorld:open_spawn_description(spawn)
 		-- local ammo_count1 = string.fraction(spawn.class.minimum_ammo_needed_to_use_normalized or spawn.class.ammo_needed_per_use_normalized)
 		-- local ammo_count1_text = spawn.class.minimum_ammo_needed_to_use and tr.artefact_guide_min_ammo_requirement or tr.artefact_guide_ammo_requirement
 		-- local tip3 = ammo_count1_text:format(ammo_count1)
-		local tip2 = tr.artefact_guide_ammo_gain:format(string.fraction(spawn.class.ammo_gain_per_level_normalized))
+		local tip2 = tr.artefact_guide_ammo_gain:format((spawn.class.ammo_gain_per_level_normalized))
 		local weapon_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tip2, false, Color.green, 2, true))
 		self:add_tag(weapon_text, "sequence_object")
 		current_y = current_y + increment
@@ -291,6 +455,16 @@ function CodexWorld:open_spawn_description(spawn)
             delay = delay + 1
         end
 
+    end
+
+    if spawn.end_game_bonus then
+        if type(spawn.end_game_bonus.multiplier) == "number" and spawn.end_game_bonus.multiplier > 0 then
+            local mul = spawn.end_game_bonus.multiplier
+            local end_bonus_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_end_game_bonus_multiplier:format(mul), false, Color.yellow, delay, true))
+            self:add_tag(end_bonus_text, "sequence_object")
+            current_y = current_y + increment
+            delay = delay + 1
+        end
     end
 
     local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, false))
@@ -579,58 +753,11 @@ function CodexWorld:get_spawns(page_category)
 		return spawns
 	end
 
-    if page_category == "glossary" or page_category == "levelbonus" then
+    if page_category == "glossary" or page_category == "levelbonus" or page_category == "endgamebonus" then
         local tab
 
         if page_category == "glossary" then
-            tab = {
-                {
-                    name = "codex_glossary_name_lvl",
-                    description = "codex_glossary_desc_lvl",
-                    start_unlocked = true,
-                },
-                {
-                    name = "codex_glossary_name_wave",
-                    description = "codex_glossary_desc_wave",
-                    start_unlocked = true,
-                },
-                {
-                    name = "codex_glossary_name_upgrade",
-                    description = "codex_glossary_desc_upgrade",
-                    start_unlocked = true,
-                },
-                {
-                    name = "codex_glossary_name_artefact",
-                    description = "codex_glossary_desc_artefact",
-                    start_unlocked = true,
-                },
-                {
-                    name = "codex_glossary_name_earned_x",
-                    description = "codex_glossary_desc_earned_x",
-                    start_unlocked = true,
-                },
-                {
-                    name = "codex_glossary_name_xp",
-                    description = "codex_glossary_desc_xp",
-                    start_unlocked = true,
-                },
-                {
-                    name = "room_has_max_points",
-                    description = "codex_glossary_room_has_max_points",
-                    start_unlocked = true,
-                },
-                {
-                    name = "room_is_hard",
-                    description = "codex_glossary_room_is_hard",
-                },
-                {
-                    name = "codex_glossary_name_time_warning",
-                    description = "codex_glossary_desc_time_warning",
-                    start_unlocked = true,
-                },
-                
-
-            }
+            tab = table.copy(GLOSSARY_ENTRIES)
 
             local curses = {
 
@@ -670,13 +797,23 @@ function CodexWorld:get_spawns(page_category)
                 })
             end
             table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
+        elseif page_category == "endgamebonus" then
+            tab = {}
+            for k, v in pairs(EndGameBonus) do
+                table.insert(tab, {
+                    name = v.name_key,
+                    description = v.text_key,
+                    end_game_bonus = v
+                })
+            end
+            table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
         end
 
         for _, v in ipairs(tab) do
             v.sprite = textures.ui_codex_unknown_sprite
             v.glossary_entry = true
             v.codex_save_name = v.name
-            v.text_color = page_category == "glossary" and Color.orange or Color.cyan
+            v.text_color = page_category == "glossary" and Color.orange or (page_category == "endgamebonus" and Color.yellow or Color.cyan)
         end
 
 
@@ -900,16 +1037,29 @@ function CodexWorld:draw()
 		graphics.print("?", self.cycle_category_button.pos.x + self.cycle_category_button.width - 2, self.cycle_category_button.pos.y -2 + sin(self.tick * 0.35) * 1, 0, 1, 1)
 		graphics.set_color(Color.white)
     end
-
-    -- if (debug.enabled or not savedata.has_pressed_codex_category_button) then
-    --     local num_arrows = 6
-
-    --     for i=1, num_arrows do
-    --         graphics.set_color(Color.white)
-    --         local yoffs = (iflicker(gametime.tick, 4, 7) or iflicker(gametime.tick + 10, 4, 7)) and 1 or 0
-    --         graphics.draw(textures.ui_codex_button_arrow, floor(lerp(90, 129, (i-1)/(num_arrows-1))), 7 + yoffs)
-    --     end
-    -- end
+    
+    -- Draw new item indicators on category buttons when on index page
+    if self.on_index_page and usersettings.highlight_new_codex_entries then
+        for i, button in ipairs(self.category_buttons or {}) do
+            local page_category = PAGE_CATEGORY_ORDER[i]
+            local spawns = self.spawn_tables[page_category]
+            local has_new = false
+            for j = 1, #spawns do
+                local spawn = spawns[j]
+                if spawn and savedata:is_new_codex_item(spawn.codex_save_name) then
+                    has_new = true
+                    break
+                end
+            end
+            if has_new then
+                graphics.set_color(Color.red)
+                graphics.set_font(fonts.depalettized.image_font2)
+                local text_width = button.font:getWidth(button.text)
+                graphics.print("?", button.pos.x + text_width + 3, button.pos.y - 2 + sin(self.tick * 0.35) * 1, 0, 1, 1)
+                graphics.set_color(Color.white)
+            end
+        end
+    end
 end
 
 return CodexWorld

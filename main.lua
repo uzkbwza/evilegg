@@ -19,6 +19,8 @@ if steam then
     function_style_key_process(steam)
 end
 
+A2Web = require "a2.A2Web"
+
 debug          = require "debuggy"
 table          = require "lib.tabley"
 Object         = require "lib.object"
@@ -29,6 +31,9 @@ nativefs       = require "lib.nativefs"
 filesystem     = require "filesystem"
 
 if conf.use_fennel then require "tools.fennelstart" end
+if debug.enabled then
+    require("compile_a2_to_bytecode")
+end
 
 require "lib.mathy"
 require "lib.vector"         ; require "lib.rect"
@@ -80,6 +85,7 @@ Palette, PaletteStack = palette_lib.Palette, palette_lib.PaletteStack
 local fsm = require "lib.fsm"
 StateMachine, State = fsm.StateMachine, fsm.State
 AutoStateMachine    = require "lib.fsm.AutoStateMachine"
+
 
 BaseGame        = require "game.BaseGame"
 Screens                                = filesystem.get_modules("screen")
@@ -144,6 +150,8 @@ function love.run()
         for i = 2, #s do if s[i] == "fma" then has_fma = true end end
         print("FMA enabled:", has_fma)
     end
+    print(love.graphics.getRendererInfo())
+
     if love.math then love.math.set_random_seed(os.time()) end
     if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
     if love.timer then love.timer.step() end
@@ -302,6 +310,7 @@ function love.update(dt)
     if steam then
         steam.run_callbacks()
     end
+    A2Web.update()
 
     if debug.enabled and debug.can_draw() then
         local flen = step_length*1000
@@ -363,6 +372,9 @@ function love.draw()
 end
 
 function love.quit()
+    if game_state and (not game_state.game_over) then 
+        game_state:on_quit()
+    end
     usersettings:save()
     savedata:save()
 	if steam then

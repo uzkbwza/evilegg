@@ -281,7 +281,9 @@ function BasePlayerBullet:on_hit_something(parent, bubble)
     -- self:spawn_object_relative(BasePlayerBulletDieFx())
 	self:play_sfx("player_bullethit", 0.8)
 
-	self:try_push(parent, self.push_modifier)
+    if self.num_ricochets == nil or self.num_ricochets < 1 then
+	    self:try_push(parent, self.push_modifier)
+    end
 end
 
 function BasePlayerBullet:on_hit_blocking_objects_this_frame()

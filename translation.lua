@@ -137,16 +137,16 @@ local translations = {
         bonus_overflow                 = "OVERFLOW",
         bonus_overflow_codex           = "Picked up an upgrade while at max upgrades.",
 
-        -- end_bonus_final_room_clear         = "EGG SLAYER",
+        end_bonus_final_room_clear_name = "MATRICIDE",
         end_bonus_final_room_clear     = "You defeated the evil egg.",
 
-        -- end_bonus_twin_saved               = "HERO",
+        end_bonus_twin_saved_name       = "HERO",
         end_bonus_twin_saved           = "You rescued your twin and saved Planet Greenoid.",
 
-        -- end_bonus_no_greenoid_deaths       = "DEFENDER",
+        end_bonus_no_greenoid_deaths_name = "DEFENDER",
         end_bonus_no_greenoid_deaths   = "You saved every Greenoid you encountered.",
 
-        -- end_bonus_no_damage_taken          = "UNTOUCHABLE",
+        end_bonus_no_damage_taken_name = "UNTOUCHABLE",
         end_bonus_no_damage_taken      = "You beat the game without taking damage.",
 
         upgrade_name_fire_rate         = "+FIRE RATE",
@@ -217,7 +217,7 @@ local translations = {
         -- artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
         artefact_warbell_desc          = "Greenoids will attack nearby enemies.",
         artefact_useless_desc          = "Too heavy to take with you.",
-        artefact_transmitter_desc      = "Greenoids will bring extra ammo.",
+        artefact_transmitter_desc      = "Greenoids will bring more ammo.",
         artefact_heart_trade_desc      = "Trade an artefact for a heart and upgrade.",
         artefact_blast_armor_desc      = "You are prone to outbursts.",
         artefact_prayer_knot_desc      = "Stop shooting to charge a powerful bullet.",
@@ -227,9 +227,24 @@ local translations = {
         weapon_sword_desc                            = "This is the line of division.",
         weapon_big_laser_desc                        = "Simple problems call for simple solutions.",
         weapon_railgun_desc                          = "Shoots through anything.",
-        -- weapon_repulsion_field_desc				     = "Panic button.",
 
         menu_options_button                          = "OPTIONS",
+        menu_stats_button                            = "STATS",
+
+        stats_version_header                         = "%s STATS",
+        stats_high_score                             = "HIGH SCORE",
+        stats_highest_level                          = "HIGHEST LEVEL",
+        stats_best_kills                             = "MOST KILLS",
+        stats_best_rescues                           = "MOST RESCUES",
+        stats_best_time                              = "BEST TIME",
+        stats_total_runs                             = "RUNS",
+        stats_total_kills                            = "TOTAL KILLS",
+        stats_total_rescues                          = "TOTAL RESCUES",
+        stats_total_deaths                           = "DEATHS",
+        stats_total_playtime                         = "TOTAL PLAYTIME",
+        stats_wins                                   = "WINS",
+        stats_planets_saved                          = "TWINS HATCHED",
+        stats_codex_entries                          = "CODEX ENTRIES",
 
         main_menu_start_button                       = "START",
         main_menu_leaderboard_button                 = "RANKINGS",
@@ -279,6 +294,7 @@ local translations = {
         options_fullscreen_mode                      = "Fullscreen Mode",
         options_highlight_new_codex_entries          = "Show Codex Notifications",
         options_enable_tutorial                      = "Show Tutorial Prompts",
+        options_edit_a2_settings                     = "arcade2000 Settings",
         
         options_enable_leaderboard_pausing_tip       = "Disables pausing.",
         
@@ -322,6 +338,7 @@ local translations = {
         name_entry_prompt            = "ENTER YOUR NAME",
 
         shader_preset_soft           = "Soft",
+        shader_preset_soft_hq        = "Soft HQ",
         shader_preset_glow           = "Glow",
         shader_preset_scanline       = "Scanline",
         shader_preset_lcd            = "LCD",
@@ -477,6 +494,9 @@ local translations = {
         codex_name_lich              = "Lich",
         codex_desc_lich              = "A high ranking demon engorged with Greenoid life force. Cannot be killed unless you destroy its spirit lantern.",
 
+        codex_name_horror            = "Forgotten Horror",
+        codex_desc_horror            = "Missing data.",
+
         codex_name_hatchedtwinrescue = "Twin Hatchling",
         codex_desc_hatchedtwinrescue = "Nobody is born a monster.",
 
@@ -514,6 +534,7 @@ local translations = {
         codex_level_bonus_score             = "Points: %s",
         codex_level_bonus_score_multiplier  = "Score Multiplier: %-3.2f",
         codex_item_xp                       = "XP: %s",
+        codex_end_game_bonus_multiplier     = "Score Multiplier: %-2.1f",
 
 
         codex_category_label                = "%s",
@@ -526,6 +547,7 @@ local translations = {
         codex_key_secondary_weapon          = "WEAPONS",
         codex_key_glossary                  = "GLOSSARY",
         codex_key_levelbonus                = "BONUSES",
+        codex_key_endgamebonus              = "END BONUSES",
 
         codex_hp_text                       = "HP: %s",
         codex_score_text                    = "SCORE: %s",

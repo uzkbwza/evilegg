@@ -5,7 +5,7 @@ local CrackFragment = GameObject2D:extend("CrackFragment")
 local Bouncer = require("obj.Spawn.Enemy.Hazard.Bouncer")[2]
 local FloatingSpeech = GameObject2D:extend("FloatingSpeech")
 local NormalRescue = require("obj.Spawn.Pickup.Rescue.NormalRescue")
-local PickupTable = require "obj.pickup_table"
+local PickupTable = require "obj.pickup_table" 
 local RoyalGuard = require("obj.Spawn.Enemy.Enforcer")[2]
 local RoyalRoamer = require("obj.Spawn.Enemy.Roamer")[3]
 local Explosion = require("obj.Explosion")
@@ -663,20 +663,23 @@ function EggBoss:state_Phase2_enter()
 
         if not (skip) then
             local wait_time = floor(seconds_to_frames(num_seconds / num_greenoids))
-            for i = 1, num_greenoids do
+            local can_spawn_ammo = game_state.secondary_weapon
+            local upgrade = false
+            for i = 1, num_greenoids + (min(2, game_state.egg_rooms_cleared)) do
                 s:wait(wait_time)
                 local pickup = nil
                 if i == heart_spawn then
                     pickup = PickupTable.hearts.NormalHeart
-                elseif i == ammo_spawn and game_state.artefacts.transmitter then
+                elseif i == ammo_spawn and can_spawn_ammo then
                     pickup = PickupTable.powerups.AmmoPowerup
                 elseif i == ammo_spawn2 and game_state.artefacts.transmitter then
                     pickup = PickupTable.powerups.AmmoPowerup
                 elseif not game_state:is_fully_upgraded() then
                     pickup = game_state:get_random_available_upgrade(false)
+                    upgrade = true
                 end
 				
-                if i ~= heart_spawn and (not game_state.artefacts.transmitter or i ~= ammo_spawn and i ~= ammo_spawn2) then
+                if upgrade then
                     for _, object in self.world:get_objects_with_tag("rescue_object"):ipairs() do
                         if object.holding_pickup == pickup then
                             pickup = nil
@@ -684,13 +687,25 @@ function EggBoss:state_Phase2_enter()
                     end
                 end
 
+
                 self:spawn_greenoid(pickup)
+                
+                if game_state.egg_rooms_cleared > 0 and (i % 3 == 0) then
+                    self:spawn_greenoid()
+                end
+                
+                
+
                 -- for j = 1, (self.phase2_started_twice and rng:randi(1, 2) or 2) do
-                for j = 1, (self.phase2_started_twice and (1 + (i % 3 == 0 and 1 or 0)) or (1 + i % 2)) do
+                local extra = 0
+                if game_state.egg_rooms_cleared > 0 then 
+                    extra = ((1 + i) % 3 == 0) and 1 or 0
+                end
+                for j = 1, (self.phase2_started_twice and (1 + (i % 3 == 0 and 1 or 0)) or (1 + i % 2)) + extra do
                     -- print(j .. " guards")
                 -- for j = 1, (1 + i % 2) do
                 -- for j = 1, (2) do
-				    if self.phase2_started_twice or i >= num_greenoids / 2 then
+				    if self.phase2_started_twice or i >= num_greenoids / 3 then
 					    self.world:spawn_something(RoyalGuard, nil, nil, nil, nil, function(object)
 							self:spawn_wave_enemy(object)
 						end)
@@ -999,12 +1014,22 @@ function EggBoss:state_Phase3_enter()
 
 
         local num_shadows = 8
+
+        if game_state.egg_rooms_cleared > 0 then
+            local num_inner = min(4, (1 + game_state.egg_rooms_cleared))
+            for i = 1, num_inner do
+                local angle = i * tau / num_inner
+                self:spawn_object(EggShadow(0, 0, angle, 35, -0.009, 20, 0.5)):ref("parent", self)
+                s:wait(10)
+            end
+        end
+
         for i = 1, num_shadows do
             local angle = i * tau / num_shadows
-
             self:spawn_object(EggShadow(0, 0, angle, 110, 0.009, 80)):ref("parent", self)
             s:wait(10)
         end
+
         for i = 1, num_shadows do
             local angle = (i + 0.5) * tau / num_shadows + pi
 
@@ -1083,8 +1108,10 @@ function EggBoss:state_Phase6_enter()
     end)
     self:spawn_object(EggTree(0, 0))
     if not SKIP_PHASE_5 then
-        for i = 1, NUM_SENTRIES do
-            self:spawn_object(EggSentry(vec2_from_polar(500, i * tau / NUM_SENTRIES + self.random_offset)))
+        -- local num_sentries = min(7, NUM_SENTRIES + floor(game_state.egg_rooms_cleared / 2))
+        local num_sentries = NUM_SENTRIES
+        for i = 1, num_sentries do
+            self:spawn_object(EggSentry(vec2_from_polar(500, i * tau / num_sentries + self.random_offset)))
         end
     end
 
@@ -1115,6 +1142,13 @@ function EggBoss:state_Phase6_update(dt)
             x, y = rng:random_vec2_times(rng:randf(0, 64))
         end
         self.world:spawn_object(Penitent(x, y))
+        if rng:percent(game_state.egg_rooms_cleared * 1.1) then 
+            if rng:percent(40) then 
+                self.world:spawn_object(RoyalGuard(vec2_add(x, y, rng:random_vec2_times(16))))
+            else
+                self.world:spawn_object(PenitentSoul(vec2_add(x, y, rng:random_vec2_times(16))))
+            end
+        end
     end
     if self.is_new_tick and not self:is_tick_timer_running("wrath") and rng:percent(0.5) and (self.world:get_number_of_objects_with_tag("egg_sentry") < (NUM_SENTRIES - 1) or self.state_tick > 3000) then
         self.wrath_cycles = self.wrath_cycles or 1
@@ -1145,7 +1179,7 @@ function EggBoss:state_Phase6_update(dt)
         if not game_state:is_fully_upgraded() then
             pickup = game_state:get_random_available_upgrade(false)
             upgrade = true
-        elseif rng:percent(25) and game_state.artefacts.transmitter then
+        elseif rng:percent(game_state.artefacts.transmitter and 25 or 12.5) then
             pickup = PickupTable.powerups.AmmoPowerup
         end
 
@@ -1163,10 +1197,8 @@ function EggBoss:state_Phase6_update(dt)
         if greenoid then
             greenoid.run_toward_player = true
             greenoid.no_score = true
-
         end
     end
-    
 end
 
 function EggBoss:get_position_out_of_player_los()
@@ -1777,7 +1809,7 @@ local SHADOW_ACTIVATION_THRESHOLD = 0.70
 local SHADOW_ACTIVATION_WARNING_WINDOW = 0.5
 local SHADOW_ACTIVATION_FADEOUT_WINDOW = 0.025
 
-function EggShadow:new(x, y, angle, distance, speed, swell_amount)
+function EggShadow:new(x, y, angle, distance, speed, swell_amount, size_mul)
     EggShadow.super.new(self, x, y)
 
 	self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
@@ -1791,9 +1823,10 @@ function EggShadow:new(x, y, angle, distance, speed, swell_amount)
 	self.distance = distance
 	self.self_declump_modifier = 0.0
     self.intangible = true
-    self.radius = 1
 	self.angle = angle
 	self.active = false
+    self.size_mul = (size_mul or 1)
+    self.radius = 1 * self.size_mul
     self:move_to(vec2_from_polar(self.distance, self.angle))
     self.melee_attacking = false
 	self.center_x, self.center_y = 0, 0
@@ -1822,8 +1855,9 @@ function EggShadow:enter()
 	-- end)
 
     s:start(function()
+        local start = self.radius
         s:tween(function(t)
-           self:set_radius(lerp(1, 26, t))
+           self:set_radius(lerp(start, 26 * self.size_mul, t))
         end, 0, 1, 200, "linear")
 		
     end)
@@ -1862,10 +1896,10 @@ function EggShadow:update(dt)
         dist = self.distance * lerp(1, 0.65, clamp01(oscillation_elapsed / 1200)) +
 			sin(self.swell_elapsed * 0.01) *
         	lerp(self.swell_amount, self.swell_amount * self.oscillation_swell, clamp01(oscillation_elapsed / 900))
-        local radius = 26 - clamp01(oscillation_elapsed / 1000) * 5 +
-        sin(self.swell_elapsed * 0.01) * lerp(10, 0, clamp01(oscillation_elapsed / 1200))
+        local radius = (self.size_mul * 26 - clamp01(oscillation_elapsed / 1000) * 5 +
+        sin(self.swell_elapsed * 0.01) * lerp(10, 0, clamp01(oscillation_elapsed / 1200)))
 		local oscillation_modifier = lerp(1, remap(self.oscillation, -1, 1, 0.5, 1) * self.oscillation_scale, clamp01(oscillation_elapsed / 700))
-		self:set_radius(radius * oscillation_modifier)
+		self:set_radius(max(13, radius * oscillation_modifier))
     end
 
     local x, y = vec2_from_polar(dist, self.angle)

@@ -65,7 +65,7 @@ local function tick_rumble(t)
 end
 
 local function bonus_rumble(t)
-    return (1 - ease("outQuad")(t)) * 0.3
+    return (1 - ease("outQuad")(t)) * 0.1
 end
 
 function HUDLayer:start_after_level_bonus_screen()
@@ -297,7 +297,6 @@ function HUDLayer:start_after_level_bonus_screen()
                     s:tween_property(b, "score_apply_highlight_amount", 1, 0, 12, "outCubic")
 				end)
 
-                
                 input.start_rumble(bonus_rumble, 10)
                 if not self.skipping_bonus_screen then
                     self:play_sfx("ui_bonus_screen_beep2", 0.75)

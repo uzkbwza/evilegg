@@ -271,6 +271,11 @@ function Hand:state_Holding_enter()
 	self.bullet_push_modifier = 0.0
 	self.z_index = 1
     self.pause_walking_toward_player = true
+    self.physics_move = self.slow_physics
+end
+
+function Hand:slow_physics(dt)
+    self:move(self.vel.x * dt * 0.1, self.vel.y * dt * 0.1)
 end
 
 function Hand:state_Holding_update(dt)
@@ -285,7 +290,8 @@ function Hand:state_Holding_update(dt)
         self.held_object:move_to(new_x, new_y)
         -- local local_x, local_y = self:get_body_center_local()
         local diff_x, diff_y = vec2_direction_to(target_x, target_y, new_x, new_y)
-		local speed = 0.1
+		-- local speed = 0.1
+		local speed = 1.0
 		self:apply_force(diff_x * speed, diff_y * speed)
 
 		-- self:move_to(my_x, my_y)
@@ -672,6 +678,9 @@ end
 local SNIFF_FORCE = 1.3
 
 function Nose.do_sniff(object, self, dt)
+	-- Skip objects without required methods (e.g. EnemySpawn)
+	if not object.get_body_center or not object.move then return end
+	
 	local bx, by = self:get_body_center()
 	local px, py = object:get_body_center()
 	local dist = vec2_distance_squared(bx, by, px, py)

@@ -97,7 +97,8 @@ function Blinker:state_Waiting_enter()
     self.z_index = 0
     self:reset_physics()
     self.applying_physics = true
-    self.melee_attacking = true
+
+
     self.intangible = false
 	
 	local target = 120
@@ -105,7 +106,12 @@ function Blinker:state_Waiting_enter()
         target = rng:randf(60, 300)
     end
 	local s = self.sequencer
-	s:start(function()
+	s:start(function() 
+        s:wait(3)
+        self.melee_attacking = true
+    end)
+    
+    s:start(function()
 		s:wait(target)
 		self:change_state("Blinking")
 	end)

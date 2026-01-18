@@ -227,6 +227,5 @@ return {
         xp = 100,
         difficulty_modifier = 0.015,
     },
-
 	
 }

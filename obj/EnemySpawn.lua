@@ -1,9 +1,12 @@
 local EnemySpawn = GameObject2D:extend("EnemySpawn")
 local BigEnemySpawn = EnemySpawn:extend("BigEnemySpawn")
 local ExplosiveEnemySpawn = EnemySpawn:extend("ExplosiveEnemySpawn")
+local SilentEnemySpawn = EnemySpawn:extend("SilentEnemySpawn")
 
 local TIME = 45
 local SIZE = 15
+
+local SPAWN_GRID_RADIUS = 16
 
 function EnemySpawn:new(x, y, type)
     EnemySpawn.super.new(self, x, y)
@@ -17,10 +20,15 @@ function EnemySpawn:new(x, y, type)
 	-- self:lazy_mixin(Mixins.Fx.FloorCanvasPush)
 end
 
+function EnemySpawn:get_spawn_grid_rect()
+	return self.pos.x - SPAWN_GRID_RADIUS, self.pos.y - SPAWN_GRID_RADIUS, SPAWN_GRID_RADIUS * 2, SPAWN_GRID_RADIUS * 2
+end
+
 function EnemySpawn:enter()
 	self:play_sfx("enemy_spawner_spawn", 1.0)
     self:start_tick_timer("spawn", TIME)
 	self:add_tag("wave_spawn")
+	self:add_to_spatial_grid("game_object_grid", self.get_spawn_grid_rect)
 end
 
 function EnemySpawn:update(dt)
@@ -51,7 +59,25 @@ function EnemySpawn:draw()
         graphics.set_color(1, 1, 1, 1)
     end
 
+	-- Clamp visual position to screen bounds so off-screen spawns are visible at edges
+	local draw_offset_x, draw_offset_y = 0, 0
+	local cam_offset = self.world.camera_offset
+	local viewport = self.world.viewport_size
+	if cam_offset and viewport then
+		local margin = 8
+		-- Calculate visible world bounds from camera offset
+		local left = -cam_offset.x + margin
+		local right = viewport.x - cam_offset.x - margin
+		local top = -cam_offset.y + margin
+		local bottom = viewport.y - cam_offset.y - margin
+		local clamped_x = clamp(self.pos.x, left, right)
+		local clamped_y = clamp(self.pos.y, top, bottom)
+		draw_offset_x = clamped_x - self.pos.x
+		draw_offset_y = clamped_y - self.pos.y
+	end
+
 	graphics.push()
+	graphics.translate(draw_offset_x, draw_offset_y)
 	graphics.rotate(tau/8)
 
 	
@@ -108,8 +134,14 @@ function ExplosiveEnemySpawn:draw()
     graphics.drawp_centered(self.tick < 30 and textures.enemy_explosive1 or textures.enemy_explosive2, nil, idiv(self.tick, 5), 0, 0)
 end
 
+-- Silent spawn indicator - no visuals, but still plays sounds
+function SilentEnemySpawn:draw()
+    -- Draw nothing
+end
+
 return {
     EnemySpawn = EnemySpawn,
     BigEnemySpawn = BigEnemySpawn,
     ExplosiveEnemySpawn = ExplosiveEnemySpawn,
+    SilentEnemySpawn = SilentEnemySpawn,
 } 

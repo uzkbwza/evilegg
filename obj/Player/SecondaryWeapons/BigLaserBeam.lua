@@ -17,6 +17,8 @@ local NUM_BEAM_PARTICLES_PER_FRAME = 2
 
 local BeamParticle = Object:extend("BeamParticle")
 
+BigLaserBeam.invuln_hit_sound = true
+
 function BigLaserBeam:new(x, y, dx, dy)
     BigLaserBeam.super.new(self, x, y)
 	self.dx = dx

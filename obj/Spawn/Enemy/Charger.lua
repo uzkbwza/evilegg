@@ -34,9 +34,13 @@ function Charger:new(x, y)
     self:lazy_mixin(Mixins.Behavior.TrackPreviousPosition2D)
     self.bullet_push_modifier = 0.75
     self.declump_radius = 8
-    self.declump_force = 0.05
-    self.declump_mass = 1
+    self.declump_force = 0.005
+    self.declump_mass = 10
     self.body_height = 5
+end
+
+function Charger:entity_declump_filter(other)
+    return other.is_charger
 end
 
 function Charger:enter()

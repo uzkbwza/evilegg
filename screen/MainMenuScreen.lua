@@ -12,6 +12,7 @@ function MainMenuScreen:enter()
 	self:add_signal("codex_menu_requested")
 	self:add_signal("start_title_screen_requested")
 	self:add_signal("leaderboard_menu_requested")
+	self:add_signal("stats_menu_requested")
     self:ref("main_menu_world", self:add_world(Worlds.MainMenuWorld(self.started_from_title_screen)))
 
 
@@ -19,6 +20,7 @@ function MainMenuScreen:enter()
 	signal.chain_connect("options_menu_requested", self.main_menu_world, self)
 	signal.chain_connect("codex_menu_requested", self.main_menu_world, self)
 	signal.chain_connect("leaderboard_menu_requested", self.main_menu_world, self)
+	signal.chain_connect("stats_menu_requested", self.main_menu_world, self)
 
     signal.connect(self.main_menu_world, "menu_item_selected", self, "on_menu_item_selected")
 	

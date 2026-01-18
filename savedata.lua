@@ -17,6 +17,12 @@ local default_savedata = {
     done_shader_performance_test = false,
     has_seen_title_screen = false,
     has_pressed_codex_category_button = false,
+    has_beaten_game = false,
+    total_playtime = 0,
+    total_kills = 0,
+    planets_saved = 0,
+    wins = 0,
+    runs = 0,
     -- update_force_cutscene = true,
 }
 
@@ -87,6 +93,92 @@ function savedata:load()
         u = table.deepcopy(default_savedata)
     end
 
+    if u.total_kills == nil then  
+        local total_kills = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    total_kills = total_kills + (run.kills or 0)
+                end
+            end
+        end
+        u.total_kills = total_kills
+    end
+
+    if u.total_rescues == nil then  
+        local total_rescues = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    total_rescues = total_rescues + (run.rescues or 0)
+                end
+            end
+        end
+        u.total_rescues = total_rescues
+    end
+
+    if u.total_runs == nil then  
+        local total_runs = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    total_runs = total_runs + 1
+                end
+            end
+        end
+        u.total_runs = total_runs
+    end
+
+    if u.total_playtime == nil then  
+        local total_playtime = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    total_playtime = total_playtime + (run.game_time or 0)
+                end
+            end
+        end
+        u.total_playtime = total_playtime
+    end
+
+    if u.wins == nil then  
+        local wins = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    wins = wins + (run.good_ending and 1 or 0)
+                end
+            end
+        end
+        u.wins = wins
+    end
+
+    if u.planets_saved == nil then  
+        local planets_saved = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    if run.good_ending == 2 then
+                    planets_saved = planets_saved + 1
+                    end
+                end
+            end
+        end
+        u.planets_saved = planets_saved
+    end
+
+    if u.runs == nil then  
+        local num_runs = 0
+        for version, scores_table in pairs(u.scores) do
+            for cat, runs in pairs(scores_table) do
+                for _, run in ipairs(runs) do
+                    num_runs = num_runs + 1
+                end
+            end
+        end
+        u.runs = num_runs
+    end
+
     for k, v in pairs(default_savedata) do
         if u[k] == nil then
             u[k] = table.deepcopy(v)
@@ -100,6 +192,8 @@ function savedata:load()
     if self.uid == nil then
         self.uid = rng:uuid()
     end
+
+
 
     if self.scores[GAME_LEADERBOARD_VERSION] == nil then
         self.scores[GAME_LEADERBOARD_VERSION] = {}
@@ -173,7 +267,13 @@ function savedata:initial_load()
     self:save()
 
     self:apply_save_data()
+
+    A2Web.set_machine_id(self.uid)
+    if self.name ~= "" then
+        A2Web.set_user(self.name)
+    end
 end
+
 
 
 function savedata:apply_save_data()

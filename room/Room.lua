@@ -7,7 +7,7 @@ local debug_force_enabled = false
 local debug_force = "bonus_exploder"
 
 local debug_enemy_enabled = false
-local debug_enemy = "Charger"
+local debug_enemy = "Horror"
 local num_debug_enemies = 1
 local num_debug_waves = 3
 
@@ -176,6 +176,7 @@ Room.narrative_types = {
 		-- use_random_enemy_spawn_group_for_hazards = true,
         -- enemy_spawn_group = { "bodypart" },
 		selectable = false,
+        no_repeats = true,
 		sub_narratives = {
             [1] = {
 				disable_hazards = true,
@@ -492,7 +493,7 @@ function Room:get_random_curse(allow_ignorance)
             goto continue
         end
 
-        if not truthy_nil(resolve(curse.can_spawn)) then
+        if not truthy_nil(resolve_recursive(curse.can_spawn)) then
             goto continue
         end
         if curse.weight <= 0 then
@@ -743,6 +744,7 @@ function Room:generate_waves()
     for _narrative_name, narrative in pairs(Room.narrative_types) do
 		-- print(_narrative_name)
 		if not narrative.selectable then goto continue end
+        if game_state.recently_selected_narratives[narrative.name] and narrative.no_repeats then goto continue end
         if narrative.min_level and self.level < narrative.min_level then goto continue end
         if narrative.max_level and self.level > narrative.max_level then goto continue end
         if narrative.min_wave and self.wave < narrative.min_wave then goto continue end
@@ -872,12 +874,15 @@ function Room:generate_waves()
 		end
 	}
 
+    
     local function process_narrative(narrative)
         local sub_narratives = table.deepcopy(narrative.sub_narratives)
         if self.curse_encore then
             table.insert(sub_narratives, sub_narratives[#sub_narratives])
         end
         local wave_number = 1
+        
+        local random_forgotten_horror_wave = self.curse_ignorance and self.level >= 15 and rng:percent(50) and rng:randi(1, clamp(#sub_narratives, 1, self.level))
 
         for i = 1, min(#sub_narratives, self.level) do
             local wave_strength = self:get_effective_wave_strength(i)
@@ -889,9 +894,10 @@ function Room:generate_waves()
                     SpawnDataTable.max_level_by_type["enemy"])
                 local min_enemy_difficulty = max(sub_narrative.min_difficulty or 1, 1)
 
+
                 for j = 1, #enemy_pool do
                     local enemy = enemy_pool[j]
-                    if rng:chance(pool_modification_chance_per_enemy) then
+                    if rng:chance(enemy.reroll_chance or pool_modification_chance_per_enemy) then
                         enemy = self:get_random_spawn_with_type_and_level("enemy", enemy.level, wave_number, narrative)
                     end
 
@@ -902,6 +908,12 @@ function Room:generate_waves()
                     if enemy ~= nil then
                         enemy_pool[j] = enemy
                     end
+                end
+
+                if random_forgotten_horror_wave == wave_number then
+                    enemy_pool[4] = SpawnDataTable.data["Horror"]
+                    -- print("random forgotten horror wave")
+                    random_forgotten_horror_wave = nil
                 end
 
                 for j = 1, #hazard_pool do
@@ -986,7 +998,10 @@ function Room:generate_waves()
 
     local narrative = get_random_narrative()
 	
-	
+    -- if narrative.no_repeatsthen
+    game_state.recently_selected_narratives[narrative.name] = true
+    -- end
+
 	print(narrative.name)
 	
 	enemy_pool = self:generate_enemy_pool(narrative)
@@ -1125,7 +1140,7 @@ function Room:generate_waves()
 
     if self.needs_upgrade and not self.consumed_upgrade and not game_state:is_fully_upgraded() then
         local upgrade = game_state:get_random_available_upgrade(false)
-		print(upgrade)
+		-- print(upgrade)
         local rescue = rng:choose(rng:choose(rescue_waves))
 		while rescue.pickup ~= nil do
 			rescue = rng:choose(rng:choose(rescue_waves))
@@ -1185,29 +1200,32 @@ function Room:generate_waves()
 		end
 	end
 	
-    if game_state.artefacts.transmitter then
-		local num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2 }
-        local rescue = rng:choose(rng:choose(rescue_waves))
-        if rescue then
-            if self.force_ammo or rng:percent(20) then
-                if self.force_ammo and rng:percent(35) then
-                    num_greenoids_with_ammo = 2
-                end
-                for _=1, num_greenoids_with_ammo do
-                    for _=1, 100 do
-                        if rescue.pickup == nil then
-                            rescue.pickup = PickupTable.powerups.AmmoPowerup
-                            self:add_spawn_type(rescue.pickup)
-                            break
-                        end
-                        rescue = rng:choose(rng:choose(rescue_waves))
-                    end
-                end
-
+    -- if game_state.artefacts.transmitter then
+    local num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+    if game_state.artefacts.transmitter then 
+        num_greenoids_with_ammo = rng:choose { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2 }
+    end
+    local chance_multiplier = game_state.artefacts.transmitter and 1.0 or 0.9
+    local rescue = rng:choose(rng:choose(rescue_waves))
+    if rescue and game_state.secondary_weapon then
+        if self.force_ammo or rng:percent(20 * chance_multiplier) then
+            if self.force_ammo and rng:percent(35) and game_state.artefacts.transmitter then
+                num_greenoids_with_ammo = 2
             end
+            for _=1, num_greenoids_with_ammo do
+                for _=1, 100 do
+                    if rescue.pickup == nil then
+                        rescue.pickup = PickupTable.powerups.AmmoPowerup
+                        self:add_spawn_type(rescue.pickup)
+                        break
+                    end
+                    rescue = rng:choose(rng:choose(rescue_waves))
+                end
+            end
+
         end
-		
-	end
+    end
+	-- end
 	
 
 	return waves, rescue_waves

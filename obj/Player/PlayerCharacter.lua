@@ -359,7 +359,6 @@ function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
 
     local bounce_dot = vec2_dot(self.hover_vel.x, self.hover_vel.y, normal_x, normal_y)
 
-
     local bounce_mul = 1
 
     local threshold = 1.9
@@ -368,8 +367,8 @@ function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
     if game_state.artefacts.blast_armor and bounce_dot <= -threshold and (not self:is_tick_timer_running("bounce_explosion") or different) and self.state_tick > 5 then
         local bx, by = self:get_body_center()
         self:spawn_object(Explosion(bx, by, {
-            damage = 8, 
-            size = 35 + abs(bounce_dot + threshold) * 8,
+            damage = 8,
+            size = 37 + abs(bounce_dot + threshold) * 9,
             team = "player",
             force_modifier = 1.8,
             explode_sfx = "player_bounce_explosion",
@@ -391,9 +390,6 @@ function PlayerCharacter:on_terrain_collision(normal_x, normal_y)
         self.hover_vel.y = self.hover_vel.y * -bounce_mul
         self.bounce_sfx_vertical = true
     end
-    
-
-
 
 end
 
@@ -1035,7 +1031,7 @@ function PlayerCharacter:hit_by(by, force)
         local bx, by = self:get_body_center()
         local timescaled = self.world.timescaled
         timescaled:start_timer("blast_armor_explosion", dead and 5 or 1, function()
-            local explo_radius = dead and 180 or 60
+            local explo_radius = dead and 200 or 80
 
             timescaled:spawn_object(Explosion(bx, by, {
                 damage = dead and 100 or 12,
@@ -1464,8 +1460,15 @@ function PlayerCharacter:state_Hover_update(dt)
 
             self:spawn_object(HoverFx(self.pos.x, self.pos.y, vel_x, vel_y)):ref("player", self)
         end
-        if game_state.artefacts.boost_damage and (self.state_tick - 1) % (self.hover_vel:magnitude() > 2.0 and 5 or 15) == 0 then
-			self:spawn_object(HoverFireTrail(self.pos.x, self.pos.y))
+        
+        local mag = self.hover_vel:magnitude()
+
+        if game_state.artefacts.boost_damage and (self.state_tick - 1) % (mag > 2.0 and 5 or 15) == 0 then
+        -- if game_state.artefacts.boost_damage and (mag > 0.6 or self:is_tick_timer_running("slow_trail_allowed")) and (self.state_tick - 1) % (mag > 2.0 and 5 or 15) == 0 then
+			self:spawn_object(HoverFireTrail(self.pos.x, self.pos.y, mag))
+            -- if mag > 0.6 then
+                -- self:start_tick_timer("slow_trail_allowed", 30)
+            -- end
 		end
     end
 
@@ -1814,13 +1817,14 @@ end
 
 HoverFireTrail.cannot_hit_egg = true
 
-function HoverFireTrail:new(x, y)
+function HoverFireTrail:new(x, y, speed)
     HoverFireTrail.super.new(self, x, y)
     self.sprite = textures.player_hover_fire_trail
 	self.team = "player"
     self.duration = 90 + rng:randfn(0, 6)
     self.z_index = 0
     self.persist = false
+    self.player_speed = speed
     self.hit_cooldown = 3
 	self.particles = {}
 	self.to_remove = {}
@@ -1834,13 +1838,23 @@ function HoverFireTrail:filter_melee_attack(bubble)
 end
 
 function HoverFireTrail:enter()
-    self:add_hit_bubble(0, 0, 9, "main", 0.15)
+    self.radius = 10 + lerp(-10, 4, inverse_lerp(0, 4, self.player_speed)) + (game_state.upgrades.range) * 1
+    if self.player_speed < 0.6 then 
+        self.radius = self.radius * 0.05
+    end
+    self:add_hit_bubble(0, 0, self.radius, "main", self:get_hit_bubble_damage())
+end
+
+function HoverFireTrail:get_hit_bubble_damage()
+    return 0.15 + (1 - clamp01(self.elapsed / 15)) * 0.15 + (game_state.upgrades.damage * 0.05)
 end
 
 function HoverFireTrail:update(dt)
     local hitbox = self:get_bubble("hit", "main")
-	local radius = hitbox.radius
-    hitbox.radius = approach(radius, 5, 0.05 * dt)
+    self.radius = approach(self.radius, min(self.radius, 7), 0.05 * dt)
+    -- hitbox.radius = approach(radius, 5, 0.05 * dt)
+    self:set_hit_bubble_radius("main", self.radius + pow(math.bump(clamp01(self.elapsed / 10 + 0.01)), 1) * 0)
+
     if not self.done and self.elapsed > self.duration then
         self.done = true
         self.melee_attacking = false
@@ -1891,7 +1905,7 @@ function HoverFireTrail:draw()
         local color = Palette.trail_fire_ground:tick_color(self.tick + self.random_offset, 0, 1)
 		if color ~= Color.black then
         	graphics.set_color(color)
-        	local size = self:get_bubble("hit", "main").radius * 2 * (1 + sin(self.elapsed * 0.3) * 0.2) * 0.75
+        	local size = self:get_bubble("hit", "main").radius * 2 * (1 + sin(self.elapsed * 0.3) * 0.2) * 0.75 - 2
         	graphics.rectangle_centered(iflicker(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
 		end
     end
@@ -2039,6 +2053,8 @@ function PlayerShadow:die()
     end)
 end
 
+local polygon_cache = {}
+
 function PlayerShadow:draw(elapsed)
     local almost_dead = false
 
@@ -2052,8 +2068,6 @@ function PlayerShadow:draw(elapsed)
 		almost_dead = game_state.hearts <= 0 and iflicker(gametime.tick, 5, 2)
 	end
 
-    
-	
 
     local color = self.dead and Color.red or (iflicker(gametime.tick, 2, 2) and (almost_dead and Color.red or Color.skyblue) or (almost_dead and Color.yellow or Color.green))
     local size = max(self.size + min(-self.size + self.elapsed * 0.2, 0), 1)
@@ -2063,12 +2077,15 @@ function PlayerShadow:draw(elapsed)
     if self.target and not table.is_empty(bullet_powerups) then
         graphics.push("all")
         
-        local font = fonts.main_font_bold
-        graphics.set_font(font)
+        -- local font = fonts.main_font_bold
+        -- graphics.set_font(font)
         
         graphics.set_line_width(2)
 
-        local rect_size = size + 8
+        local rect_width = size + 3
+        local rect_height = size * 0.75 + 3
+
+        local tinsert = table.insert
 
         for i, entry in ipairs(bullet_powerups) do
             local max_time = seconds_to_frames(entry.powerup.bullet_powerup_time - 1)
@@ -2081,48 +2098,66 @@ function PlayerShadow:draw(elapsed)
                 local time_ratio = min(total_time_ratio, 1.0)
                 total_time_ratio = total_time_ratio - time_ratio
                 -- print(time_ratio)
-                rect_size = rect_size + 3
-                local rect_width = rect_size
-                local rect_height = rect_size * 0.75
+                rect_width = rect_width + 6
+                rect_height = rect_height + 6
+
                 local rect_perimeter = (2 * rect_height) + (2 * rect_width)
                 local perimeter_to_cover = rect_perimeter * time_ratio
-                local halfwidth = rect_width * 0.5
-                local halfheight = rect_height * 0.5
+                local halfwidth = (rect_width * 0.5)
+                local halfheight = (rect_height * 0.5)
+                table.clear(polygon_cache)
+                
                 if perimeter_to_cover > 0 then
                     local line_length = min(perimeter_to_cover, halfwidth)
-                    graphics.line(0, halfheight, halfwidth * line_length / halfwidth, halfheight)
+                    tinsert(polygon_cache, 0)
+                    tinsert(polygon_cache, halfheight)
+                    tinsert(polygon_cache, halfwidth * line_length / halfwidth)
+                    tinsert(polygon_cache, halfheight)
                     perimeter_to_cover = perimeter_to_cover - line_length
                 end
                 if perimeter_to_cover > 0 then
                     local line_length = min(perimeter_to_cover, rect_height)
-                    graphics.line(halfwidth, halfheight, halfwidth, lerp(halfheight, -halfheight, line_length / rect_height))
+                    tinsert(polygon_cache, halfwidth)
+                    tinsert(polygon_cache, halfheight)
+                    tinsert(polygon_cache, halfwidth)
+                    tinsert(polygon_cache, round(lerp(halfheight, -halfheight, line_length / rect_height)))
                     perimeter_to_cover = perimeter_to_cover - line_length
                 end
                 if perimeter_to_cover > 0 then
                     local line_length = min(perimeter_to_cover, rect_width)
-                    graphics.line(halfwidth, -halfheight, lerp(halfwidth, -halfwidth, line_length / rect_width), -halfheight)
+                    tinsert(polygon_cache, halfwidth)
+                    tinsert(polygon_cache, -halfheight)
+                    tinsert(polygon_cache, round(lerp(halfwidth, -halfwidth, line_length / rect_width)))
+                    tinsert(polygon_cache, -halfheight)
                     perimeter_to_cover = perimeter_to_cover - line_length
                 end
                 if perimeter_to_cover > 0 then
                     local line_length = min(perimeter_to_cover, rect_height)
-                    graphics.line(-halfwidth, -halfheight, -halfwidth, lerp(-halfheight, halfheight, line_length / rect_height))
+                    tinsert(polygon_cache, -halfwidth)
+                    tinsert(polygon_cache, -halfheight)
+                    tinsert(polygon_cache, -halfwidth)
+                    tinsert(polygon_cache, round(lerp(-halfheight, halfheight, line_length / rect_height)))
                     perimeter_to_cover = perimeter_to_cover - line_length
                 end
                 if perimeter_to_cover > 0 then
                     local line_length = min(perimeter_to_cover, halfwidth)
-                    graphics.line(halfwidth, halfheight, -halfwidth * line_length / halfwidth, halfheight)
+                    tinsert(polygon_cache, -halfwidth)
+                    tinsert(polygon_cache, halfheight)
+                    tinsert(polygon_cache, round(lerp(-halfwidth, 0, line_length / halfwidth)))
+                    tinsert(polygon_cache, halfheight)
                     perimeter_to_cover = perimeter_to_cover - line_length
                 end
+                graphics.line(polygon_cache)
             end
-            
-            local time_text = string.format("%02d", floor(frames_to_seconds(entry.time)))
-            local label = tr[entry.powerup.name] or entry.powerup.name or ""
-            local text = string.format("%s %s", label, time_text)
-            local width = font:getWidth(text)
-            graphics.set_color(Color.white)
-            graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2 + (i - 1) * font:getHeight())
         end
-        graphics.pop()
+            
+            -- local time_text = string.format("%02d", floor(frames_to_seconds(entry.time)))
+            -- local label = tr[entry.powerup.name] or entry.powerup.name or ""
+            -- local text = string.format("%s %s", label, time_text)
+            -- local width = font:getWidth(text)
+            -- graphics.set_color(Color.white)
+            -- graphics.print_outline(Color.black, text, -width / 2, font:getHeight() - 2 + (i - 1) * font:getHeight())
+            graphics.pop()
     end
 
 

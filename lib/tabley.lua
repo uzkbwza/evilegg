@@ -444,6 +444,27 @@ function tabley.extend(t1, t2)
     return t1
 end
 
+function tabley.extended(t1, t2)
+    return table.extend(table.copy(t1), t2)
+end
+
+function tabley.icollect(f)
+    local t = {}
+    for i, v in f do
+        table.insert(t, v)
+    end
+    return t
+end
+
+function tabley.collect(f)
+    local t = {}
+    for k, v in f do
+        t[k] = v
+    end
+    return t
+end
+
+
 function tabley.merge(t1, t2, overwrite)
     for k, v in pairs(t2) do
         if overwrite or t1[k] == nil then

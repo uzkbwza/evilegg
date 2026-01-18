@@ -23,6 +23,7 @@ function MainMenuWorld:new(started_from_title_screen)
     self:add_signal("options_menu_requested")
 	self:add_signal("codex_menu_requested")
 	self:add_signal("leaderboard_menu_requested")
+	self:add_signal("stats_menu_requested")
 
 	self.draw_sort = self.y_sort
 	self.started_from_title_screen = started_from_title_screen
@@ -185,10 +186,16 @@ function MainMenuWorld:create_buttons()
             codex = true
         },
 
+
 		
         {name = tr.menu_options_button, func = function() self:emit_signal("options_menu_requested") end},
         -- {name = tr.main_menu_credits_button, func = function() end},
-
+        {
+            name = tr.menu_stats_button,
+            func = function()
+                self:emit_signal("stats_menu_requested")
+            end,
+        },
 		{name = tr.main_menu_quit_button, func = function() love.event.quit() end},
 	}
 
@@ -201,7 +208,7 @@ function MainMenuWorld:create_buttons()
     -- local base_x = EGG_FRAGMENT_OFFSET_X
     -- local base_y = EGG_FRAGMENT_OFFSET_Y - 40
     local base_x = 0
-    local base_y = -28
+    local base_y = -32
     for i, menu_table in ipairs(menu_items) do
         local v_offset = (i - 1) * distance_between_items
 		local h_offset = (i - 1) * MENU_ITEM_SKEW

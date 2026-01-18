@@ -609,7 +609,12 @@ function OptionsMenuWorld:show_menu(page)
             { "highlight_new_codex_entries",       item_type = "toggle" },
             { "enter_name", item_type = "button", select_func = function()
                 self:emit_signal("enter_name_requested")
+            end, },
+
+            { "edit_a2_settings", item_type = "button", select_func = function() 
+                love.system.openURL( A2Web.page_settings() )
             end },
+
             { "debug_enabled", item_type = "toggle", debug = true, set_func = function()
                 debug.enabled = not debug.enabled
                 usersettings:set_setting("debug_enabled", debug.enabled)

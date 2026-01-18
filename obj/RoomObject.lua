@@ -416,6 +416,10 @@ function RoomObject:update(dt)
 	-- if self.dead then
 	-- 	return
 	-- end
+    -- if self.tick > 5 then 
+        -- self:play_sfx_if_stopped("door_ambience", 0.035, 1, true)
+    -- end
+
 	local player = self:get_closest_player()
     if player and self.tick > 10 then
         local bx, by = self.pos.x, self.pos.y
@@ -427,6 +431,10 @@ function RoomObject:update(dt)
 		end
     end
 
+end
+
+function RoomObject:exit()
+    -- self:stop_sfx("door_ambience")
 end
 
 function RoomObject:die()

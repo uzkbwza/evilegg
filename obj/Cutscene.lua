@@ -1418,6 +1418,7 @@ function FinalScoreCutscene:enter()
             self:start_stopwatch("bonus_t")
             -- self.bonus_text = tr[bonus.text_key]:upper() .. " [×" .. bonus.multiplier .. "]"
             self.bonus_text = tr[bonus.text_key]:upper()
+            self.bonus_text_name = tr[bonus.name_key]:upper()
             -- end)
 
             local last = i == #self.end_game_bonuses
@@ -1475,7 +1476,7 @@ function FinalScoreCutscene:draw()
     local text = tr.cutscene_final_score
     local score_text = comma_sep(stepify_floor(self.displayed_score, 10))
     graphics.print(utf8.sub(text, 1, self.startup_t * utf8.len(text)), x, -10)
-
+    
     graphics.push("all")
     if not self.dark then
         local palette = Palette.final_score_2
@@ -1528,6 +1529,8 @@ function FinalScoreCutscene:draw()
         local len = utf8.len(self.bonus_text)
         local t = clamp01(self:get_stopwatch("bonus_t").elapsed / len / 2)
         graphics.printf_interpolated(self.bonus_text, fonts.depalettized.image_font2, -TEXT_LIMIT / 2, y + dist, TEXT_LIMIT, "left", t)
+        graphics.printf_interpolated(self.bonus_text_name, fonts.depalettized.image_font2, -TEXT_LIMIT / 2, y + dist - 48, TEXT_LIMIT, "left", t)
+
     end
 end
 

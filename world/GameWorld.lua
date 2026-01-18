@@ -21,6 +21,12 @@ local PressureObject = GameObject2D:extend("PressureObject")
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
 
+local NUM_SPAWN_ATTEMPT_BUCKET = {}
+
+-- Forward declarations for pending spawn position tracking (used by update, defined later)
+local _pending_spawn_positions = {}
+local _pending_spawn_count = 0
+local _clear_pending_spawn_positions
 
 local FLOOR_CANVAS_WIDTH = 1024
 local FLOOR_CANVAS_HEIGHT = 1024
@@ -111,6 +117,9 @@ function GameWorld:new(x, y)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
 
 	self:init_state_machine()
+
+	-- Clear module-level spawn tracking from previous runs
+	_pending_spawn_count = 0
 end
 
 function GameWorld:enter()
@@ -633,9 +642,14 @@ function GameWorld:spawn_wave_group(s, wave, spawn_type, tag_name, max_count)
 			if game_state.game_over then
 				return
 			end
-			
 
-			local spawn_x, spawn_y = self:get_valid_spawn_position()
+
+			local spawn_x, spawn_y
+			if spawn_data.get_spawn_position then
+				spawn_x, spawn_y = spawn_data.get_spawn_position(self, spawn_data)
+			else
+				spawn_x, spawn_y = self:get_valid_spawn_position()
+			end
 
 			-- local max_spawns = spawn.max_spawns or math.huge
 
@@ -1113,6 +1127,7 @@ function GameWorld:create_next_rooms()
 	game_state.recently_selected_artefacts = {}
 	game_state.recently_selected_upgrades = {}
 	game_state.recently_selected_curses = {}
+    game_state.recently_selected_narratives = {}
 
     local cursed_frequency = 3
     if game_state.level >= EGG_ROOM_START then
@@ -1145,7 +1160,7 @@ function GameWorld:create_next_rooms()
             needs_heart = wants_heart and i == heart_room,
 			wants_heart = wants_heart,
 			hard_room = i == hard_room and (game_state.level >= EGG_ROOM_START),
-			force_ammo = i == ammo_room and game_state.level,
+			force_ammo = i == ammo_room and (game_state.artefacts.transmitter or rng:percent(50)),
             cursed_room = cursed,
             allow_ignorance = not (force_cursed and i ~= cursed_room),
             -- cursed_room = true
@@ -1383,13 +1398,34 @@ function GameWorld:on_room_clear()
 			local rescues = self:get_objects_with_tag("rescue_object")
 			local waited = false
 			for _, rescue in rescues:ipairs() do
-				local player = self:get_random_object_with_tag("player")
-				player:pickup(rescue)
-				s:wait(2)
-				waited = true
+                -- if not rescue.being_picked_up then
+                    -- rescue.being_picked_up = true
+                    -- s:start(function()
+                    --     local player = self:get_random_object_with_tag("player")
+                    --     local start_x, start_y = rescue.pos.x, rescue.pos.y
+                    --     local rhandle = rescue.id
+                    --     local phandle = player.id
+                    --     rescue:add_update_function(function(self, dt)
+                    --         local r = self.world.id_to_object[rhandle]
+                    --         local p = self.world.id_to_object[phandle]
+                    --         if r and p then
+                    --             local px, py = p:get_body_center()
+                    --             r:move_to(vec2_approach(r.pos.x, r.pos.y, px, py, dt * 10.0))
+                    --         end
+                    --     end)
+                    -- end)
+                    -- s:wait(1)
+                    -- waited = true
+                    waited = true
+                    local player = self:get_random_object_with_tag("player")
+                    if player then
+                        player:pickup(rescue)
+                    end
+                    s:wait(2)
+                -- end
 			end
 			if not waited then
-				s:wait(2)
+                s:wait(2)
 			end
 		end
 
@@ -1486,7 +1522,8 @@ function GameWorld:always_update(dt)
 end
 
 function GameWorld:update(dt)
-
+	-- Clear pending spawn positions from previous frame (deferred spawns are now in grid)
+	_clear_pending_spawn_positions()
 
 	self.camera_aim_offset = self.camera_aim_offset or Vec2(0, 0)
 
@@ -1607,7 +1644,11 @@ function GameWorld:update(dt)
         end
     end
 
-
+    if debug.enabled and input.keyboard_pressed.l then
+        for i, count in pairs(NUM_SPAWN_ATTEMPT_BUCKET) do
+            print("spawn attempt bucket " .. i .. " count: " .. count)
+        end
+    end
 
     modloader:call("world_update", self, dt)
 end
@@ -1641,111 +1682,207 @@ function GameWorld:notification_popup(x, y, notification)
 	return self:add_object(effect)
 end
 
-function GameWorld:get_valid_spawn_position(depth)
-	local MIN_DISTANCE_BETWEEN_ENEMIES = 32
-	local SPAWN_ON_PLAYER_AT_THIS_DISTANCE = 80
-	local MIN_DISTANCE_FROM_PLAYER = 48
+-- Spawn position constants
+local MIN_DISTANCE_BETWEEN_ENEMIES = 32
+local SPAWN_ON_PLAYER_AT_THIS_DISTANCE = 80
+local MIN_DISTANCE_FROM_PLAYER = 48
 
+-- Grid-based spawn position selection
+-- Divides room into cells and shuffles them to find valid positions efficiently
+local SPAWN_CELL_SIZE = MIN_DISTANCE_BETWEEN_ENEMIES
+local _spawn_cells = {}  -- Reusable array for cell positions
+local _spawn_cell_count = 0
+local _spawn_cell_width = 0
+local _spawn_cell_height = 0
+local _spawn_cached_room_width = 0
+local _spawn_cached_room_height = 0
+local _spawn_check_valid
+local _spawn_check_x, _spawn_check_y
+local _spawn_check_min_dist_sq = MIN_DISTANCE_BETWEEN_ENEMIES * MIN_DISTANCE_BETWEEN_ENEMIES
+
+-- Query radius is larger than min distance to account for objects with small/zero-size rects
+local query_radius = MIN_DISTANCE_BETWEEN_ENEMIES + 8
+
+local function _spawn_position_checker(object)
+	if not _spawn_check_valid then return end
+	local dx = object.pos.x - _spawn_check_x
+	local dy = object.pos.y - _spawn_check_y
+	if dx * dx + dy * dy < _spawn_check_min_dist_sq then
+		_spawn_check_valid = false
+	end
+end
+
+-- Check against pending spawn positions (deferred spawns not yet in grid)
+local function _check_pending_spawn_positions()
+	if not _spawn_check_valid then return end
+	for i = 1, _pending_spawn_count do
+		local pos = _pending_spawn_positions[i]
+		local dx = pos[1] - _spawn_check_x
+		local dy = pos[2] - _spawn_check_y
+		if dx * dx + dy * dy < _spawn_check_min_dist_sq then
+			_spawn_check_valid = false
+			return
+		end
+	end
+end
+
+-- Add a position to pending spawns
+local function _add_pending_spawn_position(x, y)
+	_pending_spawn_count = _pending_spawn_count + 1
+	local pos = _pending_spawn_positions[_pending_spawn_count]
+	if not pos then
+		pos = {}
+		_pending_spawn_positions[_pending_spawn_count] = pos
+	end
+	pos[1] = x
+	pos[2] = y
+end
+
+-- Clear pending spawn positions (call at start of each update)
+-- (assigned to forward-declared variable so it can be called from GameWorld:update)
+_clear_pending_spawn_positions = function()
+	_pending_spawn_count = 0
+end
+
+-- Fisher-Yates shuffle (in-place, partial - only shuffles first n elements we'll check)
+local function shuffle_spawn_cells(cells, count, num_to_shuffle)
+	num_to_shuffle = min(num_to_shuffle, count)
+	for i = 1, num_to_shuffle do
+		local j = rng:randi(i, count)
+		cells[i], cells[j] = cells[j], cells[i]
+	end
+end
+
+function GameWorld:get_valid_spawn_position(depth)
 	depth = depth or 1
 
-	local x, y = 0, 0
-	local c = 0
 	local spawned_on_player = false
+	local player = self.players[1]
+	local player_body_pos = player and self.last_player_body_positions[1]
 
-	local random_player_pos = rng:choose(table.values(self.last_player_body_positions))
-
-	-- while vec2_distance(x, y, self.last_player_body_pos.x, self.last_player_body_pos.y) < 32 do
-	-- if c > 0 then
-	-- 	spawned_on_player = false
-	-- end
-	-- while vec2_distance(x, y, self.player_position.x, self.player_position.y) < 32 do
-	x = rng:randi(-self.room.room_width / 2, self.room.room_width / 2)
-	y = rng:randi(-self.room.room_height / 2, self.room.room_height / 2)
-	local wave_enemies = self:get_objects_with_tag("wave_enemy")
-	local hazards = self:get_objects_with_tag("hazard")
-	local wave_spawners = self:get_objects_with_tag("enemy_spawner")
-	local rescues = self:get_objects_with_tag("rescue_object")
-
-	for i = 1, 10 do
-		local valid = true
-
-		if valid then
-			for _, object in rescues:ipairs() do
-				if vec2_distance(x, y, object.pos.x, object.pos.y) < MIN_DISTANCE_BETWEEN_ENEMIES then
-					valid = false
-					break
+	-- Rebuild grid only if room dimensions changed
+	local room_width = self.room.room_width
+	local room_height = self.room.room_height
+	if room_width ~= _spawn_cached_room_width or room_height ~= _spawn_cached_room_height then
+		_spawn_cached_room_width = room_width
+		_spawn_cached_room_height = room_height
+		
+		local half_w = room_width / 2
+		local half_h = room_height / 2
+		
+		-- Calculate number of cells to evenly cover the room
+		local num_cells_x = max(1, floor(room_width / SPAWN_CELL_SIZE))
+		local num_cells_y = max(1, floor(room_height / SPAWN_CELL_SIZE))
+		_spawn_cell_width = room_width / num_cells_x
+		_spawn_cell_height = room_height / num_cells_y
+		_spawn_cell_count = 0
+		
+		-- Generate cell centers distributed evenly across the room
+		for ix = 0, num_cells_x - 1 do
+			for iy = 0, num_cells_y - 1 do
+				_spawn_cell_count = _spawn_cell_count + 1
+				local cell = _spawn_cells[_spawn_cell_count]
+				if not cell then
+					cell = {}
+					_spawn_cells[_spawn_cell_count] = cell
 				end
+				-- Cell center: start from left/top edge, add half cell, then step by cell index
+				cell[1] = -half_w + _spawn_cell_width * (ix + 0.5)
+				cell[2] = -half_h + _spawn_cell_height * (iy + 0.5)
 			end
 		end
+	end
 
-		if valid then
-			for _, object in wave_spawners:ipairs() do
-				if vec2_distance(x, y, object.pos.x, object.pos.y) < MIN_DISTANCE_BETWEEN_ENEMIES then
-					valid = false
-					break
-				end
-			end
+	-- Shuffle first portion of cells (checking all would be wasteful, most rooms aren't that full)
+	local max_checks = min(_spawn_cell_count, 25)
+	shuffle_spawn_cells(_spawn_cells, _spawn_cell_count, max_checks)
+
+	-- Try shuffled cells until we find a valid one
+	local x, y = 0, 0
+	local found = false
+	
+	-- Offset range for variety within cell (half of half-cell to stay mostly inside)
+	local offset_x = _spawn_cell_width * 0.25
+	local offset_y = _spawn_cell_height * 0.25
+	
+	for i = 1, max_checks do
+		local cell = _spawn_cells[i]
+		-- Add small random offset within cell for variety
+		x = cell[1] + rng:randf(-offset_x, offset_x)
+		y = cell[2] + rng:randf(-offset_y, offset_y)
+		
+		_spawn_check_valid = true
+		_spawn_check_x = x
+		_spawn_check_y = y
+
+		-- Query spatial grids
+		local rect_x, rect_y = x - query_radius, y - query_radius
+		local rect_size = query_radius * 2
+		self.game_object_grid:each(rect_x, rect_y, rect_size, rect_size, _spawn_position_checker)
+
+		if _spawn_check_valid then
+			self.rescue_grid:each(rect_x, rect_y, rect_size, rect_size, _spawn_position_checker)
 		end
 
-		if valid then
-			for _, object in wave_enemies:ipairs() do
-				if vec2_distance(x, y, object.pos.x, object.pos.y) < MIN_DISTANCE_BETWEEN_ENEMIES then
-					valid = false
-					break
-				end
-			end
+		-- Check against pending spawns (deferred, not yet in grid)
+		if _spawn_check_valid then
+			_check_pending_spawn_positions()
 		end
 
-		if valid then
-			for _, object in hazards:ipairs() do
-				if vec2_distance(x, y, object.pos.x, object.pos.y) < MIN_DISTANCE_BETWEEN_ENEMIES then
-					valid = false
-					break
-				end
-			end
-		end
-
-		-- if valid then
-		-- 	for i, object in pairs(self.last_player_body_positions) do
-		-- 		if vec2_distance(x, y, object.x, object.y) < MIN_DISTANCE_FROM_PLAYER then
-		-- 			valid = false
-		-- 			break
-		-- 		end
-		-- 	end
-		-- end
-
-		if valid then
+		if _spawn_check_valid then
+			found = true
 			break
-		else
-			x = rng:randi(-self.room.room_width / 2, self.room.room_width / 2)
-			y = rng:randi(-self.room.room_height / 2, self.room.room_height / 2)
 		end
-		-- end
-
-		c = c + 1
-
-		-- if c > 100 then
-		--     print("failed to find valid spawn position")
-		--     break
-		-- end
 	end
+	
+	-- Fallback: if grid search failed, try a few pure random positions
+	if not found then
+		local half_w = room_width / 2
+		local half_h = room_height / 2
+		for i = 1, 10 do
+			x = rng:randi(-half_w, half_w)
+			y = rng:randi(-half_h, half_h)
+			
+			_spawn_check_valid = true
+			_spawn_check_x = x
+			_spawn_check_y = y
 
-	if not self.spawned_on_player and rng:percent(1) and vec2_distance(0, 0, random_player_pos.x, random_player_pos.y) > SPAWN_ON_PLAYER_AT_THIS_DISTANCE then
-		x = random_player_pos.x
-		y = random_player_pos.y
-		spawned_on_player = true
-	else
-		for i, object in pairs(self.last_player_body_positions) do
-			if vec2_distance(x, y, object.x, object.y) < MIN_DISTANCE_FROM_PLAYER and depth < 5 then
-				return self:get_valid_spawn_position(depth + 1)
+			local rect_x, rect_y = x - query_radius, y - query_radius
+			local rect_size = query_radius * 2
+			self.game_object_grid:each(rect_x, rect_y, rect_size, rect_size, _spawn_position_checker)
+
+			if _spawn_check_valid then
+				self.rescue_grid:each(rect_x, rect_y, rect_size, rect_size, _spawn_position_checker)
+			end
+
+			-- Check against pending spawns (deferred, not yet in grid)
+			if _spawn_check_valid then
+				_check_pending_spawn_positions()
+			end
+
+			if _spawn_check_valid then
+				found = true
+				break
 			end
 		end
 	end
 
+	if player_body_pos then
+		if not self.spawned_on_player and rng:percent(1) and vec2_distance(0, 0, player_body_pos.x, player_body_pos.y) > SPAWN_ON_PLAYER_AT_THIS_DISTANCE then
+			x = player_body_pos.x
+			y = player_body_pos.y
+			spawned_on_player = true
+		elseif vec2_distance(x, y, player_body_pos.x, player_body_pos.y) < MIN_DISTANCE_FROM_PLAYER and depth < 5 then
+			return self:get_valid_spawn_position(depth + 1)
+		end
+	end
 
 	if spawned_on_player then
 		self.spawned_on_player = true
 	end
+
+	-- Track this position as pending (for deferred spawns not yet in grid)
+	_add_pending_spawn_position(x, y)
 
 	return x, y
 end
@@ -2022,7 +2159,7 @@ function GameWorld:draw()
     graphics.pop()
 
 	-- Draw tutorial text if active
-    if self.tutorial_state and usersettings.enable_tutorial and not self.paused then
+    if self.tutorial_state and usersettings.enable_tutorial and not self.paused and not (debug.enabled and debug.skip_tutorial_sequence) then
         graphics.push("all")
         graphics.translate(0, -2)
 		graphics.set_color(Color.green)

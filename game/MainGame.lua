@@ -25,11 +25,6 @@ end
 
 function MainGame:load()
 	MainGame.super.load(self)
-
-	-- fonts.main_font = fonts["PixelOperatorMono8"]
-	-- fonts.hud_font = fonts["PixelOperatorMono8"]
-	-- fonts.main_font_bold = fonts["PixelOperatorMono8-Bold"]
-	-- fonts.cn_jp_kr = fonts["quan8"]
 	fonts.main_font = fonts.depalettized.image_font2
 	fonts.hud_font = fonts.depalettized.image_font2
 	fonts.main_font_bold = fonts.depalettized.image_font2
@@ -118,6 +113,8 @@ function GlobalGameState:new()
 	self.level_scores = {}
     self.current_curse = nil
 
+    
+
 	self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
 	self.xp_until_heart = 1
 	self.xp_until_upgrade = 1020
@@ -197,7 +194,14 @@ function GlobalGameState:new()
 
 	self.recently_selected_artefacts = {}
 	self.recently_selected_upgrades = {}
+	self.recently_selected_narratives = {}
+
 	self.selected_artefact_slot = 1
+
+
+    A2Web.set_machine_id(savedata.uid)
+    A2Web.set_user(savedata.name)
+    A2Web.flush_achievements()
 
 	self.upgrades = {
 		fire_rate = 0,
@@ -245,48 +249,32 @@ function GlobalGameState:new()
 
         local cheat = true
         self.cheat = cheat
-        
-        -- self:gain_artefact(PickupTable.artefacts.BlastArmorArtefact)
-        -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
-        
+
         if cheat then
-            self.cheat = true
+            self.cheat = false
             self.skip_shadow_selves = false
-            -- self.egg_rooms_cleared = 1
-            -- self:add_score(rng:randi(00000, 100000), "cheat")
-            -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
-
-            -- self:gain_artefact(PickupTable.artefacts.RingOfLoyaltyArtefact)
-            -- self:gain_artefact(PickupTable.artefacts.TransmitterArtefact)
-            -- self:gain_artefact(PickupTable.artefacts.SwdordSecondaryWeapon)
-            -- self:gain_artefact(PickupTable.artefacts.RailGunSecondaryWeapon)
-
-            self:gain_artefact(rng:choose {
-                PickupTable.artefacts.BigLaserSecondaryWeapon,
-                PickupTable.artefacts.SwordSecondaryWeapon,
-                PickupTable.artefacts.RailGunSecondaryWeapon,
-            })
-
-            -- self:gain_powerup(PickupTable.powerups.ShieldPowerup)
-
-            -- self.num_queued_artefacts = 10
+            self.egg_rooms_cleared = 4
+            self:add_score(rng:randi(00000, 10000000), "cheat")
+            -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
+            self.num_queued_artefacts = 1
             self.num_queued_upgrades = 1
             self.num_queued_hearts = 1
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 11
+            self.level = 61
             self.hearts = self.max_hearts
 
-            for i = 1, 2 do
+            for i = 1, 9 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
                 end
                 self:gain_artefact(artefact)
+                self.num_spawned_artefacts = self.num_spawned_artefacts + 1
             end
 
-            for i = 1, self:get_max_number_of_upgrades()-4 do
+            for i = 1, self:get_max_number_of_upgrades()-1 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
 
@@ -412,13 +400,14 @@ function GlobalGameState:add_or_refresh_bullet_powerup(powerup)
 
     local time_left = seconds_to_frames(powerup.bullet_powerup_time - 1)
     local existing = self.bullet_powerups[powerup.name]
+    local total_time = time_left
 
     if existing then
-        existing.time = existing.time + time_left
+        total_time = existing.time + time_left
         table.erase(self.bullet_powerup_order, powerup.name)
     end
 
-    self.bullet_powerups[powerup.name] = { powerup = powerup, time = time_left }
+    self.bullet_powerups[powerup.name] = { powerup = powerup, time = total_time }
     table.insert(self.bullet_powerup_order, powerup.name)
 end
 
@@ -558,6 +547,8 @@ function GlobalGameState:gain_artefact(artefact)
 		end
 	end
 
+    A2Web.register_run_achievement("artefact_" .. artefact.key, floor(self.game_time))
+
 	signal.emit(self, "player_artefact_gained", artefact, slot)
 end
 
@@ -577,6 +568,8 @@ function GlobalGameState:gain_secondary_weapon(artefact)
 	self.secondary_weapon = artefact
 	self.secondary_weapon_ammo = new_ammo
 
+    A2Web.register_run_achievement("weapon_" .. artefact.key, floor(self.game_time))
+
 	signal.emit(self, "player_secondary_weapon_gained", artefact)
 end
 
@@ -585,8 +578,12 @@ function GlobalGameState:on_tried_to_use_secondary_weapon_with_no_ammo()
 end
 
 function GlobalGameState:lose_secondary_weapon()
+    if self.secondary_weapon then
+        A2Web.register_run_achievement_loss("weapon_" .. self.secondary_weapon.key, floor(self.game_time))
+    end
 	self.secondary_weapon = nil
 	self.secondary_weapon_ammo = 0
+
 	signal.emit(self, "player_secondary_weapon_lost")
 end
 
@@ -631,14 +628,27 @@ function GlobalGameState:remove_artefact(slot)
 		artefact.remove_function(self, slot)
 	end
 
+    A2Web.register_run_achievement_loss("artefact_" .. artefact.key, floor(self.game_time))
+
 	signal.emit(self, "player_artefact_removed", artefact, slot)
 end
 
-function GlobalGameState:on_game_over()
+function GlobalGameState:on_quit()
+    self:on_game_over(false)
+end
+
+function GlobalGameState:on_game_over(died)
+    died = truthy_nil(died)
     self.game_over = true
     self.running_clock = false
 	savedata:add_category_death(self.leaderboard_category)
-    savedata:set_save_data("death_count", savedata.death_count + 1)
+    if died then
+        savedata:set_save_data("death_count", (savedata.death_count or 0) + 1)
+    end
+    savedata:set_save_data("total_playtime", (savedata.total_playtime or 0) + self.game_time_ms)
+    savedata:set_save_data("total_kills", (savedata.total_kills or 0) + self.enemies_killed)
+    savedata:set_save_data("total_rescues", (savedata.total_rescues or 0) + self.rescues_saved)
+    savedata:set_save_data("total_runs", (savedata.total_runs or 0) + 1)
     time_checker:stop()
 	leaderboard.add_death()
 end
@@ -764,6 +774,7 @@ function GlobalGameState:end_game_bonus(bonus)
     if not EndGameBonus[bonus] then
         return
     end
+    savedata:add_item_to_codex(EndGameBonus[bonus].name_key)
     table.insert(self.end_game_bonuses, EndGameBonus[bonus])
 end
 
@@ -771,12 +782,20 @@ function GlobalGameState:end_game()
     -- self.running_clock = false
     self:end_game_bonus("final_room_clear")
 
-    self.good_ending = 1
+    savedata:set_save_data("has_beaten_game", true)
+    savedata:set_save_data("wins", (savedata.wins or 0) + 1)
 
+    self.good_ending = 1
+    
+    A2Web.register_run_achievement("beat_game", floor(self.game_time))
     if self.twin_saved then
         self:end_game_bonus("twin_saved")
+        savedata:set_save_data("planets_saved", (savedata.planets_saved or 0) + 1)
         self.good_ending = 2
+        A2Web.register_run_achievement("good_ending", floor(self.game_time))
     end
+
+    
 
     if not self.any_greenoids_killed then
         self:end_game_bonus("no_greenoid_deaths")
@@ -943,6 +962,7 @@ function GlobalGameState:get_run_data_table()
 		rescues = self.rescues_saved,
 		artefacts = artefacts,
 		game_time = self.game_time_ms,
+        game_time_frames = self.game_time,
 		secondary_weapon = self.secondary_weapon and self.secondary_weapon.key,
 		good_ending = self.good_ending,
 		damage_taken = self.total_damage_taken,

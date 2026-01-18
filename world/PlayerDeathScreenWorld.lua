@@ -4,6 +4,7 @@ local BackgroundObject = GameObject2D:extend("BackgroundObject")
 local StatDisplay = GameObject2D:extend("StatDisplay")
 local ScoreGraph = GameObject2D:extend("ScoreGraph")
 local GamerHealthTimer = require("obj.Menu.GamerHealthTimer")
+local A2MetadataSubscore = require "a2.A2MetadataSubscore"
 
 local O = require("obj")
 
@@ -37,9 +38,14 @@ function PlayerDeathScreenWorld:enter()
         prev_high_time = math.huge
     end
 	
+    
     local score_table = game_state:get_run_data_table()
+
+    local game_time_frames = floor(score_table and score_table.game_time_frames or 0)
+    if score_table then score_table.game_time_frames = nil end
 	
 	savedata:add_score(score_table)
+    
 
     -- if debug.enabled then
     --     for i = 1, 100 do
@@ -72,10 +78,25 @@ function PlayerDeathScreenWorld:enter()
 
         leaderboard.submit_queued_runs()
 
+
+        local send_a2_debug = true
+
+        if send_a2_debug or (IS_EXPORT and not debug.enabled) then 
+            local a2_meta = {}
+
+            for _, key in ipairs({"kills", "level", "rescues", "highest_rescue_chain", "damage_taken"}) do
+                local value = score_table[key]
+                if value == nil then
+                    value = 0
+                end
+                table.insert(a2_meta, A2MetadataSubscore.new(key, value))
+            end
+            A2Web.register_score(score_table.score, game_time_frames, "", "", "", a2_meta, "", false)
+            A2Web.web_sync()
+            
+        end
     end
 
-
-	
     self:ref("menu_root", self:spawn_object(O.Menu.GenericMenuRoot(0, 0)))
 
     local text = game_state.good_ending and YOU_WON_TEXT or YOU_DIED_TEXT

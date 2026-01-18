@@ -97,6 +97,17 @@ function BaseEnemy:enter_shared()
 end
 
 function BaseEnemy:highlight_self()
+	-- Don't highlight if outside room bounds
+	local room = self.world and self.world.room
+	if room then
+		local half_w = room.room_width / 2
+		local half_h = room.room_height / 2
+		if self.pos.x < -half_w or self.pos.x > half_w or
+		   self.pos.y < -half_h or self.pos.y > half_h then
+			return
+		end
+	end
+	
 	if not self.target_highlighted then
 		self.target_highlighted = true
         local object = self:spawn_object(LastEnemyTarget(self.pos.x, self.pos.y, self))
@@ -108,6 +119,10 @@ end
 
 function BaseEnemy:get_damage(object)
     return self.hit_bubble_damage or 1
+end
+
+function BaseEnemy:modify_received_damage(damage, object)
+    return damage
 end
 
 function BaseEnemy:hit_by(object)
@@ -127,6 +142,7 @@ function BaseEnemy:hit_by(object)
 		self:start_timer("damage_flash", 12)
 	end
 
+    damage = self:modify_received_damage(damage, object)
 	
     if not invuln then
         self:damage(damage)
@@ -144,7 +160,7 @@ function BaseEnemy:hit_by(object)
                 self:play_sfx(self.hurt_sfx, self.hurt_sfx_volume or 1.0, self.hurt_sfx_pitch or 1.0)
             elseif not (self:has_tag("enemy_bullet") or self:has_tag("hazard")) and not invuln then
                 self:play_sfx("enemy_hurt", 0.25, 1.0)
-            elseif invuln then
+            elseif invuln and (object and (object.is_player_bullet or object.invuln_hit_sound)) then
                 self:play_sfx("enemy_shield_hit", 0.7, 1.0)
             end
 		end

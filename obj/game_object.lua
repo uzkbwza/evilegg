@@ -686,7 +686,7 @@ function GameObject:get_stopwatch(name)
 	return self.stopwatches and self.stopwatches[name] or nil
 end
 
-function GameObject:start_tick_timer(name, duration, callback)
+function GameObject:start_tick_timer(name, duration, callback, ...)
     name = name or (self.tick_timers and #self.tick_timers + 1 or 1)
 	duration = max(floor(duration), 1)
 
@@ -704,7 +704,7 @@ function GameObject:start_tick_timer(name, duration, callback)
                     
 					local changed = false
                     if v.callback then
-                        v.callback()
+                        v.callback(v.args and table.fast_unpack(v.args) or nil)
                     end
 
                     if v ~= self.tick_timers[k] then
@@ -729,11 +729,14 @@ function GameObject:start_tick_timer(name, duration, callback)
 	self.tick_timers[name] = {
 		duration = duration,
 		elapsed = 0,
-		callback = callback
+		callback = callback,
 	}
+    if select('#', ...) > 0 then
+        self.tick_timers[name].args = {...}
+    end
 end
 
-function GameObject:start_timer(name, duration, callback)
+function GameObject:start_timer(name, duration, callback, ...)
 	name = name or (self.timers and #self.timers + 1 or 1)
 
     if self.timers == nil then
@@ -749,7 +752,7 @@ function GameObject:start_timer(name, duration, callback)
                     
 					local changed = false
                     if v.callback then
-                        v.callback()
+                        v.callback(v.args and table.fast_unpack(v.args) or nil)
                     end
 
                     if v ~= self.timers[k] then
@@ -774,8 +777,11 @@ function GameObject:start_timer(name, duration, callback)
 	self.timers[name] = {
 		duration = duration,
 		elapsed = 0,
-		callback = callback
+		callback = callback,
 	}
+    if select('#', ...) > 0 then
+        self.timers[name].args = {...}
+    end
 end
 
 function GameObject:unref_from_table(name, tab)

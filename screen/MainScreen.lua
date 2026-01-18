@@ -6,6 +6,7 @@ local debug_start = "game"
 -- local debug_start = "options_menu"
 -- local debug_start = "main_menu"
 -- local debug_start = "leaderboard_menu"
+-- local debug_start = "stats_menu"
 -- local debug_start = "title_screen"
 -- local debug_start = "pre_title_screen"
 
@@ -60,6 +61,10 @@ function MainScreen:connect_leaderboard_menu(screen)
     signal.connect(screen, "leaderboard_menu_requested", self, "start_leaderboard_menu")
 end
 
+function MainScreen:connect_stats_menu(screen)
+    signal.connect(screen, "stats_menu_requested", self, "start_stats_menu")
+end
+
 function MainScreen:start_game()
 	self:defer(function()
 		global_state:reset_game_state()
@@ -105,6 +110,7 @@ function MainScreen:start_main_menu(from_title_screen)
 		self:connect_start_title_screen(self.current_screen)
         self:connect_codex_menu(self.current_screen)
         self:connect_leaderboard_menu(self.current_screen)
+        self:connect_stats_menu(self.current_screen)
 	end)
 end
 
@@ -128,6 +134,14 @@ function MainScreen:start_leaderboard_menu()
         self:connect_exit_menu(self.current_screen, self.start_main_menu)
     end)
 end
+
+function MainScreen:start_stats_menu()
+    self:defer(function()
+        self:set_current_screen(Screens.StatsScreen)
+        self:connect_exit_menu(self.current_screen, self.start_main_menu)
+    end)
+end
+
 function MainScreen:set_current_screen(screen)
     if self.current_screen then
         self.current_screen:destroy()
@@ -154,6 +168,10 @@ function MainScreen:update(dt)
 
     if game_state and game_state.force_cursor then
         visible = true
+    end
+
+    if not love.window.hasMouseFocus() then 
+        visible = false
     end
 
     self.drawing_cursor = visible

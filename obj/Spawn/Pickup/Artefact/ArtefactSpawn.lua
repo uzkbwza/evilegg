@@ -12,11 +12,11 @@ local XpPickup = require("obj.XpPickup")
 local ARTEFACT_XP = 1500
 
 local artefact_destroy_rumble_func = function(t)
-    return 0.3 * (1 - (t))
+    return 0.4 * (1 - (t))
 end
 
 local artefact_spawn_boom_rumble_func = function(t)
-    return 0.9 * (1 - ease("outQuad")(ease("outExpo")(t)))
+    return 0.9 * (1 - ease("outExpo")(t))
 end
 
 function ArtefactSpawn:new(x, y, artefact)
@@ -294,6 +294,9 @@ end
 function ArtefactSpawn:on_pickup(player)
     if self.picked_up then return end
 	self:start_stopwatch("pickup_time")
+    if self.artefact.world_pickup_function then
+        self.artefact.world_pickup_function(self.world, self)
+    end
     game_state:gain_artefact(self.artefact)
     if player and game_state.artefacts.ring_of_loyalty then player:on_ring_of_loyalty_pickup(self) end
     self.picked_up = true

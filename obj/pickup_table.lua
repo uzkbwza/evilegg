@@ -350,6 +350,12 @@ local Artefacts = {
                 return
             end
 
+            -- local debug_test_fungus = true
+            -- if game_state.artefacts.death_cap and debug.enabled and debug_test_fungus then
+            --     game_state.heart_trade_artefact = game_state.artefacts.death_cap
+            --     return
+            -- end
+
             local random_key = rng:choose(keys)
             while random_key == "sacrificial_twin" do
                 random_key = rng:choose(keys)
@@ -365,6 +371,43 @@ local Artefacts = {
             if #keys == 1 and keys[1] == "sacrificial_twin" then return false end
             return true
         end,
+        
+        world_pickup_function = function(world)
+            if game_state.artefacts.death_cap and game_state.heart_trade_artefact == game_state.artefacts.death_cap then
+                local s = world.timescaled.sequencer
+
+                s:start(function()
+                    local level = game_state.level
+                    while game_state.level == level do
+                        local waited = false
+                        local fungi_to_kill = table.map_array(table.icollect(world:get_objects_with_tag("fungus"):ipairs())
+                        , function(fungus)
+                            return fungus.id
+                        end)
+                        if table.is_empty(fungi_to_kill) then
+                            return
+                        end
+                        for i, id in ipairs(fungi_to_kill) do
+                            if game_state.level ~= level then
+                                return
+                            end
+                            local fungus = world.id_to_object[id]
+                            if fungus then
+                                fungus:die()
+                                if i % 5 == 0 then
+                                    s:wait(1)
+                                    waited = true
+                                end
+                            end
+                        end
+                        if not waited then
+                            s:wait(1)
+                        end
+                    end
+                end)
+            end
+        end,
+
         alternative_gain_function = function(game_state)
             local artefact = game_state.heart_trade_artefact
             if not artefact then

@@ -23,7 +23,11 @@ function GameScreen:enter()
     self.ui_layer:ref("hud_layer", self.hud_layer)
 	self.hud_layer:ref("game_layer", self.game_layer)
 
-	signal.chain_connect("quit_requested", self.ui_layer, self)
+	signal.connect(self.ui_layer, "quit_requested", self, "on_quit_requested", function() 
+        game_state:on_quit()
+        self:emit_signal("quit_requested")
+    end)
+
     signal.chain_connect("restart_requested", self.game_layer, self)
 	signal.chain_connect("restart_requested", self.ui_layer, self)
 	signal.connect(self.game_layer, "player_died", self, "on_player_died")

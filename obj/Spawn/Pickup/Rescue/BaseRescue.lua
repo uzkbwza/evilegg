@@ -24,6 +24,7 @@ BaseRescue.is_rescue = true
 BaseRescue.max_hp = 4
 
 function BaseRescue:new(x, y)
+    self.can_be_picked_up = true
     BaseRescue.super.new(self, x, y)
     self.team = "player"
     self.body_height = 4
@@ -241,6 +242,8 @@ function BaseRescue:get_default_palette()
 end
 
 function BaseRescue:on_pickup()
+    if not self.can_be_picked_up then return end
+
 	local bx, by = self:get_body_center()
 
 

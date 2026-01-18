@@ -36,17 +36,20 @@ Fungus.max_hp = 1
 
 function Fungus:new(x, y, propogate_frequency)
     self.team = "neutral"
-	self.hitbox_team = game_state.artefacts.death_cap and "player" or "enemy"
-    self.max_hp = (game_state.artefacts.death_cap and BASE_HP_FRIENDLY or BASE_HP)
-	self.highest_hp = (game_state.artefacts.death_cap and MAX_HP_FRIENDLY or MAX_HP)
-    self.base_hp_big = game_state.artefacts.death_cap and BASE_HP_BIG_FRIENDLY or BASE_HP_BIG
-	self.hp_gain_amount = game_state.artefacts.death_cap and HP_GAIN_AMOUNT_FRIENDLY or HP_GAIN_AMOUNT
+    local friendly = game_state.artefacts.death_cap
+    self.friendly = friendly
+	self.hitbox_team = friendly and "player" or "enemy"
+    self.max_hp = (friendly and BASE_HP_FRIENDLY or BASE_HP)
+	self.highest_hp = (friendly and MAX_HP_FRIENDLY or MAX_HP)
+    self.base_hp_big = friendly and BASE_HP_BIG_FRIENDLY or BASE_HP_BIG
+	self.hp_gain_amount = friendly and HP_GAIN_AMOUNT_FRIENDLY or HP_GAIN_AMOUNT
 	self.propogate_frequency = propogate_frequency or PROPOGATE_FREQUENCY
 	self.hurt_bubble_radius = 3
     self.hurt_bubble_radius_big = 6
 
-	if game_state.artefacts.death_cap then
-		self.hit_bubble_damage = 0.2
+	if friendly then
+		self.hit_bubble_damage = FRIENDLY_DAMAGE
+        self.hit_cooldown = 7
 	end
     
 	-- self.hit_bubble_radius = 1
@@ -66,11 +69,20 @@ function Fungus:new(x, y, propogate_frequency)
     self.self_declump_modifier = 0.0
     self:lazy_mixin(Mixins.Behavior.EntityDeclump)
 	self.declump_force = self.declump_force * 0.35
+	self.passive_declump = true -- Fungi don't move, so let other objects handle the declump
 
     self.death_sfx_volume = 0.5
 	self.death_sfx = "hazard_fungus_die"
     self.hit_bubble_radius = nil
     self.palette = nil
+    if self.friendly then
+        self.intangible = true
+        self:start_tick_timer("spawn_invulnerability", 7, self.end_spawn_invulnerability, self)
+    end
+end
+
+function Fungus:end_spawn_invulnerability()
+    self.intangible = false
 end
 
 function Fungus:max_fungi()
@@ -89,7 +101,7 @@ end
 
 function Fungus:enter_shared()
 	Fungus.super.enter_shared(self)
-	if game_state.artefacts.death_cap then
+	if self.friendly then
 		self:remove_tag("enemy")
 	end
 end
@@ -103,7 +115,7 @@ function Fungus:start_draw_dots_timer()
 end
 
 function Fungus:filter_melee_attack(bubble)
-	if game_state.artefacts.death_cap then
+	if self.friendly then
 		if bubble.parent and bubble.parent.team == "player" then return false end
 	end
 	
@@ -112,6 +124,13 @@ function Fungus:filter_melee_attack(bubble)
 	end
 	
 	return true
+end
+
+function Fungus:modify_received_damage(damage, object)
+	if self.friendly and object.is_base_enemy then
+		return damage * 0.5
+	end
+	return damage
 end
 
 function Fungus:start_propagate_timer()
@@ -151,7 +170,7 @@ function Fungus:on_healed()
 			end
 			self.big = true
 			self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius_big)
-			local damage = game_state.artefacts.death_cap and FRIENDLY_DAMAGE or 1
+			local damage = self.friendly and FRIENDLY_DAMAGE or 1
 			self:add_hit_bubble(-2.5, 2, self.hit_bubble_radius_big, "main1", damage)
 			self:add_hit_bubble(-2.5, -2, self.hit_bubble_radius_big, "main2", damage)
 			self:add_hit_bubble(2.5, 2, self.hit_bubble_radius_big, "main3", damage)
@@ -233,14 +252,14 @@ function Fungus:get_palette()
 end
 
 function Fungus:draw()
-    -- if (game_state.artefacts.death_cap and iflicker(gametime.tick + self.random_offset, 1, 5)) then
+    -- if (self.friendly and iflicker(gametime.tick + self.random_offset, 1, 5)) then
 		-- return
 	-- end
 	Fungus.super.draw(self)
 end
 
 function Fungus:get_sprite()	
-    if not (game_state.artefacts.death_cap) then
+    if not (self.friendly) then
         return self.big and textures.hazard_mushroom2 or textures.hazard_mushroom1
     end
 	if iflicker(gametime.tick + self.random_offset, 1, 2) then

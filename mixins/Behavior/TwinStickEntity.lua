@@ -385,11 +385,11 @@ function TwinStickEntity:terrain_collision_bounce(normal_x, normal_y)
     local bounced = false
     if self.vel then
         if normal_x ~= 0 then
-            self.vel.x = self.vel.x * -1
+            self.vel.x = self.vel.x * -1 * (self.wall_bounce_modifier or 1)
             bounced = true
         end
         if normal_y ~= 0 then
-            self.vel.y = self.vel.y * -1
+            self.vel.y = self.vel.y * -1 * (self.wall_bounce_modifier or 1)
             bounced = true
         end
     end
@@ -501,7 +501,7 @@ function TwinStickEntity:twin_stick_debug_draw()
 		end
 
 		-- Draw HIT in a different color to distinguish
-		graphics.set_color(Color.magenta)
+		graphics.set_color(self.melee_attacking and Color.magenta or Color.purple)
 		for _, bubble in pairs(self.bubbles.hit) do
 			self:collision_bubble_draw(bubble)
 		end

@@ -2,7 +2,6 @@ local LeaderboardWorld = World:extend("LeaderboardWorld")
 local O = (require "obj")
 local PickupTable = require "obj.pickup_table"
 
-
 local MENU_ITEM_H_PADDING = 12
 local MENU_ITEM_V_PADDING = 6
 
@@ -134,11 +133,16 @@ function LeaderboardWorld:enter()
         self:add_menu_item(O.PauseScreen.PauseScreenButton(start_x + MENU_ITEM_H_PADDING + 53, 3,
             tr.leaderboard_top_button,
             20, 9, false, Color.green, true, false)))
-
+    
+    self:ref("a2_button",
+        self:add_menu_item(O.LeaderboardMenu.LeaderboardMenuA2Button(start_x + MENU_ITEM_H_PADDING + 53, conf.viewport_size.y - 16,
+            16, 9, false, Color.blue, true, false )))
 
     self.sort_button.get_value_func = function()
         return self.sort_button.text
     end
+
+    signal.connect( self.a2_button, "selected", self, "on_selected", function() love.system.openURL( "https://arcade2000.io/evilegg/" ) end)
 
     self.sort_button:set_options({ "score", "depth", "speed", "score20" })
 
@@ -230,6 +234,7 @@ function LeaderboardWorld:enter()
     self.sort_button:add_neighbor(self.page_right_button, "down")
     self.wep_button:add_neighbor(self.page_right_button, "down")
     self.me_button:add_neighbor(self.page_right_button, "down", true)
+    self.page_right_button:add_neighbor(self.a2_button, "down", true)
 
 
     self.back_button:add_neighbor(self.sort_button, "right", true)

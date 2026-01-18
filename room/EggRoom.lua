@@ -41,6 +41,7 @@ function EggRoom:initialize(world)
     signal.connect(self.director, "destroyed", self, "on_director_destroyed", function()
 		self.director = nil
 	end)
+    game_state.wave = 0
 end
 
 function EggRoom:get_clear_color()

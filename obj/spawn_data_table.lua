@@ -152,7 +152,7 @@ local Enemies = {
         level = 3,
         min_level = 6,
         max_level = EGG_ROOM_START,
-        spawn_points = 45,
+        spawn_points = 65,
         extra_score = 0,
         room_select_weight = 500,
         icon = textures.enemy_mini_shotgunner1,
@@ -373,9 +373,9 @@ local Enemies = {
 		extra_score = 10,
 		spawn_weight_modifier = 0.45,
 		icon = textures.enemy_nose1,
-		spawn_group = { "bodypart" },
+		spawn_group = { "bodypart", "basic" },
 		basic_select_weight_modifier = 0.1,
-		basic_after_level = EGG_ROOM_START,
+		basic_after_level = EGG_ROOM_START + EGG_ROOM_PERIOD,
     },
 	
 	Mouth = {
@@ -385,9 +385,40 @@ local Enemies = {
         spawn_points = 55,
 		spawn_weight_modifier = 0.55,
 		icon = textures.enemy_mouth1,
-		spawn_group = { "bodypart" },
+		spawn_group = { "bodypart", "basic" },
         basic_select_weight_modifier = 0.1,
-		basic_after_level = EGG_ROOM_START,
+		basic_after_level = EGG_ROOM_START + EGG_ROOM_PERIOD,
+    },
+
+    Horror = {
+        spawnable = false,
+        level = 4,
+        extra_score = 50,
+        min_level = 15,
+        spawn_points = 120,
+        spawn_weight_modifier = 1.6,
+        max_spawns = 1,
+        reroll_chance = 0.5,
+        can_spawn = function(room) return room.curse_ignorance end,
+        icon = textures.enemy_horror,
+        room_select_weight = 500,
+        codex_hidden = true,
+        enemy_spawn_effect = "SilentEnemySpawn",
+        get_spawn_position = function(world, spawn_data)
+            -- Spawn 100px outside the stage in a random direction
+            local room = world.room
+            local angle = rng:random_angle()
+            local dist = 100
+            -- Calculate position from center, clamped to room edge + offset
+            local half_width = room.room_width / 2
+            local half_height = room.room_height / 2
+            local dir_x, dir_y = vec2_from_polar(1, angle)
+            -- Find intersection with room boundary extended outward
+            local scale_x = (half_width + dist) / max(abs(dir_x), 0.001)
+            local scale_y = (half_height + dist) / max(abs(dir_y), 0.001)
+            local scale = min(scale_x, scale_y)
+            return dir_x * scale, dir_y * scale
+        end,
     },
 	
 	Rook = {

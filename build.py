@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env/python3
+
 import os
 import zipfile
 import fnmatch
@@ -38,6 +39,7 @@ RAW_EXCLUDED_PATTERNS = [
 	'*luasteam.dll',
 
     # non build stuff
+    'a2/*',  # Use a2_bc (bytecode) instead, renamed to a2 in zip
     '*.ase',
     '*.aseprite',
     'assets/sprite/palette_cycle_test_image.png',
@@ -119,6 +121,9 @@ def create_love_file(project_root: str) -> str:
                 if should_exclude(rel_path):
                     continue
                 full_path = os.path.join(root, fname)
+                # Rename a2_bc to a2 in the archive
+                if rel_path.startswith('a2_bc/') or rel_path == 'a2_bc':
+                    rel_path = 'a2' + rel_path[5:]
                 z.write(full_path, arcname=rel_path)
     print(f"Created .love file: {love_path}")
     return love_path

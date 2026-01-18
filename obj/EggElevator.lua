@@ -4,7 +4,7 @@ local XpPickup = require("obj.XpPickup")
 local XP_AMOUNT = 1500
 local PILLAR_HEIGHT = 400
 
-local SKIP_SHOOTING = true
+local SKIP_SHOOTING = false
 
 local elevator_door_opened_rumble_func = function(t)
     return 0.35 * (1 - t)
@@ -48,7 +48,7 @@ function EggElevator:enter()
 		self:play_sfx("object_egg_elevator_spawn", 0.8)
 		self:play_sfx("object_egg_elevator_spawn2")
     end
-	
+	self:open_door()
 end
 
 local RING_TIME = 250
@@ -431,14 +431,18 @@ function EggElevator:on_damaged(amount)
     self:start_timer("hurt_flash", 10)
 	self:play_sfx("object_egg_elevator_hurt", 0.7)
 	if self.hp <= self.max_hp - 10 then
-        if not self.accepting_player then
-            input.start_rumble(elevator_door_opened_rumble_func, 10)
-			self:on_door_opened()
-		end
+        self:open_door()
 	end
 	if self.back_object then 
 		self.back_object:on_damaged(amount)
 	end
+end
+
+function EggElevator:open_door()
+    if not self.accepting_player then
+        input.start_rumble(elevator_door_opened_rumble_func, 10)
+        self:on_door_opened()
+    end
 end
 
 function EggElevator:on_door_opened()
@@ -446,7 +450,7 @@ function EggElevator:on_door_opened()
 	if self.back_object then
 		self.back_object.accepting_player = true
 	end
-	self:play_sfx("object_egg_elevator_door_open", 1)
+	-- self:play_sfx("object_egg_elevator_door_open", 1)
 end
 
 
