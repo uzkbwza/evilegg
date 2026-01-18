@@ -14,6 +14,10 @@ local SpawnDataTable = {
 
 local function prime_class_for_codex_unlock(class, spawn_data)
 
+	if spawn_data.codex_hidden then
+		return
+	end
+
 	if savedata:check_codex_item(spawn_data.name) then
 		return
 	end

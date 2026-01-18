@@ -224,6 +224,14 @@ function savedata:load()
         self.leaderboard_version = GAME_LEADERBOARD_VERSION
     end
 
+	-- Remove Horror from codex (accidentally added, should be hidden)
+	if self.codex_items["Horror"] then
+		self.codex_items["Horror"] = nil
+	end
+	if self.new_codex_items["Horror"] then
+		self.new_codex_items["Horror"] = nil
+	end
+
 	-- print("uid: ", self:get_uid())
 end
 

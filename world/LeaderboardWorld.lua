@@ -142,7 +142,14 @@ function LeaderboardWorld:enter()
         return self.sort_button.text
     end
 
-    signal.connect( self.a2_button, "selected", self, "on_selected", function() love.system.openURL( "https://arcade2000.io/evilegg/" ) end)
+    signal.connect( self.a2_button, "selected", self, "on_selected", function() 
+        A2Web.set_machine_id(savedata.uid)
+        if savedata.name ~= "" then
+            A2Web.set_user(savedata.name)
+        end
+        love.system.openURL( A2Web.page_game_main() ) 
+
+    end)
 
     self.sort_button:set_options({ "score", "depth", "speed", "score20" })
 
