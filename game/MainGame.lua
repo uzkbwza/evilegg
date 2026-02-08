@@ -66,8 +66,8 @@ function GlobalState:destroy_game_state()
         game_state:exit()
         signal.cleanup(game_state)
     end
-    
-	game_state = nil
+
+	_G.game_state = nil
 end
 
 GlobalGameState.max_upgrades = {
@@ -105,7 +105,7 @@ function GlobalGameState:new()
 	self.game_time = 0
     self.game_time_ms = 0
 	self.rescue_chain_bonus = 0
-
+    self.autofire = false
 	self.rescue_chain = 0
 
 	self.level_bonuses = {}
@@ -144,6 +144,9 @@ function GlobalGameState:new()
     self.bullet_powerup_order = {}
 
 	self.game_over = false
+	self.dying = false
+	self.pause_menu_open = false
+	self.level_transition_can_save = false
 
 	self.leaderboard_category = leaderboard.default_category
 
@@ -253,8 +256,7 @@ function GlobalGameState:new()
         if cheat then
             self.cheat = false
             self.skip_shadow_selves = false
-            self.egg_rooms_cleared = 4
-            self:add_score(rng:randi(00000, 10000000), "cheat")
+            self:add_score(rng:randi(00000, 1000000), "cheat")
             -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
             self.num_queued_artefacts = 1
             self.num_queued_upgrades = 1
@@ -262,10 +264,11 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 61
+            self.level = 21
+            self.egg_rooms_cleared = floor((self.level - 1) / 20)
             self.hearts = self.max_hearts
 
-            for i = 1, 9 do
+            for i = 1, 6 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
@@ -489,6 +492,7 @@ function GlobalGameState:level_bonus(bonus_name)
 	self.level_bonuses[bonus_name] = self.level_bonuses[bonus_name] + 1
 	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] or 0
 	self.all_bonuses[bonus_name] = self.all_bonuses[bonus_name] + 1
+	savedata:add_item_to_codex(LevelBonus[bonus_name].text_key)
 end
 
 function GlobalGameState:set_selected_artefact_slot(slot)

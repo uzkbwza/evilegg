@@ -216,7 +216,7 @@ end
 
 
 function TitleScreen:enter()
-
+    global_state:destroy_game_state()
 	audio.stop_music()
     local s = self.sequencer
     s:start(function()
@@ -331,6 +331,7 @@ function TitleScreen:enter()
             savedata:set_save_data("has_seen_title_screen", true)
 		end)
 	end)
+    
 end
 
 function TitleScreen:update_stars(dt)

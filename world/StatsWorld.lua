@@ -67,6 +67,24 @@ function StatsWorld:build_stats_display()
         end
     end
 
+    -- Add start_unlocked bonus entries that aren't already in codex_items
+    local hidden_level_bonuses = {
+        bonus_twin_killed = true,
+        bonus_boss_defeated = true,
+        bonus_cursed_room = true,
+        bonus_hard_room = true,
+    }
+    for _, v in pairs(LevelBonus) do
+        if not hidden_level_bonuses[v.text_key] and not (savedata.codex_items or {})[v.text_key] then
+            codex_count = codex_count + 1
+        end
+    end
+    for _, v in pairs(EndGameBonus) do
+        if not (savedata.codex_items or {})[v.name_key] then
+            codex_count = codex_count + 1
+        end
+    end
+
     
     -- Count total available codex entries
     local total_codex_entries = self:count_total_codex_entries()
@@ -205,9 +223,9 @@ function StatsWorld:draw()
         end
     end
     
-    graphics.set_color(Color.darkgrey)
-    graphics.print_right_aligned(GAME_LEADERBOARD_VERSION, small_font,
-                                 conf.viewport_size.x - MENU_ITEM_H_PADDING, conf.viewport_size.y - small_font:getHeight() - 7)
+    -- graphics.set_color(Color.darkgrey)
+    -- graphics.print_right_aligned(GAME_LEADERBOARD_VERSION, small_font,
+                                --  conf.viewport_size.x - MENU_ITEM_H_PADDING, conf.viewport_size.y - small_font:getHeight() - 7)
     graphics.set_color(Color.white)
     StatsWorld.super.draw(self)
 end

@@ -134,6 +134,13 @@ local function _step(frame_dt)
     if usersettings:is_dirty() then
         usersettings:apply_buffer()
     end
+    -- Flush pending saves when able (e.g., game paused or not in gameplay)
+    if usersettings:has_pending_save() and usersettings:can_save() then
+        usersettings:flush_pending_save()
+    end
+    if savedata:has_pending_save() and savedata:can_save() then
+        savedata:flush_pending_save()
+    end
     step_length = love.timer.get_time() - s
 end
 
@@ -323,6 +330,7 @@ function love.update(dt)
         dbg("frame len (ms)", string.format("%.3f", frame_length * 1000), Color.pink)
         dbg("signal emitters", table.length(signal.emitters), Color.green)
         dbg("signal listeners", table.length(signal.listeners), Color.green)
+        dbg("game state", _G.game_state)
 		local stats = signal.debug_get_pool_stats()
         -- for name, s in pairs(stats) do
             -- dbg("pool: " .. name, string.format("%d/%d", s.used, s.total), Color.green)
@@ -372,11 +380,12 @@ function love.draw()
 end
 
 function love.quit()
-    if game_state and (not game_state.game_over) then 
+    if game_state and (not game_state.game_over) then
         game_state:on_quit()
     end
-    usersettings:save()
-    savedata:save()
+    -- Force save on quit, bypassing the gameplay check
+    usersettings:_write_to_disk()
+    savedata:_write_to_disk()
 	if steam then
 		steam.shutdown()
 	end

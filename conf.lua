@@ -149,6 +149,9 @@ local conf = {
             }
         },
 
+        toggle_autofire = {
+        },
+
 		show_hud = {
 			keyboard = {
 				{"lctrl"}, 
@@ -192,7 +195,7 @@ local conf = {
 		debug_draw_bounds_toggle = {
 			debug = true,
 			keyboard = { 
-				{ "lctrl", "b" }, 
+				{ "lctrl", "b" },
 				{ "rctrl", "b" } 
 			}
 		},
@@ -358,10 +361,6 @@ conf.platform = "windows"
 if steam and steam.utils and steam.utils.isSteamRunningOnSteamDeck and steam.utils.isSteamRunningOnSteamDeck() then
 	conf.platform = "steamdeck"
 end
-
--- if debug.enabled then
---     conf.platform = "steamdeck"
--- end
 
 local function load_input_preset(preset)
 	for k, v in pairs(preset.actions) do

@@ -510,6 +510,10 @@ function PlayerCharacter:handle_input(dt)
         self:hit_by(self)
     end
 
+    if input.toggle_autofire_pressed then 
+        usersettings:set_setting("autofire", not usersettings.autofire)
+    end
+
     if self.no_input then
         input = input.dummy
     end
@@ -518,7 +522,6 @@ function PlayerCharacter:handle_input(dt)
 
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
     local aim_x_digital, aim_y_digital = input.aim_digital_clamped.x, input.aim_digital_clamped.y
-
 
     local aim_magnitude = vec2_magnitude(aim_x, aim_y)
     local aim_deadzone = 0.5
@@ -538,10 +541,6 @@ function PlayerCharacter:handle_input(dt)
     elseif aim_magnitude > aim_deadzone then
         self.mouse_mode = false
     end
-
-
-
-
 
     self.shooting = false
 
@@ -644,7 +643,11 @@ function PlayerCharacter:handle_input(dt)
         end
     end
 
-    self.shooting = self.shooting or input.shoot_held
+    self.shooting = self.shooting or input.shoot_held or usersettings.autofire
+
+    if usersettings.autofire and input.shoot_held and usersettings.autofire_shoot_to_aim then 
+        self.shooting = false
+    end
 
     if self:can_shoot() and (not (digital_aim_input and self.shoot_held_time < SHOOT_INPUT_DELAY)) and self.shooting and not self:is_tick_timer_running("shoot_cooldown") then
         local cooldown = self:fire_current_bullet()
@@ -1817,6 +1820,16 @@ end
 
 HoverFireTrail.cannot_hit_egg = true
 
+-- Damage buff parameters (from 1.1.0) - set to 0 to disable
+HoverFireTrail.TIME_DECAY_BONUS = 0.05       -- Extra damage at spawn, decays over TIME_DECAY_FRAMES
+-- HoverFireTrail.TIME_DECAY_BONUS = 0.15
+
+HoverFireTrail.TIME_DECAY_FRAMES = 12        -- Frames over which time decay bonus fades
+-- HoverFireTrail.TIME_DECAY_FRAMES = 15        -- Frames over which time decay bonus fades
+
+HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.015 -- Multiplier for game_state.upgrades.damage
+-- HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.05
+
 function HoverFireTrail:new(x, y, speed)
     HoverFireTrail.super.new(self, x, y)
     self.sprite = textures.player_hover_fire_trail
@@ -1845,8 +1858,14 @@ function HoverFireTrail:enter()
     self:add_hit_bubble(0, 0, self.radius, "main", self:get_hit_bubble_damage())
 end
 
-function HoverFireTrail:get_hit_bubble_damage()
-    return 0.15 + (1 - clamp01(self.elapsed / 15)) * 0.15 + (game_state.upgrades.damage * 0.05)
+if HoverFireTrail.TIME_DECAY_BONUS > 0 or HoverFireTrail.UPGRADE_DAMAGE_SCALING > 0 then
+    function HoverFireTrail:get_hit_bubble_damage()
+        return 0.15 + (1 - clamp01(self.elapsed / HoverFireTrail.TIME_DECAY_FRAMES)) * HoverFireTrail.TIME_DECAY_BONUS + (game_state.upgrades.damage * HoverFireTrail.UPGRADE_DAMAGE_SCALING)
+    end
+else
+    function HoverFireTrail:get_hit_bubble_damage()
+        return 0.15
+    end
 end
 
 function HoverFireTrail:update(dt)

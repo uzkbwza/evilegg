@@ -28,12 +28,42 @@ function CodexEntryButton:new(x, y, sprite, spawn, text, width, text_color)
 	self.spawn = spawn
 end
 
+local dark_amount = 0.5
+local function makedark(col)
+    return col:lerp(Color.darkergrey, dark_amount)
+end
+local rank_colors = { Color.green, Color.yellow, Color.orange, Color.red }
+local dark_rank_colors = { makedark(Color.darkgreen), makedark(Color.darkyellow), makedark(Color.darkorange), makedark(Color.darkred) }
+
 function CodexEntryButton:draw()
     local x, y, w, h = self:get_rect_local()
 	local focused = self.focused or self.mouse_hovered
 	graphics.set_color(Color.black)
     graphics.rectangle("fill", x, y, w, h)
-	graphics.set_color(focused and Color.green or Color.darkergrey)
+
+	local show_rank = input.show_hud
+	local highlight_color = Color.darkergrey
+	if focused and show_rank then
+		highlight_color = Color.green
+		if self.spawn and self.spawn.level then
+			local sd = self.spawn.class and self.spawn.class.spawn_data
+			if sd and (sd.boss or not sd.spawnable) then
+				highlight_color = Color.white
+			else
+				highlight_color = rank_colors[self.spawn.level] or Color.white
+			end
+		end
+	elseif focused then
+		highlight_color = Color.green
+	elseif show_rank and self.spawn and self.spawn.level then
+		local sd = self.spawn.class and self.spawn.class.spawn_data
+		if sd and (sd.boss or not sd.spawnable) then
+			highlight_color = Color.grey
+		else
+			highlight_color = dark_rank_colors[self.spawn.level] or Color.grey
+		end
+	end
+	graphics.set_color(highlight_color)
 	graphics.rectangle("line", x, y, w, h)
     if self.text then
         graphics.set_color(self.text_color)

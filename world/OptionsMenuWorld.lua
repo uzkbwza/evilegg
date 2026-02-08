@@ -579,6 +579,8 @@ function OptionsMenuWorld:show_menu(page)
             end,
         },
             { "rumble_intensity", item_type = "slider", slider_start = 0.0, slider_stop = 1.0, slider_granularity = 0.1 },
+            { "autofire",       item_type = "toggle" },
+            { "autofire_shoot_to_aim",       item_type = "toggle" },
             { "remap_inputs", item_type = "button", select_func = function()
                 self:show_menu(6)
                 end,
@@ -635,6 +637,7 @@ function OptionsMenuWorld:show_menu(page)
         "secondary_weapon",
         "hover",
         "dont_shoot",
+        "toggle_autofire",
         "move_left",
         "move_right",
         "move_up",

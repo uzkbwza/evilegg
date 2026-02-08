@@ -34,21 +34,42 @@ local GLOSSARY_ENTRIES = {
         name = "codex_glossary_name_lvl",
         description = "codex_glossary_desc_lvl",
         start_unlocked = true,
+        -- sprite = textures.ui_glossary_lvl
     },
     {
         name = "codex_glossary_name_wave",
         description = "codex_glossary_desc_wave",
+        start_unlocked = true,
+        -- sprite = textures.ui_glossary_wave
+    },
+    {
+        name = "codex_glossary_name_greenoid",
+        description = "codex_glossary_desc_greenoid",
+        start_unlocked = true,
+        sprite = textures.ui_glossary_greenoid
+    },
+    {
+        name = "codex_glossary_name_pickup",
+        description = "codex_glossary_desc_pickup",
         start_unlocked = true,
     },
     {
         name = "codex_glossary_name_upgrade",
         description = "codex_glossary_desc_upgrade",
         start_unlocked = true,
+        sprite = textures.ui_glossary_upgrade
+    },
+    {
+        name = "codex_glossary_name_ammo",
+        description = "codex_glossary_desc_ammo",
+        sprite = textures.ui_glossary_ammo,
+        start_unlocked = true,
     },
     {
         name = "codex_glossary_name_artefact",
         description = "codex_glossary_desc_artefact",
         start_unlocked = true,
+        sprite = textures.ui_glossary_artefact
     },
     {
         name = "codex_glossary_name_earned_x",
@@ -58,6 +79,12 @@ local GLOSSARY_ENTRIES = {
     {
         name = "codex_glossary_name_xp",
         description = "codex_glossary_desc_xp",
+        sprite = textures.ui_glossary_xp,
+        start_unlocked = true,
+    },
+    {
+        name = "codex_glossary_name_order",
+        description = "codex_glossary_desc_order",
         start_unlocked = true,
     },
     {
@@ -312,7 +339,7 @@ local weapon_categories = {
 }
 
 local ignore_sprite_categories = {
-	glossary = true,
+	-- glossary = true,
 }
 
 function CodexWorld:open_spawn_description(spawn)
@@ -409,9 +436,10 @@ function CodexWorld:open_spawn_description(spawn)
 	end
 
     
-    if (type(spawn.xp) == "number" and spawn.xp > 0) or type(spawn.xp) == "function" then
-        local xp_text = type(spawn.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.xp)
-        if spawn.class.spawn_data.boss then
+    local is_boss = spawn.class and spawn.class.spawn_data and spawn.class.spawn_data.boss
+    if is_boss or (type(spawn.xp) == "number" and spawn.xp > 0) or type(spawn.xp) == "function" then
+        local xp_text = type(spawn.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.xp or 0)
+        if is_boss then
             xp_text = "???"
         end
         local xp_text_object = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, tr.codex_item_xp:format(xp_text), false, Color.blue, delay, true))
@@ -466,6 +494,19 @@ function CodexWorld:open_spawn_description(spawn)
             delay = delay + 1
         end
     end
+
+	if spawn.level then
+		local rank_colors = { Color.green, Color.yellow, Color.orange, Color.red }
+		local is_hidden_rank = spawn.class and spawn.class.spawn_data and (spawn.class.spawn_data.boss or not spawn.class.spawn_data.spawnable)
+		local rank_name = is_hidden_rank and "???" or (tr["codex_rank_" .. spawn.level] or "???")
+		-- local rank_name = is_hidden_rank and "???" or tostring(spawn.level)
+		local rank_color = is_hidden_rank and Color.white or (rank_colors[spawn.level] or Color.white)
+		local rank_label = tr.codex_rank_text:match("^(.-)%%s") or "RANK: "
+		local rank_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, {{rank_label, Color.yellow}, {rank_name, rank_color}}, false, Color.yellow, delay, true))
+		self:add_tag(rank_text, "sequence_object")
+		current_y = current_y + increment
+		delay = delay + 1
+	end
 
     local spawn_description = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, description, false, Color.white, delay, false))
     self:add_tag(spawn_description, "sequence_object")
@@ -788,12 +829,19 @@ function CodexWorld:get_spawns(page_category)
             end
 
         elseif page_category == "levelbonus" then
+            local hidden_level_bonuses = {
+                bonus_twin_killed = true,
+                bonus_boss_defeated = true,
+                bonus_cursed_room = true,
+                bonus_hard_room = true,
+            }
             tab = {}
             for k, v in pairs(LevelBonus) do
                 table.insert(tab, {
                     name = v.text_key,
                     description = v.text_key .. "_codex",
-                    level_bonus =  v
+                    level_bonus =  v,
+                    start_unlocked = not hidden_level_bonuses[v.text_key],
                 })
             end
             table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
@@ -803,17 +851,21 @@ function CodexWorld:get_spawns(page_category)
                 table.insert(tab, {
                     name = v.name_key,
                     description = v.text_key,
-                    end_game_bonus = v
+                    end_game_bonus = v,
+                    start_unlocked = true,
                 })
             end
             table.sort(tab, function(a, b) return tr[a.name] < tr[b.name] end)
         end
 
         for _, v in ipairs(tab) do
-            v.sprite = textures.ui_codex_unknown_sprite
+            v.sprite = v.sprite or textures.ui_codex_unknown_sprite
             v.glossary_entry = true
             v.codex_save_name = v.name
             v.text_color = page_category == "glossary" and Color.orange or (page_category == "endgamebonus" and Color.yellow or Color.cyan)
+            if v.start_unlocked and not savedata:check_codex_item(v.codex_save_name) and page_category ~= "glossary" then
+                v.text_color = page_category == "endgamebonus" and Color.darkyellow or Color.darkcyan
+            end
         end
 
 
@@ -1015,11 +1067,11 @@ function CodexWorld:get_spawns(page_category)
 			::continue::
 		end
 	elseif page_category == "glossary" then
-		local tab = {}
-		for _, v in ipairs(SpawnDataTable.data_by_type["enemy"]) do
-			table.insert(tab, v)
-		end
-		table.sort(tab, function(a, b) return a.name < b.name end)
+		-- local tab = {}
+		-- for _, v in ipairs(SpawnDataTable.data_by_type["enemy"]) do
+		-- 	table.insert(tab, v)
+		-- end
+		-- table.sort(tab, function(a, b) return a.name < b.name end)
 	end
 
 	return spawns

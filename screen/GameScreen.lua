@@ -267,8 +267,9 @@ function UILayer:state_Paused_enter()
         self.blocks_logic = true
     end
 	self.game_layer.world.paused = true
+    game_state.pause_menu_open = true
 	-- self.game_layer.handling_logic = false
-	
+
 	self:ref("pause_screen", self:push(Screens.PauseScreen))
 
 	signal.chain_connect("resume_requested", self.pause_screen.world, self.pause_screen)
@@ -339,6 +340,7 @@ end
 function UILayer:state_Paused_exit()
     self.showing_codex = false
 	self.game_layer.world.paused = false
+    game_state.pause_menu_open = false
 	self.game_layer.handling_logic = true
     self.blocks_input = false
     self.blocks_logic = false

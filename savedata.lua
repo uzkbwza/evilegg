@@ -31,6 +31,9 @@ local SCORE_COUNT = 100
 local savedata = {}
 local MAX_NAME_LENGTH = 18
 
+-- Deferred save system: prevent disk writes during active gameplay
+local pending_save = false
+
 local VERSIONS_WITH_NEW_INTRO = {
     "0.8.9",
 }
@@ -250,7 +253,7 @@ local ignore = {
 	["old_leaderboard_version"] = true,
 }
 
-function savedata:save()
+function savedata:_write_to_disk()
     local tab = {}
     for k, v in pairs(self) do
         if type(v) == "function" then
@@ -268,6 +271,47 @@ function savedata:save()
 	local s = require("lib.tabley").serialize(tab)
 
     love.filesystem.write("_savedata.lua", s)
+end
+
+function savedata:can_save()
+    -- Allow saves outside of gameplay
+    if not game_state then
+        return true
+    end
+    -- Allow saves when paused
+    if game_state.pause_menu_open then
+        return true
+    end
+    -- Allow saves when dying or game over
+    if game_state.dying or game_state.game_over then
+        return true
+    end
+    -- Allow saves during level transitions
+    if game_state.level_transition_can_save then
+        return true
+    end
+    -- Block saves during active gameplay
+    return false
+end
+
+function savedata:save()
+    if not self:can_save() then
+        pending_save = true
+        return
+    end
+    pending_save = false
+    self:_write_to_disk()
+end
+
+function savedata:flush_pending_save()
+    if pending_save then
+        pending_save = false
+        self:_write_to_disk()
+    end
+end
+
+function savedata:has_pending_save()
+    return pending_save
 end
 
 function savedata:initial_load()

@@ -78,5 +78,6 @@
 		"unused-local",
 		"lowercase-global"
 	],
+	"files.exclude": {},
 
 }

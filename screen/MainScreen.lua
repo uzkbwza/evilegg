@@ -23,6 +23,7 @@ function MainScreen:enter()
 
     self:ref("top_layer", self:insert_layer(TopLayer, 1))
     self.top_layer:ref("main_screen", self)
+    global_state:destroy_game_state()
 end
 
 function MainScreen:connect_restart(screen)

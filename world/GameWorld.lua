@@ -1012,6 +1012,7 @@ function GameWorld:on_player_died()
         self.object_time_scale = 0.025
         self.player_death_fx = true
         self.player_died = true
+        game_state.dying = true
         self:end_tick_timer("wave_timer")
         self:end_tick_timer("last_wave_quick_clear")
         savedata:on_death()
@@ -2640,7 +2641,10 @@ end
 function GameWorld:state_LevelTransition_enter(room)
     self.tutorial_state = nil
     self.sequencer:stop(self.tutorial_sequence)
-	
+    if game_state then
+        game_state.level_transition_can_save = true
+    end
+
 	local room_objects = self:get_objects_with_tag("room_object")
 	for _, obj in room_objects:ipairs() do
 		obj:die()
@@ -2737,6 +2741,9 @@ function GameWorld:state_LevelTransition_exit()
     self.frozen = false
     self:room_border_fade("in", 2)
     game_state:on_level_transition()
+    if game_state then
+        game_state.level_transition_can_save = false
+    end
 end
 
 function GameWorld:room_border_fade(in_or_out, time_scale)

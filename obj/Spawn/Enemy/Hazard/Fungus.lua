@@ -49,7 +49,7 @@ function Fungus:new(x, y, propogate_frequency)
 
 	if friendly then
 		self.hit_bubble_damage = FRIENDLY_DAMAGE
-        self.hit_cooldown = 7
+        self.hit_cooldown = 10
 	end
     
 	-- self.hit_bubble_radius = 1

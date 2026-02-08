@@ -12,12 +12,12 @@ return {
     no_greenoid_deaths = {
         name_key = "end_bonus_no_greenoid_deaths_name",
         text_key = "end_bonus_no_greenoid_deaths",
-        multiplier = 0.2,
+        multiplier = 0.3,
     },
 
     no_damage_taken = {
         name_key = "end_bonus_no_damage_taken_name",
         text_key = "end_bonus_no_damage_taken",
-        multiplier = 0.3,
+        multiplier = 0.2,
     },
 }

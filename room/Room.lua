@@ -910,9 +910,8 @@ function Room:generate_waves()
                     end
                 end
 
-                if random_forgotten_horror_wave == wave_number then
-                    enemy_pool[4] = SpawnDataTable.data["Horror"]
-                    -- print("random forgotten horror wave")
+                local is_horror_wave = random_forgotten_horror_wave == wave_number
+                if is_horror_wave then
                     random_forgotten_horror_wave = nil
                 end
 
@@ -980,6 +979,12 @@ function Room:generate_waves()
                     current_enemy_pool = enemy_pool
                 end
 
+                if is_horror_wave then
+                    local horror = SpawnDataTable.data["Horror"]
+                    table.insert(wave.enemy, horror)
+                    sub_narrative.points = sub_narrative.points - horror.spawn_points / self:pool_point_modifier()
+                end
+
                 wave_types[sub_narrative.type](sub_narrative, current_enemy_pool, wave.enemy)
 
                 table.insert(waves, wave)
@@ -1002,8 +1007,6 @@ function Room:generate_waves()
     game_state.recently_selected_narratives[narrative.name] = true
     -- end
 
-	print(narrative.name)
-	
 	enemy_pool = self:generate_enemy_pool(narrative)
     while #enemy_pool < 1 do
 		enemy_pool = self:generate_enemy_pool(narrative)

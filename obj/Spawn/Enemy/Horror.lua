@@ -61,7 +61,7 @@ end
 -- Returns "normal", "fade", or nil (don't draw)
 local function get_draw_state(self)
     -- Once entered stage, always draw normally (don't fade back out)
-    if self.has_entered_stage then
+    if self:is_within_bounds() then
         return "normal"
     end
     
@@ -94,7 +94,7 @@ end
 
 Horror.get_palette = get_palette
 HorrorTentacle.get_palette = get_palette
-Horror.max_hp = 16
+Horror.max_hp = 19
 Horror.spawn_cry = "enemy_horror_spawn"
 Horror.spawn_cry_volume = 0.8
 Horror.death_cry = "enemy_horror_die"
@@ -214,7 +214,7 @@ end
 
 function Horror:on_entered_stage()
     self.entering_stage = false
-    self.has_entered_stage = true
+    -- self.has_entered_stage = true
     self.bullet_push_modifier = 0.2
     -- Propagate to all tentacles recursively
     for _, tentacle in self.tentacles:ipairs() do
@@ -445,7 +445,7 @@ end
 
 function HorrorTentacle:on_entered_stage()
     self.entering_stage = false
-    self.has_entered_stage = true
+    -- self.has_entered_stage = true
     if self.child then
         self.child:on_entered_stage()
     end

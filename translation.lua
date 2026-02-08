@@ -294,6 +294,8 @@ local translations = {
         options_fullscreen_mode                      = "Fullscreen Mode",
         options_highlight_new_codex_entries          = "Show Codex Notifications",
         options_enable_tutorial                      = "Show Tutorial Prompts",
+        options_autofire                             = "Autofire",
+        options_autofire_shoot_to_aim                = "Autofire Shoot To Aim",
         options_edit_a2_settings                     = "arcade2000 Settings",
         
         options_enable_leaderboard_pausing_tip       = "Disables pausing.",
@@ -333,6 +335,7 @@ local translations = {
         options_input_map_skip_bonus_screen = "Skip Bonus Screen",
         options_input_map_show_hud                   = "Show Timer",
         options_input_map_show_codex                   = "Open Codex",
+        options_input_map_toggle_autofire                 = "Toggle Auto-Fire",
         options_allow_windowed_mode_on_steam_deck    = "Steam Deck Window Options",
 
         name_entry_prompt            = "ENTER YOUR NAME",
@@ -416,6 +419,7 @@ local translations = {
 
         codex_name_nose              = "Nose",
         codex_desc_nose              = "Shift your focus to your breath. Inhale through the nose and slowly count to four. Let the air fall into your belly. Hold it for a moment,",
+
         codex_name_mouth             = "Mouth",
         codex_desc_mouth             = "Then exhale through your mouth for a slow count to six, still focusing on the breath. Now start again from the beginning.",
 
@@ -503,6 +507,9 @@ local translations = {
         codex_name_eggsentry = "Watch Tower",
         codex_desc_eggsentry = "Emboldened by thick fortification and proximity to royalty.",
 
+        codex_glossary_name_pickup          = "Pickup",
+        codex_glossary_desc_pickup          = "This refers to upgrades, artefacts, hearts, missiles, and extra ammo. All of these are carried by Greenoids, except for artefacts, which are beamed to you from orbit post-level.",
+
         codex_glossary_room_has_max_points  = "This room has the highest potential point value from enemies and Greenoids.",
         codex_glossary_room_is_hard         = "This room is extra difficult.",
 
@@ -512,13 +519,22 @@ local translations = {
         codex_glossary_name_wave            = "Wave",
         codex_glossary_desc_wave            = "The current wave. Most levels have 3 waves, starting easy and getting harder.",
 
+        codex_glossary_name_order            = "Weight",
+        codex_glossary_desc_order            = "Typical enemies and hazards belong to a weight class. Higher-weighted enemies are generally stronger while lower-weighted enemies tend to be more numerous. In most levels, each wave will spawn one type of enemy and hazard per weight class. Enemies span 4 weight classes while hazards only have 2. Hold the \"show timer\" button on the enemies and hazards pages to highlight the weight class of every known entry.",
+
         codex_glossary_name_earned_x        = "Earned X",
         codex_glossary_desc_earned_x        =
-        "You earned a pickup [upgrade/heart/artefact] by collecting XP. It will appear in the next level.",
+        "You earned this type of pickup by collecting XP. It will appear in the next level. Upgrades, artefacts, hearts are only acquirable by collecting XP, but missiles and extra ammo will appear no matter what.",
 
         codex_glossary_name_xp              = "XP",
         codex_glossary_desc_xp              =
-        "A resource you collect from slain enemies and level bonuses. Gain enough XP and you will earn a pickup.",
+        "A resource you collect from slain enemies and level bonuses. XP is gained toward three resources, as shown on the XP bar: upgrades (cyan), hearts (magenta), and artefacts (yellow).",
+
+        codex_glossary_name_ammo            = "Ammo",
+        codex_glossary_desc_ammo            = "Fuel for your secondary weapon. You find a little at the start of each level, and Greenoids will come bearing more.",
+
+        codex_glossary_name_greenoid        = "Greenoid",
+        codex_glossary_desc_greenoid        = "A people thrown into turmoil. Their planet is also called Greenoid. Help them and they will help you.",
 
         codex_glossary_name_upgrade         = "UPGRADE",
         codex_glossary_desc_upgrade         = "A temporary upgrade to your firepower, carried to you by a Greenoid martyr. A random upgrade you have is destroyed when you take damage. The fewer upgrades you have, the more frequently they will spawn.",
@@ -536,7 +552,6 @@ local translations = {
         codex_item_xp                       = "XP: %s",
         codex_end_game_bonus_multiplier     = "Score Multiplier: %-2.1f",
 
-
         codex_category_label                = "%s",
         codex_key_all                       = "ALL",
         codex_key_enemy                     = "ENEMIES",
@@ -551,14 +566,12 @@ local translations = {
 
         codex_hp_text                       = "HP: %s",
         codex_score_text                    = "SCORE: %s",
+        codex_rank_text                     = "WEIGHT: %s",
 
-        tip_text                            = "Tip:",
-        tip_upgrade_frequency               = "More upgrades will spawn the fewer you have.",
-        tip_destroy_artefact                = "Once you destroy an artefact, it's gone forever.",
-        tip_codex                           = "Check the codex to learn about things you've seen.",
-        tip_dont_quit                       = "It ain't over 'til it's over.",
-        tip_choose_wisely                   = "Choose wisely.",
-        tip_Greenoid1                       = "They're depending on you.",
+        codex_rank_1                        = "LIGHT",
+        codex_rank_2                        = "MEDIUM",
+        codex_rank_3                        = "HEAVY",
+        codex_rank_4                        = "APEX",
 
         game_over_score_display             = "Final Score",
         game_over_rescue_display            = "Greenoids Saved",

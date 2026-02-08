@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, true
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -334,7 +334,6 @@ function EggBoss:crack_shell()
 	self:spawn_blood(crack_center, true)
 	
 	self:apply_impulse(vec2_mul_scalar(bdx, bdy, -1))
-
 
 	self:start_timer("crack_swell", 20)
 	self:start_timer("crack_swell2", 40)
@@ -1179,7 +1178,7 @@ function EggBoss:state_Phase6_update(dt)
         if not game_state:is_fully_upgraded() then
             pickup = game_state:get_random_available_upgrade(false)
             upgrade = true
-        elseif rng:percent(game_state.artefacts.transmitter and 25 or 12.5) then
+        elseif rng:percent(game_state.artefacts.transmitter and 25 or 12.5) and game_state.secondary_weapon then
             pickup = PickupTable.powerups.AmmoPowerup
         end
 

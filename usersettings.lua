@@ -36,6 +36,8 @@ local default_usersettings = {
     confine_mouse = "when_aiming", -- when_aiming, always, never
     southpaw_mode = false,
     rumble_intensity = 1.0,
+    autofire = false,
+    autofire_shoot_to_aim = true,
 
     input_remapping = {
     },
@@ -58,6 +60,9 @@ local dirty = false
 local input_buffer = {}
 local input_dirty = false
 local __INPUT_DELETE__ = {}
+
+-- Deferred save system: prevent disk writes during active gameplay
+local pending_save = false
 
 function usersettings:load()
     local _, u = pcall(require, "_usersettings")
@@ -104,7 +109,7 @@ function usersettings:remove_remapping(action, input_type)
 end
 
 
-function usersettings:save()
+function usersettings:_write_to_disk()
     local tab = {}
     for k, v in pairs(self) do
         if type(v) == "function" then
@@ -119,7 +124,31 @@ function usersettings:save()
         ::continue::
     end
 
+    if debug.enabled then
+        print("[DEBUG] writing usersettings to disk")
+    end
+
     love.filesystem.write("_usersettings.lua", require("lib.tabley").serialize(tab))
+end
+
+function usersettings:save()
+    if not self:can_save() then
+        pending_save = true
+        return
+    end
+    pending_save = false
+    self:_write_to_disk()
+end
+
+function usersettings:flush_pending_save()
+    if pending_save then
+        pending_save = false
+        self:_write_to_disk()
+    end
+end
+
+function usersettings:has_pending_save()
+    return pending_save
 end
 
 
@@ -190,6 +219,27 @@ end
 
 function usersettings:is_dirty()
 	return dirty or input_dirty
+end
+
+function usersettings:can_save()
+    -- Allow saves outside of gameplay
+    if not game_state then
+        return true
+    end
+    -- Allow saves when paused
+    if game_state.pause_menu_open then
+        return true
+    end
+    -- Allow saves when dying or game over
+    if game_state.dying or game_state.game_over then
+        return true
+    end
+    -- Allow saves during level transitions
+    if game_state.level_transition_can_save then
+        return true
+    end
+    -- Block saves during active gameplay
+    return false
 end
 
 function usersettings:apply_buffer()

@@ -71,6 +71,11 @@ return {
 	[22] = {
 		[1] = "assets/sprite/cutscene/egg_from_below.png",
 		[2] = "assets/sprite/pickup/artefact_bullet_speed_stack.png",
+		[3] = "assets/sprite/ui/glossary/ammo.png",
+		[4] = "assets/sprite/ui/glossary/artefact.png",
+		[5] = "assets/sprite/ui/glossary/lvl.png",
+		[6] = "assets/sprite/ui/glossary/upgrade.png",
+		[7] = "assets/sprite/ui/glossary/wave.png",
 	},
 	[23] = {
 		[1] = "assets/sprite/cutscene/egg_pillar.png",
@@ -1141,12 +1146,15 @@ return {
 		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
 	},
 	[379] = {
-		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+		[1] = "assets/sprite/ui/glossary/greenoid.png",
 	},
 	[380] = {
-		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
 	},
 	[381] = {
+		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+	},
+	[382] = {
 		[1] = "assets/sprite/ui/leaderboard_good_ending.png",
 	},
 }

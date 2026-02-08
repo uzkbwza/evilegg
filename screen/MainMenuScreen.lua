@@ -45,6 +45,7 @@ function MainMenuScreen:enter()
         self.sequencer:end_all()
 	end
 
+    global_state:destroy_game_state()
 end
 
 function MainMenuScreen:on_menu_item_selected()
