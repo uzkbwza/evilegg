@@ -76,6 +76,7 @@ return {
 		[5] = "assets/sprite/ui/glossary/lvl.png",
 		[6] = "assets/sprite/ui/glossary/upgrade.png",
 		[7] = "assets/sprite/ui/glossary/wave.png",
+		[8] = "assets/sprite/ui/glossary/xp.png",
 	},
 	[23] = {
 		[1] = "assets/sprite/cutscene/egg_pillar.png",

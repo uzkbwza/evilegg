@@ -528,7 +528,7 @@ local translations = {
 
         codex_glossary_name_xp              = "XP",
         codex_glossary_desc_xp              =
-        "A resource you collect from slain enemies and level bonuses. XP is gained toward three resources, as shown on the XP bar: upgrades (cyan), hearts (magenta), and artefacts (yellow).",
+        "A resource you collect from slain enemies and level bonuses. Gained XP contributes toward three resources, as shown on the XP bar in the bottom right corner of the screen: upgrades (cyan), hearts (magenta), and artefacts (yellow).",
 
         codex_glossary_name_ammo            = "Ammo",
         codex_glossary_desc_ammo            = "Fuel for your secondary weapon. You find a little at the start of each level, and Greenoids will come bearing more.",
