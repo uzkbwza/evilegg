@@ -131,13 +131,11 @@ function Artefact:draw()
 		return
 	end
 
-    local texture = self.artefact.icon
-    local rumble_x, rumble_y = 0, 0
-    if self.rumble > 0 then
-		local size = self.rumble * 8
-		rumble_x, rumble_y = rng:rand_sign() * size, rng:rand_sign() * size
-	end
-    graphics.drawp_centered(texture, nil, 0, rumble_x, rumble_y)
+    if self.artefact.hud_draw then
+        self.artefact.hud_draw(self, self.artefact)
+    else
+        graphics.drawp_centered(self.artefact.icon, nil, 0, 0, 0)
+    end
 end
 
 function Artefact:update_artefact(artefact)

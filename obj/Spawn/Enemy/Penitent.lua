@@ -3,7 +3,7 @@ local PenitentSoul = BaseEnemy:extend("PenitentSoul")
 local PenitentTrailEffect = GameObject2D:extend("PenitentTrailEffect")
 
 Penitent.max_hp = 1
-PenitentSoul.max_hp = 3
+PenitentSoul.max_hp = 2.5
 
 local PENITENT_SPEED = 0.32
 local BACK_AWAY_SPEED = 0.07
@@ -198,11 +198,15 @@ function PenitentSoul:new(x, y)
     self.text_amount = 0
     self.intangible = true
     self.speed = PENITENT_SOUL_SPEED
-    self:start_tick_timer("vulnerable", 10, function()
+    self:start_tick_timer("vulnerable", 3, function()
         self.intangible = false
+        -- self.melee_attacking = true
+    end)
+    self:start_tick_timer("attack", 10, function()
+        -- self.intangible = false
         self.melee_attacking = true
     end)
-    self.z_index = 0.0
+    self.z_index = 0.1
     self:set_physics_limits(PENITENT_SOUL_PHYSICS_LIMITS)
     self.start_x, self.start_y = self.pos.x, self.pos.y
     self:add_tag_on_enter("penitent_soul")

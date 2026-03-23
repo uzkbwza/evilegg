@@ -216,8 +216,8 @@ function input.check_input_combo(mapping_table, mapping_type, joystick, input_ta
         end
         if type(keycombo) == "string" then
             if mapping_type == "keyboard" then
-                local key = love.keyboard.get_key_from_scancode(keycombo)
-                if input_table.keyboard_held[key] or input_table.keyboard_pressed[key] then
+                local ok, key = pcall(love.keyboard.get_key_from_scancode, keycombo)
+                if ok and (input_table.keyboard_held[key] or input_table.keyboard_pressed[key]) then
                     pressed = true
                 end
             elseif mapping_type == "joystick" then
@@ -238,15 +238,15 @@ function input.check_input_combo(mapping_table, mapping_type, joystick, input_ta
                     pressed = false
                 else
                     for j = 1, combo_len - 1 do
-                        local key = love.keyboard.get_key_from_scancode(keycombo[j])
-                        if not input_table.keyboard_held[key] then
+                        local ok, key = pcall(love.keyboard.get_key_from_scancode, keycombo[j])
+                        if not ok or not input_table.keyboard_held[key] then
                             pressed = false
                             break
                         end
                     end
                     if pressed then
-                        local last_key = love.keyboard.get_key_from_scancode(keycombo[combo_len])
-                        if not input_table.keyboard_pressed[last_key] then
+                        local ok, last_key = pcall(love.keyboard.get_key_from_scancode, keycombo[combo_len])
+                        if not ok or not input_table.keyboard_pressed[last_key] then
                             pressed = false
                         end
                     end

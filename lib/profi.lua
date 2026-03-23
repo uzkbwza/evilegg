@@ -391,7 +391,7 @@ function ProFi:onFunctionCall( funcInfo )
 	local funcReport = ProFi:getFuncReport( funcInfo )
 	funcReport.callTime = getTime()
 	funcReport.count = funcReport.count + 1
-	if self:shouldInspect( funcInfo ) then
+	if self:shouldInspect( funcInfo ) then 
 		self:doInspection( self.inspect, funcReport )
 	end
 end

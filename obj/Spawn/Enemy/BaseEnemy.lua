@@ -290,8 +290,8 @@ function BaseEnemy:get_time_scale()
 
 	local modifier = 1
     
-	if self.world.clock_slowed then
-        modifier = modifier / 3
+    if self.world.clock_slowed then
+        modifier = modifier * self.world.clock_slow_factor
     end
 
 	return modifier

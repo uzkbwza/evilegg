@@ -34,6 +34,7 @@ local default_usersettings = {
 	mouse_sensitivity = 0.08,
     gamepad_plus_mouse = false,
     confine_mouse = "when_aiming", -- when_aiming, always, never
+    input_restriction = "none", -- none, twin_analog, twin_digital
     southpaw_mode = false,
     rumble_intensity = 1.0,
     autofire = false,
@@ -106,6 +107,14 @@ function usersettings:remove_remapping(action, input_type)
         input_buffer[action] = {}
     end
     input_buffer[action][input_type] = __INPUT_DELETE__
+end
+
+
+function usersettings:is_absolute_mouse_aim()
+    if self.input_restriction ~= "none" then
+        return false
+    end
+    return self.use_absolute_aim
 end
 
 

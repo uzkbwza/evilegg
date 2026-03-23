@@ -184,17 +184,20 @@ function MainScreen:update(dt)
     -- Track previous relative mode
     self._prev_relative = self._prev_relative or false
 
-    if self._prev_relative and not (relative and not usersettings.use_absolute_aim) then
+    local absolute_aim = usersettings:is_absolute_mouse_aim()
+    local new_relative = relative and not absolute_aim
+
+    love.mouse.set_relative_mode(new_relative)
+
+    if self._prev_relative and not new_relative then
         -- We are switching from relative to non-relative
         local w, h = love.graphics.getDimensions()
         love.mouse.setPosition(w / 2, h / 2)
+        input.on_mouse_moved(w / 2, h / 2)
     end
 
-    
     self.top_layer.show_cursor = (visible)
-    self._prev_relative = (relative and not usersettings.use_absolute_aim)
-
-    love.mouse.set_relative_mode(relative and not usersettings.use_absolute_aim)
+    self._prev_relative = new_relative
 
     if usersettings.confine_mouse == "when_aiming" then
         love.mouse.set_grabbed(confine)

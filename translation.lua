@@ -95,6 +95,9 @@ local translations = {
         bonus_quick_wave               = "QUICK WAVE",
         bonus_quick_wave_codex         = "Cleared a wave in under 9 seconds.",
 
+        bonus_speed_freak              = "SPEED DEMON",
+        bonus_speed_freak_codex        = "Cleared a wave in under 6 seconds.",
+
         bonus_room_clear               = "ROOM CLEAR",
         bonus_room_clear_codex         = "Cleared a room.",
 
@@ -136,6 +139,15 @@ local translations = {
 
         bonus_overflow                 = "OVERFLOW",
         bonus_overflow_codex           = "Picked up an upgrade while at max upgrades.",
+
+        bonus_heartless                 = "HEARTLESS",
+        bonus_heartless_codex           = "Skipped a room with a heart.",
+
+        bonus_upgradeless                 = "UPGRADELESS",
+        bonus_upgradeless_codex           = "Skipped a room with an upgrade.",
+
+        bonus_reckless                    = "RECKLESS",
+        bonus_reckless_codex              = "Earn a Quick Wave without firing any bullets.",
 
         end_bonus_final_room_clear_name = "MATRICIDE",
         end_bonus_final_room_clear     = "You defeated the evil egg.",
@@ -196,7 +208,7 @@ local translations = {
         artefact_heart_trade_name      = "DISPOSABLE SURGEON",
         artefact_blast_armor_name      = "BLAST ARMOR",
         artefact_prayer_knot_name      = "PRAYER KNOT",
-        artefact_bullet_speed_stack_name = "BULLET SPEED STACK",
+        artefact_bullet_speed_stack_name = "GIBBERING SKULL",
 
         weapon_sword_name              = "EXECUTIONER'S SWORD",
         weapon_big_laser_name          = "PLASMA CANNON",
@@ -209,19 +221,19 @@ local translations = {
         artefact_sacrificial_twin_desc = "What are you willing to sacrifice?",
         artefact_drone_desc            = "A loyal companion.",
         artefact_ring_of_loyalty_desc  = "Grab pickups to repel nearby enemies.",
-        artefact_boost_damage_desc     = "Faster boost that leaves a trail of fire.",
+        artefact_boost_damage_desc     = "Faster boost that ignites your path.",
         artefact_stone_trinket_desc    = "+Random upgrade when you overheal.",
         artefact_crown_of_frenzy_desc  = "+Fire rate when no Greenoids are present.",
         artefact_death_cap_desc        = "Fungi are sympathetic to your mission.",
         artefact_clock_desc            = "Chain rescues to increasingly slow enemies.",
         -- artefact_defabricator_desc                   = "Convert artefact in slot %d to XP.",
-        artefact_warbell_desc          = "Greenoids will attack nearby enemies.",
+        artefact_warbell_desc          = "Nearby greenoids will attack enemies.",
         artefact_useless_desc          = "Too heavy to take with you.",
         artefact_transmitter_desc      = "Greenoids will bring more ammo.",
         artefact_heart_trade_desc      = "Trade an artefact for a heart and upgrade.",
         artefact_blast_armor_desc      = "You are prone to outbursts.",
         artefact_prayer_knot_desc      = "Stop shooting to charge a powerful bullet.",
-        artefact_bullet_speed_stack_desc = "Temporary +bullet speed on every kill.",
+        artefact_bullet_speed_stack_desc = "Chain Quick Waves for +bullet speed.\nSpeed Demon waves grant temporary +damage.",
 
 
         weapon_sword_desc                            = "This is the line of division.",
@@ -297,8 +309,11 @@ local translations = {
         options_autofire                             = "Autofire",
         options_autofire_shoot_to_aim                = "Autofire Shoot To Aim",
         options_edit_a2_settings                     = "arcade2000 Settings",
+        options_open_save_folder                     = "Open Save Folder",
+        options_input_restriction                    = "Input Restriction",
         
         options_enable_leaderboard_pausing_tip       = "Disables pausing.",
+        options_input_restriction_tip                = "Useful for entering specific leaderboards.",
         
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",
@@ -317,6 +332,11 @@ local translations = {
         options_header_display       = "DISPLAY",
         options_header_audio         = "AUDIO",
         options_header_other         = "OTHER",
+
+        options_input_restriction_none               = "NONE",
+        options_input_restriction_twin_analog        = "TWIN ANALOG",
+        options_input_restriction_twin_digital       = "TWIN DIGITAL",
+
         
         options_header_input_map = "INPUT MAP",
 
@@ -337,6 +357,8 @@ local translations = {
         options_input_map_show_codex                   = "Open Codex",
         options_input_map_toggle_autofire                 = "Toggle Auto-Fire",
         options_allow_windowed_mode_on_steam_deck    = "Steam Deck Window Options",
+
+
 
         name_entry_prompt            = "ENTER YOUR NAME",
 
@@ -548,9 +570,9 @@ local translations = {
         codex_variable_score                = "VARIES",
 
         codex_level_bonus_score             = "Points: %s",
-        codex_level_bonus_score_multiplier  = "Score Multiplier: %-3.2f",
+        codex_level_bonus_score_multiplier  = "Score Multiplier: +%-3.2f",
         codex_item_xp                       = "XP: %s",
-        codex_end_game_bonus_multiplier     = "Score Multiplier: %-2.1f",
+        codex_end_game_bonus_multiplier     = "Score Multiplier: +%-2.1f",
 
         codex_category_label                = "%s",
         codex_key_all                       = "ALL",
@@ -566,6 +588,8 @@ local translations = {
 
         codex_hp_text                       = "HP: %s",
         codex_score_text                    = "SCORE: %s",
+        codex_destroy_score_text            = "DESTROY SCORE: %s",
+        codex_destroy_xp_text               = "DESTROY XP: %s",
         codex_rank_text                     = "WEIGHT: %s",
 
         codex_rank_1                        = "LIGHT",
@@ -582,11 +606,12 @@ local translations = {
 
         leaderboard_loading                 = "Connecting...",
         leaderboard_error                   = "Error connecting to leaderboard",
-        leaderboard_deaths                  = "Hatchlings Vanquished",
+        leaderboard_deaths                 = "Hatchlings Vanquished",
+        
 
         leaderboard_top_button              = "TOP",
         leaderboard_me_button               = "ME",
-        leaderboard_period_all_time         = "ALL TIME",
+        leaderboard_period_all_time         = "ALL",
         leaderboard_period_daily            = "DAILY",
         leaderboard_period_monthly          = "MONTHLY",
         leaderboard_sort_score              = "SCORE",
@@ -597,8 +622,14 @@ local translations = {
         leaderboard_wep_none                 = "NONE",
         -- leaderboard_sort_score30            = "LVL30",
         leaderboard_sort_button             = "BOARD",
-        leaderboard_period_button          = "PERIOD",
-        leaderboard_wep_button             = "WEP",
+        leaderboard_period_button           = "PERIOD",
+        leaderboard_wep_button              = "WEAPON",
+        
+
+        leaderboard_controls_button         = "INPUT",
+        leaderboard_controls_none           = "ALL",
+        leaderboard_controls_twin_analog    = "ANALOG",
+        leaderboard_controls_twin_digital   = "DIGITAL",
 
         artefact_guide_use                  = "USE WITH %s",
         artefact_guide_ammo_requirement     = "REQUIRES %s AMMO PER USE",

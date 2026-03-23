@@ -8,18 +8,16 @@ local BASE_HP_FRIENDLY = 1.3
 local BASE_HP_BIG_FRIENDLY = 2.6
 local MAX_HP_FRIENDLY = 2.6
 local HP_GAIN_AMOUNT_FRIENDLY = 1.3
-local FRIENDLY_DAMAGE = 0.35
-
-local PROPOGATE_CHILD_FREQUENCY_MODIFIER = 1.0
+local FRIENDLY_DAMAGE = 0.35 / 3
 
 local HP_GAIN_FREQUENCY = 100
-local PROPOGATE_FREQUENCY = 1
--- local PROPOGATE_FREQUENCY = 60
-local PROPOGATE_VARIANCE_DEVIATION = 20
+local PROPAGATE_FREQUENCY = 1
+-- local PROPAGATE_FREQUENCY = 60
+local PROPAGATE_VARIANCE_DEVIATION = 20
 local HP_GAIN_AMOUNT = 1
 local MIN_PLAYER_DISTANCE_FOR_GROWTH = 64
 
-local PROPOGATE_RADIUS = 16
+local PROPAGATE_RADIUS = 16
 local MAX_FUNGI = 60
 local MAX_FUNGI_HAZARDOUS = 90
 
@@ -34,7 +32,7 @@ Fungus.cannot_hit_egg = true
 Fungus.is_fungus = true
 Fungus.max_hp = 1
 
-function Fungus:new(x, y, propogate_frequency)
+function Fungus:new(x, y)
     self.team = "neutral"
     local friendly = game_state.artefacts.death_cap
     self.friendly = friendly
@@ -43,7 +41,6 @@ function Fungus:new(x, y, propogate_frequency)
 	self.highest_hp = (friendly and MAX_HP_FRIENDLY or MAX_HP)
     self.base_hp_big = friendly and BASE_HP_BIG_FRIENDLY or BASE_HP_BIG
 	self.hp_gain_amount = friendly and HP_GAIN_AMOUNT_FRIENDLY or HP_GAIN_AMOUNT
-	self.propogate_frequency = propogate_frequency or PROPOGATE_FREQUENCY
 	self.hurt_bubble_radius = 3
     self.hurt_bubble_radius_big = 6
 
@@ -97,6 +94,11 @@ function Fungus:enter()
 	self:start_propagate_timer()
 	-- self:update_bubble_radii()
 	self:start_draw_dots_timer()
+	if self.friendly then
+		signal.connect(self.world, "quick_wave_cleared", self, "on_quick_wave_cleared", function(spare_time, spare_ratio)
+			self:on_quick_wave_cleared(spare_time, spare_ratio)
+		end)
+	end
 end
 
 function Fungus:enter_shared()
@@ -133,14 +135,63 @@ function Fungus:modify_received_damage(damage, object)
 	return damage
 end
 
-function Fungus:start_propagate_timer()
-	self:start_tick_timer("propagate", max(rng:randfn(self.propogate_frequency, PROPOGATE_VARIANCE_DEVIATION), 10), function()
-		if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and self.big then
-			self:propagate()
-		end
-		self:start_propagate_timer()
-	end)
+function Fungus:get_propagate_delay()
+    local base = max(rng:randfn(PROPAGATE_FREQUENCY, PROPAGATE_VARIANCE_DEVIATION), 10)
+    local scale = self.friendly and self.world.fungi_propagate_speed_scale or 1
+    return max(base * scale, 1)
 end
+
+function Fungus:start_propagate_timer()
+    self:start_tick_timer("propagate", self:get_propagate_delay(),
+        function()
+            if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and self.big then
+                if not self.friendly or self.world:is_fungi_propagation_allowed() then
+                    self:propagate()
+                end
+            end
+            self:start_propagate_timer()
+        end)
+end
+
+function Fungus:on_quick_wave_cleared(spare_time, spare_ratio)
+    -- reset timers with rng variance so all fungi don't fire at once
+    self:do_heal()
+
+    if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and self.big then
+        self:propagate()
+    end
+    self:start_propagate_timer()
+    -- self:start_tick_timer("propagate", self:get_propagate_delay(),
+    --     function()
+    --         if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and self.big then
+    --             if not self.friendly or self.world:is_fungi_propagation_allowed() then
+    --                 self:propagate()
+    --             end
+    --         end
+    --         self:start_propagate_timer()
+    --     end)
+    -- self:start_hp_gain_timer()
+end
+
+-- function Fungus:get_damage(other)
+--     if self.friendly then
+--         local hit_bubble = self:get_hit_bubble("main1")
+--         if hit_bubble then
+--             local damage = hit_bubble.damage
+--             if other.is_enemy_bullet then
+--                 return damage * 1.5
+--             end
+--             return damage
+--         end
+--     end
+--     return Fungus.super.get_damage(self, other)
+-- end
+
+-- function Fungus:hit_other(other)
+--     if other.is_enemy_bullet then
+--         other:start_tick_timer("fungal_slow", 6)
+--     end
+-- end
 
 
 function Fungus:update_bubble_radii()
@@ -194,7 +245,7 @@ function Fungus:_is_valid_propagation_spot(other)
 
 	if other == self then return end
 	if not Object.is(other, Fungus) then return end
-	if vec2_distance(other.pos.x, other.pos.y, real_x, real_y) > PROPOGATE_RADIUS then return end
+	if vec2_distance(other.pos.x, other.pos.y, real_x, real_y) > PROPAGATE_RADIUS then return end
 
 	self._propagate_valid = false
 end
@@ -212,7 +263,7 @@ function Fungus:propagate()
 	
 	local x = self.pos.x
 	local y = self.pos.y
-    local radius = PROPOGATE_RADIUS
+    local radius = PROPAGATE_RADIUS
     local rect_x, rect_y, rect_w, rect_h = x - radius, y - radius, radius * 2, radius * 2
 
     for i = 1, 10 do
@@ -227,7 +278,7 @@ function Fungus:propagate()
 	end
 
 	if self._propagate_valid then
-		local fungus = self:spawn_object_relative(Fungus(0,0, self.propogate_frequency * PROPOGATE_CHILD_FREQUENCY_MODIFIER * clamp(rng:randfn(1, 0.4), 0.1, 1.9)), self._propagate_test_x, self._propagate_test_y)
+		local fungus = self:spawn_object_relative(Fungus(0,0), self._propagate_test_x, self._propagate_test_y)
 	end
 
 	self._propagate_valid = nil
@@ -235,16 +286,35 @@ function Fungus:propagate()
 	self._propagate_test_y = nil
 end
 
+function Fungus:get_hp_gain_delay()
+	local base = HP_GAIN_FREQUENCY * clamp(rng:randfn(1, 0.1), 0.5, 1.5)
+	local scale = self.friendly and self.world.fungi_propagate_speed_scale or 1
+	return max(base * scale, 1)
+end
+
 function Fungus:start_hp_gain_timer()
-	self:start_tick_timer("gain_hp", HP_GAIN_FREQUENCY * clamp(rng:randfn(1, 0.1), 0.5, 1.5), function()
-		if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and not self.big then
-			-- self:propagate()
-			self:heal(self.hp_gain_amount, true)
-		end
-		if self.hp < self.highest_hp then
-			self:start_hp_gain_timer()
-		end
-	end)
+    self:start_tick_timer("gain_hp", self:get_hp_gain_delay(), function()
+        self:do_heal()
+    end)
+end
+
+function Fungus:get_time_scale()
+    if self.friendly then
+        return 1
+    end
+    return Fungus.super.get_time_scale(self)
+end
+
+function Fungus:do_heal()
+    if self.hp < self.highest_hp then
+        if self.world:get_number_of_objects_with_tag("fungus") < self:max_fungi() and not self.big then
+            -- local scale = self.friendly and self.world.fungi_propagate_speed_scale or 1
+            local scale = 1
+            self:heal(min(self.hp_gain_amount / max(scale, 0.01), self.highest_hp - self.hp), true)
+        end
+    end
+    self:start_hp_gain_timer()
+    -- end
 end
 
 function Fungus:get_palette()
@@ -273,7 +343,7 @@ function Fungus:floor_draw()
     if self.draw_dots then
         local palette = Palette[self:get_sprite()]
         local color = palette:get_color(1)
-        local vec_x, vec_y = rng:random_vec2_times(rng:randf(PROPOGATE_RADIUS * 0.0, PROPOGATE_RADIUS * (0.5 + self.hp / 10)))
+        local vec_x, vec_y = rng:random_vec2_times(rng:randf(PROPAGATE_RADIUS * 0.0, PROPAGATE_RADIUS * (0.5 + self.hp / 10)))
 		graphics.set_color(color.r * COLOR_MOD, color.g * COLOR_MOD, color.b * COLOR_MOD)
         graphics.circle("fill", vec_x, vec_y, rng:randf(0.5, 2) * (1 + self.hp / 5))
 		self.draw_dots = false

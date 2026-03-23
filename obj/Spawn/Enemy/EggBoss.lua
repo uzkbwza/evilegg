@@ -31,7 +31,7 @@ local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
 local JustTheSplatter = require("fx.just_the_splatter")
 
-local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = true, true, true, true, true
+local SKIP_PHASE_1, SKIP_PHASE_2, SKIP_PHASE_3, SKIP_PHASE_4, SKIP_PHASE_5 = false, false, false, false, false
 
 SKIP_PHASE_1 = SKIP_PHASE_1 and debug.enabled
 SKIP_PHASE_2 = SKIP_PHASE_2 and debug.enabled
@@ -100,6 +100,8 @@ local egg_sentry_die_rumble_func = function(t)
     return 0.7 * (1 - t)
 end
 
+local shell_texture = IS_EASTER and textures.enemy_easter_egg_boss or textures.enemy_egg_boss1
+
 function EggBoss:new()
     self.cutscene_object = Cutscenes.EndingCutscene1(0, 0)
     self:add_signal("cracked")
@@ -166,7 +168,7 @@ function EggBoss:new()
 
     table.sort(self.crack_points, function(a, b) return a > b end)
 
-    local image_data = graphics.texture_data[textures.enemy_egg_boss1]
+    local image_data = graphics.texture_data[shell_texture]
     local width, height = image_data:getWidth(), image_data:getHeight()
     self.num_shell_fragments = 0
 
@@ -211,7 +213,7 @@ function EggBoss:new()
                 id = xy_to_id(qx, qy, x_fragments)
             }
             local quad = graphics.new_quad(qx * QUAD_SIZE, qy * QUAD_SIZE, QUAD_SIZE, QUAD_SIZE, width, height)
-            local quad_table = graphics.get_quad_table(textures.enemy_egg_boss1, quad, QUAD_SIZE, QUAD_SIZE)
+            local quad_table = graphics.get_quad_table(shell_texture, quad, QUAD_SIZE, QUAD_SIZE)
 
             fragment.quad = quad
             fragment.quad_table = quad_table
@@ -1671,7 +1673,7 @@ function CrackFragment:update(dt)
 			self:play_sfx("enemy_evil_egg_shell_fragment_bounce", 0.25)
         else
             self.z_vel = 0.0
-            if not self:is_timer_running("destroy_timer") then
+            if not self:is_tick_timer_running("destroy_timer") then
 				self.grounded = true
 				self:start_destroy_timer(46)
             end

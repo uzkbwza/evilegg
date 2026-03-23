@@ -65,7 +65,7 @@ return {
     hard_room = {
         text_key = "bonus_hard_room",
         score = 500,
-        score_multiplier = 0.05,
+        score_multiplier = 0.04,
 		xp = 200,
 		difficulty_modifier = 0.1,
     },
@@ -148,6 +148,14 @@ return {
 		-- always_show_count = true,
 	},
 
+	speed_freak = {
+		text_key = "bonus_speed_freak",
+		score = 25,
+		score_multiplier = 0.01,
+		xp = 0,
+		difficulty_modifier = 0.015,
+	},
+
 	quick_save = {
 		text_key = "bonus_quick_save",
 		score = 10,
@@ -227,5 +235,28 @@ return {
         xp = 100,
         difficulty_modifier = 0.015,
     },
-	
+
+    heartless = {
+        text_key = "bonus_heartless",
+        score = 100,
+        score_multiplier = 0.03,
+        xp = 300,
+        difficulty_modifier = 0.015,
+    },
+
+    upgradeless = {
+        text_key = "bonus_upgradeless",
+        score = 80,
+        score_multiplier = 0.02,
+        xp = 150,
+        difficulty_modifier = 0.015,
+    },
+
+    -- reckless = {
+    --     text_key = "bonus_reckless",
+    --     score = 70,
+    --     score_multiplier = 0.03,
+    --     xp = 0,
+    --     difficulty_modifier = 0.015,
+    -- },
 }

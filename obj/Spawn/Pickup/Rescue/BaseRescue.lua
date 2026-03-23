@@ -81,6 +81,10 @@ function BaseRescue:is_invulnerable()
         return true
     end
 
+    -- if self:is_tick_timer_running("rod_invuln") then
+    --     return true
+    -- end
+
     return false
 end
 
@@ -299,19 +303,25 @@ function BaseRescue:get_palette_shared()
 	palette = palette or self:get_default_palette()
 	offset = offs or 0
 
-	if self:is_tick_timer_running("quick_save_time") and iflicker(self.tick, 3, 3) then
-		offset = idiv(self.tick, 1)
-	end
-
+    if self:is_tick_timer_running("quick_save_time") and iflicker(self.tick, 3, 3) then
+        offset = idiv(self.tick, 1)
+    end
+    
     if self:is_tick_timer_running("fatigue") then
         palette = Palette.fatigued
         offset = idiv(self.tick, 3)
     end
 
-	if self.grabbed_by_cultist then
-		palette = Palette.cultist_grab
-		offset = idiv(self.tick, 2)
-	end
+    -- if self:is_tick_timer_running("rod_invuln") then
+    --     offset = idiv(self.tick, 2)
+    --     palette = Palette.shielded
+    -- end
+
+    if self.grabbed_by_cultist then
+        palette = Palette.cultist_grab
+        offset = idiv(self.tick, 2)
+    end
+
 
 	return palette, offset
 end
@@ -359,7 +369,16 @@ function BaseRescue:update_shared(dt)
 	
 end
 
-local WARBELL_RADIUS = 90
+local WARBELL_RADIUS = 40
+
+function BaseRescue:warbell_close_enough_to_player()
+    local bx, by = self:closest_last_player_body_pos()
+    return vec2_distance(bx, by, self:get_body_center()) < self:get_warbell_radius()
+end
+
+function BaseRescue:get_warbell_radius()
+    return clamp01(self.tick / 20) * (WARBELL_RADIUS + game_state:get_effective_range() * 5)
+end
 
 function BaseRescue:update(dt)
     self:collide_with_terrain()
@@ -389,24 +408,29 @@ function BaseRescue:update(dt)
 
 
     if self.is_new_tick and game_state.artefacts.warbell then
-        if (self.tick + self.random_offset) % ((13 - self.world:get_effective_fire_rate() * 3) * (vulnerable and 2 or 1)) == 0 then
+        if (self.tick + self.random_offset) % ((11 - self.world:get_effective_fire_rate() * 2) * (vulnerable and 2 or 1)) == 0 and self:warbell_close_enough_to_player() then
             local bx, by = self:get_body_center()
-            local x, y = bx - WARBELL_RADIUS, by - WARBELL_RADIUS
-            local w, h = WARBELL_RADIUS * 2, WARBELL_RADIUS * 2
-            local hurt_bubbles = self.world.hurt_bubbles.enemy:query(x, y, w, h)
-            local valid = {}
+            local hurt_bubbles = self.world.hurt_bubbles.enemy:query_radius(bx, by, self:get_warbell_radius() * 3.25)
+            local aiming_at = nil
+            local closest_dist = math.huge
             for i = 1, #hurt_bubbles do
                 local bubble = hurt_bubbles[i]
                 if bubble.parent and bubble.parent:has_tag("wave_enemy") or bubble.parent:has_tag("artefact_kill_fx") then
-                    table.insert(valid, bubble)
+                    local offset = bubble.radius or 0
+                    local bpx, bpy = bubble:get_position()
+                    local dist = vec2_distance_squared(bpx, bpy, bx, by) - (offset * offset)
+                    if dist < closest_dist then
+                        closest_dist = dist
+                        aiming_at = bubble
+                    end
                 end
             end
-            local aiming_at = rng:choose(valid)
+            
             if aiming_at then
                 local bubble_x, bubble_y = aiming_at:get_position()
                 local dx, dy = vec2_direction_to(bx, by, bubble_x, bubble_y)
                 local bullet_x, bullet_y = vec2_add(bx, by, dx * 7, dy * 7)
-                if game_state.upgrades.bullets > 0 and not vulnerable then
+                if game_state:get_effective_bullets() > 0 and not vulnerable then
                     local offsx, offsy = vec2_perpendicular(dx * 4, dy * 4)
                     self:spawn_object(WarbellProjectile(bullet_x + offsx, bullet_y + offsy, vulnerable)).direction = Vec2(dx, dy)
                     self:spawn_object(WarbellProjectile(bullet_x - offsx, bullet_y - offsy, vulnerable)).direction = Vec2(dx, dy)
@@ -583,6 +607,15 @@ end
 local FLOOR_PARTICLE_ARROW_LENGTH = 5
 
 function BaseRescueFloorParticle:draw(elapsed)
+
+    if not self.dead and game_state.artefacts.warbell and self.target and (iflicker(self.random_offset + gametime.tick, 2, 5) or iflicker(self.random_offset + gametime.tick, 1, 17)) then 
+        graphics.push("all")
+        graphics.set_color(Color.green)
+        graphics.rotate(elapsed / -19 )
+        graphics.circle("line", 0, 0, self.target:get_warbell_radius(), 10)
+        graphics.pop()  
+    end
+
     local almost_dead = false
 	if not self.target then
         if iflicker(self.random_offset + gametime.tick, 2, 2) then

@@ -119,6 +119,10 @@ local Powerups = {
 	},
 }
 
+local skull_buff_sprite = true
+local skull_buff_rumble = false
+local last_skull_buff_sprite_tick = 0
+
 local Hearts = {
 	BaseHeart = {
         icon = textures.pickup_heart_icon,
@@ -273,6 +277,9 @@ local Artefacts = {
 		name = "artefact_clock_name",
 		description = "artefact_clock_desc",
         spawn_weight = 1000,
+		slow_factor = 1 / 3,
+		min_duration = 5,
+		max_duration = 25,
         -- requires_artefacts = {
 		-- 	"ring_of_loyalty"
 		-- }
@@ -451,12 +458,36 @@ local Artefacts = {
         explode_on_destroy = true,
     },
 
+
     -- BulletSpeedStackArtefact = {
     --     icon = textures.pickup_artefact_bullet_speed_stack,
 	-- 	key = "bullet_speed_stack",
 	-- 	name = "artefact_bullet_speed_stack_name",
 	-- 	description = "artefact_bullet_speed_stack_desc",
     --     spawn_weight = 1000,
+    --     debug_spawn_weight = 10000000000000,
+    --     hud_draw = function(self, artefact)
+    --         local buff = game_state.bullet_speed_stack_damage_buff and game_state.in_speed_freak_window
+    --         local t = self.tick % 4
+    --         -- 
+    --         if last_skull_buff_sprite_tick ~= self.tick then
+    --             if self.tick % 2 == 0 and rng:percent(55) then
+    --                 skull_buff_sprite = not skull_buff_sprite
+    --             end
+    --             if self.tick % 3 == 0 and rng:percent(75) then
+    --                 skull_buff_rumble = not skull_buff_rumble
+    --             end
+    --             last_skull_buff_sprite_tick = self.tick
+    --         end
+
+    --         local texture = (buff and skull_buff_sprite) and textures.pickup_artefact_bullet_speed_stack_active or artefact.icon
+
+
+    --         local b = (buff and not skull_buff_sprite) and 0.5 or 0
+    --         local rumble_x = (1 - 2 * idiv(t, 2)) * b
+    --         local rumble_y = (1 - 2 * (t % 2)) * b
+    --         graphics.drawp_centered(texture, nil, 0, rumble_x, rumble_y)
+    --     end,
     -- },
     
 	
@@ -585,6 +616,11 @@ local function process_pickup_table(tab, subtype, base_name)
         v.type = "pickup"
         v.key = v.key or k
         v.subtype = subtype
+
+        if subtype == "artefact" then
+            v.destroy_xp = v.destroy_xp or (v.is_secondary_weapon and 1800 or 1500)
+            v.destroy_score = v.destroy_score or (v.is_secondary_weapon and 750 or 500)
+        end
 
         if subtype == "artefact" and v.is_secondary_weapon then
 

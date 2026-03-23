@@ -571,6 +571,15 @@ function OptionsMenuWorld:show_menu(page)
             end,
             translate_options = true
             },
+            { "input_restriction", item_type = "cycle", options = { "none", "twin_analog", "twin_digital" }, tip="input_restriction_tip",
+            set_func = function(value)
+                usersettings:set_setting("input_restriction", value)
+            end,
+            print_func = function(value)
+                local key = "options_input_restriction_" .. (value or "")
+                return tr:has_key(key) and tr[key] or "???"
+            end,
+            translate_options = true},
             { "southpaw_mode", item_type = "toggle", set_func = function()
                 usersettings:set_setting("southpaw_mode", not usersettings.southpaw_mode)
             end,
@@ -613,8 +622,12 @@ function OptionsMenuWorld:show_menu(page)
                 self:emit_signal("enter_name_requested")
             end, },
 
-            { "edit_a2_settings", item_type = "button", select_func = function() 
+            { "edit_a2_settings", item_type = "button", select_func = function()
                 love.system.openURL( A2Web.page_settings() )
+            end },
+
+            { "open_save_folder", item_type = "button", select_func = function()
+                love.system.openURL("file://" .. love.filesystem.getSaveDirectory())
             end },
 
             { "debug_enabled", item_type = "toggle", debug = true, set_func = function()

@@ -109,7 +109,8 @@ function InputRemappingScreen:update(dt)
     -- keyboard
     for key, _ in pairs(input.keyboard_pressed) do
         if input.keyboard_pressed[key] and key ~= "escape" then
-            self:add_remapping(key, "keyboard")
+            local scancode = love.keyboard.getScancodeFromKey(key)
+            self:add_remapping(scancode, "keyboard")
             break
         end
     end

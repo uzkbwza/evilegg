@@ -15,10 +15,11 @@ function RingOfLoyaltyBullet:new(x, y)
     -- self.hp = 1 + game_state.upgrades.range
     self.damage = 7.5
     RingOfLoyaltyBullet.super.new(self, x, y, extra_bullet)
-    if game_state.upgrades.range == 1 then
+    local effective_range = game_state:get_effective_range()
+    if effective_range == 1 then
         self.lifetime = 13
         self.lifetime = self.lifetime * (self.base_speed / self.speed)
-    elseif game_state.upgrades.range == 2 then
+    elseif effective_range == 2 then
         self.lifetime = 16
         self.lifetime = self.lifetime * (self.base_speed / self.speed)
     end

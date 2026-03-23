@@ -51,23 +51,24 @@ function BasePlayerBullet:new(x, y, extra_bullet)
             self.radius = self.radius * 0.5
         end
 
-        -- local bullet_speed_stack_amount = game_state:get_bullet_speed_stack_amount()
-
-        self.damage = self.damage * (1 + (game_state.upgrades.damage) * 0.2)
+        local effective_damage = game_state:get_effective_damage()
+        local effective_range = game_state:get_effective_range()
+        self.damage = self.damage * (1 + effective_damage * 0.2)
         local base_speed = self.speed
         self.base_speed = self.speed
+        local extra_speed = game_state:get_effective_bullet_speed()
         -- self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * 0.25)
         self.push_modifier = self.push_modifier *
-        (1 + (game_state.upgrades.bullet_speed) * (0.4))
+        (1 + (extra_speed) * (0.4))
         self.hit_vel_multip = self.hit_vel_multip *
-        (1 + (game_state.upgrades.bullet_speed) * (0.4))
-        self.speed = self.speed * (1 + (game_state.upgrades.bullet_speed) * (0.5))
+        (1 + (extra_speed) * (0.4))
+        self.speed = self.speed * (1 + (extra_speed) * (0.5))
 
 
-        if game_state.upgrades.range == 1 then
+        if effective_range == 1 then
             self.lifetime = self.lifetime * (26 / 16)
-        elseif game_state.upgrades.range >= 2 then
-            self.lifetime = self.lifetime * ((36 / 16) + ((game_state.upgrades.range - 2) * 10))
+        elseif effective_range >= 2 then
+            self.lifetime = self.lifetime * ((36 / 16) + ((effective_range - 2) * 10))
         end
         self.lifetime = self.lifetime * (base_speed / self.speed)
     end
@@ -239,9 +240,12 @@ function BasePlayerBullet.try_hit(bubble, self)
 		end
 		if self.use_artefacts and game_state.artefacts.grappling_hook and not self.ignore_grappling_hook then
             local impulse = GRAPPLING_HOOK_IMPULSE
-			if self.extra_bullet then
-				impulse = impulse * 0.5
-			end
+            if self.extra_bullet then
+                impulse = impulse * 0.5
+            end
+            -- if not parent.grabbed_by_cultist then
+            --     parent:start_tick_timer("rod_invuln", 15)
+            -- end
 			parent:apply_impulse(-self.direction.x * impulse, -self.direction.y * impulse)
             -- self:die()
 
@@ -282,8 +286,9 @@ function BasePlayerBullet:on_hit_something(parent, bubble)
 	self:play_sfx("player_bullethit", 0.8)
 
     if self.num_ricochets == nil or self.num_ricochets < 1 then
-	    self:try_push(parent, self.push_modifier)
+        self:try_push(parent, self.push_modifier)
     end
+
 end
 
 function BasePlayerBullet:on_hit_blocking_objects_this_frame()
@@ -304,7 +309,7 @@ end
 
 function BasePlayerBulletDieFx:draw(elapsed, tick, t)
     graphics.set_color(Palette.rainbow:tick_color(self.world.tick * 4))
-	local size = 8 + game_state.upgrades.damage * 1
+	local size = 8 + game_state:get_effective_damage() * 1
 	graphics.rectangle_centered("fill", 0, 0, size, size)
 end
 

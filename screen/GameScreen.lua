@@ -80,7 +80,7 @@ function GameScreen:get_mouse_mode() -- visible, relative, confine
     if self:in_menu() then return true, false, false end
 
 
-    if usersettings.use_absolute_aim then
+    if usersettings:is_absolute_mouse_aim() then
         local visible = not game_state.digital_input_hide_crosshair and (usersettings.gamepad_plus_mouse or (input.last_input_device ~= "gamepad"))
         return visible, true, true
     end
@@ -101,7 +101,7 @@ end
 
 function GameScreen:draw_cursor(x, y)
 
-    if not usersettings.use_absolute_aim or self:in_menu() then
+    if not usersettings:is_absolute_mouse_aim() or self:in_menu() then
         return false
     end
 

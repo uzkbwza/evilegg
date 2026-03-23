@@ -858,10 +858,8 @@ function GameObject:stop_tick_timer(name)
 	end
 end
 
-
-
 function GameObject:start_destroy_timer(duration)
-	self:start_timer("destroy_timer", duration, function() self:queue_destroy() end)
+	self:start_tick_timer("destroy_timer", duration, function() self:queue_destroy() end)
 end
 
 function GameObject:add_to_spatial_grid(grid, func)

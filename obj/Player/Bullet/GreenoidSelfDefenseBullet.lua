@@ -6,10 +6,11 @@ function GreenoidSelfDefenseBullet:new(x, y, vulnerable)
 	self.use_artefacts = true
     self.use_upgrades = not vulnerable
 	self.hit_vel_multip = 10
-	self.push_modifier = 0.15
+	self.push_modifier = 0.25
+    self.lifetime = 120
     
     GreenoidSelfDefenseBullet.super.new(self, x, y)
-    self.damage = 0.15 + game_state.upgrades.damage * 0.05
+    self.damage = 0.15 + game_state:get_effective_damage() * 0.05
     if vulnerable then
         self.damage = self.damage * 0.5
     end

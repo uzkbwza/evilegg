@@ -452,7 +452,8 @@ function Room:build(params)
     end
 
     if self.is_hard then
-        self.level = self.level + clamp(floor(self.level), 3, 50)
+        -- self.level = self.level + clamp(floor(self.level), 3, 50)
+        self.level = self.level + 20
     end
 
     self.level = max(floor(self.level * (1 + game_state:get_difficulty_modifier())), self.level)
@@ -720,19 +721,27 @@ local function H(n)          -- n ≥ 0 (treat H₀ = 1)
 end
 
 local NUM_FACTOR = STEP * SCALE
+local LINEAR_FROM_LEVEL = 20
+
+local function _pool_point_raw(level)
+    local l = level + LEVEL_OFFSET
+    local num_factor = NUM_FACTOR * (1 + (1/3))
+    local value = 1 + num_factor * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
+    if level >= EGG_ROOM_START then
+        value = value + (level - EGG_ROOM_START) * 0.005
+    end
+    return value
+end
+
+-- freeze the rate of change at LINEAR_FROM_LEVEL, extending linearly from there
+local _linear_base = _pool_point_raw(LINEAR_FROM_LEVEL)
+local _linear_slope = _pool_point_raw(LINEAR_FROM_LEVEL + 1) - _linear_base
 
 function Room:pool_point_modifier()
-    local l = self.level + LEVEL_OFFSET
-    local num_factor = NUM_FACTOR
-    -- if self.level >= 4 then
-    num_factor = num_factor * (1 + (1/3))
-    -- end
-    local value = 1 + num_factor * (H(l - 1 + OFFSET) - H(OFFSET)) + l * 0.005
-    if self.level >= EGG_ROOM_START then
-        value = value + (self.level - EGG_ROOM_START) * 0.005
+    if self.level <= LINEAR_FROM_LEVEL then
+        return _pool_point_raw(self.level)
     end
-
-    return value
+    return _linear_base + _linear_slope * (self.level - LINEAR_FROM_LEVEL)
 end
 
 function Room:generate_waves()
@@ -1235,7 +1244,7 @@ function Room:generate_waves()
 end
 
 if debug.enabled then
-    for i = 1, 200, 10 do
+    for i = 1, 200, 5 do
 		local room = Room(nil, i, 1, {}, 100, 100)
 		print("pool point modifier for level " .. i .. ": " .. string.format("%.2f", room:pool_point_modifier()))
 	end

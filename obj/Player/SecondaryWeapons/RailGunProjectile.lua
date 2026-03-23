@@ -18,7 +18,7 @@ function RailGunProjectile:new(x, y, dx, dy)
 	dx, dy = vec2_normalized(dx, dy)
     RailGunProjectile.super.new(self, x, y)
     
-	self.damage = RailGunProjectile.damage + 3 * game_state.upgrades.damage
+	self.damage = RailGunProjectile.damage + 3 * game_state:get_effective_damage()
 
     self:lazy_mixin(Mixins.Behavior.SimpleCustomHit)
     self.dx = dx

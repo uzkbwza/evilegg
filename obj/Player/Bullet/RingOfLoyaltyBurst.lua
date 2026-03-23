@@ -14,10 +14,11 @@ function RingOfLoyaltyBurst:new(x, y)
     RingOfLoyaltyBurst.super.new(self, x, y)
 
     self:add_time_stuff()
-    self.radius = BASE_RADIUS + game_state.upgrades.range * 4
-    self.damage = 1.5 + game_state.upgrades.damage * 1
-    self.force_modifier = 1 + game_state.upgrades.bullet_speed * 0.15
-    self.lifetime = 10 + game_state.upgrades.range * 2
+    local effective_range = game_state:get_effective_range()
+    self.radius = BASE_RADIUS + effective_range * 4
+    self.damage = 1.5 + game_state:get_effective_damage() * 1
+    self.force_modifier = 1 + game_state:get_effective_bullet_speed() * 0.15
+    self.lifetime = 10 + effective_range * 2
     self:start_destroy_timer(self.lifetime)
     self.z_index = -10
     self.center_out_velocity_multiplier = 2.0
@@ -30,7 +31,7 @@ function RingOfLoyaltyBurst:enter()
 end
 
 function RingOfLoyaltyBurst:get_radius()
-    return self.radius + self.elapsed * (5.5 + game_state.upgrades.range * 0.25)
+    return self.radius + self.elapsed * (5.5 + game_state:get_effective_range() * 0.25)
 end
 
 function RingOfLoyaltyBurst:get_death_particle_hit_velocity(other)

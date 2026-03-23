@@ -166,11 +166,11 @@ function BigLaserBeam:update(dt)
 
             local damage = BEAM_PARTICLE_DAMAGE
 			
-            damage = damage + 0.25 * game_state.upgrades.damage
+            damage = damage + 0.25 * game_state:get_effective_damage()
 			
             local speed = BEAM_PARTICLE_SPEED
 			
-			speed = speed + 4 * game_state.upgrades.bullet_speed
+			speed = speed + 4 * game_state:get_effective_bullet_speed()
 
 			local beam_particle = BeamParticle(self.pos.x, self.pos.y, self.dx, self.dy, damage, speed)
 
@@ -411,7 +411,7 @@ function BigLaserBeam.try_hit(bubble, self, particle, dt)
 			self:play_sfx("player_big_laser_beam_hit", 0.55)
 		end
         if parent.is_simple_physics_object then
-			local beam_push_strength = BEAM_PUSH_STRENGTH + 2 * game_state.upgrades.bullet_speed
+			local beam_push_strength = BEAM_PUSH_STRENGTH + 2 * game_state:get_effective_bullet_speed()
 			local force_x, force_y = vec2_normalized_times(particle.dx, particle.dy, beam_push_strength * max(0.05, parent.bullet_push_modifier or 1))
 			-- parent:get_pushed_by_bullet(force_x, force_y)
 			parent:apply_force(force_x, force_y)

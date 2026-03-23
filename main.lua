@@ -6,6 +6,7 @@
 GAME_VERSION = require "version"
 GAME_LEADERBOARD_VERSION = GAME_VERSION:match("^([^%.]+%.[^%.]+)")
 
+
 print("Game version: " .. GAME_VERSION)
 print("Leaderboard version: " .. GAME_LEADERBOARD_VERSION)
 print("Love version: " .. love.getVersion())
@@ -29,6 +30,7 @@ rng            = require "lib.rng"
 savedata       = require "savedata"; savedata:initial_load()
 nativefs       = require "lib.nativefs"
 filesystem     = require "filesystem"
+require "easter"
 
 if conf.use_fennel then require "tools.fennelstart" end
 if debug.enabled then
@@ -40,7 +42,8 @@ require "lib.vector"         ; require "lib.rect"
 require "lib.random_crap"    ; require "lib.sequencer"
 require "physics_layers"     ; require "lib.anim"
 require "lib.collision"      ; require "datastructure.bst"
-require "datastructure.bst2" ; require "lib.func"
+require "datastructure.bst2"; require "lib.func"
+
 
 bench            = require "lib.bench"
 

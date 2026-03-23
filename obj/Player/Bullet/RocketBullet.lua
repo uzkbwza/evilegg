@@ -51,7 +51,8 @@ end
 
 
 function RocketBullet:enter()
-	local size = 18 + game_state.upgrades.damage * 5
+	local effective_damage = game_state:get_effective_damage()
+	local size = 18 + effective_damage * 5
     if self.extra_bullet then
         size = size * 0.7
     end
@@ -80,7 +81,7 @@ function RocketBullet:update(dt)
 
 	for i = #self.particles, 1, -1 do
 		local particle = self.particles[i]
-        particle.t = particle.t + dt / PARTICLE_LIFETIME 
+        particle.t = particle.t + dt / PARTICLE_LIFETIME
         if particle.t > 1 then
 			table.remove(self.particles, i)
 		end
@@ -89,7 +90,7 @@ end
 
 function RocketBullet:die()
     -- self:spawn_object(Explosion, self.pos:clone(), self.explosion_damage)
-	local size = 18 + game_state.upgrades.damage * 5
+	local size = 18 + game_state:get_effective_damage() * 5
     if self.extra_bullet then
         size = size * 0.7
     end

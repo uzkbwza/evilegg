@@ -9,6 +9,7 @@ local PrayerKnotChargeBullet = require("obj.Player.Bullet.PrayerKnotChargeBullet
 local HoverFx = Effect:extend("HoverFx")
 local HoverDashFx = Effect:extend("HoverDashFx")
 local HoverFireTrail = GameObject2D:extend("HoverFireTrail")
+local HoverBackblast = GameObject2D:extend("HoverBackblast")
 
 local DeathFlash = require("fx.enemy_death_flash")
 local DeathSplatter = require("fx.enemy_death_pixel_splatter")
@@ -142,6 +143,8 @@ function PlayerCharacter:new(x, y)
     self.mouse_aim_offset = Vec2(0, -1)
     self.real_mouse_aim_offset = Vec2(0, -1)
 	self.real_aim_direction = Vec2(0, -1)
+    self.digital_ghost_aim = Vec2(0, -1)   -- unsnapped real aim in digital mode
+    self.digital_snapped_aim = Vec2(0, -1) -- snapped aim direction in digital mode
     self.mouse_mode = true
     self.persist = true
 
@@ -472,8 +475,12 @@ function PlayerCharacter:set_real_mouse_aim_direction(x, y, dt)
     self.real_mouse_aim_offset:set(x, y)
 	if max_speed then
 		self.real_mouse_aim_offset:normalize_in_place()
-        self.aim_direction:set(self.real_mouse_aim_offset.x, self.real_mouse_aim_offset.y):normalize_in_place()
-		self.mouse_aim_offset:set(self.aim_direction.x, self.aim_direction.y)
+        -- in digital mode, don't let speed limit overwrite aim_direction/mouse_aim_offset
+        -- those are set to the instant target direction and snapped by force_digital
+        if usersettings.input_restriction ~= "twin_digital" then
+            self.aim_direction:set(self.real_mouse_aim_offset.x, self.real_mouse_aim_offset.y):normalize_in_place()
+		    self.mouse_aim_offset:set(self.aim_direction.x, self.aim_direction.y)
+        end
 		-- self.real_mouse_aim_offset:set(self.aim_offset.x, self.aim_offset.y)
 	end
 	self.real_aim_direction:set(x, y):normalize_in_place()
@@ -499,6 +506,13 @@ function PlayerCharacter:can_shoot()
 	return true
 end
 
+local function snap_to_8dir(x, y)
+    if x == 0 and y == 0 then return 0, 0 end
+    local angle = math.atan2(y, x)
+    local snapped = math.floor(angle / (tau / 8) + 0.5) * (tau / 8)
+    return math.cos(snapped), math.sin(snapped)
+end
+
 function PlayerCharacter:handle_input(dt)
     local input = self:get_input_table()
 
@@ -510,7 +524,7 @@ function PlayerCharacter:handle_input(dt)
         self:hit_by(self)
     end
 
-    if input.toggle_autofire_pressed then 
+    if input.toggle_autofire_pressed then
         usersettings:set_setting("autofire", not usersettings.autofire)
     end
 
@@ -519,6 +533,8 @@ function PlayerCharacter:handle_input(dt)
     end
 
     local no_input = input == input.dummy
+    local restriction = usersettings.input_restriction
+    local force_digital = restriction == "twin_digital"
 
     local aim_x, aim_y = input.aim_clamped.x, input.aim_clamped.y
     local aim_x_digital, aim_y_digital = input.aim_digital_clamped.x, input.aim_digital_clamped.y
@@ -526,6 +542,16 @@ function PlayerCharacter:handle_input(dt)
     local aim_magnitude = vec2_magnitude(aim_x, aim_y)
     local aim_deadzone = 0.5
     local digital_aim_input = aim_x_digital ~= 0 or aim_y_digital ~= 0
+
+    -- store raw analog aim before digitizing (for ghost reticle)
+    local raw_aim_x, raw_aim_y = aim_x, aim_y
+
+    -- digitize analog aim if restricted (only if above deadzone to avoid amplifying drift)
+    if force_digital and aim_magnitude > aim_deadzone then
+        aim_x, aim_y = snap_to_8dir(aim_x, aim_y)
+        aim_magnitude = 1.0
+    end
+
 
     if digital_aim_input then
         aim_x = aim_x_digital
@@ -535,11 +561,17 @@ function PlayerCharacter:handle_input(dt)
         game_state.digital_input_hide_crosshair = true
     end
 
-    if input.mouse.dxy_absolute.x ~= 0 or input.mouse.dxy_absolute.y ~= 0 then
-        self.mouse_mode = true
-        game_state.digital_input_hide_crosshair = false
-    elseif aim_magnitude > aim_deadzone then
+    -- mouse mode detection (stick takes priority when actively aiming)
+    local mouse_moved = input.mouse.dxy_absolute.x ~= 0 or input.mouse.dxy_absolute.y ~= 0
+    local stick_aiming = aim_magnitude > aim_deadzone or digital_aim_input
+
+    if stick_aiming then
         self.mouse_mode = false
+        self.using_analog_aim = aim_magnitude > aim_deadzone and not digital_aim_input
+    elseif mouse_moved then
+        self.mouse_mode = true
+        self.using_analog_aim = false
+        game_state.digital_input_hide_crosshair = false
     end
 
     self.shooting = false
@@ -556,7 +588,7 @@ function PlayerCharacter:handle_input(dt)
             end
         end
     elseif not no_input then
-        if usersettings.use_absolute_aim then
+        if usersettings:is_absolute_mouse_aim() then
             local global_mouse_x, global_mouse_y = self:get_mouse_position()
             self.mouse_pos_x = global_mouse_x
             self.mouse_pos_y = global_mouse_y
@@ -581,10 +613,36 @@ function PlayerCharacter:handle_input(dt)
 
             self:set_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
         end
+
         -- self.aim_direction:normalize_in_place()
     end
 
-    self:set_real_mouse_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y, dt)
+    -- in digital mode, store ghost (unsnapped) aim and snap actual aim
+    if force_digital then
+        if self.mouse_mode then
+            -- mouse: ghost is the real mouse direction (pre-snap)
+            self.digital_ghost_aim:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
+        else
+            -- stick: ghost is the raw analog direction (pre-digitize)
+            -- fall back to mouse_aim_offset for digital buttons/dpad (raw analog is zero)
+            if vec2_magnitude(raw_aim_x, raw_aim_y) > 0.1 then
+                self.digital_ghost_aim:set(raw_aim_x, raw_aim_y)
+            else
+                self.digital_ghost_aim:set(self.mouse_aim_offset.x, self.mouse_aim_offset.y)
+            end
+        end
+        local sx, sy = snap_to_8dir(self.aim_direction.x, self.aim_direction.y)
+        self.digital_snapped_aim:set(sx, sy)
+        self.aim_direction:set(sx, sy)
+    end
+
+    -- in digital mode, feed the snapped aim_direction so real_aim_direction
+    -- only ever targets 8-dir angles. speed limit then naturally gates transitions.
+    if force_digital then
+        self:set_real_mouse_aim_direction(self.aim_direction.x, self.aim_direction.y, dt)
+    else
+        self:set_real_mouse_aim_direction(self.mouse_aim_offset.x, self.mouse_aim_offset.y, dt)
+    end
 
     if input.move_normalized.x ~= 0 or input.move_normalized.y ~= 0 then
         self.moving_direction:set(input.move_normalized.x, input.move_normalized.y)
@@ -592,9 +650,31 @@ function PlayerCharacter:handle_input(dt)
 
     dbg("aim_direction", self.aim_direction)
 
-
     local move_amount_x = input.move_clamped.x
     local move_amount_y = input.move_clamped.y
+
+    -- detect analog movement: if move_clamped has input on an axis where no digital button is pressed,
+    -- it must be coming from the analog stick
+    if not force_digital then
+        local dx, dy = input.move_digital.x, input.move_digital.y
+        if (move_amount_x ~= 0 and dx == 0) or (move_amount_y ~= 0 and dy == 0) then
+            game_state:record_input_usage("analog")
+        end
+    end
+
+    -- digitize movement if restricted (snap to sign, then normalize diagonal)
+    if force_digital then
+        local dx = move_amount_x ~= 0 and sign(move_amount_x) or 0
+        local dy = move_amount_y ~= 0 and sign(move_amount_y) or 0
+        local dm = vec2_magnitude(dx, dy)
+        if dm > 0 then
+            move_amount_x = dx / dm
+            move_amount_y = dy / dm
+        else
+            move_amount_x = 0
+            move_amount_y = 0
+        end
+    end
     if move_amount_x > 0.9 then
         move_amount_x = 1
     elseif move_amount_x < -0.9 then
@@ -677,6 +757,7 @@ function PlayerCharacter:handle_input(dt)
         self.shoot_held_time = 0
     else
         self.shoot_held_time = self.shoot_held_time + dt
+        self:record_fire_input()
     end
 
     local secondary_stopwatch = self:get_stopwatch("secondary_weapon_held")
@@ -751,12 +832,12 @@ function PlayerCharacter:on_secondary_weapon_pressed()
     if self:is_tick_timer_running("secondary_weapon_cooldown") then
         return
     end
-	
+
     local secondary_weapon = self:get_secondary_weapon()
 	if not secondary_weapon then
 		return
 	end
-	
+
 	local method = "secondary_" .. secondary_weapon.key .. "_pressed"
 	if self[method] then
 		self[method](self)
@@ -820,14 +901,26 @@ function PlayerCharacter:can_use_secondary_weapon()
     return true
 end
 
+function PlayerCharacter:record_fire_input()
+    local restriction = usersettings.input_restriction
+    if restriction == "twin_digital" then
+        -- everything is digitized, no escalation
+        return
+    end
+    if usersettings:is_absolute_mouse_aim() then
+        game_state:record_input_usage("mouse")
+    elseif self.mouse_mode then
+        -- relative mouse counts as analog
+        game_state:record_input_usage("analog")
+    elseif self.using_analog_aim then
+        -- analog stick (not digital buttons)
+        game_state:record_input_usage("analog")
+    end
+    -- digital buttons/dpad = no escalation (stays twin_digital)
+end
+
 function PlayerCharacter:fire_current_bullet()
     local class = self.bullet_powerups["BaseBullet"]
-
-    -- local hitscan = false
-    if game_state.artefacts.bullet_speed_stack and game_state:get_bullet_speed_stack_amount() >= 1 and game_state.upgrades.bullet_speed >= 1 then
-        -- hitscan = true
-        class = self.bullet_powerups["PlayerHitscanBullet"]
-    end
 
 	game_state:on_bullet_shot()
 
@@ -854,18 +947,26 @@ function PlayerCharacter:fire_current_bullet()
     end
     
     local cooldown = class.cooldown
-    local bullets_upgrade = min(1, game_state.upgrades.bullets)
+    local effective_bullets = game_state:get_effective_bullets()
+    local bullets_upgrade = min(1, effective_bullets)
 	local num_bullets = clamp(bullets_upgrade + (class.num_bullets_modifier or 0), 0, game_state:get_max_upgrade("bullets"))
 
 	-- signal.connect(self:fire_bullet(class, nil, 0, 0, false), "bullet_hit", game_state, "on_bullet_hit", nil, true)
-	self:fire_bullet(class, nil, 0, 0, false)
+    self:fire_bullet(class, nil, 0, 0, false)
+    
+    -- if game_state.artefacts.warbell then
+    --     bullet.warbell_target = true
+    -- end
     
 	self:play_sfx(class.shoot_sfx or "player_shoot", class.shoot_sfx_volume or 0.45, 1)
 
     if default then
 
 
-        if game_state.upgrades.damage >= 1 then
+        local effective_damage = game_state:get_effective_damage()
+        local effective_range = game_state:get_effective_range()
+
+        if effective_damage >= 1 then
             self:play_sfx("player_damage_upgrade_1", 0.25)
         end
 
@@ -873,20 +974,20 @@ function PlayerCharacter:fire_current_bullet()
             self:play_sfx("player_fire_rate_upgrade_1", 0.25)
         end
 
-        if game_state.upgrades.range == 1 then
+        if effective_range == 1 then
             self:play_sfx("player_range_upgrade_1", 0.25)
         end
 
-        if game_state.upgrades.range == 2 then
-            self:play_sfx("player_range_upgrade_2", 0.25)
+        if effective_range == 2 then
+            self:play_sfx("player_range_upgrade_2", 0.)
         end
 
 
-        if game_state.upgrades.bullet_speed >= 1 then
+        if game_state:get_effective_bullet_speed() >= 1 then
             self:play_sfx("player_bullet_speed_upgrade_1", 0.2)
         end
 
-        if game_state.upgrades.bullets >= 1 then
+        if effective_bullets >= 1 then
             if self.world:get_effective_fire_rate() == 1 then
                 self:play_sfx("player_bullets_upgrade_1_with_fire_rate_1", 0.35)
             else
@@ -900,7 +1001,7 @@ function PlayerCharacter:fire_current_bullet()
 
     for i = 1, num_bullets do
         if num_bullets >= 1 then
-            local alternate = game_state.upgrades.bullets == 1
+            local alternate = effective_bullets == 1
 
             
             if (not alternate) or self.bullets_fired % 2 == 0 then
@@ -1362,9 +1463,10 @@ function PlayerCharacter:state_Hover_enter(boost)
 	self.hover_impulse:mul_in_place(0)
 	self.hover_particle_direction:clone_from(self.moving_direction)
 	
-	if boost == nil then 
-		boost = true
-	end
+    if boost == nil then
+        boost = true
+    end
+    
     self.hover_vel:mul_in_place(0)
 	self:play_sfx("player_hover", 0.25)
 
@@ -1373,6 +1475,13 @@ function PlayerCharacter:state_Hover_enter(boost)
         self:play_sfx("player_dash", 0.5)
 
 		self:spawn_object(HoverDashFx(self.pos.x, self.pos.y, -self.moving_direction.x, -self.moving_direction.y)):ref("player", self)
+        
+        if game_state.artefacts.boost_damage then
+            local bx, by = self:get_body_center()
+            -- local hx, hy = vec2_add(bx, by, vec2_mul_scalar(-self.moving_direction.x, -self.moving_direction.y, 24))
+            self:ref("hover_backblast", self:spawn_object(HoverBackblast(bx, by, -self.moving_direction.x, -self.moving_direction.y)))
+        end
+
 		
 		-- local input = self:get_input_table()
 		self.hover_impulse.x = self.hover_impulse.x + self.moving_direction.x * HOVER_IMPULSE
@@ -1414,6 +1523,10 @@ function PlayerCharacter:state_Hover_update(dt)
             local mag = self.hover_vel:magnitude()
             self.hover_vel.x = self.moving_direction.x * mag
             self.hover_vel.y = self.moving_direction.y * mag
+        end
+        if self.hover_backblast then
+            self.hover_backblast.dirx = -self.moving_direction.x
+            self.hover_backblast.diry = -self.moving_direction.y
         end
         -- end)
     end
@@ -1818,17 +1931,76 @@ function HoverFx:draw_particle(floor, elapsed, tick, t)
 	graphics.rectangle_centered(t < 0.25 and "fill" or "line", 0, 0, scale, scale)
 end
 
+function HoverBackblast:new(x, y, dirx, diry)
+    HoverBackblast.super.new(self, x, y)
+    self.team = "player"
+    self.dirx = dirx
+    self.random_offset = rng:randi(0, 100)
+    self.diry = diry
+    self:start_tick_timer("nomelee", 3, function()
+        self.melee_attacking = false
+    end)
+    self:start_destroy_timer(60)
+    self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
+end
+
+function HoverBackblast:draw()
+    graphics.translate(self.dirx * 16, self.diry * 16)
+    -- local dist = self.elapsed * 0.6
+    -- graphics.translate(self.dirx * dist, self.diry * dist)
+    local color = Palette.trail_fire_ground:tick_color(self.tick + self.random_offset, 0, 1)
+    if color ~= Color.black then
+        graphics.set_color(color)
+        local size = 37 - pow((self.tick) * 0.3, 3)
+        if size > 0 then
+            graphics.rectangle_centered(iflicker(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
+        end
+    end
+end
+
+function HoverBackblast:enter()
+    self:play_sfx("player_hover_backblast", 0.5)
+    local offsx, offsy = vec2_mul_scalar(self.dirx, self.diry, 10)
+    local b1x, b1y = vec2_mul_scalar(self.dirx, self.diry, 10)
+    local b2x, b2y = vec2_mul_scalar(self.dirx, self.diry, 8)
+    local b3x, b3y = vec2_mul_scalar(self.dirx, self.diry, 8)
+    b2x, b2y = vec2_rotated(b2x, b2y, tau / 6)
+    b3x, b3y = vec2_rotated(b3x, b3y, -tau / 6)
+
+    local damage = 2.0 + game_state:get_effective_damage() * 1.0
+    self.damage = damage
+
+    self:add_hit_bubble(b1x + offsx, b1y + offsy, 16, "main", damage)
+    self:add_hit_bubble(b2x + offsx, b2y + offsy, 12, "main2", damage)
+    self:add_hit_bubble(b3x + offsx, b3y + offsy, 12, "main3", damage)
+end
+
+
+function HoverBackblast:try_push(object, speed)
+	if not object.bullet_pushable then return end
+	local direction_x, direction_y = self.dirx, self.diry
+	object:apply_impulse(direction_x * speed, direction_y * speed)
+end
+
+local BACKBLAST_PUSH_SPEED = 2
+
+function HoverBackblast:hit_other(parent, bubble)
+    if parent.bullet_pushable then
+        self:try_push(parent, BACKBLAST_PUSH_SPEED)
+    end
+end
+
 HoverFireTrail.cannot_hit_egg = true
 
 -- Damage buff parameters (from 1.1.0) - set to 0 to disable
-HoverFireTrail.TIME_DECAY_BONUS = 0.05       -- Extra damage at spawn, decays over TIME_DECAY_FRAMES
--- HoverFireTrail.TIME_DECAY_BONUS = 0.15
+-- HoverFireTrail.TIME_DECAY_BONUS = 0.05       -- Extra damage at spawn, decays over TIME_DECAY_FRAMES
+HoverFireTrail.TIME_DECAY_BONUS = 0.15
 
-HoverFireTrail.TIME_DECAY_FRAMES = 12        -- Frames over which time decay bonus fades
--- HoverFireTrail.TIME_DECAY_FRAMES = 15        -- Frames over which time decay bonus fades
+-- HoverFireTrail.TIME_DECAY_FRAMES = 12        -- Frames over which time decay bonus fades
+HoverFireTrail.TIME_DECAY_FRAMES = 3        -- Frames over which time decay bonus fades
 
-HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.015 -- Multiplier for game_state.upgrades.damage
--- HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.05
+-- HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.015 -- Multiplier for game_state.upgrades.damage
+HoverFireTrail.UPGRADE_DAMAGE_SCALING = 0.05
 
 function HoverFireTrail:new(x, y, speed)
     HoverFireTrail.super.new(self, x, y)
@@ -1843,6 +2015,7 @@ function HoverFireTrail:new(x, y, speed)
 	self.to_remove = {}
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 	self.random_offset = rng:randi(0, 100)
+    
 end
 
 function HoverFireTrail:filter_melee_attack(bubble)
@@ -1851,7 +2024,7 @@ function HoverFireTrail:filter_melee_attack(bubble)
 end
 
 function HoverFireTrail:enter()
-    self.radius = 10 + lerp(-10, 4, inverse_lerp(0, 4, self.player_speed)) + (game_state.upgrades.range) * 1
+    self.radius = 10 + lerp(-10, 4, inverse_lerp(0, 4, self.player_speed)) + game_state:get_effective_range() * 1
     if self.player_speed < 0.6 then 
         self.radius = self.radius * 0.05
     end
@@ -1860,7 +2033,7 @@ end
 
 if HoverFireTrail.TIME_DECAY_BONUS > 0 or HoverFireTrail.UPGRADE_DAMAGE_SCALING > 0 then
     function HoverFireTrail:get_hit_bubble_damage()
-        return 0.15 + (1 - clamp01(self.elapsed / HoverFireTrail.TIME_DECAY_FRAMES)) * HoverFireTrail.TIME_DECAY_BONUS + (game_state.upgrades.damage * HoverFireTrail.UPGRADE_DAMAGE_SCALING)
+        return 0.15 + (1 - clamp01(self.elapsed / HoverFireTrail.TIME_DECAY_FRAMES)) * HoverFireTrail.TIME_DECAY_BONUS + (game_state:get_effective_damage() * HoverFireTrail.UPGRADE_DAMAGE_SCALING)
     end
 else
     function HoverFireTrail:get_hit_bubble_damage()
@@ -1870,15 +2043,25 @@ end
 
 function HoverFireTrail:update(dt)
     local hitbox = self:get_bubble("hit", "main")
-    self.radius = approach(self.radius, min(self.radius, 7), 0.05 * dt)
-    -- hitbox.radius = approach(radius, 5, 0.05 * dt)
-    self:set_hit_bubble_radius("main", self.radius + pow(math.bump(clamp01(self.elapsed / 10 + 0.01)), 1) * 0)
-
-    if not self.done and self.elapsed > self.duration then
+    -- self.radius = approach(self.radius, min(self.radius, 7), 0.05 * dt)
+    self.radius = approach(self.radius, min(self.radius, 0), (0.035) * dt)
+    if self.is_new_tick then 
+        self.radius = self.radius - (pow(self.tick, 1.25) * 0.021)
+        if self.radius < 0 then self.radius = 0 end
+    end
+    if not self.done and self.radius == 0 then 
         self.done = true
         self.melee_attacking = false
 		self:stop_sfx("player_boost_fire")
     end
+    -- hitbox.radius = approach(radius, 5, 0.05 * dt)
+    self:set_hit_bubble_radius("main", self.radius + pow(math.bump(clamp01(self.elapsed / 10 + 0.01)), 1) * 0)
+
+    -- if not self.done and self.elapsed > self.duration then
+    --     self.done = true
+    --     self.melee_attacking = false
+	-- 	self:stop_sfx("player_boost_fire")
+    -- end
 
 	table.clear(self.to_remove)
 
@@ -1899,10 +2082,11 @@ function HoverFireTrail:update(dt)
         for i = 1, rng:randi(2) do
 			if rng:percent(10) then
 				local particle = {}
-				particle.x, particle.y = rng:random_vec2_times(rng:randf(0, self:get_bubble("hit", "main").radius * 2))
+				particle.x, particle.y = rng:random_vec2_times(rng:randf(0, max(3, self:get_bubble("hit", "main").radius) * 2))
 				particle.size = rng:randfn(3, 1)
 				particle.elapsed = 0
 				particle.duration = rng:randf(10, 50)
+				-- particle.duration = rng:randf(6, 20)
 				particle.speed = rng:randf(0.15, 0.4)
 				self.particles[particle] = true
 			end
@@ -1920,7 +2104,7 @@ end
 
 function HoverFireTrail:draw()
 
-    if self.elapsed < self.duration then
+    if self.elapsed < self.duration and self.radius > 0 then
         local color = Palette.trail_fire_ground:tick_color(self.tick + self.random_offset, 0, 1)
 		if color ~= Color.black then
         	graphics.set_color(color)
@@ -2306,7 +2490,7 @@ function AimDraw:draw()
 
     graphics.set_color(Color.white)
 
-    if self.player.mouse_mode and usersettings.use_absolute_aim then
+    if self.player.mouse_mode and usersettings:is_absolute_mouse_aim() then
         local global_mouse_x, global_mouse_y = self.player.mouse_pos_x, self.player.mouse_pos_y
         local mouse_x, mouse_y = self:to_local(global_mouse_x, global_mouse_y)
         local laser_start_x, laser_start_y = vec2_normalized_times(self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y, self.player.aim_radius * 0.5)
@@ -2339,21 +2523,53 @@ function AimDraw:draw()
         local end_x1, end_y1     = vec2_normalized_times(end_x, end_y, self.player.aim_radius)
 
         if self.player.mouse_mode then
-            -- graphics.circle("fill", start_x1, start_y1, 5)		
+            -- mouse mode: variable distance from real_mouse_aim_offset magnitude
             local aim_vec_x, aim_vec_y = self.player.real_mouse_aim_offset.x, self.player.real_mouse_aim_offset.y
             local length = vec2_magnitude(aim_vec_x, aim_vec_y) * LASER_SIGHT_DISTANCE_MODIFIER
             local x, y = end_x1 * length, end_y1 * length
-            -- graphics.circle("line", x, y, 5)
 
+            if usersettings.input_restriction == "twin_digital" then
+                local r = self.player.aim_radius
+                local dist = r * LASER_SIGHT_DISTANCE_MODIFIER
+                local gx, gy = vec2_normalized(self.player.digital_ghost_aim.x, self.player.digital_ghost_aim.y)
 
-            self:laser_sight_draw(3, Color.black, start_x1, start_y1, x, y, true)
-            self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, x, y, true)
-			self:draw_crosshair(x, y)
+                -- snapped aim underneath in blue (always max length)
+                local sx, sy = self.player.digital_snapped_aim.x, self.player.digital_snapped_aim.y
+                if sx ~= 0 or sy ~= 0 then
+                    self:laser_sight_draw(3, Color.black, sx * r * 0.5, sy * r * 0.5, sx * dist, sy * dist, true)
+                    self:laser_sight_draw(1, Color.blue, sx * r * 0.5, sy * r * 0.5, sx * dist, sy * dist, true)
+                    self:draw_crosshair_colored(sx * dist, sy * dist, Color.blue)
+                end
+                -- real aim on top in magenta (variable length for mouse)
+                self:laser_sight_draw(3, Color.black, gx * r * 0.5, gy * r * 0.5, gx * r * length, gy * r * length, true)
+                self:laser_sight_draw(1, Color.magenta, gx * r * 0.5, gy * r * 0.5, gx * r * length, gy * r * length, true)
+                self:draw_crosshair_colored(gx * r * length, gy * r * length, Color.white)
+            else
+                self:laser_sight_draw(3, Color.black, start_x1, start_y1, x, y, true)
+                self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, x, y, true)
+                self:draw_crosshair(x, y)
+            end
         else
-            self:laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER,
-                end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
-            self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER,
-                end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
+            -- stick mode: fixed distance
+            local dist = self.player.aim_radius * LASER_SIGHT_DISTANCE_MODIFIER
+
+            if usersettings.input_restriction == "twin_digital" then
+                local gx, gy = vec2_normalized(self.player.digital_ghost_aim.x, self.player.digital_ghost_aim.y)
+                local r = self.player.aim_radius
+                -- dbg("digital_draw_stick", "ghost=" .. tostring(gx) .. "," .. tostring(gy) .. " snap=" .. tostring(self.player.digital_snapped_aim.x) .. "," .. tostring(self.player.digital_snapped_aim.y) .. " r=" .. tostring(r) .. " dist=" .. tostring(dist))
+                -- snapped aim underneath in blue
+                local sx, sy = self.player.digital_snapped_aim.x, self.player.digital_snapped_aim.y
+                if sx ~= 0 or sy ~= 0 then
+                    self:laser_sight_draw(3, Color.black, sx * r * 0.5, sy * r * 0.5, sx * dist, sy * dist, true)
+                    self:laser_sight_draw(1, Color.blue, sx * r * 0.5, sy * r * 0.5, sx * dist, sy * dist, true)
+                end
+                -- real aim on top in magenta
+                self:laser_sight_draw(3, Color.black, gx * r * 0.5, gy * r * 0.5, gx * dist, gy * dist, true)
+                self:laser_sight_draw(1, Color.magenta, gx * r * 0.5, gy * r * 0.5, gx * dist, gy * dist, true)
+            else
+                self:laser_sight_draw(3, Color.black, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER, end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
+                self:laser_sight_draw(1, Color.magenta, start_x1, start_y1, end_x1 * LASER_SIGHT_DISTANCE_MODIFIER, end_y1 * LASER_SIGHT_DISTANCE_MODIFIER, true)
+            end
         end
 
         -- end_x1, end_y1  = vec2_add(end_x, end_y, dx, dy)
@@ -2389,6 +2605,10 @@ function AimDraw:draw()
 end
 
 function AimDraw:draw_crosshair(x, y, force)
+	self:draw_crosshair_colored(x, y, Color.white, force)
+end
+
+function AimDraw:draw_crosshair_colored(x, y, color, force)
 	local size = 9
 
     if not (force or (self.player and self.player:can_draw_aim_sight())) then
@@ -2397,23 +2617,23 @@ function AimDraw:draw_crosshair(x, y, force)
 
 	graphics.push()
 	graphics.translate(x, y)
-	
+
 	graphics.push()
 	graphics.rotate(self.player.real_mouse_aim_offset:angle() + self.elapsed * 0.1)
 	graphics.set_line_width(3)
 	graphics.set_color(Color.black)
 	graphics.dashrect_centered(0, 0, size, size, 3, 3)
 	graphics.set_line_width(1)
-	graphics.set_color(Color.white)
+	graphics.set_color(color)
 	graphics.dashrect_centered(0, 0, size, size, 3, 3)
 	graphics.pop()
 
 	graphics.set_color(Color.black)
 	graphics.rectangle_centered("fill", 0, 0, 4, 4)
-	graphics.set_color(Color.white)
+	graphics.set_color(color)
 	graphics.rectangle_centered("fill", 0, 0, 2, 2)
 	graphics.pop()
-end 
+end
 
 
 

@@ -25,22 +25,24 @@ function SwordSlash:new(x, y, direction, slash_direction)
 	self.hit_cooldown = 90
     self.damage = BASE_DAMAGE
 
-    if game_state.upgrades.damage then
-        self.damage = self.damage + game_state.upgrades.damage * 0.5
+    local effective_damage = game_state:get_effective_damage()
+    if effective_damage then
+        self.damage = self.damage + effective_damage * 0.5
     end
 
 
 	self.offset = OFFSET
-	
-	if game_state.upgrades.range then
-		self.offset = self.offset + game_state.upgrades.range * 5
+
+	local effective_range = game_state:get_effective_range()
+	if effective_range then
+		self.offset = self.offset + effective_range * 5
 	end
 
 	self.speed = SPEED
 
-	if game_state.upgrades.bullet_speed then
-		self.speed = self.speed + game_state.upgrades.bullet_speed * 5
-	end
+    local extra_speed = game_state:get_effective_bullet_speed()
+    self.extra_speed = extra_speed
+    self.speed = self.speed + extra_speed * 5
 
 	SwordSlash.super.new(self, x, y)
     self.direction = direction
@@ -127,7 +129,7 @@ function SwordSlash:hit_other(target, bubble)
 			impulse = impulse * 2
 		end
 		
-		impulse = impulse * (1 + game_state.upgrades.bullet_speed * 0.5) 
+		impulse = impulse * (1 + self.extra_speed * 0.5) 
 
 		target:apply_impulse(self.direction.x * impulse, self.direction.y * impulse)
 	end

@@ -9,7 +9,6 @@ local Splatter = require("fx.just_the_splatter")
 
 local XpPickup = require("obj.XpPickup")
 
-local ARTEFACT_XP = 1500
 
 local artefact_destroy_rumble_func = function(t)
     return 0.4 * (1 - (t))
@@ -176,11 +175,11 @@ function ArtefactSpawn:hit_by(other)
 end
 
 function ArtefactSpawn:get_destroy_xp()
-    return self.artefact.destroy_xp or (self.artefact.is_secondary_weapon and 1800 or ARTEFACT_XP)
+    return self.artefact.destroy_xp
 end
 
 function ArtefactSpawn:get_destroy_score()
-    return self.artefact.destroy_score or (self.artefact.is_secondary_weapon and 750 or 500)
+    return self.artefact.destroy_score
 end
 
 function ArtefactSpawn:get_palette()
@@ -240,14 +239,22 @@ function ArtefactSpawn:state_Idle_draw()
 	graphics.set_color(Color.black)
 	
 	local name = tr[self.artefact.name]
-    local desc = tr[self.artefact.description]:upper()
+    local desc_full = tr[self.artefact.description]:upper()
 	name = name:sub(1, name:len() * self.text_amount)
-    desc = desc:sub(1, desc:len() * self.text_amount)
-    
-	
+
+	local desc_lines = {}
+	for line in (desc_full .. "\n"):gmatch("(.-)\n") do
+		desc_lines[#desc_lines + 1] = line:sub(1, line:len() * self.text_amount)
+	end
+
+	local line_height = self.font:getHeight() * self.font:getLineHeight()
+	local desc_y = 16
+
 	graphics.set_font(self.font2)
 	graphics.print_outline_centered(Color.black, name, self.font2, 0, -16)
-	graphics.print_outline_centered(Color.black, desc, self.font2, 0, 16)
+	for i, line in ipairs(desc_lines) do
+		graphics.print_outline_centered(Color.black, line, self.font2, 0, desc_y + (i - 1) * line_height)
+	end
 	graphics.set_font(self.font)
     graphics.set_color(Color.white)
 	self.title_palette_stack:set_palette_offset(2, tick / 5)
@@ -255,7 +262,9 @@ function ArtefactSpawn:state_Idle_draw()
 	graphics.printp_centered(name, self.font, self.title_palette_stack, 0, 0, -16)
 	self.desc_palette_stack:set_palette_offset(2, tick / 5)
 	self.desc_palette_stack:set_palette_offset(3, tick / 3)
-    graphics.printp_centered(desc, self.font, self.desc_palette_stack, 0, 0, 16)
+	for i, line in ipairs(desc_lines) do
+		graphics.printp_centered(line, self.font, self.desc_palette_stack, 0, 0, desc_y + (i - 1) * line_height)
+	end
 	
     if self.artefact.aim_prompt and input:get_prompt_device("gamepad") == "gamepad" then
         graphics.set_font(fonts.depalettized.image_font2)

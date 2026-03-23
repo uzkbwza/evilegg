@@ -14,6 +14,7 @@ TRAIL_COLOR_FAST2.r = TRAIL_COLOR_FAST2.r * trail_mod
 TRAIL_COLOR_FAST2.g = TRAIL_COLOR_FAST2.g * trail_mod
 TRAIL_COLOR_FAST2.b = TRAIL_COLOR_FAST2.b * trail_mod
 
+
 function Bouncer:new(x, y)
 	self.max_hp = 1
     Bouncer.super.new(self, x, y)
@@ -49,9 +50,20 @@ function Bouncer:get_trail_color()
     return TRAIL_COLOR
 end
 
-function Bouncer:get_sprite()
-    return self:random_offset_pulse(30, 0) and textures.enemy_bouncer1 or textures.enemy_bouncer2
+if IS_EASTER then
+    local easter_textures = {}
+    for i = 1, 10 do
+        easter_textures[i] = textures["enemy_easteregg" .. i]
+    end
+    function Bouncer:get_sprite()
+        return easter_textures[1 + (self.random_offset % 10)]
+    end    
+else
+    function Bouncer:get_sprite()
+        return self:random_offset_pulse(30, 0) and textures.enemy_bouncer1 or textures.enemy_bouncer2
+    end    
 end
+
 
 function FastBouncer:new(x, y)
     FastBouncer.super.new(self, x, y)
@@ -68,10 +80,19 @@ function FastBouncer:enter()
 end
 
 
-function FastBouncer:get_sprite()
-    return self:random_offset_pulse(20, 0) and textures.enemy_fast_bouncer1 or textures.enemy_fast_bouncer2
+if IS_EASTER then
+    local easter_textures = {}
+    for i = 1, 6 do
+        easter_textures[i] = textures["enemy_easteregg_fast" .. i]
+    end
+    function FastBouncer:get_sprite()
+        return easter_textures[1 + (self.random_offset % 6)]
+    end
+else
+    function FastBouncer:get_sprite()
+        return self:random_offset_pulse(20, 0) and textures.enemy_fast_bouncer1 or textures.enemy_fast_bouncer2
+    end
 end
-
 function FastBouncer:get_palette()
 	if iflicker(self.tick, 6, 5) then
 		return nil, idiv(self.tick, 3)

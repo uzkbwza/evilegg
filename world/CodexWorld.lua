@@ -123,7 +123,7 @@ end
 local PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus", "endgamebonus"})
 
 function CodexWorld:new(x, y)
-    if savedata.has_beaten_game then 
+    if savedata.has_beaten_game or debug.enabled then 
         PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus", "endgamebonus"})
     else
         PAGE_CATEGORY_ORDER = table.extended(SPAWN_CATEGORY_ORDER, {"glossary", "levelbonus"})
@@ -245,10 +245,10 @@ function CodexWorld:show_index_page()
         current_y = current_y + BUTTON_SPACING
     end
     
-    -- Wrap navigation
+    -- Wrap navigation: last category → back_button → first category
     if #self.category_buttons > 0 then
-        self.category_buttons[1]:add_neighbor(self.category_buttons[#self.category_buttons], "up")
-        self.category_buttons[#self.category_buttons]:add_neighbor(self.category_buttons[1], "down")
+        self.category_buttons[#self.category_buttons]:add_neighbor(self.back_button, "down")
+        self.back_button:add_neighbor(self.category_buttons[#self.category_buttons], "up")
     end
     
     -- Focus first category button
@@ -297,8 +297,14 @@ function CodexWorld:update(dt)
     
 	self.focused_on_entry = self.menu_root.focused_child and self.menu_root.focused_child.is_codex_entry_button
 	
+    if input.ui_nav_up_pressed or input.ui_nav_down_pressed or input.ui_nav_left_pressed or input.ui_nav_right_pressed then
+        self.using_key_nav = true
+    elseif input.mouse.dxy.x ~= 0 or input.mouse.dxy.y ~= 0 then
+        self.using_key_nav = false
+    end
+
     if input.ui_cancel_pressed then
-        if self.focused_on_entry and input.last_input_device == "gamepad" and self.cycle_category_button then
+        if self.focused_on_entry and self.cycle_category_button and (input.last_input_device == "gamepad" or self.using_key_nav) then
             self.cycle_category_button:focus()
         else
             self.back_button:select()
@@ -335,6 +341,11 @@ local score_categories = {
 }
 
 local weapon_categories = {
+	secondary_weapon = true,
+}
+
+local artefact_categories = {
+	artefact = true,
 	secondary_weapon = true,
 }
 
@@ -435,7 +446,24 @@ function CodexWorld:open_spawn_description(spawn)
 		-- delay = delay + 1
 	end
 
-    
+	if artefact_categories[spawn.page_category] then
+		local destroy_score = spawn.class and spawn.class.destroy_score
+		if destroy_score and destroy_score > 0 then
+			local destroy_score_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_destroy_score_text, comma_sep(destroy_score)), false, Color.green, delay, true))
+			self:add_tag(destroy_score_text, "sequence_object")
+			current_y = current_y + increment
+			delay = delay + 1
+		end
+
+		local destroy_xp = spawn.class and spawn.class.destroy_xp
+		if destroy_xp then
+			local destroy_xp_text = self:add_object(O.CodexMenu.CodexSpawnText(x, current_y, string.format(tr.codex_destroy_xp_text, comma_sep(destroy_xp)), false, Color.blue, delay, true))
+			self:add_tag(destroy_xp_text, "sequence_object")
+			current_y = current_y + increment
+			delay = delay + 1
+		end
+	end
+
     local is_boss = spawn.class and spawn.class.spawn_data and spawn.class.spawn_data.boss
     if is_boss or (type(spawn.xp) == "number" and spawn.xp > 0) or type(spawn.xp) == "function" then
         local xp_text = type(spawn.xp) == "function" and tr.codex_variable_score or comma_sep(spawn.xp or 0)
@@ -522,8 +550,12 @@ function CodexWorld:clear_spawn_description()
 	end
 end
 
+function CodexWorld:is_text_category()
+    return self.category_selected == "glossary" or self.category_selected == "levelbonus" or self.category_selected == "endgamebonus"
+end
+
 function CodexWorld:get_number_of_objects_per_page()
-	if self.category_selected == "glossary" or self.category_selected == "levelbonus" then
+	if self:is_text_category() then
 		return GLOSSARY_PAGE_LENGTH
 	end
 	return OBJECTS_PER_PAGE
@@ -669,7 +701,7 @@ function CodexWorld:_open_page(page_category, page_number)
         self.object_buttons[i] = self:add_spawn_button(page[i], i)
     end
 
-    if self.category_selected == "glossary" or self.category_selected == "levelbonus" then
+    if self:is_text_category() then
         if #self.object_buttons > 0 then
             self.cycle_category_button:add_neighbor(self.object_buttons[1], "down", true)
             

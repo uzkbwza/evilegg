@@ -19,6 +19,8 @@ LB.default_category = (debug.enabled and "debug" or "normal")
 
 LB.categories = {
     "normal",
+    "twin_analog",
+    "twin_digital",
     "unstable",
 }
 
@@ -138,31 +140,33 @@ function LB.submit_many(runs, category, process_name, cb)
     rpc(payload, cb)
 end
 
-function LB.fetch(page, per, category, secondary_weapon_filter, sort_by, period, process_name, cb)
+function LB.fetch(page, per, category, secondary_weapon_filter, sort_by, period, process_name, cb, input_board)
     category = process_name and cat(category) or category
     local payload = {cmd="fetch", uid=savedata:get_uid(), page=page, per=per, category=(category), period=period}
     if secondary_weapon_filter then payload.secondary_weapon_filter = secondary_weapon_filter end
     if sort_by then payload.sort_by = sort_by end
+    if input_board then payload.input_board = input_board end
     rpc(payload, cb)
 end
 
-function LB.lookup(uid, per, category, secondary_weapon_filter, sort_by, period, process_name, cb)
+function LB.lookup(uid, per, category, secondary_weapon_filter, sort_by, period, process_name, cb, input_board)
 	category = process_name and cat(category) or category
     local payload = {cmd="lookup", user=uid, per=per, category=(category), period=period}
     if secondary_weapon_filter then payload.secondary_weapon_filter = secondary_weapon_filter end
     if sort_by then payload.sort_by = sort_by end
+    if input_board then payload.input_board = input_board end
     rpc(payload, cb)
 end
 
-function LB.page_with_user(uid, per, category, secondary_weapon_filter, sort_by, period, process_name, cb)
+function LB.page_with_user(uid, per, category, secondary_weapon_filter, sort_by, period, process_name, cb, input_board)
     category = process_name and cat(category) or category
 	LB.lookup(uid, per, category, secondary_weapon_filter, sort_by, period, false, function(ok, res)
 		if not ok then
 			if cb then cb(false, res) end
 		else
-			LB.fetch(res.page, res.per, category, secondary_weapon_filter, sort_by, period, false, cb)
+			LB.fetch(res.page, res.per, category, secondary_weapon_filter, sort_by, period, false, cb, input_board)
 		end
-	end)
+	end, input_board)
 end
 
 function LB.submit_queued_runs(cb)

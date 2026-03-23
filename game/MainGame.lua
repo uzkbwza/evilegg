@@ -113,8 +113,6 @@ function GlobalGameState:new()
 	self.level_scores = {}
     self.current_curse = nil
 
-    
-
 	self.xp_until_upgrade = GlobalGameState.xp_until_upgrade
 	self.xp_until_heart = 1
 	self.xp_until_upgrade = 1020
@@ -149,6 +147,9 @@ function GlobalGameState:new()
 	self.level_transition_can_save = false
 
 	self.leaderboard_category = leaderboard.default_category
+	self.input_board = "twin_digital"
+	self.used_mouse_aim = false
+	self.used_analog_input = false
 
 	self.used_sacrificial_twin = false
 
@@ -168,9 +169,13 @@ function GlobalGameState:new()
 	self.bonus_difficulty_modifier = 0
 
     self.aggression_bonus = 0
-	
+    self.quick_wave_streak = 0
+    self.bullet_speed_stack_damage_buff = false
+    self.in_speed_freak_window = false
+
     self.bullets_shot_this_level = 0
 	self.bullets_hit_this_level = 0
+	self.bullets_shot_this_wave = 0
 
 	self.artefacts = {
 
@@ -254,21 +259,27 @@ function GlobalGameState:new()
         self.cheat = cheat
 
         if cheat then
-            self.cheat = false
+            self.cheat = true
             self.skip_shadow_selves = false
             self:add_score(rng:randi(00000, 1000000), "cheat")
+            -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.ClockArtefact)
             self.num_queued_artefacts = 1
             self.num_queued_upgrades = 1
             self.num_queued_hearts = 1
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 21
+            self.level = 20
             self.egg_rooms_cleared = floor((self.level - 1) / 20)
             self.hearts = self.max_hearts
 
-            for i = 1, 6 do
+            self:gain_artefact(rng:choose(PickupTable.artefacts.BigLaserSecondaryWeapon, PickupTable.artefacts.RailGunSecondaryWeapon, PickupTable.artefacts.SwordSecondaryWeapon))
+
+            for i = 1, 5 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
@@ -277,7 +288,7 @@ function GlobalGameState:new()
                 self.num_spawned_artefacts = self.num_spawned_artefacts + 1
             end
 
-            for i = 1, self:get_max_number_of_upgrades()-1 do
+            for i = 1, self:get_max_number_of_upgrades()-2 do
                 self:upgrade(self:get_random_available_upgrade(false))
             end
 
@@ -316,6 +327,7 @@ function GlobalGameState:update(dt)
     end
 
     if debug.enabled then
+        dbg("input_board", self.input_board)
         dbg("relative_game_speed", time_checker:get_relative_game_speed(), Color.red)
         local min_speed, max_speed = time_checker:get_relative_game_speed_bounds()
         dbg("min_game_speed", min_speed, Color.red)
@@ -324,6 +336,7 @@ function GlobalGameState:update(dt)
         dbg("min_fps", min_fps, Color.red)
         local average_fps = time_checker:get_average_fps()
         dbg("average_fps", average_fps, Color.red)
+        dbg("quick_wave_streak", self.quick_wave_streak)
         -- dbg("game_state_tick", self.tick, Color.green)
 	end
 end
@@ -450,6 +463,8 @@ function GlobalGameState:sort_bullet_powerups_by_priority()
     end)
 end
 
+
+
 -- local MAX_BULLET_SPEED_STACK_AMOUNT = 4.5
 -- local MAX_EFFECTIVE_BULLET_SPEED_STACK_AMOUNT = 3
 -- local BULLET_SPEED_STACK_DRAIN_RATE = 1 / 50
@@ -476,6 +491,45 @@ end
 --         self.bullet_speed_stack_amount = MAX_BULLET_SPEED_STACK_AMOUNT
 --     end
 -- end
+
+function GlobalGameState:on_quick_wave(is_speed_freak)
+    if game_state.artefacts.bullet_speed_stack then
+        self.quick_wave_streak = self.quick_wave_streak + 1
+        self.bullet_speed_stack_damage_buff = is_speed_freak
+    end
+end
+
+function GlobalGameState:on_slow_wave()
+    self.quick_wave_streak = 0
+    self.bullet_speed_stack_damage_buff = false
+end
+
+local MAX_QUICK_WAVE_BULLET_SPEED = 1
+GlobalGameState.MAX_QUICK_WAVE_BULLET_SPEED_STACKS = 2
+
+function GlobalGameState:get_effective_bullet_speed()
+    if self.artefacts.bullet_speed_stack then
+        return self.upgrades.bullet_speed + (MAX_QUICK_WAVE_BULLET_SPEED/GlobalGameState.MAX_QUICK_WAVE_BULLET_SPEED_STACKS) * math.min(self.quick_wave_streak, GlobalGameState.MAX_QUICK_WAVE_BULLET_SPEED_STACKS)
+    end
+    return self.upgrades.bullet_speed
+end
+
+function GlobalGameState:get_effective_damage()
+    local damage = self.upgrades.damage
+    if self.artefacts.bullet_speed_stack and self.bullet_speed_stack_damage_buff and self.in_speed_freak_window then
+        damage = damage + 1
+    end
+    return damage
+end
+
+function GlobalGameState:get_effective_range()
+    return self.upgrades.range
+end
+
+function GlobalGameState:get_effective_bullets()
+    return self.upgrades.bullets
+end
+
 
 function GlobalGameState:level_bonus(bonus_name)
     if not LevelBonus[bonus_name] then
@@ -551,7 +605,9 @@ function GlobalGameState:gain_artefact(artefact)
 		end
 	end
 
-    A2Web.register_run_achievement("artefact_" .. artefact.key, floor(self.game_time))
+    if usersettings.enable_leaderboard then
+        A2Web.register_run_achievement("artefact_" .. artefact.key, floor(self.game_time))
+    end
 
 	signal.emit(self, "player_artefact_gained", artefact, slot)
 end
@@ -572,7 +628,9 @@ function GlobalGameState:gain_secondary_weapon(artefact)
 	self.secondary_weapon = artefact
 	self.secondary_weapon_ammo = new_ammo
 
-    A2Web.register_run_achievement("weapon_" .. artefact.key, floor(self.game_time))
+    if usersettings.enable_leaderboard then
+        A2Web.register_run_achievement("weapon_" .. artefact.key, floor(self.game_time))
+    end
 
 	signal.emit(self, "player_secondary_weapon_gained", artefact)
 end
@@ -582,7 +640,7 @@ function GlobalGameState:on_tried_to_use_secondary_weapon_with_no_ammo()
 end
 
 function GlobalGameState:lose_secondary_weapon()
-    if self.secondary_weapon then
+    if self.secondary_weapon and usersettings.enable_leaderboard then
         A2Web.register_run_achievement_loss("weapon_" .. self.secondary_weapon.key, floor(self.game_time))
     end
 	self.secondary_weapon = nil
@@ -632,7 +690,9 @@ function GlobalGameState:remove_artefact(slot)
 		artefact.remove_function(self, slot)
 	end
 
-    A2Web.register_run_achievement_loss("artefact_" .. artefact.key, floor(self.game_time))
+    if usersettings.enable_leaderboard then
+        A2Web.register_run_achievement_loss("artefact_" .. artefact.key, floor(self.game_time))
+    end
 
 	signal.emit(self, "player_artefact_removed", artefact, slot)
 end
@@ -645,6 +705,9 @@ function GlobalGameState:on_game_over(died)
     died = truthy_nil(died)
     self.game_over = true
     self.running_clock = false
+    if usersettings.enable_leaderboard then
+        A2Web.register_run_achievement("input_board_" .. self.input_board, floor(self.game_time))
+    end
 	savedata:add_category_death(self.leaderboard_category)
     if died then
         savedata:set_save_data("death_count", (savedata.death_count or 0) + 1)
@@ -714,6 +777,7 @@ function GlobalGameState:on_bullet_shot()
 		return
 	end
     self.bullets_shot_this_level = self.bullets_shot_this_level + 1
+	self.bullets_shot_this_wave = self.bullets_shot_this_wave + 1
 end
 
 function GlobalGameState:on_bullet_hit()
@@ -791,12 +855,16 @@ function GlobalGameState:end_game()
 
     self.good_ending = 1
     
-    A2Web.register_run_achievement("beat_game", floor(self.game_time))
+    if usersettings.enable_leaderboard then
+        A2Web.register_run_achievement("beat_game", floor(self.game_time))
+    end
     if self.twin_saved then
         self:end_game_bonus("twin_saved")
         savedata:set_save_data("planets_saved", (savedata.planets_saved or 0) + 1)
         self.good_ending = 2
-        A2Web.register_run_achievement("good_ending", floor(self.game_time))
+        if usersettings.enable_leaderboard then
+            A2Web.register_run_achievement("good_ending", floor(self.game_time))
+        end
     end
 
     
@@ -940,6 +1008,26 @@ function GlobalGameState:add_score_multiplier(multiplier)
 	end
 end
 
+function GlobalGameState:record_input_usage(input_type)
+	if self.game_over then return end
+	if input_type == "mouse" then
+		self.used_mouse_aim = true
+	elseif input_type == "analog" then
+		self.used_analog_input = true
+	end
+	self:update_input_board()
+end
+
+function GlobalGameState:update_input_board()
+	if self.used_mouse_aim then
+		self.input_board = "normal"
+	elseif self.used_analog_input then
+		self.input_board = "twin_analog"
+	else
+		self.input_board = "twin_digital"
+	end
+end
+
 function GlobalGameState:get_run_data_table()
 	local artefacts = {}
 
@@ -977,6 +1065,7 @@ function GlobalGameState:get_run_data_table()
         -- the effort is totally futile. anything i do will be trivially circumvented.
         -- i'm a solo dev and i'll have to remove your score manually if you cheat. 
         -- please don't make me do that. please don't make my life harder.
+        input_board = self.input_board,
         valid_for_leaderboard = self:is_valid_run_for_leaderboard(),
         min_game_speed = min_speed,
         max_game_speed = max_speed,

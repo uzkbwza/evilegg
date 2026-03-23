@@ -2,6 +2,7 @@ makelove-build
 build
 __pycache__
 *.zip
+workspace
 *.love
 *.exe
 diff.diff

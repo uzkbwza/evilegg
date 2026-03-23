@@ -19,13 +19,14 @@ function PrayerKnotChargeBullet:new(x, y, extra_bullet)
     self.speed = self.speed * 1.25
     -- self.lifetime = self.lifetime / (1.25)
 
-    self.damage = 5.5 + game_state.upgrades.damage
+    local effective_damage = game_state:get_effective_damage()
+    self.damage = 5.5 + effective_damage
     if extra_bullet then
         self.radius = 5
-        self.damage = 1.0 + game_state.upgrades.damage * 0.5
+        self.damage = 1.0 + effective_damage * 0.5
     end
- 
-    self.hp = 1 + min(1, game_state.upgrades.range)
+
+    self.hp = 1 + min(1, game_state:get_effective_range())
     self.trail_particles = {}
     self.trail_particles_to_remove = {}
 end

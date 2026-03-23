@@ -1,5 +1,6 @@
 local RoomObject = GameObject2D:extend("RoomObject")
 local RoomFloorObject = GameObject2D:extend("RoomFloorObject")
+local HeartbeatPulse = GameObject2D:extend("HeartbeatPulse")
 
 local PLAYER_DISTANCE = 16
 local LINE_HEIGHT = 8
@@ -17,14 +18,14 @@ function RoomObject:new(x, y, room)
     self:lazy_mixin(Mixins.Behavior.AllyFinder)
     self:lazy_mixin(Mixins.Behavior.SimplePhysics2D)
 	self.random_offset = rng(0, tau)
+	self.orbit_direction = rng:percent(50) and 1 or -1
     self.stored_room = room
     self:add_signal("room_chosen")
     self:add_elapsed_ticks()
     self.lines = {}
 	self:add_sequencer()
-	self.die_alpha = 1
+    self.die_alpha = 1
 	self.max_height = 0
-	
     self.z_index = 2
     self.icon_stencil_function = function()
         graphics.circle("fill", 0, 0, PLAYER_DISTANCE)
@@ -141,6 +142,7 @@ end
 
 function RoomObject:add_spawn_lines(tab, sort_func)
     local current_icons = {}
+    local current_is_heart = {}
     local current_icon = 0
     local icons_per_line = floor(RECT_WIDTH / (ICON_SIZE + 2) + 1)
     local counter = 0
@@ -195,6 +197,9 @@ function RoomObject:add_spawn_lines(tab, sort_func)
         -- end
 
         for i = 1, num_entries do
+            if spawn.subtype == "heart" then
+                self.has_heart = true
+            end
 
             -- if self.stored_room.curse == "curse_ignorance" and data.spawn.subtype ~= "artefact" then
             if self.stored_room.curse_ignorance then
@@ -226,7 +231,8 @@ function RoomObject:add_spawn_lines(tab, sort_func)
                     table.insert(current_icons, graphics.get_quad_table(icon, icon_quad, icon_width, icon_height))
                 end
             end
-            
+            table.insert(current_is_heart, spawn.subtype == "heart")
+
             current_icon = current_icon + 1
             counter = counter + 1
 
@@ -235,18 +241,16 @@ function RoomObject:add_spawn_lines(tab, sort_func)
                     spawn = spawn,
                     count = count,
                     icons = current_icons,
+                    is_heart = current_is_heart,
                 }
                 self:add_line("spawn_count", line_data, ICON_SIZE + 2, false)
                 current_icons = {}
+                current_is_heart = {}
                 current_icon = 0
             end
-            -- ::continue::
         end
     end
 end
-
-
-
 
 local CURSE_COLORS = {
     curse_spite = { Color.red, Color.orange },
@@ -260,7 +264,6 @@ local CURSE_COLORS = {
     curse_encore = { Color.blue, Color.darkblue },
     curse_wrath = { Color.red, Color.darkmagenta },
 }
-
 
 function RoomObject:enter()
     self:add_tag("room_object")
@@ -377,6 +380,10 @@ function RoomObject:enter()
         -- self:add_spawn_lines(table.filtered_keys(self.stored_room.all_spawn_types, function(spawn)
         -- 	return spawn.subtype == "artefact"
         -- end))
+        if self.has_heart and not self.stored_room.curse_ignorance then
+            -- s:wait(self.room_num * 3)
+            -- self:start_heart_loop()
+        end
     end)
     local floor_object = self:spawn_object(RoomFloorObject(self.pos.x, self.pos.y))
     floor_object.direction = self.direction
@@ -402,10 +409,90 @@ function RoomObject:close_animation()
 	end)
 end
 
+function RoomObject:get_heart_world_positions()
+    local total_height = 0
+    for _, line in pairs(self.lines) do
+        total_height = total_height + line.height
+    end
+
+    local offset_x, offset_y = cos(self.random_offset + self.elapsed * 0.02 * self.orbit_direction), sin(self.random_offset + self.elapsed * 0.02 * self.orbit_direction)
+    offset_x = floor(offset_x * 3)
+    offset_y = floor(offset_y * 3)
+
+    local rect_width = RECT_WIDTH + RECT_LINE_WIDTH * 2 + PADDING * 2
+    local rect_height = min(total_height, self.max_height) + PADDING * 2
+
+    if self.stored_room.is_egg_room then
+        rect_width = EGG_ROOM_WIDTH + RECT_LINE_WIDTH * 2 + PADDING * 2
+    end
+
+    local rect_offset_x, rect_offset_y = vec2_rotated(-self.direction.x, -self.direction.y, -tau / 4)
+    rect_offset_x = rect_offset_x * (rect_width - 5)
+    rect_offset_y = clamp(rect_offset_y * (rect_height / 2 + 24), -self.stored_room.room_height / 2 + rect_height / 2, self.stored_room.room_height / 2 - rect_height / 2)
+    local diag_offset_x, diag_offset_y = vec2_rotated(-self.direction.x, -self.direction.y, -tau / 16)
+    diag_offset_x = diag_offset_x * (13)
+    diag_offset_y = diag_offset_y * (13)
+
+    local rect_x, rect_y = offset_x + rect_offset_x + diag_offset_x, offset_y + rect_offset_y + diag_offset_y
+
+    local dir_offset_x, dir_offset_y = 0, 0
+    if abs(self.direction.x) == 1 then
+        if self.direction.x == 1 then
+            dir_offset_x = -rect_width
+        end
+        dir_offset_y = floor(-rect_height / 2)
+    elseif abs(self.direction.y) == 1 then
+        dir_offset_x = -floor(rect_width / 2)
+        if self.direction.y == 1 then
+            dir_offset_y = -rect_height
+        end
+    end
+
+    local base_x = self.pos.x + dir_offset_x + rect_x
+    local base_y = self.pos.y + dir_offset_y + rect_y
+
+    local positions = {}
+    local y = 0
+    for _, line in pairs(self.lines) do
+        if line.type == "spawn_count" and line.data.is_heart then
+            for i, icon in ipairs(line.data.icons) do
+                if line.data.is_heart[i] then
+                    table.insert(positions, {
+                        x = base_x + RECT_LINE_WIDTH + PADDING + (i - 1) * (ICON_SIZE + 2) + ICON_SIZE / 2,
+                        y = base_y + RECT_LINE_WIDTH + PADDING + y + ICON_SIZE / 2,
+                    })
+                end
+            end
+        end
+        y = y + line.height
+    end
+    return positions
+end
+
+function RoomObject:start_heart_loop()
+    local s = self.sequencer
+    s:start(function()
+        -- self:play_sfx("pickup_heartbeat", 0.75)
+        self:start_heartbeat()
+        -- self.heartbeat_amount = 1.0
+        s:wait(32)
+        -- self:start_heartbeat()
+        -- self.heartbeat_amount = 0.8
+        -- self:play_sfx("pickup_heartbeat", 0.60)
+        -- self.heartbeat_amount = 0.8
+        -- s:wait(116)
+        self:start_heart_loop()
+    end)
+end
+
+function RoomObject:start_heartbeat(beat_num)
+    local positions = self:get_heart_world_positions()
+    for _, pos in ipairs(positions) do
+        self:spawn_object(HeartbeatPulse(pos.x, pos.y, 70))
+    end
+end
+
 function RoomObject:update(dt)
-	-- print(self.die_alpha)
-
-
     RoomObject.super.update(self, dt)
 	
     self.max_height = self.max_height + dt * 10
@@ -463,7 +550,7 @@ function RoomObject:draw()
         total_height = total_height + line.height
     end
 	
-    local offset_x, offset_y = cos(self.random_offset + self.elapsed * 0.02), sin(self.random_offset + self.elapsed * 0.02)
+    local offset_x, offset_y = cos(self.random_offset + self.elapsed * 0.02 * self.orbit_direction), sin(self.random_offset + self.elapsed * 0.02 * self.orbit_direction)
 	offset_x = floor(offset_x * 3)
 	offset_y = floor(offset_y * 3)
 
@@ -549,14 +636,22 @@ function RoomObject:draw()
 
 	if #self.lines == 0 then return end
 	
-	if gametime.tick % 2 == 0 then 
+    if gametime.tick % 2 == 0 then
     	graphics.set_color(0, 0, 0, 1)
-		graphics.rectangle("fill", 0, 0, rect_width, rect_height)
+        graphics.rectangle("fill", 0, 0, rect_width, rect_height)
+        graphics.push("all")
+
+
+        -- graphics.set_stencil_mode("draw", 1)
+        -- graphics.rectangle("fill", 0, 0, rect_width, rect_height)
+        -- graphics.set_stencil_mode("test", 1)
+
+        graphics.pop()
 	end
     graphics.set_color(self.die_alpha, self.die_alpha, self.die_alpha, 1)
-	
 
     graphics.rectangle("line", 0, 0, rect_width, rect_height)
+
 	graphics.translate(RECT_LINE_WIDTH + PADDING, RECT_LINE_WIDTH + PADDING)
 
 	local y = 0
@@ -586,7 +681,7 @@ function RoomObject:draw_line(line, y)
         -- graphics.set_font(self.font)
     elseif line.type == "spawn_count" then
         -- graphics.draw(textures.enemy_base, 0, y, 0, 1, 1, 0, 0)
-        for i, icon in pairs(line.data.icons) do
+        for i, icon in ipairs(line.data.icons) do
             if i < floor(line.t / 1) then
                 graphics.draw_centered(icon, (i - 1) * (ICON_SIZE + 2) + ICON_SIZE / 2, y + ICON_SIZE / 2, 0, 1, 1, 0, 0)
             end
@@ -614,29 +709,29 @@ function RoomFloorObject:new(x, y)
 end
 
 function RoomFloorObject:update(dt)
-	if self.is_new_tick then
+    if self.is_new_tick then
         local num_particles = max(floor(abs(rng:randfn(0, 1.6))), 1 - self.tick)
-		if num_particles > 0 then
-			for i=1, num_particles do 
-				local s = self.sequencer
-				s:start(function()
-					local particle = {}
-					particle.distance = clamp(rng:randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 20, MAX_PARTICLE_DISTANCE)
-					particle.size = max(rng:randfn(6.0, 1.5), 0.5)
-					particle.brightness = max(rng:randfn(0.25, 0.15), 0.05)
-					-- particle.rotated = rng:percent(50)
-					particle.t = 0
-					particle.offset = clamp(rng:randfn(0, PARTICLE_FIELD_WIDTH / 4), -PARTICLE_FIELD_WIDTH, PARTICLE_FIELD_WIDTH)
-					local centered_ratio = pow(1 - abs(particle.offset) / (PARTICLE_FIELD_WIDTH), 2)
-					particle.distance = particle.distance * clamp(remap_lower(pow(centered_ratio, 1.25), 0, 1, 0.25), 0.25, 1)
-					particle.size = particle.size * remap_lower(centered_ratio, 0, 1, 0.5)
-					self.particles[particle] = true
-					s:tween_property(particle, "t", 0.0, 1, min(max(rng:randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), 300), "inCubic")
-					self.particles[particle] = nil
-				end)
-			end
-		end
-	end
+        if num_particles > 0 then
+            for i = 1, num_particles do
+                local s = self.sequencer
+                s:start(function()
+                    local particle = {}
+                    particle.distance = clamp(rng:randfn(MAX_PARTICLE_DISTANCE / 2, MAX_PARTICLE_DISTANCE / 4), 20, MAX_PARTICLE_DISTANCE)
+                    particle.size = max(rng:randfn(6.0, 1.5), 0.5)
+                    particle.brightness = max(rng:randfn(0.25, 0.15), 0.05)
+                    -- particle.rotated = rng:percent(50)
+                    particle.t = 0
+                    particle.offset = clamp(rng:randfn(0, PARTICLE_FIELD_WIDTH / 4), -PARTICLE_FIELD_WIDTH, PARTICLE_FIELD_WIDTH)
+                    local centered_ratio = pow(1 - abs(particle.offset) / (PARTICLE_FIELD_WIDTH), 2)
+                    particle.distance = particle.distance * clamp(remap_lower(pow(centered_ratio, 1.25), 0, 1, 0.25), 0.25, 1)
+                    particle.size = particle.size * remap_lower(centered_ratio, 0, 1, 0.5)
+                    self.particles[particle] = true
+                    s:tween_property(particle, "t", 0.0, 1, min(max(rng:randfn(200, 20) * particle.distance / MAX_PARTICLE_DISTANCE, 10), 300), "inCubic")
+                    self.particles[particle] = nil
+                end)
+            end
+        end
+    end
 end
 
 
@@ -689,5 +784,28 @@ function RoomFloorObject:draw_particles(is_floor)
 end
 
 
+
+function HeartbeatPulse:new(x, y, lifetime)
+    HeartbeatPulse.super.new(self, x, y)
+    self.lifetime = lifetime
+    self:add_elapsed_time()
+    self:add_elapsed_ticks()
+    self.z_index = 3
+end
+
+function HeartbeatPulse:update(dt)
+    HeartbeatPulse.super.update(self, dt)
+    if self.elapsed >= self.lifetime then
+        self:destroy()
+    end
+end
+
+function HeartbeatPulse:draw()
+    if self.tick % 2 ~= 0 then return end
+    local ratio = self.elapsed / self.lifetime
+    local size = 15 + ratio * 20
+    graphics.set_color(pow(1 - ratio, 2), 0, 0, 1)
+    graphics.rectangle_centered("line", 0, 0, size, size - 1)
+end
 
 return RoomObject

@@ -688,37 +688,113 @@ function HUDLayer:pre_world_draw()
         for i, upgrade in ipairs(self.upgrades) do
             local flashing = self:is_timer_running("upgrade_flash_" .. upgrade.name) and iflicker(self.tick, 3, 2)
             local max_level = game_state:get_max_upgrade(upgrade.name)
+            local effective = upgrade.get_effective and upgrade.get_effective() or game_state.upgrades[upgrade.name]
+            local base_max = game_state.max_upgrades[upgrade.name]
+            local over_max = effective > base_max
+            local effective_max = upgrade.get_effective_max and upgrade.get_effective_max() or max_level
+            local display_level = max(max_level, effective_max)
+            local upgrades_val = game_state.upgrades[upgrade.name]
             if not flashing then
-                for j = max_level, 1, -1 do
-                    local height = upgrade_height / max_level
-
-                    local j2 = j
-
-                    graphics.set_color(Color.darkergrey)
-
-                    local color1 = upgrade.color1
-                    local color2 = upgrade.color2
-
-                    -- if game_state.crown_effect and upgrade.name == "fire_rate" and iflicker(self.tick, 2, 2) then
-                    --     j2 = j2 - 1
-                    --     if game_state.upgrades[upgrade.name] > 0 then
-                    --         color1 = upgrade.color3
-                    --         color2 = upgrade.color4
-                    --     end
-                    -- end
-
-                    local top_height = max((height - (upgrade_separation)) * .6)
-                    local bottom_height = height - top_height - upgrade_separation
-                    if j2 <= game_state.upgrades[upgrade.name] then
-                        graphics.set_color(color1)
-                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-                            (max_level - j) * (height), upgrade_width, top_height)
-                        graphics.set_color(color2)
-                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-                            (max_level - j) * (height) + top_height, upgrade_width, bottom_height)
+                for j = display_level, 1, -1 do
+                    local height = upgrade_height / display_level
+                    local x = upgrade_base + (i - 1) * (upgrade_width + upgrade_separation)
+                    local y = (display_level - j) * height
+                    local bar_height = height - upgrade_separation
+                    local top_height, bottom_height
+                    if bar_height <= 2 then
+                        bottom_height = 1
+                        top_height = bar_height - 1
                     else
-                        graphics.rectangle("fill", upgrade_base + (i - 1) * (upgrade_width + upgrade_separation),
-                            (max_level - j) * (height), upgrade_width, height - upgrade_separation)
+                        top_height = max((height - upgrade_separation) * .6)
+                        bottom_height = bar_height - top_height
+                    end
+                    local is_bonus_only = j > max_level
+
+                    local bonus_count = max(effective - upgrades_val, 0)
+                    local bonus_filled = is_bonus_only and j <= max_level + bonus_count
+
+                    local rounded = is_bonus_only and upgrade.bonus_rounded and bar_height > 2
+
+                    if j <= upgrades_val then
+                        -- normal upgrade: always normal colors
+                        graphics.set_color(upgrade.color1)
+                        graphics.rectangle("fill", x, y, upgrade_width, top_height)
+                        graphics.set_color(upgrade.color2)
+                        graphics.rectangle("fill", x, y + top_height, upgrade_width, bottom_height)
+                    elseif is_bonus_only and upgrade.bonus_meter then
+                        -- meter-style bonus: fills bottom-to-top revealing a fixed color split
+                        local fill = upgrade.get_bonus_fill and upgrade.get_bonus_fill() or 0
+                        local fill_height = floor(bar_height * fill)
+                        local empty_height = bar_height - fill_height
+                        if rounded then
+                            graphics.push("all")
+                                graphics.set_stencil_mode("draw", 1)
+                                graphics.set_color(1, 1, 1, 1)
+                                graphics.rectangle("fill", x + 1, y, upgrade_width - 2, 1)
+                                graphics.rectangle("fill", x, y + 1, upgrade_width, bar_height - 2)
+                                graphics.rectangle("fill", x + 1, y + bar_height - 1, upgrade_width - 2, 1)
+                                graphics.set_stencil_mode("test", 1)
+                                -- draw full bar as color1 top 60%, color2 bottom 40%
+                                graphics.set_color(upgrade.over_color1)
+                                graphics.rectangle("fill", x, y, upgrade_width, top_height)
+                                graphics.set_color(upgrade.over_color2)
+                                graphics.rectangle("fill", x, y + top_height, upgrade_width, bottom_height)
+                                -- cover unfilled portion with grey
+                                if empty_height > 0 then
+                                    graphics.set_color(Color.darkergrey)
+                                    graphics.rectangle("fill", x, y, upgrade_width, empty_height)
+                                end
+                            graphics.pop()
+                        else
+                            -- draw full bar as color1 top 60%, color2 bottom 40%
+                            graphics.set_color(upgrade.over_color1)
+                            graphics.rectangle("fill", x, y, upgrade_width, top_height)
+                            graphics.set_color(upgrade.over_color2)
+                            graphics.rectangle("fill", x, y + top_height, upgrade_width, bottom_height)
+                            -- cover unfilled portion with grey
+                            if empty_height > 0 then
+                                graphics.set_color(Color.darkergrey)
+                                graphics.rectangle("fill", x, y, upgrade_width, empty_height)
+                            end
+                        end
+                    elseif bonus_filled then
+                        -- magically filled by artefact effect
+                        if rounded then
+                            graphics.push("all")
+                                graphics.set_stencil_mode("draw", 1)
+                                graphics.set_color(1, 1, 1, 1)
+                                graphics.rectangle("fill", x + 1, y, upgrade_width - 2, 1)
+                                graphics.rectangle("fill", x, y + 1, upgrade_width, bar_height - 2)
+                                graphics.rectangle("fill", x + 1, y + bar_height - 1, upgrade_width - 2, 1)
+                                graphics.set_stencil_mode("test", 1)
+                                graphics.set_color(upgrade.over_color1)
+                                graphics.rectangle("fill", x, y, upgrade_width, top_height)
+                                graphics.set_color(upgrade.over_color2)
+                                graphics.rectangle("fill", x, y + top_height, upgrade_width, bottom_height)
+                            graphics.pop()
+                        else
+                            graphics.set_color(upgrade.over_color1)
+                            graphics.rectangle("fill", x, y, upgrade_width, top_height)
+                            graphics.set_color(upgrade.over_color2)
+                            graphics.rectangle("fill", x, y + top_height, upgrade_width, bottom_height)
+                        end
+                    else
+                        -- empty bar
+                        if rounded then
+                            graphics.push("all")
+                                graphics.set_stencil_mode("draw", 1)
+                                graphics.set_color(1, 1, 1, 1)
+                                graphics.rectangle("fill", x + 1, y, upgrade_width - 2, 1)
+                                graphics.rectangle("fill", x, y + 1, upgrade_width, bar_height - 2)
+                                graphics.rectangle("fill", x + 1, y + bar_height - 1, upgrade_width - 2, 1)
+                                graphics.set_stencil_mode("test", 1)
+                                graphics.set_color(Color.darkergrey)
+                                graphics.rectangle("fill", x, y, upgrade_width, bar_height)
+                            graphics.pop()
+                        else
+                            graphics.set_color(Color.darkergrey)
+                            graphics.rectangle("fill", x, y, upgrade_width, bar_height)
+                        end
                     end
                 end
             end
@@ -900,29 +976,84 @@ function HUDLayer:create_persistent_ui()
         {
             name = "damage",
             color1 = Color.red,
-            color2 = Color.darkred,
+            color2 = Color.red,
+            over_color1 = Color.red,
+            over_color2 = Color.red,
+            bonus_rounded = true,
+
+            get_effective = function()
+                return game_state:get_effective_damage()
+            end,
+            get_effective_max = function()
+                local m = game_state:get_max_upgrade("damage")
+                if game_state.artefacts.bullet_speed_stack then m = m + 1 end
+                return m
+            end,
         },
 		{
 			name = "fire_rate",
 			color1 = Color.cyan,
 			color2 = Color.skyblue,
-            color3 = Color.white,
-            color4 = Color.cyan,
+            over_color1 = Color.cyan,
+            over_color2 = Color.cyan,
+            bonus_rounded = true,
+            get_effective = function()
+                local w = self.game_layer and self.game_layer.world
+                if w and w.get_effective_fire_rate then return w:get_effective_fire_rate() end
+                return game_state.upgrades.fire_rate or 0
+            end,
+            get_effective_max = function()
+                local m = game_state:get_max_upgrade("fire_rate")
+                if game_state.artefacts.crown_of_frenzy then m = m + 1 end
+                return m
+            end,
 		},
 		{
             name = "bullet_speed",
 			color1 = Color.green,
 			color2 = Color.darkgreen,
+            over_color1 = Color.green,
+            over_color2 = Color.green,
+            bonus_rounded = true,
+            bonus_meter = true,
+            get_effective = function()
+                return game_state:get_effective_bullet_speed()
+            end,
+            get_effective_max = function()
+                local m = game_state:get_max_upgrade("bullet_speed")
+                if game_state.artefacts.bullet_speed_stack then m = m + 1 end
+                return m
+            end,
+            get_bonus_fill = function()
+                if not game_state.artefacts.bullet_speed_stack then return 0 end
+                return min(game_state.quick_wave_streak, game_state.MAX_QUICK_WAVE_BULLET_SPEED_STACKS) / game_state.MAX_QUICK_WAVE_BULLET_SPEED_STACKS
+            end,
 		},
 		{
             name = "range",
 			color1 = Color.yellow,
 			color2 = Color.orange,
+            over_color1 = Color.white,
+            over_color2 = Color.yellow,
+            get_effective = function()
+                return game_state:get_effective_range()
+            end,
+            get_effective_max = function()
+                return game_state:get_max_upgrade("range")
+            end,
 		},
         {
             name = "bullets",
             color1 = Color.magenta,
             color2 = Color.purple,
+            over_color1 = Color.white,
+            over_color2 = Color.magenta,
+            get_effective = function()
+                return game_state:get_effective_bullets()
+            end,
+            get_effective_max = function()
+                return game_state:get_max_upgrade("bullets")
+            end,
         },
 	}
 

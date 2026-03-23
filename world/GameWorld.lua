@@ -10,6 +10,7 @@ local XpPickup = require("obj.XpPickup")
 local EggWrath = require("obj.Spawn.Enemy.EggWrath")
 local PenitentSoul = require("obj.Spawn.Enemy.Penitent")[2]
 local FatigueZone = require("obj.Spawn.Enemy.FatigueZone")
+local PickupTable = require("obj.pickup_table")
 local Cutscene = require("obj.Cutscene")
 local BeginningCutscene = Cutscene.BeginningCutscene
 local CAMERA_OFFSET_AMOUNT = 20
@@ -20,6 +21,10 @@ local PressureObject = GameObject2D:extend("PressureObject")
 
 local ROOM_CHOICE = true
 local CAMERA_TARGET_OFFSET = Vec2(0, 2)
+
+local QUICK_WAVE_TIME = 540
+local SPEED_FREAK_TIME = 360
+local CLOCK_ARTEFACT = PickupTable.artefacts.ClockArtefact
 
 local NUM_SPAWN_ATTEMPT_BUCKET = {}
 
@@ -59,6 +64,11 @@ function GameWorld:new(x, y)
     self:add_signal("force_bonus_screen")
 	self:add_signal("room_cleared")
     self:add_signal("all_spawns_cleared")
+	self:add_signal("quick_wave_cleared")
+
+	self.last_wave_spare_time = 0
+	self.level_spare_time = 0
+	self.fungi_propagate_speed_scale = 1
     
 	local grid_size = 24
 
@@ -128,26 +138,33 @@ function GameWorld:enter()
 	self.timescaled.persist = true
 	self.timescaled:add_elapsed_ticks()
     self.timescaled:add_sequencer()
-	self.timescaled.update = function(me, dt)
+	self.timescaled.update = function(tab, dt)
         if game_state:has_bullet_powerups() and self.draining_bullet_powerup then
             game_state:drain_bullet_powerup_time(dt)
         end
 
-        
-        -- if self.draining_bullet_powerup then
-        --     game_state:drain_bullet_speed_stack(dt)
-        -- end
+        self.room.elapsed_scaled = self.room.elapsed_scaled + dt
+        self.room.tick_scaled = floor(self.room.elapsed_scaled)
 
-        -- if debug.enabled then
-        --     dbg("bullet_speed_stack_amount", game_state.bullet_speed_stack_amount, Color.yellow)
-        -- end
-        
+        -- clock artefact slows wave timers to match enemy slow
+        if self.clock_slowed then
+            if tab.tick_timers then
+                local rewind = dt * (1 - CLOCK_ARTEFACT.slow_factor)
+                for _, name in ipairs({"wave_timer", "speed_freak_timer"}) do
+                    if tab.tick_timers[name] then
+                        tab.tick_timers[name].elapsed = tab.tick_timers[name].elapsed - rewind
+                    end
+                end
+            end
+        end
 
+        self.fungi_propagate_speed_scale = approach(self.fungi_propagate_speed_scale, 1, dt * (1 / 40))
 
-        self.world.room.elapsed_scaled = self.world.room.elapsed_scaled + dt
-        self.world.room.tick_scaled = floor(self.world.room.elapsed_scaled)
+        if debug.enabled then
+            dbg("fungi_propagate_speed_scale", self.fungi_propagate_speed_scale)
+        end
 
-        modloader:call("world_update_timescaled", self, dt)
+        modloader:call("world_update_timescaled", tab, dt)
 	end
 	
 	-- self:play_sfx("level_start", 0.95, 1.0)
@@ -428,7 +445,7 @@ end
 function GameWorld:initialize_room(room)
 
     self.timescaled:stop_tick_timer("wave_timer")
-    self.timescaled:stop_tick_timer("last_wave_quick_clear")
+    self.timescaled:stop_tick_timer("speed_freak_timer")
 
     self.draining_bullet_powerup = false
 	self.floor_drawing = true
@@ -439,6 +456,13 @@ function GameWorld:initialize_room(room)
 	self.enemies_to_kill = {}
 
 	game_state:on_level_start()
+
+    if room.upgradeless then
+        game_state:level_bonus("upgradeless")
+    end
+    if room.heartless then
+        game_state:level_bonus("heartless")
+    end
 
     if self:get_stopwatch("tutorial_1") then self:stop_stopwatch("tutorial_1") end
     if self:get_stopwatch("tutorial_2") then self:stop_stopwatch("tutorial_2") end
@@ -491,13 +515,28 @@ function GameWorld:initialize_room(room)
 	-- self.camera:set_limits()
 end
 
-function GameWorld:start_wave_timer(duration)
+function GameWorld:start_wave_timer(duration, quick_wave)
     self.timescaled:stop_tick_timer("wave_timer")
+	self.timescaled:stop_tick_timer("speed_freak_timer")
 	self.timescaled:start_tick_timer("wave_timer", duration, function()
 		if game_state.game_over then return end
-        self.room.wave = self.room.wave + 1
-
-		self:spawn_wave()
+		if self.room.wave < self.room.last_wave then
+			self.room.wave = self.room.wave + 1
+			if not quick_wave then
+				game_state:on_slow_wave()
+			end
+			self:spawn_wave()
+		else
+			if not self.room.cleared then
+				game_state:on_slow_wave()
+			end
+		end
+	end)
+	game_state.in_speed_freak_window = true
+	self.timescaled:start_tick_timer("speed_freak_timer", SPEED_FREAK_TIME, function()
+		if not self.room.cleared then
+			game_state.in_speed_freak_window = false
+		end
 	end)
 end
 
@@ -548,19 +587,29 @@ function GameWorld:spawn_rescue(rescue_class, pickup, x, y)
     return rescue_object
 end
 
+function GameWorld:proc_clock_artefact(duration)
+	if not game_state.artefacts.clock then return end
+	-- if already slowed, extend the remaining time instead of restarting
+	local existing = self.timescaled.tick_timers and self.timescaled.tick_timers["clock_slow"]
+	if existing then
+		local remaining = existing.duration - floor(existing.elapsed)
+		duration = max(duration, remaining + duration)
+	end
+	self.clock_slowed = true
+	self.clock_slow_factor = CLOCK_ARTEFACT.slow_factor
+	self:play_sfx("clock_slow", 0.75, 1.0)
+	self.timescaled:start_tick_timer("clock_slow", duration, function()
+		self.clock_slowed = false
+		-- self:play_sfx("clock_slow_end", 0.75, 1.0)
+	end)
+end
+
 function GameWorld:on_rescue_picked_up(rescue_object)
     local bx, by = rescue_object:get_body_center()
     if not rescue_object.no_score then
         self:add_score_object(bx, by, rescue_object.spawn_data.score, "rescues")
     end
-    if game_state.artefacts.clock then
-		self.clock_slowed = true
-		self:play_sfx("clock_slow", 0.75, 1.0)
-		self.timescaled:start_tick_timer("clock_slow", 5 + min(game_state.rescue_chain, 20), function()
-		-- self.timescaled:start_tick_timer("clock_slow", 30, function()
-			self.clock_slowed = false
-		end)
-	end
+	self:proc_clock_artefact(CLOCK_ARTEFACT.min_duration + round((CLOCK_ARTEFACT.max_duration - CLOCK_ARTEFACT.min_duration) * min(game_state.rescue_chain, 20) / 20))
 	game_state:on_rescue(rescue_object)
 	self:quick_notify(string.format("×%d", game_state:get_rescue_chain_multiplier()), nil, nil, nil, 30, true)
 end
@@ -569,7 +618,7 @@ function GameWorld:spawn_wave()
     if self.room.cleared then return end
 
 	game_state.wave = self.room.wave
-
+	game_state.bullets_shot_this_wave = 0
 
 	self:change_state("Spawning")
 
@@ -608,11 +657,7 @@ function GameWorld:spawn_wave()
 				self:change_state("Normal")
 			end
 
-			if self.room.wave < self.room.last_wave then
-				self:start_wave_timer(540)
-			else
-				self.timescaled:start_tick_timer("last_wave_quick_clear", 540)
-			end
+			self:start_wave_timer(QUICK_WAVE_TIME)
 		end)
 	end
 end
@@ -623,8 +668,6 @@ function GameWorld:get_quick_clear_time_left_ratio()
 		return 0
 	elseif self.state == "LevelTransition" then
 		return 0
-	elseif self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
-		return 1 - self.timescaled:tick_timer_progress("last_wave_quick_clear")
 	elseif self.timescaled:is_tick_timer_running("wave_timer") then
 		return 1 - self.timescaled:tick_timer_progress("wave_timer")
 	else
@@ -773,9 +816,7 @@ function GameWorld:register_spawn_wave_enemy(enemy_object)
 
         self.enemies_to_kill[enemy_object] = nil
         game_state:add_kill()
-        if game_state.artefacts.bullet_speed_stack then
-            game_state:gain_bullet_speed_stack()
-        end
+        self:on_enemy_killed_fungi_propagate()
 
         if self.room.curse_penitence and rng:percent(8 * (enemy_object.max_hp or 1)) and self:get_number_of_objects_with_tag("penitent_soul") < 5 then
             -- self:register_non_wave_enemy_required_kill()
@@ -821,18 +862,34 @@ function GameWorld:on_wave_cleared()
 
 	s:start(function()
 		if game_state.game_over then return end
-		if self.room.wave == self.room.last_wave then
-			-- s:wait(10)
-			if self.timescaled:is_tick_timer_running("last_wave_quick_clear") then
-				-- print("last wave finished early")
-				self:play_sfx("wave_finished_early", 0.75, 1.0)
-				game_state:level_bonus("quick_wave")
-			end
-			self:on_room_clear()
+		local is_quick = self.timescaled:is_tick_timer_running("wave_timer")
+		local is_speed_freak = self.timescaled:is_tick_timer_running("speed_freak_timer")
+		local spare_time = self.timescaled:tick_timer_time_left("wave_timer") or 0
+		if is_quick then
+			self.last_wave_spare_time = spare_time
+			self.level_spare_time = self.level_spare_time + spare_time
 		else
+			self.last_wave_spare_time = 0
+		end
+		local is_last_wave = self.room.wave == self.room.last_wave
+		if is_quick or not is_last_wave then
 			self:play_sfx("wave_finished_early", 0.75, 1.0)
 			game_state:level_bonus("quick_wave")
-			self:start_wave_timer(10)
+			if is_speed_freak then
+				game_state:level_bonus("speed_freak")
+			end
+			-- if game_state.bullets_shot_this_wave == 0 then
+				-- game_state:level_bonus("reckless")
+			-- end
+			game_state:on_quick_wave(is_speed_freak)
+			local spare_ratio = spare_time / QUICK_WAVE_TIME
+			self.fungi_propagate_speed_scale = lerp_clamp(0.5, 0.025, clamp01(spare_ratio * 2))
+			self:emit_signal("quick_wave_cleared", spare_time, spare_ratio)
+		end
+		if is_last_wave then
+			self:on_room_clear()
+		else
+			self:start_wave_timer(10, true)
 		end
 	end)
 end
@@ -994,11 +1051,13 @@ function GameWorld:on_player_got_hurt()
 		-- s:wait(120)
 
 	end)
+	self:proc_clock_artefact(CLOCK_ARTEFACT.max_duration)
 end
 
 function GameWorld:on_player_died()
     local s = self.sequencer
 
+    self:proc_clock_artefact(CLOCK_ARTEFACT.max_duration)
     modloader:call("on_player_died", self)
 
     s:start(function()
@@ -1014,7 +1073,7 @@ function GameWorld:on_player_died()
         self.player_died = true
         game_state.dying = true
         self:end_tick_timer("wave_timer")
-        self:end_tick_timer("last_wave_quick_clear")
+        self:end_tick_timer("speed_freak_timer")
         savedata:on_death()
         audio.stop_music()
         if not game_state.artefacts.blast_armor then
@@ -1236,7 +1295,8 @@ function GameWorld:spawn_room_objects()
 		local spawn_pos_x, spawn_pos_y = direction.x * self.room.room_width / 2, direction.y * self.room.room_height / 2
 		local room_object = O.RoomObject(spawn_pos_x, spawn_pos_y, room)
 		room_object.direction = direction
-		room_object.points_rating = room.points_rating
+        room_object.points_rating = room.points_rating
+        room_object.room_num = i
 		signal.connect(room_object, "room_chosen", self, "on_room_chosen", function()
 			self.player_entered_direction = direction
 			-- local s = self.sequencer
@@ -1260,9 +1320,21 @@ function GameWorld:spawn_room_objects()
 
     if consumed_upgrade then
 		game_state:consume_upgrade()
+        for i = 1, #rooms do
+            local room = rooms[i]
+            if not room.consumed_upgrade then
+                rooms[i].upgradeless = true
+            end
+        end
 	end
 
 	if consumed_heart then
+        for i = 1, #rooms do
+            local room = rooms[i]
+            if not room.consumed_heart then
+                rooms[i].heartless = true
+            end
+        end
 		game_state:consume_heart()
 	end
 
@@ -1325,7 +1397,7 @@ function GameWorld:on_room_clear()
 
 
 	self:stop_tick_timer("wave_timer")
-	self:stop_tick_timer("last_wave_quick_clear")
+	self:stop_tick_timer("speed_freak_timer")
 
     if not game_state.hit_by_egg_wrath and self.room.curse == "curse_wrath" then
         game_state:level_bonus("tactful")
@@ -1346,6 +1418,7 @@ function GameWorld:on_room_clear()
 	self.room.cleared = true
 
 	self:start_room_clear_fx()
+	self:proc_clock_artefact(CLOCK_ARTEFACT.max_duration)
 
 	s:start(function()
 		-- self.frozen = true
@@ -1518,7 +1591,7 @@ function GameWorld:always_update(dt)
     if debug.enabled then
         dbg("quick_clear_time_left_ratio", self:get_quick_clear_time_left_ratio(), Color.yellow)
         dbg("wave_timer", self.timescaled:tick_timer_time_left("wave_timer"), Color.yellow)
-        dbg("last_wave_quick_clear", self.timescaled:tick_timer_time_left("last_wave_quick_clear"), Color.yellow)
+        dbg("speed_freak_timer", self.timescaled:tick_timer_time_left("speed_freak_timer"), Color.yellow)
     end
 end
 
@@ -2241,9 +2314,24 @@ function GameWorld:draw_quick_clear_progress_bar()
         colormod = 0.0
     end
     graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
-    local x_scale = 130 * quick_clear_ratio
+    local bar_width = 130
+    local x_scale = bar_width * quick_clear_ratio
     local y_scale = 3
-    graphics.rectangle("fill", (left + 1), top - y_scale - 2, x_scale, y_scale)
+    local bar_x = left + 1
+    local bar_y = top - y_scale - 2
+    graphics.rectangle("fill", bar_x, bar_y, x_scale, y_scale)
+
+    -- speed freak notch
+    local notch_ratio = 1 - SPEED_FREAK_TIME / QUICK_WAVE_TIME
+    if quick_clear_ratio >= notch_ratio then
+        local notch_x = bar_x + floor(bar_width * notch_ratio)
+        -- colormod = colormod * 0.25
+        graphics.set_color(0, 0, 0)
+        -- graphics.set_color(border_color.r * colormod, border_color.g * colormod, border_color.b * colormod)
+        local width = 1
+        local height = 0
+        graphics.rectangle("fill", notch_x - width/2, bar_y - height, width, height + 1)
+    end
 end
 
 function GameWorld:draw_top_info()
@@ -2564,6 +2652,7 @@ function GameWorld:state_Normal_enter()
 end
 
 function GameWorld:state_Normal_update(dt)
+
 	if self.wave_started and self.enemies_to_kill and table.is_empty(self.enemies_to_kill) then
 		self:on_wave_cleared()
 	end
@@ -2644,6 +2733,8 @@ function GameWorld:state_LevelTransition_enter(room)
     if game_state then
         game_state.level_transition_can_save = true
     end
+    
+    self.fungi_propagate_speed_scale = 1
 
 	local room_objects = self:get_objects_with_tag("room_object")
 	for _, obj in room_objects:ipairs() do
@@ -2915,6 +3006,26 @@ function PressureObject:draw()
 end
 
 
+
+function GameWorld:get_last_wave_spare_time()
+	return self.last_wave_spare_time
+end
+
+function GameWorld:get_level_spare_time()
+	return self.level_spare_time
+end
+
+function GameWorld:is_fungi_propagation_allowed()
+	return self.timescaled:is_tick_timer_running("fungi_propagate_window")
+		or self.timescaled:is_tick_timer_running("speed_freak_timer")
+		or self.room.cleared
+end
+
+function GameWorld:on_enemy_killed_fungi_propagate()
+	if game_state.artefacts.death_cap then
+		self.timescaled:start_tick_timer("fungi_propagate_window", 90) -- 1.5s at 60fps
+	end
+end
 
 AutoStateMachine(GameWorld, "Normal")
 
