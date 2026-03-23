@@ -976,9 +976,9 @@ function HUDLayer:create_persistent_ui()
         {
             name = "damage",
             color1 = Color.red,
-            color2 = Color.red,
+            color2 = Color.darkred,
             over_color1 = Color.red,
-            over_color2 = Color.red,
+            over_color2 = Color.darkred,
             bonus_rounded = true,
 
             get_effective = function()
