@@ -979,7 +979,7 @@ function PlayerCharacter:fire_current_bullet()
         end
 
         if effective_range == 2 then
-            self:play_sfx("player_range_upgrade_2", 0.)
+            self:play_sfx("player_range_upgrade_2", 0.25)
         end
 
 
