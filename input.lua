@@ -98,6 +98,7 @@ function input.load()
     input.keyboard_held = {}
     input.keyboard_pressed = {}
     input.keyboard_released = {}
+    input.key_to_scancode = {}
 
     input.joystick_held = {}
     input.joystick_pressed = {}
@@ -680,10 +681,13 @@ function input.add_rumble_function(func)
     s:start(func)
 end
 
-function input.on_key_pressed(key)
+function input.on_key_pressed(key, scancode)
     -- if not input.keyboard_held[key] then
         input.keyboard_held[key] = true
         input.keyboard_pressed[key] = true
+        if scancode then
+            input.key_to_scancode[key] = scancode
+        end
 		signal.emit(input, "key_pressed", key)
         input:record_device_activity("mkb")
     -- end

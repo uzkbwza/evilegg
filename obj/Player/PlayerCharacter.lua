@@ -49,6 +49,7 @@ local MIN_HOVER_TIME = 14
 local PICKUP_RADIUS = 8
 
 local SECONDARY_BUFFER_TIME = 3
+local MOUSE_FIRE_BOARD_BUFFER = 3
 local PRAYER_KNOT_CHARGE_TIME = 65
 
 -- Rumble easing functions (avoids per-call allocations)
@@ -146,6 +147,8 @@ function PlayerCharacter:new(x, y)
     self.digital_ghost_aim = Vec2(0, -1)   -- unsnapped real aim in digital mode
     self.digital_snapped_aim = Vec2(0, -1) -- snapped aim direction in digital mode
     self.mouse_mode = true
+    self.last_mouse_fire_tick = -100
+    self.last_mouse_secondary_tick = -100
     self.persist = true
 
     self.crown_effect = false
@@ -725,8 +728,12 @@ function PlayerCharacter:handle_input(dt)
 
     self.shooting = self.shooting or input.shoot_held or usersettings.autofire
 
-    if usersettings.autofire and input.shoot_held and usersettings.autofire_shoot_to_aim then 
+    if usersettings.autofire and input.shoot_held and usersettings.autofire_shoot_to_aim then
         self.shooting = false
+    end
+
+    if self.shooting and input.mouse.lmb then
+        self.last_mouse_fire_tick = gametime.tick
     end
 
     if self:can_shoot() and (not (digital_aim_input and self.shoot_held_time < SHOOT_INPUT_DELAY)) and self.shooting and not self:is_tick_timer_running("shoot_cooldown") then
@@ -773,6 +780,10 @@ function PlayerCharacter:handle_input(dt)
     -- if input.secondary_weapon_pressed and weapon and (not_enough_ammo or self.world.room.curse == "curse_famine") then
     if input.secondary_weapon_pressed and weapon and (not_enough_ammo) then
         game_state:on_tried_to_use_secondary_weapon_with_no_ammo()
+    end
+
+    if (input.secondary_weapon_pressed or input.secondary_weapon_held) and input.mouse.rmb then
+        self.last_mouse_secondary_tick = gametime.tick
     end
 
     if input.secondary_weapon_held and secondary_weapon and secondary_weapon.rapid_fire then
@@ -838,6 +849,8 @@ function PlayerCharacter:on_secondary_weapon_pressed()
 		return
 	end
 
+	self:record_secondary_input()
+
 	local method = "secondary_" .. secondary_weapon.key .. "_pressed"
 	if self[method] then
 		self[method](self)
@@ -845,7 +858,7 @@ function PlayerCharacter:on_secondary_weapon_pressed()
     if secondary_weapon.holdable then
         self:start_stopwatch("secondary_weapon_held")
     end
-	
+
 end
 
 function PlayerCharacter:start_secondary_weapon_cooldown()
@@ -904,19 +917,29 @@ end
 function PlayerCharacter:record_fire_input()
     local restriction = usersettings.input_restriction
     if restriction == "twin_digital" then
-        -- everything is digitized, no escalation
         return
     end
-    if usersettings:is_absolute_mouse_aim() then
+    if self.mouse_mode and usersettings:is_absolute_mouse_aim() then
         game_state:record_input_usage("mouse")
     elseif self.mouse_mode then
-        -- relative mouse counts as analog
         game_state:record_input_usage("analog")
     elseif self.using_analog_aim then
-        -- analog stick (not digital buttons)
         game_state:record_input_usage("analog")
     end
-    -- digital buttons/dpad = no escalation (stays twin_digital)
+end
+
+function PlayerCharacter:record_secondary_input()
+    local restriction = usersettings.input_restriction
+    if restriction == "twin_digital" then
+        return
+    end
+    if self.mouse_mode and usersettings:is_absolute_mouse_aim() then
+        game_state:record_input_usage("mouse")
+    elseif self.mouse_mode then
+        game_state:record_input_usage("analog")
+    elseif self.using_analog_aim then
+        game_state:record_input_usage("analog")
+    end
 end
 
 function PlayerCharacter:fire_current_bullet()
@@ -1846,6 +1869,12 @@ function PlayerCharacter:secondary_big_laser_held(dt)
 			self.big_laser_beam_aiming_laser:move_to(self:get_body_center())
 			self.big_laser_beam_aiming_laser:set_direction(self.real_aim_direction.x, self.real_aim_direction.y)
 		end
+
+        if self.mouse_mode and usersettings:is_absolute_mouse_aim() then
+            if input.mouse.dxy_absolute.x ~= 0 or input.mouse.dxy_absolute.y ~= 0 then
+                game_state:record_input_usage("mouse")
+            end
+        end
 	end
 end
 
@@ -1937,6 +1966,7 @@ function HoverBackblast:new(x, y, dirx, diry)
     self.dirx = dirx
     self.random_offset = rng:randi(0, 100)
     self.diry = diry
+    self.extra_size = game_state:get_effective_range()
     self:start_tick_timer("nomelee", 3, function()
         self.melee_attacking = false
     end)
@@ -1944,26 +1974,34 @@ function HoverBackblast:new(x, y, dirx, diry)
     self:lazy_mixin(Mixins.Behavior.TwinStickEntity)
 end
 
+
+function HoverBackblast:get_death_particle_hit_velocity(target)
+    return self.dirx * 30, self.diry * 30
+end
+
+
 function HoverBackblast:draw()
-    graphics.translate(self.dirx * 16, self.diry * 16)
-    -- local dist = self.elapsed * 0.6
-    -- graphics.translate(self.dirx * dist, self.diry * dist)
     local color = Palette.trail_fire_ground:tick_color(self.tick + self.random_offset, 0, 1)
     if color ~= Color.black then
         graphics.set_color(color)
-        local size = 37 - pow((self.tick) * 0.3, 3)
-        if size > 0 then
-            graphics.rectangle_centered(iflicker(self.tick, 2, 2) and "line" or "fill", 0, 0, size, size)
+        local mode = iflicker(self.tick, 2, 2) and "line" or "fill"
+        local decrease = pow(self.tick * 0.3, 3)
+        for name, bubble in pairs(self.bubbles.hit) do
+            local size = 2 * bubble.radius - decrease
+            if size > 0 then
+                local m = name == "main" and mode or "line"
+                graphics.rectangle_centered(m, bubble.x, bubble.y, size, size)
+            end
         end
     end
 end
 
 function HoverBackblast:enter()
     self:play_sfx("player_hover_backblast", 0.5)
-    local offsx, offsy = vec2_mul_scalar(self.dirx, self.diry, 10)
-    local b1x, b1y = vec2_mul_scalar(self.dirx, self.diry, 10)
-    local b2x, b2y = vec2_mul_scalar(self.dirx, self.diry, 8)
-    local b3x, b3y = vec2_mul_scalar(self.dirx, self.diry, 8)
+    local offsx, offsy = vec2_mul_scalar(self.dirx, self.diry, 10 + self.extra_size * 2)
+    local b1x, b1y = vec2_mul_scalar(self.dirx, self.diry, 10 + self.extra_size * 2)
+    local b2x, b2y = vec2_mul_scalar(self.dirx, self.diry, 8 + self.extra_size * 0.5)
+    local b3x, b3y = vec2_mul_scalar(self.dirx, self.diry, 8 + self.extra_size * 0.5)
     b2x, b2y = vec2_rotated(b2x, b2y, tau / 6)
     b3x, b3y = vec2_rotated(b3x, b3y, -tau / 6)
 
@@ -1986,7 +2024,7 @@ local BACKBLAST_PUSH_SPEED = 2
 
 function HoverBackblast:hit_other(parent, bubble)
     if parent.bullet_pushable then
-        self:try_push(parent, BACKBLAST_PUSH_SPEED)
+        self:try_push(parent, BACKBLAST_PUSH_SPEED + game_state:get_effective_bullet_speed())
     end
 end
 

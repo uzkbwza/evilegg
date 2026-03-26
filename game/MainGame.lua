@@ -273,13 +273,13 @@ function GlobalGameState:new()
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
 
-            self.level = 20
+            self.level = 61
             self.egg_rooms_cleared = floor((self.level - 1) / 20)
             self.hearts = self.max_hearts
 
             self:gain_artefact(rng:choose(PickupTable.artefacts.BigLaserSecondaryWeapon, PickupTable.artefacts.RailGunSecondaryWeapon, PickupTable.artefacts.SwordSecondaryWeapon))
 
-            for i = 1, 5 do
+            for i = 1, 8 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()

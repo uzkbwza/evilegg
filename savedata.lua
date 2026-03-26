@@ -515,7 +515,7 @@ function savedata:get_seconds_until_retry_cooldown_is_over()
         return 0
     end
 
-    return last_died_at + self.retry_cooldown_seconds - os.time()
+    return math.min(last_died_at + self.retry_cooldown_seconds - os.time(), 99)
 end
 
 return savedata

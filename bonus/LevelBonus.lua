@@ -230,8 +230,8 @@ return {
     
     cursed_room = {
         text_key = "bonus_cursed_room",
+        score_multiplier = 0.02,
         score = 50,
-        score_multiplier = 0.01,
         xp = 100,
         difficulty_modifier = 0.015,
     },

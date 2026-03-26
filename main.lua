@@ -403,7 +403,7 @@ end
 
 function love.joystickadded(joystick)   input.joystick_added(joystick); input.last_input_device="gamepad" end
 function love.joystickremoved(joystick) input.joystick_removed(joystick)                                       end
-function love.keypressed(key)           input.on_key_pressed(key); input.last_input_device="mkb"             end
+function love.keypressed(key, scancode)  input.on_key_pressed(key, scancode); input.last_input_device="mkb"    end
 function love.gamepadpressed(g,b)       input.on_joystick_pressed(g,b); input.last_input_device="gamepad"     end
 function love.joystickpressed(j,b)      input.on_joystick_pressed(j,b); input.last_input_device="gamepad"     end
 function love.gamepadaxis(joystick, axis, value)

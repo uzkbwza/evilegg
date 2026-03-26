@@ -223,6 +223,10 @@ function EvaderParticle:draw()
 end
 
 
+local bullet_physics_limits = {
+    max_speed = BULLET_SPEED
+}
+
 function EvaderBullet:new(x, y)
 	self.max_hp = 1
 
@@ -234,6 +238,7 @@ function EvaderBullet:new(x, y)
     self:lazy_mixin(Mixins.Behavior.TwinStickEnemyBullet)
     self.z_index = 10
     self.bounces_left = 2
+    self:set_physics_limits(bullet_physics_limits)
 
 end
 
