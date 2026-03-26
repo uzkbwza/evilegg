@@ -39,7 +39,7 @@ RAW_EXCLUDED_PATTERNS = [
 	'*luasteam.dll',
 
     # non build stuff
-    'a2/*',  # Use a2_bc (bytecode) instead, renamed to a2 in zip
+    # a2/* is only excluded when a2_bc/ exists to replace it (see create_love_file)
     '*.ase',
     '*.aseprite',
     'assets/sprite/palette_cycle_test_image.png',
@@ -80,11 +80,11 @@ ICON_SOURCE         = os.path.join('assets', 'icon.png')
 # Helpers
 # -----------------------------------------------------------------------------
 
-def should_exclude(rel_path: str) -> bool:
+def should_exclude(rel_path: str, extra_patterns: list[str] = []) -> bool:
     """Return True if *rel_path* matches an exclusion pattern."""
     # Normalize path separators for matching
     rel_path = rel_path.replace('\\', '/')
-    for pattern in EXCLUDED_PATTERNS:
+    for pattern in EXCLUDED_PATTERNS + extra_patterns:
         if fnmatch.fnmatch(rel_path, pattern):
             return True
     return False
@@ -103,6 +103,11 @@ def create_love_file(project_root: str) -> str:
     love_name = f"{GAME_NAME}.love"
     love_path = os.path.join(project_root, love_name) # Create in root temporarily
     abs_build_dir = os.path.abspath(BUILD_DIR)
+
+    # Only exclude a2/ if a2_bc/ exists to replace it
+    has_a2_bc = os.path.isdir(os.path.join(project_root, 'a2_bc'))
+    extra_excludes = ['a2/*'] if has_a2_bc else []
+
     with zipfile.ZipFile(love_path, 'w', zipfile.ZIP_DEFLATED) as z:
         for root, dirs, files in os.walk(project_root):
             # Exclude the build directory itself by checking if the current root
@@ -112,13 +117,13 @@ def create_love_file(project_root: str) -> str:
 
             rel_root = os.path.relpath(root, project_root)
             # Prune sub-dirs that are excluded so os.walk skips them
-            dirs[:] = [d for d in dirs if not should_exclude(os.path.join(rel_root, d).replace('\\', '/'))]
+            dirs[:] = [d for d in dirs if not should_exclude(os.path.join(rel_root, d).replace('\\', '/'), extra_excludes)]
             for fname in files:
                 # Also exclude the love file itself
                 if fname == love_name:
                     continue
                 rel_path = os.path.join(rel_root, fname).replace('\\', '/')
-                if should_exclude(rel_path):
+                if should_exclude(rel_path, extra_excludes):
                     continue
                 full_path = os.path.join(root, fname)
                 # Rename a2_bc to a2 in the archive

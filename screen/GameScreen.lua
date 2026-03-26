@@ -89,7 +89,7 @@ function GameScreen:get_mouse_mode() -- visible, relative, confine
 end
 
 function GameScreen:in_menu()
-    if self.ui_layer and self.ui_layer.state == "Paused" then
+    if self.ui_layer and (self.ui_layer.state == "Paused" or self.ui_layer.state == "PlayerDeath") then
         return true
     end
 

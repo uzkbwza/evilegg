@@ -1,21 +1,29 @@
-return {
+local tab = {
     elevator_killed = {
 		text_key = "bonus_boss_defeated",
 		score = 5000,
 		score_multiplier = 1,
+        priority = 2,
+
 		xp = 1500,
 		difficulty_modifier = 0.0,
 	},
 
-	-- final_room_clear = {
-	-- 	text_key = "bonus_final_room_clear",
-	-- 	score = function() return max(game_state.score * 0.5, 5000) end, 
-	-- 	ignore_score_multiplier = true,
-	-- 	score_multiplier = 0,
-	-- 	xp = 0,
-	-- 	difficulty_modifier = 0.0,
-	-- 	-- final_room_allowed = true,
-    -- },
+	final_room_clear = {
+		text_key = "bonus_final_room_clear",
+        
+        score = function()
+            local a = (200000 + game_state.egg_rooms_cleared * 50000) * game_state:get_score_multiplier(false)
+            return a
+        end,
+
+		ignore_score_multiplier = true,
+        score_multiplier = 0,
+        priority = 2,
+		xp = 0,
+		difficulty_modifier = 0.0,
+		-- final_room_allowed = true,
+    },
 	
 	-- twin_saved = {
 	-- 	text_key = "bonus_twin_saved",
@@ -260,3 +268,16 @@ return {
     --     difficulty_modifier = 0.015,
     -- },
 }
+
+for k, v in pairs(tab) do
+    if type(v.score) == "function" then
+        local old_func = v.score
+        v.score = function(...)
+            return old_func(...) * GLOBAL_SCORE_MULTIPLIER
+        end
+    else
+        v.score = v.score * GLOBAL_SCORE_MULTIPLIER
+    end
+end
+
+return tab

@@ -1,6 +1,6 @@
-
 EGG_ROOM_START = 20
 EGG_ROOM_PERIOD = 20
+
 
 if debug.enabled then
 	function Screens.LevelEditor:custom_map_process(tab)

@@ -261,7 +261,7 @@ function GlobalGameState:new()
         if cheat then
             self.cheat = true
             self.skip_shadow_selves = false
-            self:add_score(rng:randi(00000, 1000000), "cheat")
+            self:add_score(57000000, "cheat")
             -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
             -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
@@ -272,8 +272,9 @@ function GlobalGameState:new()
             self.num_queued_hearts = 1
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
+            self.score_multiplier = stepify(11.0, 0.01)
 
-            self.level = 61
+            self.level = 80
             self.egg_rooms_cleared = floor((self.level - 1) / 20)
             self.hearts = self.max_hearts
 
@@ -849,6 +850,7 @@ end
 function GlobalGameState:end_game()
     -- self.running_clock = false
     self:end_game_bonus("final_room_clear")
+    self:level_bonus("final_room_clear")
 
     savedata:set_save_data("has_beaten_game", true)
     savedata:set_save_data("wins", (savedata.wins or 0) + 1)
@@ -866,8 +868,6 @@ function GlobalGameState:end_game()
             A2Web.register_run_achievement("good_ending", floor(self.game_time))
         end
     end
-
-    
 
     if not self.any_greenoids_killed then
         self:end_game_bonus("no_greenoid_deaths")

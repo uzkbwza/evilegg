@@ -19,9 +19,9 @@ palette_high:push(Palette.score_pickup_hi)
 function ScoreNumberEffect:new(x, y, score)
     ScoreNumberEffect.super.new(self, x, y+1)
     self.score = score
-    self.game_score_low_mid = game_state:determine_score(200)
-    self.game_score_mid = game_state:determine_score(500)
-	self.game_score_high = game_state:determine_score(1000)
+    self.game_score_low_mid = game_state:determine_score(30 * GLOBAL_SCORE_MULTIPLIER)
+    self.game_score_mid = game_state:determine_score(70 * GLOBAL_SCORE_MULTIPLIER)
+	self.game_score_high = game_state:determine_score(120 * GLOBAL_SCORE_MULTIPLIER)
     self.duration = 60
 	self.z_index = 0
     self.random_offset = rng:randi(0, 1000)

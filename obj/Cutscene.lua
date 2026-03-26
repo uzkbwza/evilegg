@@ -1339,10 +1339,13 @@ function FinalScoreCutscene:new(x, y)
     end
 
     table.sort(end_game_bonuses, function(a, b)
-        if a.multiplier == b.multiplier then
-            return a.text_key > b.text_key
+        if a.priority == b.priority then
+            if a.multiplier == b.multiplier then
+                return a.text_key > b.text_key
+            end
+            return a.multiplier > b.multiplier
         end
-        return a.multiplier > b.multiplier
+        return a.priority > b.priority
     end)
 
     self.end_game_bonuses = end_game_bonuses
@@ -1408,6 +1411,7 @@ function FinalScoreCutscene:enter()
             s:wait(45)
             self.next_t = 0
             local bonus = self.end_game_bonuses[i]
+            self.current_bonus = bonus
             self.next_ones = floor(self.current_multiplier + bonus.multiplier)
             self.next_tenths = round((self.current_multiplier + bonus.multiplier - self.next_ones) * 10)
             self.next_multiplier = self.current_multiplier + bonus.multiplier
@@ -1424,7 +1428,8 @@ function FinalScoreCutscene:enter()
             local last = i == #self.end_game_bonuses
 
             self.between_bonuses = true
-            
+            local old_displayed_score = self.displayed_score
+
             s:tween(function(t)
                 self.next_t = t
                 local old_displayed_score = self.displayed_score
@@ -1433,14 +1438,19 @@ function FinalScoreCutscene:enter()
                     self:play_sfx("ui_end_bonus_tick", 0.6)
                     input.start_rumble(tick_rumble, 5)
                 end
+                local len = utf8.len(self.bonus_text)
+                local bonus_t = clamp01(self:get_stopwatch("bonus_t").elapsed / len / 2)
+                if self.is_new_tick and self.tick % 4 == 0 and bonus_t < 1 and self.current_bonus.multiplier == 0 then
+                    self:play_sfx("ui_bonus_screen_beep2", 0.5)
+                end
                 game_state:set_score(self.displayed_score)
-            end, 0, 1, last and 150 or 120, "linear")
+            end, 0, 1, (last and 150 or 120) * (bonus.multiplier == 0 and 0.85 or 1), "linear")
             self.between_bonuses = false
 
             if last then
                 self:play_sfx("ui_end_bonus_final_impact", 1.0)
                 input.start_rumble(impact_rumble, 45)
-            else
+            elseif old_displayed_score ~= self.displayed_score then
                 self:play_sfx("ui_end_bonus_impact", 1.0)
                 input.start_rumble(impact_rumble, 35)
             end
@@ -1480,7 +1490,7 @@ function FinalScoreCutscene:draw()
     graphics.push("all")
     if not self.dark then
         local palette = Palette.final_score_2
-        if self.between_bonuses then
+        if self.between_bonuses and self.current_bonus.multiplier ~= 0 then
             palette = Palette.final_score_1
         elseif self.done_with_bonuses then
             palette = Palette.final_score_3

@@ -421,10 +421,22 @@ end
 -- end
 
 function WildRoamerBullet:draw()
+    local _, offset = self:get_palette_shared()
+    local bullet_tex = textures.enemy_wild_roamer_bullet
+    local cache = graphics.palette_sprite_cache[bullet_tex]
 
-    local palette, offset = self:get_palette_shared()
-    graphics.drawp_centered_outline(Palette.wild_roamer_mine_border:tick_color(self.tick, 0, 1), textures.enemy_wild_roamer_bullet, Palette[textures.enemy_wild_roamer_bullet], offset, 0, 0)
-    -- WildRoamerBullet.super.draw(self)
+    -- outline (still per-frame, border color cycles every tick)
+    local border_color = Palette.wild_roamer_mine_border:tick_color(self.tick, 0, 1)
+    graphics.draw_centered_outline(border_color, bullet_tex, 0, 0)
+
+    -- cached palettized sprite (no shader needed)
+    if cache then
+        local frame_offset = floor(offset) % cache.num_offsets
+        graphics.draw_centered(cache.frames[frame_offset], 0, 0)
+    else
+        graphics.drawp_centered(bullet_tex, Palette[bullet_tex], offset, 0, 0)
+    end
+
     if self.tick < 4 then
         local x, y = self:to_local(self.start_x, self.start_y)
         graphics.set_color(Color.white)

@@ -1,5 +1,7 @@
 local input_presets = require "conf.input_presets"
 
+
+
 local lldebuggerPatcher = require("lib.lldebuggerpatcher")
 
 _, steam = pcall(require, "luasteam")
@@ -13,6 +15,8 @@ if type(steam) == "table" then
 else
 	steam = nil
 end
+
+GLOBAL_SCORE_MULTIPLIER = 1
 
 TRIGGER_DEADZONE = 0.25
 IS_EXPORT = not pcall(require, "tools.is_debug")

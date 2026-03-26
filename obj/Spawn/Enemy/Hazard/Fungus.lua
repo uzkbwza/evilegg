@@ -26,6 +26,8 @@ local function _propagation_checker(other)
 	_current_propagator:_is_valid_propagation_spot(other)
 end
 
+local _palette_cache = graphics.palette_sprite_cache
+
 Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
 Fungus.cannot_hit_egg = true
@@ -72,6 +74,7 @@ function Fungus:new(x, y)
 	self.death_sfx = "hazard_fungus_die"
     self.hit_bubble_radius = nil
     self.palette = nil
+    self.melee_attacking = false
     if self.friendly then
         self.intangible = true
         self:start_tick_timer("spawn_invulnerability", 7, self.end_spawn_invulnerability, self)
@@ -222,12 +225,8 @@ function Fungus:on_healed()
 			self.big = true
 			self:set_bubble_radius("hurt", "main", self.hurt_bubble_radius_big)
 			local damage = self.friendly and FRIENDLY_DAMAGE or 1
-			self:add_hit_bubble(-2.5, 2, self.hit_bubble_radius_big, "main1", damage)
-			self:add_hit_bubble(-2.5, -2, self.hit_bubble_radius_big, "main2", damage)
-			self:add_hit_bubble(2.5, 2, self.hit_bubble_radius_big, "main3", damage)
-			self:add_hit_bubble(2, -2, self.hit_bubble_radius_big, "main4", damage)
-			-- self:add_hit_bubble(0, 0, self.hit_bubble_radius_big * 2, "main5", 1)
-			-- self:set_bubble_radius("hit", "main", self.hit_bubble_radius_big)
+			self:add_hit_bubble(0, 0, self.hit_bubble_radius_big * 2, "main", damage)
+			self.melee_attacking = true
 			self.declump_radius = 16
 			self.declump_mass = 2
 		end)
@@ -319,6 +318,24 @@ end
 
 function Fungus:get_palette()
 	return nil, floor(self.random_offset + gametime.tick / (self.big and 5 or 12))
+end
+
+function Fungus:draw_sprite()
+	local palette, palette_index = self:get_palette_shared()
+	local texture = self:get_sprite()
+
+	-- use cached spritesheet for default palette (no shader swap needed)
+	local cache = _palette_cache[texture]
+	if cache and palette == Palette[texture] then
+		local h_flip, v_flip = self:get_sprite_flip()
+		local offset = floor(palette_index) % cache.num_offsets
+		graphics.draw_centered(cache.frames[offset], 0, 0, 0, h_flip, v_flip)
+		return
+	end
+
+	-- fallback for non-default palettes (damage flash, shield, etc)
+	local h_flip, v_flip = self:get_sprite_flip()
+	graphics.drawp_centered(texture, palette, palette_index, 0, 0, 0, h_flip, v_flip)
 end
 
 function Fungus:draw()

@@ -619,7 +619,7 @@ local function process_pickup_table(tab, subtype, base_name)
 
         if subtype == "artefact" then
             v.destroy_xp = v.destroy_xp or (v.is_secondary_weapon and 1800 or 1500)
-            v.destroy_score = v.destroy_score or (v.is_secondary_weapon and 750 or 500)
+            v.destroy_score = (v.destroy_score or (v.is_secondary_weapon and 750 or 500)) * GLOBAL_SCORE_MULTIPLIER
         end
 
         if subtype == "artefact" and v.is_secondary_weapon then
@@ -670,5 +670,6 @@ local tab = {
 	hearts = process_pickup_table(Hearts, "heart", "BaseHeart"),
     artefacts = process_pickup_table(Artefacts, "artefact", "BaseArtefact"),
 }
+
 
 return tab

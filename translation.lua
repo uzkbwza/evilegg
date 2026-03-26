@@ -149,6 +149,9 @@ local translations = {
         bonus_reckless                    = "RECKLESS",
         bonus_reckless_codex              = "Earn a Quick Wave without firing any bullets.",
 
+        bonus_final_room_clear            = "GAME CLEAR",
+        bonus_final_room_clear_codex      = "You defeated the evil egg.",
+
         end_bonus_final_room_clear_name = "MATRICIDE",
         end_bonus_final_room_clear     = "You defeated the evil egg.",
 

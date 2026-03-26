@@ -35,6 +35,9 @@ function ShotgunnerBullet:filter_melee_attack(bubble)
 	if bubble.parent.is_shotgun_bullet then
 		return false
 	end
+	if bubble.parent.bullet_passthrough then
+		return false
+	end
 	return true
 end
 
@@ -148,20 +151,30 @@ function Shotgunner:update(dt)
 	local dist = self:get_body_distance_to_player()
 	local dx, dy = self:get_body_direction_to_player()
 
-	if dist < 60 then 
-        self.is_roaming = false
-		self:apply_force(dx * -0.15, dy * -0.15)
-    else
-		self.is_roaming = true
+	if not self.preparing_to_shoot then
+		if dist < 60 then
+			self.roaming = false
+			self:apply_force(dx * -0.15, dy * -0.15)
+		else
+			self.roaming = true
+		end
 	end
 
     if self.is_new_tick and rng:percent(16) then
 		dx, dy = vec2_snap_angle(dx, dy, 16, 0)
         self.aim_direction.x, self.aim_direction.y = dx, dy
 
-		if rng:percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 then 
-			self:start_tick_timer("shoot_timer", 155)
-			self:shoot()
+		if rng:percent(15) and not self:is_tick_timer_running("shoot_timer") and dist < 220 and not self.preparing_to_shoot then
+            self.preparing_to_shoot = true
+            self:play_sfx("enemy_shotgunner_prepare_to_shoot", 0.9, 1)
+            self.roaming = false
+            self:start_stopwatch("prepare_shoot")
+			self:start_tick_timer("prepare_shoot", 17, function()
+				self.preparing_to_shoot = false 
+                self:start_tick_timer("shoot_timer", 155)
+                self:stop_stopwatch("prepare_shoot")
+				self:shoot()
+			end)
 		end
 	end
 end
@@ -210,7 +223,13 @@ end
 function Shotgunner:draw_shotgun()
 	local shotgun_index, shotgun_rotation, y_scale = get_16_way_from_3_base_sprite(self.aim_direction:angle())
     local shotgun_sprite = shotgun_sprites[shotgun_index]
-	local palette, palette_index = self:get_palette_shared()
+	local palette, palette_index = Palette[shotgun_sprite], 0
+	if self.preparing_to_shoot then
+		local stopwatch = self:get_stopwatch("prepare_shoot")
+		if stopwatch then
+			palette_index = idiv(stopwatch.tick + 2, 2)
+		end
+	end
 	graphics.drawp_centered(shotgun_sprite, palette, palette_index, 0, 0, shotgun_rotation, 1, y_scale)
 end
 

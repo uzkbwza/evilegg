@@ -164,7 +164,7 @@ for _, enemy in pairs(SpawnDataTable.data_by_type["enemy"]) do
             enemy.score = enemy.score + enemy.extra_score
         end
     end
-	enemy.score = stepify_floor(enemy.score, 10)
+	enemy.score = stepify_floor(enemy.score * GLOBAL_SCORE_MULTIPLIER, 10)
 end
 
 process_enemy_table(enemy_table)

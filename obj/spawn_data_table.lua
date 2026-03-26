@@ -600,7 +600,7 @@ end
 for k, v in pairs(Rescues) do
     v.type = "rescue"
     v.spawn_weight = v.spawn_weight or 1000
-	v.score = v.score or 100
+	v.score = (v.score or 100) * GLOBAL_SCORE_MULTIPLIER
 end
 
 for k, v in pairs(Hazards) do

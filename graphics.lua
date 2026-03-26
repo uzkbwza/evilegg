@@ -300,6 +300,105 @@ function graphics.load()
 	}
     textures = graphics.textures
 	fonts = graphics.font
+
+	graphics.build_palette_sprite_caches()
+end
+
+graphics.palette_sprite_cache = {}
+
+function graphics.build_palette_sprite_cache_for(texture)
+	local palette = Palette[texture]
+	if not palette or palette.length <= 0 then return end
+
+	local palettized_texture = graphics.palettized[texture]
+	if not palettized_texture then return end
+
+	local draw_tex, draw_quad, w, h
+	if type(palettized_texture) == "table" and palettized_texture.__isquad then
+		draw_tex = palettized_texture.texture
+		draw_quad = palettized_texture.quad
+		w = palettized_texture.width
+		h = palettized_texture.height
+	else
+		draw_tex = palettized_texture
+		w = palettized_texture:getWidth()
+		h = palettized_texture:getHeight()
+	end
+
+	local num_offsets = palette.length
+	local sheet_w = w * num_offsets
+
+	local canvas = graphics.new_canvas(sheet_w, h)
+	canvas:setFilter("nearest", "nearest")
+
+	local decode_shader = palette.palette_image
+		and graphics.shader.decode_palette_with_image
+		or graphics.shader.decode_palette
+
+	graphics.push("all")
+	graphics.set_canvas(canvas)
+	graphics.origin()
+	graphics.clear(0, 0, 0, 0)
+	love.graphics.setBlendMode("replace")
+
+	decode_shader:send("palette_size", palette.length)
+	if palette.palette_image then
+		decode_shader:send("palette", palette.palette_image)
+	else
+		decode_shader:send("palette", palette:to_shader_table())
+	end
+
+	graphics.set_shader(decode_shader)
+	for i = 0, num_offsets - 1 do
+		decode_shader:send("palette_offset", i)
+		if draw_quad then
+			love.graphics.draw(draw_tex, draw_quad, i * w, 0)
+		else
+			love.graphics.draw(draw_tex, i * w, 0)
+		end
+	end
+	graphics.set_shader()
+
+	graphics.set_canvas()
+	graphics.pop()
+
+	local image_data = graphics.readback_texture(canvas)
+	local sheet = graphics.new_image(image_data)
+	sheet:setFilter("nearest", "nearest")
+
+	local frames = {}
+	for i = 0, num_offsets - 1 do
+		frames[i] = {
+			__isquad = true,
+			texture = sheet,
+			quad = love.graphics.newQuad(i * w, 0, w, h, sheet_w, h),
+			width = round(w / 2) * 2,
+			height = round(h / 2) * 2,
+		}
+	end
+
+	graphics.palette_sprite_cache[texture] = {
+		frames = frames,
+		num_offsets = num_offsets,
+	}
+end
+
+function graphics.build_palette_sprite_caches()
+	local t = graphics.textures
+	local targets = {
+		t.hazard_mushroom1,
+		t.hazard_mushroom2,
+		t.hazard_friendly_mushroom1,
+		t.hazard_friendly_mushroom2,
+		t.hazard_friendly_mushroom_alt1,
+		t.hazard_friendly_mushroom_alt2,
+		t.enemy_wild_roamer_bullet,
+	}
+	for _, texture in ipairs(targets) do
+		if texture then
+			graphics.build_palette_sprite_cache_for(texture)
+		end
+	end
 end
 
 function graphics.load_font_paths()
