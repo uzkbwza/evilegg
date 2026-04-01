@@ -90,8 +90,18 @@ function GlobalGameState:new()
     rollEasterVariants()
     if IS_EASTER then
         local twin = PickupTable.artefacts.SacrificialTwinArtefact
+        twin.original_icon = twin.original_icon or twin.icon
         twin.icon = textures["pickup_artefact_twin_easter" .. EASTER_TWIN_VARIANT]
         twin.textures = { twin.icon, twin.icon, twin.icon }
+
+        local SpawnDataTable = require("obj.spawn_data_table")
+        local bouncer = SpawnDataTable.Bouncer
+        bouncer.icon_pool = {}
+        for i = 1, 10 do bouncer.icon_pool[i] = textures["enemy_easteregg" .. i] end
+
+        local fast = SpawnDataTable.FastBouncer
+        fast.icon_pool = {}
+        for i = 1, 6 do fast.icon_pool[i] = textures["enemy_easteregg_fast" .. i] end
     end
     self.enable_adaptive_difficulty = false
     self.elapsed = 0
@@ -268,7 +278,7 @@ function GlobalGameState:new()
             self.cheat = true
             self.skip_shadow_selves = false
             self:add_score(57000000, "cheat")
-            self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
+            -- self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
             -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
@@ -280,19 +290,23 @@ function GlobalGameState:new()
             self.rescue_chain_bonus = 20
             self.score_multiplier = stepify(11.0, 0.01)
 
-            self.level = 80
+            self.level = 1
             self.egg_rooms_cleared = floor((self.level - 1) / 20)
             self.hearts = self.max_hearts
 
-            self:gain_artefact(rng:choose(PickupTable.artefacts.BigLaserSecondaryWeapon, PickupTable.artefacts.RailGunSecondaryWeapon, PickupTable.artefacts.SwordSecondaryWeapon))
-
+            do
+                self:gain_artefact(rng:choose(PickupTable.artefacts.BigLaserSecondaryWeapon,
+                PickupTable.artefacts.RailGunSecondaryWeapon, PickupTable.artefacts.SwordSecondaryWeapon))
+                self.num_spawned_artefacts = self.num_spawned_artefacts + 1
+            end
+            
             for i = 1, 8 do
                 local artefact = self:get_random_available_artefact()
                 while artefact.alternative_gain_function do
                     artefact = self:get_random_available_artefact()
                 end
-                self:gain_artefact(artefact)
-                self.num_spawned_artefacts = self.num_spawned_artefacts + 1
+                -- self:gain_artefact(artefact)
+                -- self.num_spawned_artefacts = self.num_spawned_artefacts + 1
             end
 
             for i = 1, self:get_max_number_of_upgrades()-2 do
@@ -1630,6 +1644,13 @@ function GlobalGameState:set_score(score)
 end
 
 function GlobalGameState:exit()
+    if IS_EASTER then
+        local twin = PickupTable.artefacts.SacrificialTwinArtefact
+        if twin.original_icon then
+            twin.icon = twin.original_icon
+            twin.textures = { twin.icon, twin.icon, twin.icon }
+        end
+    end
     time_checker:stop()
 end
 

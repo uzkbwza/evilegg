@@ -207,6 +207,8 @@ local Artefacts = {
             return 100000000000000000
         end,
 
+        debug_spawn_weight = 1000000000000000000,
+
 		remove_function = function(game_state, slot)
             game_state:set_selected_artefact_slot(slot)
 		end,

@@ -1078,8 +1078,8 @@ function CodexWorld:get_spawns(page_category)
 			end
 
 			local entry = {
-				icon = t.icon,
-				sprite = t.sprite or t.textures[1],
+				icon = t.codex_icon or t.icon,
+				sprite = t.codex_sprite or t.sprite or t.textures[1],
 				name = t.name,
                 description = t.description,
 				codex_save_name = t.name,

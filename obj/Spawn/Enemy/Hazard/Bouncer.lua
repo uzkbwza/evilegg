@@ -35,7 +35,8 @@ function Bouncer:new(x, y)
 	self.body_height = 4
     self.no_damage_flash = true
     self.hurt_sfx = "enemy_hurt"
-	self.hurt_sfx_volume = 0.0
+    self.hurt_sfx_volume = 0.0
+
 end
 
 function Bouncer:is_invulnerable()
@@ -43,6 +44,10 @@ function Bouncer:is_invulnerable()
 end
 
 function Bouncer:enter()
+    if IS_EASTER and self.world.room.easter_icons and self.world.room.easter_icons[self.class.__class_type_name] then
+        self.easter_tex = self.world.room.easter_icons[self.class.__class_type_name]
+        self.world.room.easter_icons[self.class.__class_type_name] = nil
+    end
 	self:hazard_init()
 end
 
@@ -56,6 +61,9 @@ if IS_EASTER then
         easter_textures[i] = textures["enemy_easteregg" .. i]
     end
     function Bouncer:get_sprite()
+        if self.easter_tex then 
+            return self.easter_tex
+        end
         return easter_textures[1 + (self.random_offset % 10)]
     end    
 else
@@ -86,6 +94,9 @@ if IS_EASTER then
         easter_textures[i] = textures["enemy_easteregg_fast" .. i]
     end
     function FastBouncer:get_sprite()
+        if self.easter_tex then 
+            return self.easter_tex
+        end
         return easter_textures[1 + (self.random_offset % 6)]
     end
 else

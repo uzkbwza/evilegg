@@ -219,7 +219,16 @@ function RoomObject:add_spawn_lines(tab, sort_func)
                     graphics.pop()
                     table.insert(current_icons, canvas)
                 else
-                    local icon = spawn.icon
+                    local icon
+                    local easter_icon = spawn.icon_pool and spawn.icon_pool[math.random(#spawn.icon_pool)]
+                    
+                    if easter_icon then
+                        icon = easter_icon
+                        self.stored_room.easter_icons = self.stored_room.easter_icons or {}
+                        self.stored_room.easter_icons[spawn.name] = easter_icon
+                    else
+                        icon = spawn.icon
+                    end
                     -- local icon = graphics.depalettized[spawn.icon]
                     -- print(spawn.name)
                     local width, height = graphics.texture_data[icon]:getDimensions()
