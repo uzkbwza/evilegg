@@ -220,7 +220,7 @@ function RoomObject:add_spawn_lines(tab, sort_func)
                     table.insert(current_icons, canvas)
                 else
                     local icon
-                    local easter_icon = spawn.icon_pool and spawn.icon_pool[math.random(#spawn.icon_pool)]
+                    local easter_icon = spawn.icon_pool and spawn.icon_pool[rng:randi(1, #spawn.icon_pool)]
                     
                     if easter_icon then
                         icon = easter_icon

@@ -46,8 +46,8 @@ IS_EASTER = is_easter or (debug.enabled and force_easter)
 
 function rollEasterVariants()
     if IS_EASTER then
-        EASTER_PLAYER_EGG_VARIANT = math.random(1, 7)
-        EASTER_TWIN_VARIANT = math.random(1, 7)
+        EASTER_PLAYER_EGG_VARIANT = rng:randi(1, 7)
+        EASTER_TWIN_VARIANT = rng:randi(1, 7)
     end
 end
 
