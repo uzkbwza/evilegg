@@ -52,6 +52,10 @@ local SECONDARY_BUFFER_TIME = 3
 local MOUSE_FIRE_BOARD_BUFFER = 3
 local PRAYER_KNOT_CHARGE_TIME = 65
 
+local function get_player_egg_texture()
+    return IS_EASTER and textures["player_easter_egg" .. EASTER_PLAYER_EGG_VARIANT] or textures.player_egg
+end
+
 -- Rumble easing functions (avoids per-call allocations)
 local player_egg_hatch_rumble_func = function(t)
     return 0.25 * (1 -  ease("outQuad")(t))
@@ -115,6 +119,7 @@ function PlayerCharacter:new(x, y)
 
     self.bullets_fired = 0
     self.shoot_held_time = 0
+    self.random_offset = rng:randi() % 256
 
     -- self.damage = 1
 
@@ -239,7 +244,7 @@ end
 
 function PlayerCharacter:state_GameStart_draw()
     -- self:body_translate()
-    local texture = textures.player_egg
+    local texture = get_player_egg_texture()
 	local palette, offset = self:get_palette()
     graphics.drawp_centered(texture, palette, offset, self.egg_offset.x, self.egg_offset.y)
 
@@ -292,9 +297,10 @@ function PlayerCharacter:state_GameStart_exit()
     vel_x, vel_y = vec2_mul_scalar(vel_x, vel_y, 20)
 	
 	self:spawn_object(JustTheSplatter(bx, by, 20, 20, 3.0))
-	self:spawn_object(DeathFlash(bx, by, textures.player_egg, 0.25, nil, nil, false))
-	self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, vel_x, vel_y, 0, 0, 3.0))
-	-- self:spawn_object(DeathSplatter(bx, by, 1, textures.player_egg, Palette[textures.player_egg], 1.0, 0, 0, 0, 0, 2.0))
+	local egg_tex = get_player_egg_texture()
+	self:spawn_object(DeathFlash(bx, by, egg_tex, 0.25, nil, nil, false))
+	self:spawn_object(DeathSplatter(bx, by, 1, egg_tex, Palette[egg_tex], 1.0, vel_x, vel_y, 0, 0, 3.0))
+	-- self:spawn_object(DeathSplatter(bx, by, 1, egg_tex, Palette[egg_tex], 1.0, 0, 0, 0, 0, 2.0))
     self:emit_signal("hatched")
     input.start_rumble(player_egg_hatch_rumble_func, 25)
     self.egg_offset = nil

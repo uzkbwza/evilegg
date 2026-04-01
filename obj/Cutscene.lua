@@ -168,7 +168,7 @@ function BeginningCutscene:new(x, y)
     self.eggs = eggs
     
     table.insert(eggs, {
-        tex = textures.player_egg,
+        tex = IS_EASTER and textures["player_easter_egg" .. EASTER_PLAYER_EGG_VARIANT] or textures.player_egg,
         x = -30,
         y = -800,
         speed = 0.5,
@@ -176,9 +176,9 @@ function BeginningCutscene:new(x, y)
         trail_color = Color.magenta,
         -- scale = 1.0,
     })
-    
+
     table.insert(eggs, {
-        tex = textures.pickup_artefact_twin,
+        tex = IS_EASTER and textures["pickup_artefact_twin_easter" .. EASTER_TWIN_VARIANT] or textures.pickup_artefact_twin,
         x = 30,
         y = -800,
         speed = 0.45,

@@ -1,3 +1,5 @@
+local twin_icon = IS_EASTER and textures["pickup_artefact_twin_easter" .. EASTER_TWIN_VARIANT] or textures.pickup_artefact_twin
+
 local Upgrades = {
 	BaseUpgrade = {
         spawn_weight = 1000,
@@ -188,7 +190,7 @@ local Artefacts = {
     },
 	
 	SacrificialTwinArtefact = {
-        icon = textures.pickup_artefact_twin,
+        icon = twin_icon,
 		key = "sacrificial_twin",
 		name = "artefact_sacrificial_twin_name",
 		description = "artefact_sacrificial_twin_desc",

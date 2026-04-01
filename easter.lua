@@ -17,10 +17,13 @@ function getEasterDate(year)
     return month, day
 end
 
--- Check if a given date is Easter Sunday
-function isEaster(year, month, day)
+-- Check if a given date is within Easter week (Monday before Easter through Easter Sunday)
+function isEasterWeek(year, month, day)
     local easterMonth, easterDay = getEasterDate(year)
-    return month == easterMonth and day == easterDay
+    local easterTime = os.time({ year = year, month = easterMonth, day = easterDay })
+    local mondayTime = easterTime - 6 * 86400
+    local todayTime = os.time({ year = year, month = month, day = day })
+    return todayTime >= mondayTime and todayTime <= easterTime
 end
 
 local is_easter = false
@@ -28,7 +31,7 @@ local is_easter = false
 -- Check today's date
 local today = os.date("*t")
 
-is_easter = isEaster(today.year, today.month, today.day)
+is_easter = isEasterWeek(today.year, today.month, today.day)
 
 if debug.enabled then
     print("\nEaster dates:")
@@ -40,3 +43,12 @@ end
 
 local force_easter = false
 IS_EASTER = is_easter or (debug.enabled and force_easter)
+
+function rollEasterVariants()
+    if IS_EASTER then
+        EASTER_PLAYER_EGG_VARIANT = math.random(1, 7)
+        EASTER_TWIN_VARIANT = math.random(1, 7)
+    end
+end
+
+rollEasterVariants()

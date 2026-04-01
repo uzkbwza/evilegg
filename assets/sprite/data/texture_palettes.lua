@@ -1046,177 +1046,219 @@ return {
 		[1] = "assets/sprite/pickup/artefact_twin.png",
 	},
 	[344] = {
-		[1] = "assets/sprite/pickup/artefact_warbell.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter1.png",
 	},
 	[345] = {
-		[1] = "assets/sprite/pickup/disc1.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter2.png",
 	},
 	[346] = {
-		[1] = "assets/sprite/pickup/disc2.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter3.png",
 	},
 	[347] = {
-		[1] = "assets/sprite/pickup/empty_heart_icon.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter4.png",
 	},
 	[348] = {
-		[1] = "assets/sprite/pickup/heart_icon.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter5.png",
 	},
 	[349] = {
-		[1] = "assets/sprite/pickup/heart_icon2.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter6.png",
 	},
 	[350] = {
-		[1] = "assets/sprite/pickup/heart_placeholder.png",
+		[1] = "assets/sprite/pickup/artefact_twin_easter7.png",
 	},
 	[351] = {
-		[1] = "assets/sprite/pickup/item_placeholder.png",
+		[1] = "assets/sprite/pickup/artefact_warbell.png",
 	},
 	[352] = {
-		[1] = "assets/sprite/pickup/placeholder.png",
+		[1] = "assets/sprite/pickup/disc1.png",
 	},
 	[353] = {
-		[1] = "assets/sprite/pickup/powerup_ammo1.png",
+		[1] = "assets/sprite/pickup/disc2.png",
 	},
 	[354] = {
-		[1] = "assets/sprite/pickup/powerup_ammo2.png",
+		[1] = "assets/sprite/pickup/empty_heart_icon.png",
 	},
 	[355] = {
-		[1] = "assets/sprite/pickup/powerup_lightning1.png",
+		[1] = "assets/sprite/pickup/heart_icon.png",
 	},
 	[356] = {
-		[1] = "assets/sprite/pickup/powerup_lightning2.png",
+		[1] = "assets/sprite/pickup/heart_icon2.png",
 	},
 	[357] = {
-		[1] = "assets/sprite/pickup/powerup_placeholder.png",
+		[1] = "assets/sprite/pickup/heart_placeholder.png",
 	},
 	[358] = {
-		[1] = "assets/sprite/pickup/powerup_rocket1.png",
+		[1] = "assets/sprite/pickup/item_placeholder.png",
 	},
 	[359] = {
-		[1] = "assets/sprite/pickup/powerup_rocket2.png",
+		[1] = "assets/sprite/pickup/placeholder.png",
 	},
 	[360] = {
-		[1] = "assets/sprite/pickup/powerup_shield1.png",
+		[1] = "assets/sprite/pickup/powerup_ammo1.png",
 	},
 	[361] = {
-		[1] = "assets/sprite/pickup/powerup_shield2.png",
+		[1] = "assets/sprite/pickup/powerup_ammo2.png",
 	},
 	[362] = {
-		[1] = "assets/sprite/pickup/upgrade_boost_icon.png",
+		[1] = "assets/sprite/pickup/powerup_lightning1.png",
 	},
 	[363] = {
-		[1] = "assets/sprite/pickup/upgrade_bullet_speed_icon.png",
+		[1] = "assets/sprite/pickup/powerup_lightning2.png",
 	},
 	[364] = {
-		[1] = "assets/sprite/pickup/upgrade_damage_icon.png",
+		[1] = "assets/sprite/pickup/powerup_placeholder.png",
 	},
 	[365] = {
-		[1] = "assets/sprite/pickup/upgrade_fire_rate_icon.png",
+		[1] = "assets/sprite/pickup/powerup_rocket1.png",
 	},
 	[366] = {
-		[1] = "assets/sprite/pickup/upgrade_num_bullets_icon.png",
+		[1] = "assets/sprite/pickup/powerup_rocket2.png",
 	},
 	[367] = {
-		[1] = "assets/sprite/pickup/upgrade_range_icon.png",
+		[1] = "assets/sprite/pickup/powerup_shield1.png",
 	},
 	[368] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser.png",
+		[1] = "assets/sprite/pickup/powerup_shield2.png",
 	},
 	[369] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser_hud.png",
+		[1] = "assets/sprite/pickup/upgrade_boost_icon.png",
 	},
 	[370] = {
-		[1] = "assets/sprite/pickup/weapon_big_laser_icon.png",
+		[1] = "assets/sprite/pickup/upgrade_bullet_speed_icon.png",
 	},
 	[371] = {
-		[1] = "assets/sprite/pickup/weapon_railgun.png",
+		[1] = "assets/sprite/pickup/upgrade_damage_icon.png",
 	},
 	[372] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_hud.png",
+		[1] = "assets/sprite/pickup/upgrade_fire_rate_icon.png",
 	},
 	[373] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_icon.png",
+		[1] = "assets/sprite/pickup/upgrade_num_bullets_icon.png",
 	},
 	[374] = {
-		[1] = "assets/sprite/pickup/weapon_railgun_icon_leaderboard_filter.png",
+		[1] = "assets/sprite/pickup/upgrade_range_icon.png",
 	},
 	[375] = {
-		[1] = "assets/sprite/pickup/weapon_repulsion_field.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser.png",
 	},
 	[376] = {
-		[1] = "assets/sprite/pickup/weapon_sword.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser_hud.png",
 	},
 	[377] = {
-		[1] = "assets/sprite/pickup/weapon_sword_hud.png",
+		[1] = "assets/sprite/pickup/weapon_big_laser_icon.png",
 	},
 	[378] = {
-		[1] = "assets/sprite/pickup/weapon_sword_icon.png",
+		[1] = "assets/sprite/pickup/weapon_railgun.png",
 	},
 	[379] = {
-		[1] = "assets/sprite/pickup/xp.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_hud.png",
 	},
 	[380] = {
-		[1] = "assets/sprite/player/character.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_icon.png",
 	},
 	[381] = {
-		[1] = "assets/sprite/player/egg.png",
+		[1] = "assets/sprite/pickup/weapon_railgun_icon_leaderboard_filter.png",
 	},
 	[382] = {
-		[1] = "assets/sprite/player/hover_fx.png",
+		[1] = "assets/sprite/pickup/weapon_repulsion_field.png",
 	},
 	[383] = {
-		[1] = "assets/sprite/player/rocket1.png",
+		[1] = "assets/sprite/pickup/weapon_sword.png",
 	},
 	[384] = {
-		[1] = "assets/sprite/player/rocket2.png",
+		[1] = "assets/sprite/pickup/weapon_sword_hud.png",
 	},
 	[385] = {
-		[1] = "assets/sprite/player/rocket3.png",
+		[1] = "assets/sprite/pickup/weapon_sword_icon.png",
 	},
 	[386] = {
-		[1] = "assets/sprite/title/egg.png",
+		[1] = "assets/sprite/pickup/xp.png",
 	},
 	[387] = {
-		[1] = "assets/sprite/title/egg1.png",
+		[1] = "assets/sprite/player/character.png",
 	},
 	[388] = {
-		[1] = "assets/sprite/title/egg2.png",
+		[1] = "assets/sprite/player/easter_egg1.png",
 	},
 	[389] = {
-		[1] = "assets/sprite/title/egg3.png",
+		[1] = "assets/sprite/player/easter_egg2.png",
 	},
 	[390] = {
-		[1] = "assets/sprite/title/egg4.png",
+		[1] = "assets/sprite/player/easter_egg3.png",
 	},
 	[391] = {
-		[1] = "assets/sprite/title/sun.png",
+		[1] = "assets/sprite/player/easter_egg4.png",
 	},
 	[392] = {
-		[1] = "assets/sprite/title/sun1.png",
+		[1] = "assets/sprite/player/easter_egg5.png",
 	},
 	[393] = {
-		[1] = "assets/sprite/title/sun2.png",
+		[1] = "assets/sprite/player/easter_egg6.png",
 	},
 	[394] = {
-		[1] = "assets/sprite/title/title_text.png",
+		[1] = "assets/sprite/player/easter_egg7.png",
 	},
 	[395] = {
-		[1] = "assets/sprite/title/title_text_mockup.png",
+		[1] = "assets/sprite/player/egg.png",
 	},
 	[396] = {
-		[1] = "assets/sprite/ui/codex_unknown.png",
+		[1] = "assets/sprite/player/hover_fx.png",
 	},
 	[397] = {
-		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+		[1] = "assets/sprite/player/rocket1.png",
 	},
 	[398] = {
-		[1] = "assets/sprite/ui/glossary/greenoid.png",
+		[1] = "assets/sprite/player/rocket2.png",
 	},
 	[399] = {
-		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+		[1] = "assets/sprite/player/rocket3.png",
 	},
 	[400] = {
-		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+		[1] = "assets/sprite/title/egg.png",
 	},
 	[401] = {
+		[1] = "assets/sprite/title/egg1.png",
+	},
+	[402] = {
+		[1] = "assets/sprite/title/egg2.png",
+	},
+	[403] = {
+		[1] = "assets/sprite/title/egg3.png",
+	},
+	[404] = {
+		[1] = "assets/sprite/title/egg4.png",
+	},
+	[405] = {
+		[1] = "assets/sprite/title/sun.png",
+	},
+	[406] = {
+		[1] = "assets/sprite/title/sun1.png",
+	},
+	[407] = {
+		[1] = "assets/sprite/title/sun2.png",
+	},
+	[408] = {
+		[1] = "assets/sprite/title/title_text.png",
+	},
+	[409] = {
+		[1] = "assets/sprite/title/title_text_mockup.png",
+	},
+	[410] = {
+		[1] = "assets/sprite/ui/codex_unknown.png",
+	},
+	[411] = {
+		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+	},
+	[412] = {
+		[1] = "assets/sprite/ui/glossary/greenoid.png",
+	},
+	[413] = {
+		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+	},
+	[414] = {
+		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+	},
+	[415] = {
 		[1] = "assets/sprite/ui/leaderboard_good_ending.png",
 	},
 }

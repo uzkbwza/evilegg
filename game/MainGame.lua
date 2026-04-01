@@ -87,6 +87,12 @@ GlobalGameState.xp_until_heart = floor(3500 * 3/4)
 GlobalGameState.xp_until_artefact = floor(3000 * 3/4)
 
 function GlobalGameState:new()
+    rollEasterVariants()
+    if IS_EASTER then
+        local twin = PickupTable.artefacts.SacrificialTwinArtefact
+        twin.icon = textures["pickup_artefact_twin_easter" .. EASTER_TWIN_VARIANT]
+        twin.textures = { twin.icon, twin.icon, twin.icon }
+    end
     self.enable_adaptive_difficulty = false
     self.elapsed = 0
     self.tick = 0
@@ -262,7 +268,7 @@ function GlobalGameState:new()
             self.cheat = true
             self.skip_shadow_selves = false
             self:add_score(57000000, "cheat")
-            -- self:gain_artefact(PickupTable.artefacts.WarBellArtefact)
+            self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
             -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)

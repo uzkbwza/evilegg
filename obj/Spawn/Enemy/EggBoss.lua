@@ -2982,8 +2982,9 @@ function EggFinalObject:die()
 
             self.world.floor_drawing = true
             self:spawn_object(JustTheSplatter(0, 0, 20, 20, 3.0))
-            self:spawn_object(DeathFlash(0, 0, textures.player_egg, 0.25, nil, nil, false))
-            self:spawn_object(DeathSplatter(0, 0, 1, textures.player_egg, Palette[textures.player_egg], 1.0, vel_x, vel_y, 0, 0, 3.0))
+            local egg_tex = IS_EASTER and textures["player_easter_egg" .. EASTER_TWIN_VARIANT] or textures.player_egg
+            self:spawn_object(DeathFlash(0, 0, egg_tex, 0.25, nil, nil, false))
+            self:spawn_object(DeathSplatter(0, 0, 1, egg_tex, Palette[egg_tex], 1.0, 0, 0, 0, 0, 3.0))
             self:play_sfx("player_egg_hatch")
 
             s:wait(25)
