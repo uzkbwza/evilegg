@@ -44,15 +44,24 @@ function Bouncer:is_invulnerable()
 end
 
 function Bouncer:enter()
-    if IS_EASTER and self.world.room.easter_icons and self.world.room.easter_icons[self.class.__class_type_name] then
-        self.easter_tex = self.world.room.easter_icons[self.class.__class_type_name]
-        self.world.room.easter_icons[self.class.__class_type_name] = nil
+    if IS_EASTER then
+        if self.world.room.easter_icons and self.world.room.easter_icons[self.class.__class_type_name] then
+            self.easter_tex = self.world.room.easter_icons[self.class.__class_type_name]
+            self.world.room.easter_icons[self.class.__class_type_name] = nil
+        end
+        self.trail_color = Palette[self:get_sprite()]:get_color(3) * trail_mod
     end
 	self:hazard_init()
 end
 
-function Bouncer:get_trail_color()
-    return TRAIL_COLOR
+if IS_EASTER then
+    function Bouncer:get_trail_color()
+        return self.trail_color
+    end
+else
+    function Bouncer:get_trail_color()
+        return TRAIL_COLOR
+    end
 end
 
 if IS_EASTER then
