@@ -678,6 +678,7 @@ function GameObject:_update_stopwatch(name, dt)
 end
 
 function GameObject:stop_stopwatch(name)
+	if not self.stopwatches[name] then return end
 	self:remove_update_function(self.stopwatches[name].func)
     self.stopwatches[name] = nil
 end
