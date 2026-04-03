@@ -36,6 +36,7 @@ local default_usersettings = {
     confine_mouse = "when_aiming", -- when_aiming, always, never
     input_restriction = "none", -- none, twin_analog, twin_digital
     southpaw_mode = false,
+    press_to_shoot = false,
     rumble_intensity = 1.0,
     autofire = false,
     autofire_shoot_to_aim = true,

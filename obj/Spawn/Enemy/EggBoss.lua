@@ -2992,8 +2992,6 @@ function EggFinalObject:die()
             self.world.camera:set_rumble_directly(0, 0)
             
             self.black_hole_open = false
-            -- s:wait(30)
-            -- self:hide()
             
             s:wait(180)
             self.world.floor_drawing = false

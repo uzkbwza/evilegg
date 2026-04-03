@@ -579,7 +579,9 @@ function OptionsMenuWorld:show_menu(page)
                 local key = "options_input_restriction_" .. (value or "")
                 return tr:has_key(key) and tr[key] or "???"
             end,
-            translate_options = true},
+            translate_options = true
+        },
+            {"press_to_shoot", item_type = "toggle"},
             { "southpaw_mode", item_type = "toggle", set_func = function()
                 usersettings:set_setting("southpaw_mode", not usersettings.southpaw_mode)
             end,

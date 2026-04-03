@@ -506,6 +506,10 @@ function PlayerCharacter:can_shoot()
         return false
     end
 
+    if (not input.shoot_held) and usersettings.press_to_shoot then
+        return false
+    end
+
 	if self:get_stopwatch("firing_big_laser") then
 		return false
 	end

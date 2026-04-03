@@ -266,10 +266,11 @@ function ArtefactSpawn:state_Idle_draw()
 		graphics.printp_centered(line, self.font, self.desc_palette_stack, 0, 0, desc_y + (i - 1) * line_height)
 	end
 	
-    if self.artefact.aim_prompt and input:get_prompt_device("gamepad") == "gamepad" then
+    if self.artefact.aim_prompt and input:get_prompt_device("gamepad") == "gamepad" and not usersettings.press_to_shoot then
         graphics.set_font(fonts.depalettized.image_font2)
         graphics.set_color(Color.white)
-        local aim_prompt = string.interpolate(tr.artefact_guide_aim:format(input:get_prompt("aim", "", "┍")), self.text_amount2)
+        local aim_prompt = string.interpolate(tr.artefact_guide_aim:format(input:get_prompt("aim", "", "┍")),
+        self.text_amount2)
         graphics.print_centered(aim_prompt, fonts.depalettized.image_font2, 0, 25)
     end
 	
@@ -292,8 +293,6 @@ function ArtefactSpawn:state_Idle_draw()
 		-- graphics.set_color(Color.red)
 		-- graphics.print_centered(tip3, fonts.depalettized.image_font2, 0, 43)
 	end
-
-
 end
 
 function ArtefactSpawn:state_Idle_update(dt)

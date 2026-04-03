@@ -32,12 +32,15 @@ function OptionsMenuInputButton:get_values()
         end
     end
 
-    if not joystick_value or joystick_value and joystick_value[1] == nil then
-        joystick_value = input.mapping[self.input_action] and input.mapping[self.input_action].joystick
-        if not joystick_value or table.is_empty(joystick_value) then
-            joystick_value = input.mapping[self.input_action] and input.mapping[self.input_action].joystick_axis
-            if joystick_value then
-                joystick_value = { joystick_value.axis }
+    local remap = usersettings.input_remapping[self.input_action]
+    if not (remap and (remap.joystick ~= nil or remap.joystick_axis ~= nil)) then
+        if not joystick_value or joystick_value and joystick_value[1] == nil then
+            joystick_value = input.mapping[self.input_action] and input.mapping[self.input_action].joystick
+            if not joystick_value or table.is_empty(joystick_value) then
+                joystick_value = input.mapping[self.input_action] and input.mapping[self.input_action].joystick_axis
+                if joystick_value then
+                    joystick_value = { joystick_value.axis }
+                end
             end
         end
     end

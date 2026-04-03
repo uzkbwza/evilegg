@@ -271,7 +271,7 @@ function GlobalGameState:new()
 
     if debug.enabled then
 
-        local cheat = true
+        local cheat = false
         self.cheat = cheat
 
         if cheat then

@@ -340,6 +340,7 @@ local translations = {
         options_input_restriction_twin_analog        = "TWIN ANALOG",
         options_input_restriction_twin_digital       = "TWIN DIGITAL",
 
+        options_press_to_shoot       = "MUST HOLD BUTTON TO SHOOT",
         
         options_header_input_map = "INPUT MAP",
 
