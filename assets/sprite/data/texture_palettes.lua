@@ -71,15 +71,20 @@ return {
 	},
 	[22] = {
 		[1] = "assets/sprite/cutscene/egg_from_below.png",
-		[2] = "assets/sprite/ui/glossary/ammo.png",
-		[3] = "assets/sprite/ui/glossary/artefact.png",
-		[4] = "assets/sprite/ui/glossary/lvl.png",
-		[5] = "assets/sprite/ui/glossary/upgrade.png",
-		[6] = "assets/sprite/ui/glossary/wave.png",
-		[7] = "assets/sprite/ui/glossary/xp.png",
-		[8] = "assets/sprite/ui/input1.png",
-		[9] = "assets/sprite/ui/input2.png",
-		[10] = "assets/sprite/ui/input3.png",
+		[2] = "assets/sprite/player/easter_egg1.sync-conflict-20260403-221847-4YNCZZV.png",
+		[3] = "assets/sprite/player/easter_egg2.sync-conflict-20260403-221847-4YNCZZV.png",
+		[4] = "assets/sprite/player/easter_egg3.sync-conflict-20260403-221847-4YNCZZV.png",
+		[5] = "assets/sprite/player/easter_egg4.sync-conflict-20260403-221847-4YNCZZV.png",
+		[6] = "assets/sprite/player/easter_egg5.sync-conflict-20260403-221847-4YNCZZV.png",
+		[7] = "assets/sprite/ui/glossary/ammo.png",
+		[8] = "assets/sprite/ui/glossary/artefact.png",
+		[9] = "assets/sprite/ui/glossary/lvl.png",
+		[10] = "assets/sprite/ui/glossary/upgrade.png",
+		[11] = "assets/sprite/ui/glossary/wave.png",
+		[12] = "assets/sprite/ui/glossary/xp.png",
+		[13] = "assets/sprite/ui/input1.png",
+		[14] = "assets/sprite/ui/input2.png",
+		[15] = "assets/sprite/ui/input3.png",
 	},
 	[23] = {
 		[1] = "assets/sprite/cutscene/egg_pillar.png",
@@ -1180,87 +1185,90 @@ return {
 		[1] = "assets/sprite/player/character.png",
 	},
 	[389] = {
-		[1] = "assets/sprite/player/easter_egg1.png",
+		[1] = "assets/sprite/player/easter_egg.sync-conflict-20260403-221847-4YNCZZV.png",
 	},
 	[390] = {
-		[1] = "assets/sprite/player/easter_egg2.png",
+		[1] = "assets/sprite/player/easter_egg1.png",
 	},
 	[391] = {
-		[1] = "assets/sprite/player/easter_egg3.png",
+		[1] = "assets/sprite/player/easter_egg2.png",
 	},
 	[392] = {
-		[1] = "assets/sprite/player/easter_egg4.png",
+		[1] = "assets/sprite/player/easter_egg3.png",
 	},
 	[393] = {
-		[1] = "assets/sprite/player/easter_egg5.png",
+		[1] = "assets/sprite/player/easter_egg4.png",
 	},
 	[394] = {
-		[1] = "assets/sprite/player/easter_egg6.png",
+		[1] = "assets/sprite/player/easter_egg5.png",
 	},
 	[395] = {
-		[1] = "assets/sprite/player/easter_egg7.png",
+		[1] = "assets/sprite/player/easter_egg6.png",
 	},
 	[396] = {
-		[1] = "assets/sprite/player/egg.png",
+		[1] = "assets/sprite/player/easter_egg7.png",
 	},
 	[397] = {
-		[1] = "assets/sprite/player/hover_fx.png",
+		[1] = "assets/sprite/player/egg.png",
 	},
 	[398] = {
-		[1] = "assets/sprite/player/rocket1.png",
+		[1] = "assets/sprite/player/hover_fx.png",
 	},
 	[399] = {
-		[1] = "assets/sprite/player/rocket2.png",
+		[1] = "assets/sprite/player/rocket1.png",
 	},
 	[400] = {
-		[1] = "assets/sprite/player/rocket3.png",
+		[1] = "assets/sprite/player/rocket2.png",
 	},
 	[401] = {
-		[1] = "assets/sprite/title/egg.png",
+		[1] = "assets/sprite/player/rocket3.png",
 	},
 	[402] = {
-		[1] = "assets/sprite/title/egg1.png",
+		[1] = "assets/sprite/title/egg.png",
 	},
 	[403] = {
-		[1] = "assets/sprite/title/egg2.png",
+		[1] = "assets/sprite/title/egg1.png",
 	},
 	[404] = {
-		[1] = "assets/sprite/title/egg3.png",
+		[1] = "assets/sprite/title/egg2.png",
 	},
 	[405] = {
-		[1] = "assets/sprite/title/egg4.png",
+		[1] = "assets/sprite/title/egg3.png",
 	},
 	[406] = {
-		[1] = "assets/sprite/title/sun.png",
+		[1] = "assets/sprite/title/egg4.png",
 	},
 	[407] = {
-		[1] = "assets/sprite/title/sun1.png",
+		[1] = "assets/sprite/title/sun.png",
 	},
 	[408] = {
-		[1] = "assets/sprite/title/sun2.png",
+		[1] = "assets/sprite/title/sun1.png",
 	},
 	[409] = {
-		[1] = "assets/sprite/title/title_text.png",
+		[1] = "assets/sprite/title/sun2.png",
 	},
 	[410] = {
-		[1] = "assets/sprite/title/title_text_mockup.png",
+		[1] = "assets/sprite/title/title_text.png",
 	},
 	[411] = {
-		[1] = "assets/sprite/ui/codex_unknown.png",
+		[1] = "assets/sprite/title/title_text_mockup.png",
 	},
 	[412] = {
-		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
+		[1] = "assets/sprite/ui/codex_unknown.png",
 	},
 	[413] = {
-		[1] = "assets/sprite/ui/glossary/greenoid.png",
+		[1] = "assets/sprite/ui/codex_unknown_sprite.png",
 	},
 	[414] = {
-		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
+		[1] = "assets/sprite/ui/glossary/greenoid.png",
 	},
 	[415] = {
-		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+		[1] = "assets/sprite/ui/leaderboard_bad_ending.png",
 	},
 	[416] = {
+		[1] = "assets/sprite/ui/leaderboard_best_ending.png",
+	},
+	[417] = {
 		[1] = "assets/sprite/ui/leaderboard_good_ending.png",
 	},
 }

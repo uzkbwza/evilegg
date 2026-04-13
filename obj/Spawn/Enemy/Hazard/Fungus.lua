@@ -26,7 +26,6 @@ local function _propagation_checker(other)
 	_current_propagator:_is_valid_propagation_spot(other)
 end
 
-local _palette_cache = graphics.palette_sprite_cache
 
 Fungus.spawn_sfx = "hazard_fungus_spawn"
 Fungus.spawn_sfx_volume = 0.2
@@ -325,7 +324,7 @@ function Fungus:draw_sprite()
 	local texture = self:get_sprite()
 
 	-- use cached spritesheet for default palette (no shader swap needed)
-	local cache = _palette_cache[texture]
+	local cache = graphics.palette_sprite_cache[texture]
 	if cache and palette == Palette[texture] then
 		local h_flip, v_flip = self:get_sprite_flip()
 		local offset = floor(palette_index) % cache.num_offsets
