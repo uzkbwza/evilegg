@@ -42,7 +42,9 @@ if debug.enabled then
 end
 
 local force_easter = false
-IS_EASTER = is_easter or (debug.enabled and force_easter)
+-- on real easter week is_easter wins, so the setting changes nothing then.
+-- usersettings loads before this file (see main.lua)
+IS_EASTER = is_easter or (debug.enabled and force_easter) or (usersettings and usersettings.force_easter) or false
 
 function rollEasterVariants()
     if IS_EASTER then

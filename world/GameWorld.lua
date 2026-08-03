@@ -2409,8 +2409,16 @@ function GameWorld:draw_top_info()
 	graphics.set_color(Color.darkergrey)
 	
 	
-	graphics.translate(charwidth * 20 + 6, 0)
-	graphics.translate(charwidth * 11 + 3, 0)
+	local scoremult1 = "×["
+	local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
+	local scoremult3 = string.format("×%02d", max(1, game_state:get_rescue_chain_multiplier()))
+	local scoremult4 = "   "
+	local scoremult5 = "]"
+	local scoremult_width = font:getWidth(scoremult1 .. scoremult2 .. scoremult3 .. scoremult4 .. scoremult5)
+
+	-- push the row right so the "]" ink (not its built-in black padding) sits flush
+	-- with the map border line. tweak the +4 by 1 if the border ever moves.
+	graphics.translate(conf.room_size.x + 4 - scoremult_width, 0)
 
 
 	local category_high = savedata:get_category_highs(game_state.leaderboard_category)
@@ -2442,14 +2450,6 @@ function GameWorld:draw_top_info()
 	graphics.set_color(beat_high and Palette.high_score_ingame:tick_color(self.tick, 0, 7) or border_color)
 	graphics.print_right_aligned(score_without_zeroes, font, 0, 0)
 	graphics.set_color(Color.grey)
-	
-	local scoremult1 = "×["
-	-- local scoremult6 = "["
-	local scoremult2 = string.format("%-.2f", game_state:get_score_multiplier(false))
-	local scoremult3 = string.format("×%02d", max(1, game_state:get_rescue_chain_multiplier()))
-	-- local scoremult3 = string.format("+%02d", game_state:get_rescue_chain_multiplier())
-	local scoremult4 = "   "
-    local scoremult5 = "]"
 
 	local greenoid_color = Color.green
 	if self:is_timer_running("greenoid_harmed_flash") then

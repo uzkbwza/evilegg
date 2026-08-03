@@ -20,7 +20,7 @@ local translations = {
         bonus_screen_total = "TOTAL",
         bonus_screen_continue = "PRESS %s TO CONTINUE",
 
-        room_has_max_points = "HI SCORE",
+        -- room_has_max_points = "HI SCORE",
         -- room_is_bonus = "BONUS",
         room_is_hard = "HARD",
 
@@ -317,6 +317,8 @@ local translations = {
         
         options_enable_leaderboard_pausing_tip       = "Disables pausing.",
         options_input_restriction_tip                = "Useful for entering specific leaderboards.",
+        options_force_easter                         = "Easter Mode",
+        options_force_easter_tip                     = "Requires restart.",
         
         options_confine_mouse_when_aiming            = "When Aiming",
         options_confine_mouse_always                 = "Always",
@@ -536,7 +538,6 @@ local translations = {
         codex_glossary_name_pickup          = "Pickup",
         codex_glossary_desc_pickup          = "This refers to upgrades, artefacts, hearts, missiles, and extra ammo. All of these are carried by Greenoids, except for artefacts, which are beamed to you from orbit post-level.",
 
-        codex_glossary_room_has_max_points  = "This room has the highest potential point value from enemies and Greenoids.",
         codex_glossary_room_is_hard         = "This room is extra difficult.",
 
         codex_glossary_name_lvl             = "Lvl",

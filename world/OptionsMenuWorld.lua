@@ -620,6 +620,10 @@ function OptionsMenuWorld:show_menu(page)
             { "allow_windowed_mode_on_steam_deck", item_type = "toggle", skip = conf.platform ~= "steamdeck" },
             
             { "highlight_new_codex_entries",       item_type = "toggle" },
+
+            -- hidden until the player has gotten the good ending (kept the twin egg)
+            { "force_easter", item_type = "toggle", tip = "force_easter_tip",
+                skip = (savedata.planets_saved or 0) <= 0 },
             { "enter_name", item_type = "button", select_func = function()
                 self:emit_signal("enter_name_requested")
             end, },

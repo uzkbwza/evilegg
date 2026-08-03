@@ -2015,7 +2015,7 @@ function HoverBackblast:enter()
     b2x, b2y = vec2_rotated(b2x, b2y, tau / 6)
     b3x, b3y = vec2_rotated(b3x, b3y, -tau / 6)
 
-    local damage = 2.0 + game_state:get_effective_damage() * 1.0
+    local damage = 4.0 + game_state:get_effective_damage() * 1
     self.damage = damage
 
     self:add_hit_bubble(b1x + offsx, b1y + offsy, 16, "main", damage)

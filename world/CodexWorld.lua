@@ -88,11 +88,6 @@ local GLOSSARY_ENTRIES = {
         start_unlocked = true,
     },
     {
-        name = "room_has_max_points",
-        description = "codex_glossary_room_has_max_points",
-        start_unlocked = true,
-    },
-    {
         name = "room_is_hard",
         description = "codex_glossary_room_is_hard",
     },

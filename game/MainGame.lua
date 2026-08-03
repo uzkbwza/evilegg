@@ -271,24 +271,24 @@ function GlobalGameState:new()
 
     if debug.enabled then
 
-        local cheat = false
+        local cheat = true
         self.cheat = cheat
 
         if cheat then
             self.cheat = true
             self.skip_shadow_selves = false
-            self:add_score(57000000, "cheat")
+            -- self:add_score(57000000, "cheat")
             -- self:gain_artefact(PickupTable.artefacts.SacrificialTwinArtefact)
             -- self:gain_artefact(PickupTable.artefacts.DeathCapArtefact)
             -- self:gain_artefact(PickupTable.artefacts.BulletSpeedStackArtefact)
-            -- self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
+            self:gain_artefact(PickupTable.artefacts.BoostDamageArtefact)
             -- self:gain_artefact(PickupTable.artefacts.ClockArtefact)
             self.num_queued_artefacts = 1
             self.num_queued_upgrades = 1
             self.num_queued_hearts = 1
             self.rescue_chain = 20
             self.rescue_chain_bonus = 20
-            self.score_multiplier = stepify(11.0, 0.01)
+            -- self.score_multiplier = stepify(11.0, 0.01)
 
             self.level = 1
             self.egg_rooms_cleared = floor((self.level - 1) / 20)
@@ -1328,7 +1328,6 @@ end
 
 function GlobalGameState:on_artefact_destroyed(artefact)
 	if artefact.key == "sacrificial_twin" then
-		self:queue_level_bonus("twin_killed")
 		self.used_sacrificial_twin = true
 	end
 	if not artefact.infinite_spawns then

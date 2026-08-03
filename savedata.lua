@@ -235,6 +235,14 @@ function savedata:load()
 		self.new_codex_items["Horror"] = nil
 	end
 
+	-- Remove HI SCORE room entry from codex (feature removed)
+	if self.codex_items["room_has_max_points"] then
+		self.codex_items["room_has_max_points"] = nil
+	end
+	if self.new_codex_items["room_has_max_points"] then
+		self.new_codex_items["room_has_max_points"] = nil
+	end
+
 	-- print("uid: ", self:get_uid())
 end
 

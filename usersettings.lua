@@ -51,6 +51,7 @@ local default_usersettings = {
     allow_windowed_mode_on_steam_deck = false,
     highlight_new_codex_entries = true,
     enable_tutorial = true,
+    force_easter = false,
 }
 
 local usersettings = {}

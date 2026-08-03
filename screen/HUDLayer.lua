@@ -591,7 +591,8 @@ function HUDLayer:pre_world_draw()
         local text = format_hhmmssms1(game_state.game_time_ms)
         graphics.push("all")
         graphics.translate(self.viewport_size.x / 2, self.viewport_size.y / 2)
-		graphics.print(text, conf.room_size.x / 2 - 1 - font2:getWidth(text), 96)
+		-- right edge lines up with the in-game score/multiplier display (map border line)
+		graphics.print(text, conf.room_size.x / 2 + 2 - font2:getWidth(text), 96)
         graphics.pop()
 	end
 
